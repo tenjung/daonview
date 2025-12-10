@@ -12,6 +12,7 @@ export default function Navbar() {
           <Link href="/campaigns" className="font-medium text-text-secondary hover:text-primary transition-colors">캠페인</Link>
           <Link href="/reviews" className="font-medium text-text-secondary hover:text-primary transition-colors">리뷰</Link>
           <Link href="/brand" className="font-medium text-text-secondary hover:text-primary transition-colors">브랜드존</Link>
+          <Link href="/guide" className="font-medium text-text-secondary hover:text-primary transition-colors">이용가이드</Link>
           <Link href="/community" className="font-medium text-text-secondary hover:text-primary transition-colors">커뮤니티</Link>
         </div>
 

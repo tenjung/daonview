@@ -65,7 +65,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-4">
                 {latestCampaigns.map(cam => (
-                  <div key={cam.id} className="flex gap-4 pb-4 border-b border-slate-100 last:border-none last:pb-0">
+                  <Link key={cam.id} href={`/campaigns/${cam.id}`} className="flex gap-4 pb-4 border-b border-slate-100 last:border-none last:pb-0 hover:bg-slate-50 transition-colors p-2 rounded-lg -mx-2">
                     <div className="w-[70px] h-[70px] bg-rose-100 rounded-lg flex-shrink-0" />
                     <div className="flex-1 flex flex-col justify-center">
                       <div className="flex gap-2 mb-1 text-xs items-center">
@@ -80,7 +80,7 @@ export default function Home() {
                         <span>{cam.applicants}명 신청중</span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </div>
