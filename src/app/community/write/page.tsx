@@ -6,7 +6,7 @@ import TiptapEditor from "@/components/editor/TiptapEditor";
 
 export default function WritePage() {
     return (
-        <div className="max-w-5xl mx-auto container py-12">
+        <div className="max-w-5xl mx-auto space-y-8">
             <div className="mb-8">
                 <Link
                     href="/community"

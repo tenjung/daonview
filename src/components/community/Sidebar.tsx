@@ -10,7 +10,8 @@ import {
     HelpCircle,
     ChevronDown,
     ChevronRight,
-    BookOpen
+    BookOpen,
+    MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 
@@ -19,6 +20,11 @@ const menuItems = [
         title: "공지사항",
         href: "/community/notice",
         icon: Megaphone,
+    },
+    {
+        title: "자유게시판",
+        href: "/community/free",
+        icon: MessageSquare,
     },
     {
         title: "이벤트",
@@ -35,7 +41,6 @@ const menuItems = [
         href: "/community/academy",
         icon: GraduationCap,
         subItems: [
-            { title: "전체", href: "/community/academy/all" },
             { title: "광고주 칼럼", href: "/community/academy/advertiser" },
             { title: "인플루언서 칼럼", href: "/community/academy/influencer" },
         ],
