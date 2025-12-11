@@ -1,12 +1,14 @@
+import Link from "next/link";
+
 export default function CommunityPage() {
     return (
-        <div className="container py-16">
+        <div className="w-full">
             <div className="flex justify-between items-end mb-10 border-b border-gray-200 pb-8">
                 <div>
                     <h1 className="text-3xl font-extrabold text-text-main mb-2">커뮤니티</h1>
                     <p className="text-text-secondary">인플루언서들의 자유로운 소통 공간입니다.</p>
                 </div>
-                <button className="btn btn-primary">글쓰기</button>
+                <Link href="/community/write" className="btn btn-primary">글쓰기</Link>
             </div>
 
             <div className="space-y-4">

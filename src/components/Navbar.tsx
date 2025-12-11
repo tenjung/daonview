@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Wand2 } from 'lucide-react';
 
 export default function Navbar() {
   return (
@@ -8,12 +9,15 @@ export default function Navbar() {
           DAONVIEW
         </Link>
 
-        <div className="flex gap-8">
+        <div className="flex items-center gap-8">
           <Link href="/campaigns" className="font-medium text-text-secondary hover:text-primary transition-colors">캠페인</Link>
           <Link href="/reviews" className="font-medium text-text-secondary hover:text-primary transition-colors">리뷰</Link>
           <Link href="/brand" className="font-medium text-text-secondary hover:text-primary transition-colors">브랜드존</Link>
-          <Link href="/guide" className="font-medium text-text-secondary hover:text-primary transition-colors">이용가이드</Link>
           <Link href="/community" className="font-medium text-text-secondary hover:text-primary transition-colors">커뮤니티</Link>
+          <Link href="/ai-service" className="flex items-center gap-1.5 font-bold text-sm bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white px-4 py-2 rounded-full hover:shadow-lg hover:shadow-violet-500/30 transition-all hover:-translate-y-0.5 border-none">
+            <Wand2 size={16} className="text-white" />
+            <span>부가서비스</span>
+          </Link>
         </div>
 
         <div className="flex gap-4">
