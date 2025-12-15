@@ -13,7 +13,7 @@ export default function LoginPage() {
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         try {
             const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
                 email,
@@ -23,13 +23,41 @@ export default function LoginPage() {
             if (authError) throw authError;
 
             // Fetch user profile to get role
-            const { data: profileData, error: profileError } = await supabase
+            let { data: profileData, error: profileError } = await supabase
                 .from('profiles')
                 .select('role')
                 .eq('id', authData.user?.id)
                 .single();
 
-            if (profileError) {
+            // If profile is missing (PGRST116), try to create it automatically
+            if (profileError && (profileError.code === 'PGRST116' || !profileData)) {
+                console.log('Profile missing, creating default profile...');
+                const { error: insertError } = await supabase
+                    .from('profiles')
+                    .insert([{
+                        id: authData.user?.id,
+                        email: email,
+                        role: 'INFLUENCER', // Default role
+                        nickname: email.split('@')[0], // Default nickname
+                        point: 0
+                    }]);
+
+                if (insertError) {
+                    throw new Error('프로필 자동 생성 실패: ' + insertError.message);
+                }
+
+                // Retry fetch
+                const retry = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', authData.user?.id)
+                    .single();
+
+                profileData = retry.data;
+                profileError = retry.error;
+            }
+
+            if (profileError || !profileData) {
                 console.error('Profile fetch error:', profileError);
                 toast.error('프로필 정보를 불러오는데 실패했습니다.');
                 return;
@@ -41,16 +69,16 @@ export default function LoginPage() {
             if (profileData?.role === 'ADVERTISER') {
                 router.push('/dashboard/advertiser');
             } else if (profileData?.role === 'ADMIN') {
-                 router.push('/dashboard/admin');
+                router.push('/dashboard/admin');
             } else {
-                router.push('/dashboard/influencer'); 
+                router.push('/dashboard/influencer');
             }
 
         } catch (error: any) {
-             console.error('Login Error:', error);
-             toast.error('로그인 실패', {
-                 description: '이메일 또는 비밀번호를 확인해주세요.',
-             });
+            console.error('Login Error:', error);
+            toast.error('로그인 실패', {
+                description: error.message || '이메일 또는 비밀번호를 확인해주세요.',
+            });
         }
     };
 
@@ -91,14 +119,6 @@ export default function LoginPage() {
                 </form>
 
 
-
-                <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100 leading-relaxed">
-                    <strong>[테스트 계정 정보]</strong><br />
-                    아래 계정이 없다면 먼저 <strong>회원가입</strong>을 진행해주세요.<br />
-                    관리자: admin@daonview.com / admin1234<br />
-                    광고주: brand@daonview.com / brand1234<br />
-                    인플루언서: user@daonview.com / user1234
-                </div>
 
                 <div className="my-8 flex items-center text-text-secondary text-xs before:flex-1 before:h-px before:bg-border after:flex-1 after:h-px after:bg-border">
                     <span className="px-4">또는 SNS 로그인</span>

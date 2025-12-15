@@ -48,9 +48,9 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-      await supabase.auth.signOut();
-      router.push('/');
-      window.location.reload(); // Force refresh to clear any cached state
+    await supabase.auth.signOut();
+    router.push('/');
+    window.location.reload(); // Force refresh to clear any cached state
   };
   return (
     <nav className="h-[70px] bg-surface border-b border-border sticky top-0 z-[100] flex items-center">
@@ -71,48 +71,48 @@ export default function Navbar() {
         </div>
 
         <div className="flex gap-4 items-center">
-            {loading ? (
-                // Skeleton / Loading state
-                <div className="w-20 h-8 bg-slate-100 animate-pulse rounded"></div>
-            ) : user ? (
-                <div className="flex items-center gap-4">
-                     {profile?.role === 'ADMIN' && (
-                        <Link href="/dashboard/admin" className="btn btn-primary py-2 text-xs">
-                            관리자
-                        </Link>
-                    )}
-                    {profile?.role === 'ADVERTISER' && (
-                         <Link href="/dashboard/advertiser" className="btn btn-primary py-2 text-xs">
-                             대시보드
-                         </Link>
-                    )}
-                     {profile?.role === 'INFLUENCER' && (
-                         <Link href="/dashboard/influencer" className="btn btn-primary py-2 text-xs">
-                             마이페이지
-                         </Link>
-                    )}
+          {loading ? (
+            // Skeleton / Loading state
+            <div className="w-20 h-8 bg-slate-100 animate-pulse rounded"></div>
+          ) : user ? (
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
+                  {profile?.role === 'ADMIN' ? '관리자' : profile?.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
+                </span>
+                <span className="text-sm font-bold text-text-main">{profile?.nickname || user.email?.split('@')[0]}님</span>
+              </div>
 
-                    <div className="flex items-center gap-2 border-l border-gray-200 pl-4 ml-2">
-                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
-                            {profile?.role === 'ADMIN' ? '관리자' : profile?.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
-                        </span>
-                        <span className="text-sm font-bold text-text-main">{profile?.nickname || user.email?.split('@')[0]}님</span>
-                    </div>
+              <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors">
+                로그아웃
+              </button>
 
-                    <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors">
-                        로그아웃
-                    </button>
-                </div>
-            ) : (
-                <>
-                    <Link href="/login" className="btn btn-outline py-2 text-sm">
-                        로그인
-                    </Link>
-                    <Link href="/signup" className="btn btn-primary py-2 text-sm">
-                        회원가입
-                    </Link>
-                </>
-            )}
+              {profile?.role === 'ADMIN' && (
+                <Link href="/dashboard/admin" className="btn btn-primary py-2 text-xs">
+                  관리페이지
+                </Link>
+              )}
+              {profile?.role === 'ADVERTISER' && (
+                <Link href="/dashboard/advertiser" className="btn btn-primary py-2 text-xs">
+                  관리페이지
+                </Link>
+              )}
+              {profile?.role === 'INFLUENCER' && (
+                <Link href="/dashboard/influencer" className="btn btn-primary py-2 text-xs">
+                  마이페이지
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              <Link href="/login" className="btn btn-outline py-2 text-sm">
+                로그인
+              </Link>
+              <Link href="/signup" className="btn btn-primary py-2 text-sm">
+                회원가입
+              </Link>
+            </>
+          )}
         </div>
       </div>
     </nav>

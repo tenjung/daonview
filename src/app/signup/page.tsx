@@ -12,7 +12,7 @@ export default function SignupPage() {
     const router = useRouter();
     const [userType, setUserType] = useState<UserType>('INFLUENCER');
     const [loading, setLoading] = useState(false);
-    
+
     // Form State
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -32,16 +32,90 @@ export default function SignupPage() {
         }
 
         try {
-            // 1. SignUp
+            // 1. SignUp with Metadata
+            // 메타데이터를 함께 보내면 나중에 트리거로 처리하기도 좋습니다.
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        full_name: name,
+                        role: userType,
+                        company_name: companyName,
+                        phone: phone,
+                    }
+                }
             });
 
-            if (authError) throw authError;
-            if (!authData.user) throw new Error('회원가입 실패: 유저 정보가 없습니다.');
+            if (authError) {
+                // 이미 가입된 경우, 바로 로그인 시도 (사용자 경험 개선)
+                if (authError.message.includes('already registered')) {
+                    console.log('User already registered, attempting login...');
 
-            // 2. Insert Profile
+                    const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+                        email,
+                        password
+                    });
+
+                    if (!loginError && loginData.session) {
+                        toast.success('이미 가입된 계정입니다.', {
+                            description: '자동으로 로그인되었습니다.',
+                        });
+
+                        // 프로필이 없는 경우를 대비해 프로필 생성 로직(치유) 실행
+                        // (로그인 페이지의 로직과 동일하게 여기서도 한 번 더 챙겨줍니다)
+                        const { data: profileCheck } = await supabase
+                            .from('profiles')
+                            .select('id')
+                            .eq('id', loginData.user.id)
+                            .single();
+
+                        if (!profileCheck) {
+                            await supabase.from('profiles').insert([{
+                                id: loginData.user.id,
+                                email: email,
+                                role: userType,
+                                nickname: name,
+                                company_name: userType === 'ADVERTISER' ? companyName : null,
+                                phone_number: phone,
+                                point: 0
+                            }]);
+                        }
+
+                        router.push('/');
+                        return;
+                    } else {
+                        // 로그인 실패 (비밀번호 불일치)
+                        // 강제로 페이지 이동하지 않고, 사용자가 이메일을 바꾸거나 비밀번호를 다시 입력할 수 있게 함
+                        toast.error('이미 사용 중인 이메일입니다.', {
+                            description: '입력하신 비밀번호와 기존 계정의 비밀번호가 다릅니다.',
+                            duration: 4000,
+                        });
+                        setLoading(false); // 로딩 풀기
+                        return;
+                    }
+                }
+                throw authError;
+            }
+
+            if (!authData.user) {
+                throw new Error('회원가입 초기화 실패');
+            }
+
+            // 2. Check if email confirmation is required
+            // 세션이 없으면 이메일 인증이 필요한 상태입니다.
+            if (authData.user && !authData.session) {
+                toast.success('인증 메일이 발송되었습니다!', {
+                    description: '이메일함을 확인하여 가입을 완료해주세요.',
+                    duration: 5000,
+                });
+                // 인증 대기 화면이나 로그인 화면으로 이동
+                setTimeout(() => router.push('/login'), 2000);
+                return;
+            }
+
+            // 3. Insert Profile (Only if logged in automatically)
+            // 이메일 인증이 꺼져있어서 바로 로그인 된 경우에만 프로필 생성 시도
             const { error: profileError } = await supabase
                 .from('profiles')
                 .insert([
@@ -49,7 +123,7 @@ export default function SignupPage() {
                         id: authData.user.id,
                         email: email,
                         role: userType,
-                        nickname: name, // For both influencer name and advertiser manager name
+                        nickname: name,
                         company_name: userType === 'ADVERTISER' ? companyName : null,
                         phone_number: phone,
                         point: 0
@@ -57,15 +131,30 @@ export default function SignupPage() {
                 ]);
 
             if (profileError) {
-                // If profile creation fails, we might want to clean up the auth user, but for now just alert
+                // 이미 프로필이 존재한다면(23505), 이는 사실상 성공입니다.
+                if (profileError.code === '23505') {
+                    console.log('Profile already exists, proceeding as success.');
+                    toast.success('회원가입이 완료되었습니다!', {
+                        description: '다온뷰에 오신 것을 환영합니다.',
+                    });
+                    router.push('/');
+                    return;
+                }
+
                 console.error('Profile creation failed:', profileError);
-                throw new Error('프로필 생성 중 오류가 발생했습니다.');
+                // 프로필 생성에 진짜 문제가 있어도, 일단 로그인은 되었으니 메인으로 보내고
+                // 추후 로그인 시 자동 복구되도록 합니다. 쫓아내지 않습니다.
+                toast.warning('가입은 완료되었으나 프로필 설정에 지연이 있습니다.', {
+                    description: '서비스 이용에는 문제가 없습니다.'
+                });
+                router.push('/');
+                return;
             }
 
             toast.success('회원가입이 완료되었습니다!', {
                 description: '다온뷰에 오신 것을 환영합니다.',
             });
-            router.push('/'); // Redirect to home (user is already logged in by Supabase on signup)
+            router.push('/');
 
         } catch (error: any) {
             console.error('Signup Error:', error);

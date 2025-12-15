@@ -14,9 +14,32 @@ const ALL_CAMPAIGNS: any[] = [];
 const REGIONS = ["서울", "경기/이천", "인천", "강원", "충청", "전라", "경상", "제주", "배송"];
 const PLATFORMS = ["BLOG", "INSTAGRAM", "YOUTUBE", "REELS", "TIKTOK"];
 
+// Skeleton matching the representative placeholder color
+const SkeletonCard = () => (
+    <div className="border border-border rounded-xl overflow-hidden bg-white h-full shadow-sm">
+        <div className="aspect-[4/3] bg-gradient-to-br from-rose-100 to-amber-50 animate-pulse relative">
+            <div className="absolute inset-0 flex items-center justify-center text-rose-300">
+                <span className="text-4xl opacity-20">Loading</span>
+            </div>
+        </div>
+        <div className="p-5 space-y-3">
+            <div className="flex gap-2">
+                <div className="w-8 h-8 rounded-full bg-rose-50 animate-pulse" />
+                <div className="w-12 h-6 rounded bg-rose-50 animate-pulse" />
+            </div>
+            <div className="w-3/4 h-5 bg-rose-50 rounded animate-pulse" />
+            <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between">
+                <div className="w-12 h-4 bg-rose-50 rounded animate-pulse" />
+                <div className="w-12 h-4 bg-rose-50 rounded animate-pulse" />
+            </div>
+        </div>
+    </div>
+);
+
 export default function CampaignsPage() {
     const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE'>('ALL');
     const [allCampaigns, setAllCampaigns] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchCampaigns = async () => {
@@ -24,6 +47,7 @@ export default function CampaignsPage() {
             if (data) {
                 setAllCampaigns(data.map(c => mapCampaignToCard(c as any)));
             }
+            setLoading(false);
         };
         fetchCampaigns();
     }, []);
@@ -217,13 +241,16 @@ export default function CampaignsPage() {
                     검색 결과 <span className="text-primary">{filteredData.length}</span>
                 </h2>
 
-                {filteredData.length > 0 ? (
+                {loading ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {[...Array(10)].map((_, i) => <SkeletonCard key={i} />)}
+                    </div>
+                ) : filteredData.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                         {filteredData.map(item => (
                             <CampaignCard
                                 key={item.id}
                                 {...item}
-                                imageUrl=""
                             />
                         ))}
                     </div>

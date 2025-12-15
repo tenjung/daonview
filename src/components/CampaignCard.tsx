@@ -5,12 +5,13 @@ interface CampaignProps {
     id?: number | string;
     title: string;
     platform: string; // 'BLOG' | 'INSTAGRAM' | 'YOUTUBE' | 'TIKTOK' | 'REELS' | 'SHORTS'
-    type?: string;     // 'VISIT' | 'DELIVERY' | 'PURCHASE' | 'REPORTERS'
+    type?: string;     // 'VISIT' | 'DELIVERY' | 'PURCHASE'
     applicants: number;
     total: number;
     dday: string;
     imageUrl?: string;
     category?: string;
+    provision?: string;
 }
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -47,17 +48,32 @@ const TypeBadge = ({ type }: { type?: string }) => {
     );
 };
 
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision }: CampaignProps) {
     const linkHref = id ? `/campaigns/${id}` : '#';
 
     return (
         <Link href={linkHref} className="card group border border-border rounded-xl overflow-hidden bg-surface transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col no-underline text-text-main h-full">
             <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                {/* Placeholder Gradient Image */}
-                <div className="absolute inset-0 bg-gradient-to-br from-rose-100 to-amber-50 group-hover:scale-105 transition-transform duration-500" />
+                {imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                        src={imageUrl}
+                        alt={title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-rose-100 to-amber-50 group-hover:scale-105 transition-transform duration-500" />
+                )}
 
                 <div className="absolute top-3 left-3 flex gap-2">
-                    <span className="bg-white/90 backdrop-blur px-2 py-1 rounded-md text-xs font-bold text-primary shadow-sm ring-1 ring-black/5">{dday}</span>
+                    <span className={`px-2 py-1 rounded-md text-xs font-bold shadow-sm backdrop-blur ${dday === '상시모집'
+                        ? 'bg-indigo-600 text-white'
+                        : dday === '종료'
+                            ? 'bg-gray-600 text-white'
+                            : 'bg-white/90 text-primary ring-1 ring-black/5'
+                        }`}>
+                        {dday}
+                    </span>
                 </div>
             </div>
 
@@ -70,9 +86,15 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <TypeBadge type={type} />
                 </div>
 
-                <h3 className="text-base font-bold mb-3 leading-snug flex-1 line-clamp-2 group-hover:text-primary transition-colors">
+                <h3 className="text-base font-bold mb-2 leading-snug line-clamp-2 number-font group-hover:text-primary transition-colors">
                     {title}
                 </h3>
+
+                {provision && (
+                    <div className="mb-3 px-2 py-1.5 bg-slate-50 rounded text-sm font-bold text-slate-700 truncate">
+                        🎁 {provision}
+                    </div>
+                )}
 
                 <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center text-xs text-text-secondary">
                     <div className="flex gap-1">

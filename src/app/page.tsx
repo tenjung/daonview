@@ -3,10 +3,33 @@ import CampaignCard from '@/components/CampaignCard';
 import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 
+// Skeleton Component for empty slots
+const CampaignSkeleton = () => (
+  <div className="border border-gray-100 rounded-xl overflow-hidden bg-white h-full shadow-sm">
+    <div className="aspect-[4/3] bg-gray-100 animate-pulse relative">
+      <div className="absolute inset-0 flex items-center justify-center text-gray-300">
+        <span className="text-4xl opacity-20">Coming Soon</span>
+      </div>
+    </div>
+    <div className="p-5 space-y-3">
+      <div className="flex gap-2">
+        <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
+        <div className="w-12 h-6 rounded bg-gray-100 animate-pulse" />
+      </div>
+      <div className="w-3/4 h-5 bg-gray-100 rounded animate-pulse" />
+      <div className="mt-4 pt-3 border-t border-gray-50 flex justify-between">
+        <div className="w-12 h-4 bg-gray-100 rounded animate-pulse" />
+        <div className="w-12 h-4 bg-gray-100 rounded animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
+
 export default async function Home() {
   const { data: latestData } = await supabase
     .from('campaigns')
     .select('*, applications(count)')
+    .eq('status', 'RECRUITING')
     .order('created_at', { ascending: false })
     .limit(4);
   const latestCampaigns = latestData?.map(c => mapCampaignToCard(c as any)) || [];
@@ -14,6 +37,7 @@ export default async function Home() {
   const { data: popularData } = await supabase
     .from('campaigns')
     .select('*, applications(count)')
+    .eq('status', 'RECRUITING')
     .order('recruit_count', { ascending: false })
     .limit(4);
   const popularCampaigns = popularData?.map(c => mapCampaignToCard(c as any)) || [];
@@ -22,6 +46,7 @@ export default async function Home() {
     .from('campaigns')
     .select('*, applications(count)')
     .eq('type', 'DELIVERY')
+    .eq('status', 'RECRUITING')
     .limit(4);
   const deliveryCampaigns = deliveryData?.map(c => mapCampaignToCard(c as any)) || [];
 
@@ -29,6 +54,7 @@ export default async function Home() {
     .from('campaigns')
     .select('*, applications(count)')
     .eq('type', 'VISIT')
+    .eq('status', 'RECRUITING')
     .limit(4);
   const visitCampaigns = visitData?.map(c => mapCampaignToCard(c as any)) || [];
 
@@ -68,7 +94,12 @@ export default async function Home() {
               <div className="flex flex-col gap-4">
                 {latestCampaigns.map(cam => (
                   <Link key={cam.id} href={`/campaigns/${cam.id}`} className="flex gap-4 pb-4 border-b border-slate-100 last:border-none last:pb-0 hover:bg-slate-50 transition-colors p-2 rounded-lg -mx-2">
-                    <div className="w-[70px] h-[70px] bg-rose-100 rounded-lg flex-shrink-0" />
+                    <div className="w-[70px] h-[70px] bg-rose-100 rounded-lg flex-shrink-0 overflow-hidden">
+                      {cam.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cam.imageUrl} alt="" className="w-full h-full object-cover" />
+                      ) : null}
+                    </div>
                     <div className="flex-1 flex flex-col justify-center">
                       <div className="flex gap-2 mb-1 text-xs items-center">
                         <span className="font-bold text-primary">{cam.platform}</span>
@@ -109,7 +140,13 @@ export default async function Home() {
               applicants={cam.applicants}
               total={cam.total}
               dday={cam.dday}
+              imageUrl={cam.imageUrl}
+              provision={cam.provision}
             />
+          ))}
+          {/* Skeleton Fillers */}
+          {[...Array(Math.max(0, 4 - popularCampaigns.length))].map((_, i) => (
+            <CampaignSkeleton key={`skel-pop-${i}`} />
           ))}
         </div>
       </section>
@@ -133,7 +170,12 @@ export default async function Home() {
               applicants={cam.applicants}
               total={cam.total}
               dday={cam.dday}
+              imageUrl={cam.imageUrl}
+              provision={cam.provision}
             />
+          ))}
+          {[...Array(Math.max(0, 4 - deliveryCampaigns.length))].map((_, i) => (
+            <CampaignSkeleton key={`skel-del-${i}`} />
           ))}
         </div>
       </section>
@@ -157,7 +199,12 @@ export default async function Home() {
               applicants={cam.applicants}
               total={cam.total}
               dday={cam.dday}
+              imageUrl={cam.imageUrl}
+              provision={cam.provision}
             />
+          ))}
+          {[...Array(Math.max(0, 4 - visitCampaigns.length))].map((_, i) => (
+            <CampaignSkeleton key={`skel-vis-${i}`} />
           ))}
         </div>
       </section>
