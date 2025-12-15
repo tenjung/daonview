@@ -3,25 +3,54 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function LoginPage() {
     const router = useRouter();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (email === 'admin@daonview.com' && password === 'admin1234') {
-            alert('관리자 계정으로 로그인합니다.');
-            router.push('/dashboard/admin');
-        } else if (email === 'brand@daonview.com' && password === 'brand1234') {
-            alert('광고주(기업) 계정으로 로그인합니다.');
-            router.push('/dashboard/advertiser');
-        } else if (email === 'user@daonview.com' && password === 'user1234') {
-            alert('인플루언서 계정으로 로그인합니다.');
-            router.push('/dashboard/influencer');
-        } else {
-            alert('아이디 또는 비밀번호가 올바르지 않습니다.\n(테스트 계정: admin@daonview.com / admin1234)');
+        
+        try {
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+
+            // Fetch user profile to get role
+            const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', authData.user?.id)
+                .single();
+
+            if (profileError) {
+                console.error('Profile fetch error:', profileError);
+                toast.error('프로필 정보를 불러오는데 실패했습니다.');
+                return;
+            }
+
+            toast.success('로그인에 성공했습니다.');
+
+            // Redirect based on role
+            if (profileData?.role === 'ADVERTISER') {
+                router.push('/dashboard/advertiser');
+            } else if (profileData?.role === 'ADMIN') {
+                 router.push('/dashboard/admin');
+            } else {
+                router.push('/dashboard/influencer'); 
+            }
+
+        } catch (error: any) {
+             console.error('Login Error:', error);
+             toast.error('로그인 실패', {
+                 description: '이메일 또는 비밀번호를 확인해주세요.',
+             });
         }
     };
 
@@ -61,8 +90,11 @@ export default function LoginPage() {
                     </button>
                 </form>
 
+
+
                 <div className="mt-4 text-xs text-gray-500 bg-gray-50 p-3 rounded border border-gray-100 leading-relaxed">
                     <strong>[테스트 계정 정보]</strong><br />
+                    아래 계정이 없다면 먼저 <strong>회원가입</strong>을 진행해주세요.<br />
                     관리자: admin@daonview.com / admin1234<br />
                     광고주: brand@daonview.com / brand1234<br />
                     인플루언서: user@daonview.com / user1234

@@ -2,18 +2,75 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 
 type CampaignType = 'VISIT' | 'DELIVERY' | 'PURCHASE';
 
 export default function NewCampaignPage() {
     const router = useRouter();
+    const [loading, setLoading] = useState(false);
     const [type, setType] = useState<CampaignType>('VISIT');
+    
+    // Form States
+    const [title, setTitle] = useState('');
+    const [platform, setPlatform] = useState('BLOG');
+    const [category, setCategory] = useState('맛집'); // Default category
+    const [recruitCount, setRecruitCount] = useState(0);
+    const [recruitStartDate, setRecruitStartDate] = useState('');
+    const [recruitEndDate, setRecruitEndDate] = useState('');
+    const [announceDate, setAnnounceDate] = useState('');
+    const [thumbnailUrl, setThumbnailUrl] = useState('');
+    
+    // Detail States
+    const [storeName, setStoreName] = useState('');
+    const [storeAddress, setStoreAddress] = useState('');
+    const [productName, setProductName] = useState('');
+    const [mission, setMission] = useState('');
+    const [keywords, setKeywords] = useState('');
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        alert('캠페인이 등록되었습니다. (관리자 승인 대기)');
-        // In a real app, this would submit to API
-        router.back();
+        setLoading(true);
+
+        try {
+            // Validate required fields
+            if (!title || !recruitEndDate || !mission) {
+                toast.error('필수 정보를 모두 입력해주세요.');
+                setLoading(false);
+                return;
+            }
+
+            const { error } = await supabase
+                .from('campaigns')
+                .insert([
+                    {
+                        type,
+                        platform,
+                        category,
+                        title,
+                        description: mission, // Using mission/guide as description
+                        recruit_count: Number(recruitCount),
+                        end_date: recruitEndDate, // Recruiting ends
+                        status: 'RECRUITING',
+                        thumbnail_url: thumbnailUrl || null,
+                        // Additional fields could be stored in a JSONB column if the schema supported it, 
+                        // but for now we map to existing columns. 
+                        // If we had 'region' in DB, we could map storeAddress to it.
+                    }
+                ]);
+
+            if (error) throw error;
+
+            toast.success('캠페인이 성공적으로 등록되었습니다!');
+            router.push('/dashboard/admin'); // Redirect to admin dashboard
+
+        } catch (error: any) {
+            console.error('Campaign Create Error:', error);
+            toast.error(`등록 실패: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -63,14 +120,25 @@ export default function NewCampaignPage() {
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">캠페인 제목 <span className="text-red-500">*</span></label>
-                            <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="예: [강남] 분위기 좋은 데이트 코스 파스타 맛집 체험단" required />
+                            <input 
+                                type="text" 
+                                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
+                                placeholder="예: [강남] 분위기 좋은 데이트 코스 파스타 맛집 체험단" 
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                required 
+                            />
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">채널 선택 <span className="text-red-500">*</span></label>
-                                <select className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" required>
-                                    <option value="">선택해주세요</option>
+                                <select 
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
+                                    value={platform}
+                                    onChange={(e) => setPlatform(e.target.value)}
+                                    required
+                                >
                                     <option value="BLOG">블로그</option>
                                     <option value="INSTAGRAM">인스타그램</option>
                                     <option value="YOUTUBE">유튜브</option>
@@ -78,35 +146,87 @@ export default function NewCampaignPage() {
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">모집 인원 <span className="text-red-500">*</span></label>
-                                <div className="flex items-center gap-2">
-                                    <input type="number" className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" placeholder="0" min="1" required />
-                                    <span className="text-gray-500 font-medium">명</span>
-                                </div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">카테고리 <span className="text-red-500">*</span></label>
+                                <select 
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
+                                    value={category}
+                                    onChange={(e) => setCategory(e.target.value)}
+                                    required
+                                >
+                                    <option value="맛집">맛집</option>
+                                    <option value="뷰티">뷰티</option>
+                                    <option value="여행">여행/숙박</option>
+                                    <option value="생활">생활/리빙</option>
+                                    <option value="푸드">푸드</option>
+                                    <option value="IT">IT/가전</option>
+                                    <option value="패션">패션</option>
+                                    <option value="유아동">유아동</option>
+                                    <option value="반려동물">반려동물</option>
+                                    <option value="기타">기타</option>
+                                </select>
                             </div>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">모집 기간 <span className="text-red-500">*</span></label>
+                             <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">모집 인원 <span className="text-red-500">*</span></label>
                                 <div className="flex items-center gap-2">
-                                    <input type="date" className="w-full px-4 py-3 rounded-lg border border-gray-300" required />
-                                    <span>~</span>
-                                    <input type="date" className="w-full px-4 py-3 rounded-lg border border-gray-300" required />
+                                    <input 
+                                        type="number" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all" 
+                                        placeholder="0" 
+                                        min="1" 
+                                        value={recruitCount}
+                                        onChange={(e) => setRecruitCount(Number(e.target.value))}
+                                        required 
+                                    />
+                                    <span className="text-gray-500 font-medium">명</span>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">당첨자 발표일 <span className="text-red-500">*</span></label>
-                                <input type="date" className="w-full px-4 py-3 rounded-lg border border-gray-300" required />
+                                <input 
+                                    type="date" 
+                                    className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                    value={announceDate}
+                                    onChange={(e) => setAnnounceDate(e.target.value)}
+                                    required 
+                                />
                             </div>
                         </div>
 
                         <div>
+                             <label className="block text-sm font-semibold text-gray-700 mb-2">모집 기간 <span className="text-red-500">*</span></label>
+                             <div className="flex items-center gap-2">
+                                 <input 
+                                     type="date" 
+                                     className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                     value={recruitStartDate}
+                                     onChange={(e) => setRecruitStartDate(e.target.value)}
+                                     required 
+                                 />
+                                 <span>~</span>
+                                 <input 
+                                     type="date" 
+                                     className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                     value={recruitEndDate}
+                                     onChange={(e) => setRecruitEndDate(e.target.value)}
+                                     required 
+                                 />
+                             </div>
+                        </div>
+
+                        <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">대표 이미지 <span className="text-red-500">*</span></label>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:bg-gray-50 transition-colors cursor-pointer">
-                                <div className="text-4xl mb-2">📷</div>
-                                <p className="text-sm text-gray-500">클릭하여 이미지를 업로드하거나 드래그 앤 드롭하세요</p>
-                                <p className="text-xs text-gray-400 mt-1">(권장 사이즈: 1000x1000px, JPG/PNG)</p>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:bg-gray-50 transition-colors">
+                                <p className="text-sm text-gray-500 mb-2">대표 이미지 URL을 입력해주세요 (임시)</p>
+                                <input 
+                                    type="text" 
+                                    className="w-full px-4 py-2 text-sm border border-gray-300 rounded" 
+                                    placeholder="https://example.com/image.jpg"
+                                    value={thumbnailUrl}
+                                    onChange={(e) => setThumbnailUrl(e.target.value)}
+                                />
                             </div>
                         </div>
                     </div>
@@ -124,11 +244,25 @@ export default function NewCampaignPage() {
                             <div className="grid grid-cols-1 gap-6">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">업체명 (상호명) <span className="text-red-500">*</span></label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="네이버 플레이스에 등록된 정확한 상호명" required />
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                        placeholder="네이버 플레이스에 등록된 정확한 상호명" 
+                                        value={storeName}
+                                        onChange={(e) => setStoreName(e.target.value)}
+                                        required 
+                                    />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">업체 주소 <span className="text-red-500">*</span></label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="방문하실 매장 주소를 입력해주세요" required />
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                        placeholder="방문하실 매장 주소를 입력해주세요" 
+                                        value={storeAddress}
+                                        onChange={(e) => setStoreAddress(e.target.value)}
+                                        required 
+                                    />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,7 +293,14 @@ export default function NewCampaignPage() {
                             <div className="grid grid-cols-1 gap-6">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">제공 상품명 <span className="text-red-500">*</span></label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="리뷰어에게 배송될 정확한 상품명" required />
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                        placeholder="리뷰어에게 배송될 정확한 상품명" 
+                                        value={productName}
+                                        onChange={(e) => setProductName(e.target.value)}
+                                        required 
+                                    />
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
@@ -214,7 +355,13 @@ export default function NewCampaignPage() {
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">리뷰 가이드 / 요청사항 <span className="text-red-500">*</span></label>
-                                    <textarea className="w-full px-4 py-3 rounded-lg border border-gray-300 h-40 resize-none" placeholder="포스팅 시 꼭 들어가야 할 내용, 사진 가이드, 강조하고 싶은 점 등을 자세히 적어주세요." required></textarea>
+                                    <textarea 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300 h-40 resize-none" 
+                                        placeholder="포스팅 시 꼭 들어가야 할 내용, 사진 가이드, 강조하고 싶은 점 등을 자세히 적어주세요." 
+                                        value={mission}
+                                        onChange={(e) => setMission(e.target.value)}
+                                        required
+                                    ></textarea>
                                 </div>
 
                                 {type === 'VISIT' && (
@@ -254,8 +401,8 @@ export default function NewCampaignPage() {
                         <button type="button" onClick={() => router.back()} className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors">
                             취소하기
                         </button>
-                        <button type="submit" className="px-10 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 hover:bg-primary-dark hover:-translate-y-1 transition-all">
-                            캠페인 등록 신청
+                        <button type="submit" disabled={loading} className="px-10 py-3 rounded-xl bg-primary text-white font-bold shadow-lg shadow-primary/30 hover:bg-primary-dark hover:-translate-y-1 transition-all disabled:opacity-50">
+                            {loading ? '등록 중...' : '캠페인 등록 신청'}
                         </button>
                     </div>
                 </form>

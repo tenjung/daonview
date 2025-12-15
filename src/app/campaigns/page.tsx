@@ -1,40 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import CampaignCard from '@/components/CampaignCard';
 import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
+import { mapCampaignToCard } from '@/lib/campaignUtils';
 
 // Extended Dummy Data
-const ALL_CAMPAIGNS = [
-    // --- 방문형 (VISIT) ---
-    { id: 101, title: "강남 프리미엄 오마카세 2인 식사권", platform: "BLOG", type: "VISIT", applicants: 15, total: 20, dday: "D-3", category: "맛집", region: "서울" },
-    { id: 102, title: "성수 힙한 감성 카페 디저트 세트", platform: "REELS", type: "VISIT", applicants: 22, total: 5, dday: "D-5", category: "맛집", region: "서울" },
-    { id: 103, title: "해운대 오션뷰 호텔 1박 숙박권", platform: "BLOG", type: "VISIT", applicants: 120, total: 2, dday: "D-1", category: "여행", region: "경상" },
-    { id: 104, title: "홍대 줄서는 라멘집 식사권", platform: "SHORTS", type: "VISIT", applicants: 50, total: 10, dday: "D-2", category: "맛집", region: "서울" },
-    { id: 105, title: "청담동 고급 헤어살롱 염색/펌", platform: "INSTAGRAM", type: "VISIT", applicants: 30, total: 5, dday: "D-4", category: "뷰티", region: "서울" },
-    { id: 106, title: "제주도 감성 독채 펜션 2박", platform: "BLOG", type: "VISIT", applicants: 200, total: 1, dday: "D-7", category: "여행", region: "제주" },
-    { id: 107, title: "대전 유명 베이커리 빵지순례", platform: "YOUTUBE", type: "VISIT", applicants: 10, total: 5, dday: "D-6", category: "맛집", region: "충청" },
-    { id: 108, title: "부산 광안리 요트 투어 체험", platform: "TIKTOK", type: "VISIT", applicants: 45, total: 10, dday: "D-3", category: "여행", region: "경상" },
-    { id: 109, title: "이천 도자기 공방 원데이 클래스", platform: "BLOG", type: "VISIT", applicants: 8, total: 4, dday: "D-10", category: "기타", region: "경기/이천" },
-    { id: 110, title: "강원도 서핑 강습 & 게스트하우스", platform: "REELS", type: "VISIT", applicants: 60, total: 8, dday: "D-5", category: "여행", region: "강원" },
-
-    // --- 배송형 (DELIVERY) ---
-    { id: 201, title: "촉촉한 수분 광채 세럼 리뷰", platform: "INSTAGRAM", type: "DELIVERY", applicants: 45, total: 50, dday: "D-1", category: "뷰티", region: "배송" },
-    { id: 202, title: "가정용 미니 제습기 체험단", platform: "YOUTUBE", type: "DELIVERY", applicants: 8, total: 3, dday: "D-7", category: "생활", region: "배송" },
-    { id: 203, title: "데일리 비타민 C 1개월분", platform: "INSTAGRAM", type: "DELIVERY", applicants: 30, total: 30, dday: "D-4", category: "푸드", region: "배송" },
-    { id: 204, title: "다이어트 곤약 젤리 1box", platform: "BLOG", type: "DELIVERY", applicants: 89, total: 50, dday: "D-4", category: "푸드", region: "배송" },
-    { id: 205, title: "무선 노이즈캔슬링 헤드폰", platform: "YOUTUBE", type: "DELIVERY", applicants: 120, total: 5, dday: "D-3", category: "IT", region: "배송" },
-    { id: 206, title: "친환경 대나무 칫솔 세트", platform: "BLOG", type: "DELIVERY", applicants: 15, total: 20, dday: "D-8", category: "생활", region: "배송" },
-    { id: 207, title: "프리미엄 밀키트 (스테이크)", platform: "INSTAGRAM", type: "DELIVERY", applicants: 55, total: 15, dday: "D-2", category: "푸드", region: "배송" },
-    { id: 208, title: "게이밍 기계식 키보드", platform: "BLOG", type: "DELIVERY", applicants: 200, total: 3, dday: "D-5", category: "IT", region: "배송" },
-    { id: 209, title: "유기농 아기 간식 세트", platform: "BLOG", type: "DELIVERY", applicants: 40, total: 20, dday: "D-6", category: "유아동", region: "배송" },
-    { id: 210, title: "반려견 수제 간식 패키지", platform: "REELS", type: "DELIVERY", applicants: 35, total: 10, dday: "D-4", category: "반려동물", region: "배송" },
-
-    // --- 구매형/기자단 (PURCHASE/REPORTERS) ---
-    { id: 301, title: "스마트스토어 찜하기 & 구매평", platform: "BLOG", type: "PURCHASE", applicants: 10, total: 100, dday: "D-15", category: "생활", region: "배송" },
-    { id: 302, title: "쿠팡 로켓배송 생필품 구매평", platform: "BLOG", type: "PURCHASE", applicants: 50, total: 50, dday: "D-2", category: "생활", region: "배송" },
-    { id: 303, title: "신상 디저트 내돈내산 영수증 리뷰", platform: "INSTAGRAM", type: "PURCHASE", applicants: 20, total: 20, dday: "D-5", category: "맛집", region: "서울" },
-];
+// Dummy Data removed
+const ALL_CAMPAIGNS: any[] = [];
 
 // Define static options
 const REGIONS = ["서울", "경기/이천", "인천", "강원", "충청", "전라", "경상", "제주", "배송"];
@@ -42,6 +16,17 @@ const PLATFORMS = ["BLOG", "INSTAGRAM", "YOUTUBE", "REELS", "TIKTOK"];
 
 export default function CampaignsPage() {
     const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE'>('ALL');
+    const [allCampaigns, setAllCampaigns] = useState<any[]>([]);
+
+    useEffect(() => {
+        const fetchCampaigns = async () => {
+            const { data } = await supabase.from('campaigns').select('*, applications(count)').order('created_at', { ascending: false });
+            if (data) {
+                setAllCampaigns(data.map(c => mapCampaignToCard(c as any)));
+            }
+        };
+        fetchCampaigns();
+    }, []);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -79,7 +64,7 @@ export default function CampaignsPage() {
     };
 
     const filteredData = useMemo(() => {
-        return ALL_CAMPAIGNS.filter(item => {
+        return allCampaigns.filter(item => {
             if (activeTab !== 'ALL' && item.type !== activeTab) return false;
             if (selectedCategories.length > 0 && item.category) {
                 const itemCat = item.category;
@@ -94,7 +79,7 @@ export default function CampaignsPage() {
             if (sortBy === 'popular') return b.applicants - a.applicants;
             return b.id - a.id;
         });
-    }, [activeTab, selectedCategories, selectedPlatforms, selectedRegions, sortBy, showRegionFilter]);
+    }, [activeTab, selectedCategories, selectedPlatforms, selectedRegions, sortBy, showRegionFilter, allCampaigns]);
 
     const activeFilterCount = selectedCategories.length + selectedPlatforms.length + selectedRegions.length;
 

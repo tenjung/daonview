@@ -2,11 +2,78 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 
 type UserType = 'INFLUENCER' | 'ADVERTISER';
 
 export default function SignupPage() {
+    const router = useRouter();
     const [userType, setUserType] = useState<UserType>('INFLUENCER');
+    const [loading, setLoading] = useState(false);
+    
+    // Form State
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [passwordConfirm, setPasswordConfirm] = useState('');
+    const [name, setName] = useState(''); // Handles 'name' or 'manager'
+    const [companyName, setCompanyName] = useState('');
+    const [phone, setPhone] = useState('');
+
+    const handleSignup = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        if (password !== passwordConfirm) {
+            toast.error('비밀번호가 일치하지 않습니다.');
+            setLoading(false);
+            return;
+        }
+
+        try {
+            // 1. SignUp
+            const { data: authData, error: authError } = await supabase.auth.signUp({
+                email,
+                password,
+            });
+
+            if (authError) throw authError;
+            if (!authData.user) throw new Error('회원가입 실패: 유저 정보가 없습니다.');
+
+            // 2. Insert Profile
+            const { error: profileError } = await supabase
+                .from('profiles')
+                .insert([
+                    {
+                        id: authData.user.id,
+                        email: email,
+                        role: userType,
+                        nickname: name, // For both influencer name and advertiser manager name
+                        company_name: userType === 'ADVERTISER' ? companyName : null,
+                        phone_number: phone,
+                        point: 0
+                    }
+                ]);
+
+            if (profileError) {
+                // If profile creation fails, we might want to clean up the auth user, but for now just alert
+                console.error('Profile creation failed:', profileError);
+                throw new Error('프로필 생성 중 오류가 발생했습니다.');
+            }
+
+            toast.success('회원가입이 완료되었습니다!', {
+                description: '다온뷰에 오신 것을 환영합니다.',
+            });
+            router.push('/'); // Redirect to home (user is already logged in by Supabase on signup)
+
+        } catch (error: any) {
+            console.error('Signup Error:', error);
+            toast.error(`회원가입 실패: ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center py-8 bg-background">
@@ -34,7 +101,7 @@ export default function SignupPage() {
                     </button>
                 </div>
 
-                <form>
+                <form onSubmit={handleSignup}>
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="email">이메일</label>
                         <input
@@ -42,6 +109,9 @@ export default function SignupPage() {
                             id="email"
                             className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                             placeholder="example@email.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
                         />
                     </div>
 
@@ -52,6 +122,10 @@ export default function SignupPage() {
                             id="password"
                             className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                             placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            minLength={6}
+                            required
                         />
                     </div>
 
@@ -62,6 +136,9 @@ export default function SignupPage() {
                             id="password-confirm"
                             className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                             placeholder="비밀번호를 다시 입력해주세요"
+                            value={passwordConfirm}
+                            onChange={(e) => setPasswordConfirm(e.target.value)}
+                            required
                         />
                     </div>
 
@@ -74,6 +151,9 @@ export default function SignupPage() {
                                     id="company"
                                     className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                                     placeholder="사업자등록증 상의 상호명"
+                                    value={companyName}
+                                    onChange={(e) => setCompanyName(e.target.value)}
+                                    required
                                 />
                             </div>
                             <div className="mb-6">
@@ -83,6 +163,9 @@ export default function SignupPage() {
                                     id="manager"
                                     className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                                     placeholder="담당자 성함을 입력해주세요"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    required
                                 />
                             </div>
                         </>
@@ -94,6 +177,9 @@ export default function SignupPage() {
                                 id="name"
                                 className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                                 placeholder="실명을 입력해주세요"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                required
                             />
                         </div>
                     )}
@@ -105,11 +191,14 @@ export default function SignupPage() {
                             id="phone"
                             className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                             placeholder="010-0000-0000"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            required
                         />
                     </div>
 
-                    <button type="submit" className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20">
-                        {userType === 'INFLUENCER' ? '인플루언서로 시작하기' : '광고주로 시작하기'}
+                    <button type="submit" disabled={loading} className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50">
+                        {loading ? '가입 처리중...' : (userType === 'INFLUENCER' ? '인플루언서로 시작하기' : '광고주로 시작하기')}
                     </button>
                 </form>
 

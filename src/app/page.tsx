@@ -1,34 +1,36 @@
 import Link from 'next/link';
 import CampaignCard from '@/components/CampaignCard';
+import { supabase } from '@/lib/supabaseClient';
+import { mapCampaignToCard } from '@/lib/campaignUtils';
 
-export default function Home() {
-  const latestCampaigns = [
-    { id: 101, title: "프리미엄 비건 화장품 3종 세트", platform: "INSTAGRAM", type: "DELIVERY", applicants: 12, total: 30, dday: "D-5", category: "뷰티" },
-    { id: 102, title: "강남 5성급 호텔 디너 뷔페 2인", platform: "BLOG", type: "VISIT", applicants: 45, total: 5, dday: "D-1", category: "맛집" },
-    { id: 103, title: "힙한 성수동 팝업스토어 방문", platform: "REELS", type: "VISIT", applicants: 22, total: 10, dday: "D-3", category: "핫플" },
-    { id: 104, title: "가정용 미니 제습기", platform: "YOUTUBE", type: "DELIVERY", applicants: 8, total: 3, dday: "D-7", category: "생활" },
-  ];
+export default async function Home() {
+  const { data: latestData } = await supabase
+    .from('campaigns')
+    .select('*, applications(count)')
+    .order('created_at', { ascending: false })
+    .limit(4);
+  const latestCampaigns = latestData?.map(c => mapCampaignToCard(c as any)) || [];
 
-  const popularCampaigns = [
-    { id: 201, title: "줄서는 맛집, 치즈 폭탄 피자", platform: "BLOG", type: "VISIT", applicants: 156, total: 10, dday: "D-2", category: "맛집" },
-    { id: 202, title: "다이어트 곤약 젤리 1box", platform: "INSTAGRAM", type: "DELIVERY", applicants: 89, total: 50, dday: "D-4", category: "푸드" },
-    { id: 203, title: "틱톡 댄스 챌린지 (음원 제공)", platform: "TIKTOK", type: "DELIVERY", applicants: 40, total: 20, dday: "D-10", category: "기타" },
-    { id: 204, title: "해운대 오션뷰 카페", platform: "BLOG", type: "VISIT", applicants: 200, total: 5, dday: "D-1", category: "맛집" },
-  ];
+  const { data: popularData } = await supabase
+    .from('campaigns')
+    .select('*, applications(count)')
+    .order('recruit_count', { ascending: false })
+    .limit(4);
+  const popularCampaigns = popularData?.map(c => mapCampaignToCard(c as any)) || [];
 
-  const deliveryCampaigns = [
-    { id: 301, title: "촉촉한 수분 광채 세럼 리뷰", platform: "INSTAGRAM", type: "DELIVERY", applicants: 45, total: 50, dday: "D-1", category: "뷰티" },
-    { id: 302, title: "가정용 미니 제습기 체험단", platform: "YOUTUBE", type: "DELIVERY", applicants: 8, total: 3, dday: "D-7", category: "생활" },
-    { id: 303, title: "데일리 비타민 C 1개월분", platform: "INSTAGRAM", type: "DELIVERY", applicants: 30, total: 30, dday: "D-4", category: "푸드" },
-    { id: 304, title: "무선 노이즈캔슬링 헤드폰", platform: "YOUTUBE", type: "DELIVERY", applicants: 120, total: 5, dday: "D-3", category: "IT" },
-  ];
+  const { data: deliveryData } = await supabase
+    .from('campaigns')
+    .select('*, applications(count)')
+    .eq('type', 'DELIVERY')
+    .limit(4);
+  const deliveryCampaigns = deliveryData?.map(c => mapCampaignToCard(c as any)) || [];
 
-  const visitCampaigns = [
-    { id: 401, title: "프리미엄 오마카세 2인 식사권", platform: "BLOG", type: "VISIT", applicants: 15, total: 20, dday: "D-3", category: "맛집" },
-    { id: 402, title: "성수 힙한 감성 카페 디저트 세트", platform: "REELS", type: "VISIT", applicants: 22, total: 5, dday: "D-5", category: "맛집" },
-    { id: 403, title: "해운대 오션뷰 호텔 1박", platform: "BLOG", type: "VISIT", applicants: 200, total: 2, dday: "D-0", category: "여행" },
-    { id: 404, title: "홍대 줄서는 라멘집 식사권", platform: "SHORTS", type: "VISIT", applicants: 50, total: 10, dday: "D-2", category: "맛집" },
-  ];
+  const { data: visitData } = await supabase
+    .from('campaigns')
+    .select('*, applications(count)')
+    .eq('type', 'VISIT')
+    .limit(4);
+  const visitCampaigns = visitData?.map(c => mapCampaignToCard(c as any)) || [];
 
   const notices = [
     { id: 1, type: "공지", title: "다온뷰 서비스 리뉴얼 오픈 안내", date: "2024.12.01" },

@@ -19,6 +19,8 @@ export const metadata: Metadata = {
   description: "블로그, 인스타그램, 유튜브 체험단 마케팅 플랫폼 다온뷰",
 };
 
+import { Toaster } from 'sonner';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,6 +34,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );
