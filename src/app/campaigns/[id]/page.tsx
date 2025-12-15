@@ -351,7 +351,7 @@ export default function CampaignDetailPage() {
                 {options.length > 0 && (
                     <div className="mb-12" id="options-section">
                         <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
-                            <span className="text-2xl">✨</span> 제공 옵션 (선택)
+                            <span className="text-2xl">✨</span> 제공 옵션
                             <span className="text-red-500 text-sm">*필수</span>
                         </h2>
                         <p className="text-sm text-gray-600 mb-6">원하시는 옵션을 선택해주세요</p>
