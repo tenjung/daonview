@@ -32,3 +32,11 @@ export interface Application {
   status: string
   created_at: string
 }
+
+export interface Favorite {
+  id: number
+  user_id: string
+  campaign_id: number
+  created_at: string
+}
+

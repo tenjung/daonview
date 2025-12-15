@@ -1,20 +1,241 @@
+'use client';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import AdminControls from '@/components/AdminControls';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { toast } from 'sonner';
 
-export const revalidate = 0; // Disable static caching for real-time updates
+export default function CampaignDetailPage() {
+    const params = useParams();
+    const id = params.id as string;
 
-export default async function CampaignDetailPage(props: { params: Promise<{ id: string }> }) {
-    const params = await props.params;
-    const { id } = params;
+    const [campaign, setCampaign] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<any>(null);
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [hasApplied, setHasApplied] = useState(false);
+    const [user, setUser] = useState<any>(null);
+    const [selectedOption, setSelectedOption] = useState<string>('');
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-    // Fetch Data
-    const { data: campaign, error } = await supabase
-        .from('campaigns')
-        .select('*, applications(count)')
-        .eq('id', id)
-        .single();
+    useEffect(() => {
+        if (id) {
+            fetchCampaign();
+            checkUserStatus();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id]);
+
+    async function fetchCampaign() {
+        console.log('Fetching campaign with ID:', id);
+        try {
+            const { data, error } = await supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .eq('id', id)
+                .single();
+
+            console.log('Campaign data:', data);
+            console.log('Campaign error:', error);
+
+            if (error) {
+                console.error('Campaign fetch error:', error);
+                setError(error);
+            } else {
+                setCampaign(data);
+            }
+            setLoading(false);
+        } catch (err) {
+            console.error('Campaign fetch exception:', err);
+            setError(err);
+            setLoading(false);
+        }
+    }
+
+    async function checkUserStatus() {
+        try {
+            const { data: { user: currentUser } } = await supabase.auth.getUser();
+            setUser(currentUser);
+
+            if (!currentUser) return;
+
+            // Check if favorited (with error handling for missing table)
+            try {
+                const { data: favoriteData, error: favError } = await supabase
+                    .from('favorites')
+                    .select('id')
+                    .eq('user_id', currentUser.id)
+                    .eq('campaign_id', id)
+                    .maybeSingle();
+
+                if (!favError) {
+                    setIsFavorite(!!favoriteData);
+                }
+            } catch (favErr) {
+                console.log('Favorites table not available yet');
+            }
+
+            // Check if already applied
+            try {
+                const { data: applicationData, error: appError } = await supabase
+                    .from('applications')
+                    .select('id, selected_option')
+                    .eq('user_id', currentUser.id)
+                    .eq('campaign_id', id)
+                    .maybeSingle();
+
+                if (!appError && applicationData) {
+                    setHasApplied(true);
+                    setSelectedOption(applicationData.selected_option || '');
+                }
+            } catch (appErr) {
+                console.log('Applications check error:', appErr);
+            }
+        } catch (err) {
+            console.error('Error checking user status:', err);
+        }
+    }
+
+    async function toggleFavorite() {
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
+        try {
+            if (isFavorite) {
+                await supabase
+                    .from('favorites')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('campaign_id', id);
+                setIsFavorite(false);
+                toast.success('관심 캠페인에서 제거되었습니다.');
+            } else {
+                await supabase
+                    .from('favorites')
+                    .insert({
+                        user_id: user.id,
+                        campaign_id: id
+                    });
+                setIsFavorite(true);
+                toast.success('관심 캠페인에 추가되었습니다.');
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            toast.error('오류가 발생했습니다.');
+        }
+    }
+
+    async function handleApply() {
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
+        if (hasApplied) {
+            toast.info('이미 신청한 캠페인입니다.');
+            return;
+        }
+
+        // Parse Options
+        const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options : [];
+
+        // Check if option selection is required
+        if (options.length > 0 && !selectedOption) {
+            toast.error('제공 옵션을 선택해주세요.');
+            // Scroll to options section
+            document.getElementById('options-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('applications')
+                .insert({
+                    user_id: user.id,
+                    campaign_id: id,
+                    status: 'pending',
+                    selected_option: selectedOption || null
+                });
+
+            if (error) throw error;
+
+            toast.success('캠페인 신청이 완료되었습니다!', {
+                description: '심사 결과는 마이페이지에서 확인하실 수 있습니다.'
+            });
+            setHasApplied(true);
+            fetchCampaign(); // Refresh to update application count
+        } catch (error) {
+            console.error('Error applying:', error);
+            toast.error('신청 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function handleCancel() {
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
+        if (!hasApplied) {
+            toast.error('신청하지 않은 캠페인입니다.');
+            return;
+        }
+
+        // Show confirmation dialog
+        setShowCancelDialog(true);
+    }
+
+    async function confirmCancel() {
+        try {
+            // 먼저 신청 상태 확인
+            const { data: appData } = await supabase
+                .from('applications')
+                .select('status')
+                .eq('user_id', user.id)
+                .eq('campaign_id', id)
+                .single();
+
+            if (appData?.status !== 'pending') {
+                toast.error('심사중인 신청만 취소할 수 있습니다.', {
+                    description: `현재 상태: ${appData?.status === 'approved' ? '선정됨' :
+                        appData?.status === 'rejected' ? '미선정' :
+                            appData?.status === 'completed' ? '완료' : appData?.status
+                        }`
+                });
+                return;
+            }
+
+            const { error } = await supabase
+                .from('applications')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('campaign_id', id);
+
+            if (error) throw error;
+
+            toast.success('신청이 취소되었습니다.', {
+                description: '언제든지 다시 신청하실 수 있습니다.'
+            });
+            setHasApplied(false);
+            setSelectedOption('');
+            fetchCampaign(); // Refresh to update application count
+        } catch (error) {
+            console.error('Error canceling application:', error);
+            toast.error('취소 중 오류가 발생했습니다.');
+        }
+    }
+
+    if (loading) {
+        return (
+            <div className="container py-20 text-center">
+                <div className="text-gray-500">로딩 중...</div>
+            </div>
+        );
+    }
 
     if (error) {
         return (
@@ -33,11 +254,10 @@ export default async function CampaignDetailPage(props: { params: Promise<{ id: 
     }
 
     // Process Application Count
-    // @ts-ignore
     const appCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
 
     // Date Formatting
-    const startDate = new Date(campaign.created_at).toLocaleDateString(); // Using Created At as start for now
+    const startDate = new Date(campaign.created_at).toLocaleDateString();
     const endDate = new Date(campaign.end_date).toLocaleDateString();
 
     const isVisit = campaign.type === 'VISIT';
@@ -62,6 +282,16 @@ export default async function CampaignDetailPage(props: { params: Promise<{ id: 
                     ) : (
                         <div className="text-2xl text-gray-300 font-bold">No Image</div>
                     )}
+                    <button
+                        onClick={toggleFavorite}
+                        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
+                    >
+                        {isFavorite ? (
+                            <span className="text-2xl">❤️</span>
+                        ) : (
+                            <span className="text-2xl">🤍</span>
+                        )}
+                    </button>
                 </div>
 
                 {/* Info Area */}
@@ -105,13 +335,11 @@ export default async function CampaignDetailPage(props: { params: Promise<{ id: 
                         </div>
                     </div>
 
-                    <div className="mt-auto">
-                        <p className="text-center text-xs text-gray-400 mb-2">
-                            * 로그인 후 신청 가능합니다
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p className="text-sm text-blue-800 text-center">
+                            📋 <strong>아래 캠페인 내용을 모두 확인</strong>하신 후<br />
+                            하단의 <strong>체험단 신청하기</strong> 버튼을 눌러주세요
                         </p>
-                        <button className="btn btn-primary w-full py-4 text-xl shadow-lg shadow-primary/20 hover:-translate-y-1 transition-transform">
-                            체험단 신청하기
-                        </button>
                     </div>
                 </div>
             </div>
@@ -121,18 +349,40 @@ export default async function CampaignDetailPage(props: { params: Promise<{ id: 
 
                 {/* Options Section */}
                 {options.length > 0 && (
-                    <div className="mb-12">
-                        <h2 className="text-xl font-bold mb-6 text-gray-900 flex items-center gap-2">
+                    <div className="mb-12" id="options-section">
+                        <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
                             <span className="text-2xl">✨</span> 제공 옵션 (선택)
+                            <span className="text-red-500 text-sm">*필수</span>
                         </h2>
+                        <p className="text-sm text-gray-600 mb-6">원하시는 옵션을 선택해주세요</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {options.map((opt: string, idx: number) => (
-                                <div key={idx} className="p-4 rounded-xl border border-gray-200 bg-gray-50 font-medium text-gray-700 flex items-center gap-3">
-                                    <span className="w-6 h-6 rounded-full bg-white border border-gray-300 flex items-center justify-center text-xs font-bold text-gray-400">{idx + 1}</span>
-                                    {opt}
-                                </div>
+                                <button
+                                    key={idx}
+                                    onClick={() => !hasApplied && setSelectedOption(opt)}
+                                    disabled={hasApplied}
+                                    className={`p-4 rounded-xl border-2 font-medium text-left flex items-center gap-3 transition-all ${selectedOption === opt
+                                        ? 'border-primary bg-rose-50 text-primary'
+                                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary hover:bg-rose-50'
+                                        } ${hasApplied ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                >
+                                    <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedOption === opt
+                                        ? 'border-primary bg-primary text-white'
+                                        : 'border-gray-300 bg-white text-gray-400'
+                                        }`}>
+                                        {selectedOption === opt ? '✓' : idx + 1}
+                                    </span>
+                                    <span className="flex-1">{opt}</span>
+                                </button>
                             ))}
                         </div>
+                        {selectedOption && !hasApplied && (
+                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-sm text-green-800">
+                                    ✓ 선택된 옵션: <strong>{selectedOption}</strong>
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
 
@@ -184,7 +434,71 @@ export default async function CampaignDetailPage(props: { params: Promise<{ id: 
                     </ul>
                 </div>
 
+
+                {/* Apply Button Section - Moved to Bottom */}
+                <div className="border-t-2 border-gray-200 pt-8">
+                    {!user && (
+                        <p className="text-center text-sm text-gray-500 mb-4">
+                            * 로그인 후 신청 가능합니다
+                        </p>
+                    )}
+                    {options.length > 0 && !hasApplied && (
+                        <p className="text-center text-sm text-orange-600 mb-4 font-medium">
+                            ⚠️ 제공 옵션을 선택하신 후 신청해주세요
+                        </p>
+                    )}
+
+                    {!hasApplied ? (
+                        <button
+                            onClick={handleApply}
+                            disabled={!user}
+                            className={`btn w-full py-5 text-xl font-bold shadow-lg transition-all ${!user
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'btn-primary shadow-primary/30 hover:shadow-primary/50 hover:-translate-y-1'
+                                }`}
+                        >
+                            체험단 신청하기
+                        </button>
+                    ) : (
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-center gap-2 py-5 bg-green-50 border-2 border-green-200 rounded-lg">
+                                <span className="text-2xl">✓</span>
+                                <span className="text-xl font-bold text-green-700">신청 완료</span>
+                            </div>
+                            <button
+                                onClick={handleCancel}
+                                className="w-full py-3 text-sm font-medium text-red-600 hover:text-white hover:bg-red-500 border-2 border-red-300 rounded-lg transition-all hover:border-red-500"
+                            >
+                                신청 취소하기
+                            </button>
+                            <p className="text-xs text-center text-gray-500">
+                                * 심사중인 신청만 취소할 수 있습니다
+                            </p>
+                        </div>
+                    )}
+
+                    {hasApplied && selectedOption && (
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                            <p className="text-sm text-blue-800">
+                                선택하신 옵션: <strong>{selectedOption}</strong>
+                            </p>
+                        </div>
+                    )}
+                </div>
+
             </div>
+
+            {/* Cancel Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showCancelDialog}
+                onClose={() => setShowCancelDialog(false)}
+                onConfirm={confirmCancel}
+                title="신청 취소"
+                message={`정말 이 캠페인 신청을 취소하시겠습니까?\n\n취소 후 다시 신청하실 수 있습니다.`}
+                confirmText="취소하기"
+                cancelText="돌아가기"
+                type="danger"
+            />
         </div>
     );
 }

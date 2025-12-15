@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Wand2 } from 'lucide-react';
+import { Wand2, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // 1. Initial check with getSession (checks local storage first)
@@ -49,17 +50,25 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setMobileMenuOpen(false);
     router.push('/');
     window.location.reload(); // Force refresh to clear any cached state
   };
+
+  const closeMobileMenu = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <nav className="h-[70px] bg-surface border-b border-border sticky top-0 z-[100] flex items-center">
       <div className="flex items-center justify-between w-[90%] max-w-[1200px] mx-auto">
-        <Link href="/" className="text-2xl font-bold text-primary tracking-tighter">
+        {/* Logo */}
+        <Link href="/" className="text-xl md:text-2xl font-bold text-primary tracking-tighter">
           DAONVIEW
         </Link>
 
-        <div className="flex items-center gap-8">
+        {/* Desktop Navigation */}
+        <div className="hidden lg:flex items-center gap-8">
           <Link href="/campaigns" className="font-medium text-text-secondary hover:text-primary transition-colors">캠페인</Link>
           <Link href="/reviews" className="font-medium text-text-secondary hover:text-primary transition-colors">리뷰</Link>
           <Link href="/brand" className="font-medium text-text-secondary hover:text-primary transition-colors">브랜드존</Link>
@@ -70,9 +79,9 @@ export default function Navbar() {
           </Link>
         </div>
 
-        <div className="flex gap-4 items-center">
+        {/* Desktop User Menu */}
+        <div className="hidden lg:flex gap-4 items-center">
           {loading ? (
-            // Skeleton / Loading state
             <div className="w-20 h-8 bg-slate-100 animate-pulse rounded"></div>
           ) : user ? (
             <div className="flex items-center gap-4">
@@ -114,7 +123,162 @@ export default function Navbar() {
             </>
           )}
         </div>
+
+        {/* Mobile: User Info + Hamburger */}
+        <div className="flex lg:hidden items-center gap-3">
+          {/* Mobile User Info */}
+          {!loading && user && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-text-main truncate max-w-[80px]">
+                {profile?.nickname || user.email?.split('@')[0]}님
+              </span>
+            </div>
+          )}
+
+          {/* Hamburger Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-text-main hover:text-primary transition-colors"
+            aria-label="메뉴"
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-[90] lg:hidden"
+          onClick={closeMobileMenu}
+        />
+      )}
+
+      {/* Mobile Menu Drawer */}
+      <div className={`fixed top-[70px] right-0 h-[calc(100vh-70px)] w-[280px] bg-white shadow-2xl z-[95] transform transition-transform duration-300 ease-in-out lg:hidden ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}>
+        <div className="flex flex-col h-full">
+          {/* User Info Section */}
+          {user && (
+            <div className="p-6 border-b border-border bg-rose-50">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="px-2 py-1 rounded text-xs font-bold bg-white text-primary">
+                  {profile?.role === 'ADMIN' ? '관리자' : profile?.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
+                </span>
+              </div>
+              <p className="text-sm font-bold text-text-main">
+                {profile?.nickname || user.email?.split('@')[0]}님
+              </p>
+              <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+            </div>
+          )}
+
+          {/* Navigation Links */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/campaigns"
+                onClick={closeMobileMenu}
+                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+              >
+                캠페인
+              </Link>
+              <Link
+                href="/reviews"
+                onClick={closeMobileMenu}
+                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+              >
+                리뷰
+              </Link>
+              <Link
+                href="/brand"
+                onClick={closeMobileMenu}
+                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+              >
+                브랜드존
+              </Link>
+              <Link
+                href="/community"
+                onClick={closeMobileMenu}
+                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+              >
+                커뮤니티
+              </Link>
+              <Link
+                href="/ai-service"
+                onClick={closeMobileMenu}
+                className="flex items-center gap-2 px-4 py-3 rounded-lg font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white hover:shadow-lg transition-all mt-2"
+              >
+                <Wand2 size={18} />
+                <span>부가서비스</span>
+              </Link>
+            </div>
+
+            {/* Dashboard Links */}
+            {user && (
+              <div className="mt-6 pt-6 border-t border-border">
+                {profile?.role === 'ADMIN' && (
+                  <Link
+                    href="/dashboard/admin"
+                    onClick={closeMobileMenu}
+                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                  >
+                    관리페이지
+                  </Link>
+                )}
+                {profile?.role === 'ADVERTISER' && (
+                  <Link
+                    href="/dashboard/advertiser"
+                    onClick={closeMobileMenu}
+                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                  >
+                    관리페이지
+                  </Link>
+                )}
+                {profile?.role === 'INFLUENCER' && (
+                  <Link
+                    href="/dashboard/influencer"
+                    onClick={closeMobileMenu}
+                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                  >
+                    마이페이지
+                  </Link>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="p-4 border-t border-border">
+            {user ? (
+              <button
+                onClick={handleLogout}
+                className="w-full px-4 py-3 rounded-lg font-medium text-red-500 hover:bg-red-50 transition-colors"
+              >
+                로그아웃
+              </button>
+            ) : (
+              <div className="flex flex-col gap-2">
+                <Link
+                  href="/login"
+                  onClick={closeMobileMenu}
+                  className="btn btn-outline py-3 text-center"
+                >
+                  로그인
+                </Link>
+                <Link
+                  href="/signup"
+                  onClick={closeMobileMenu}
+                  className="btn btn-primary py-3 text-center"
+                >
+                  회원가입
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
   );
 }
+
