@@ -10,6 +10,19 @@ export interface Campaign {
   end_date: string
   status: string
   created_at: string
+  store_name: string | null
+  store_address: string | null
+  naver_map_url: string | null
+  sub_image_1: string | null
+  sub_image_2: string | null
+  is_always: boolean | null
+  campaign_options: string[] | null
+  provision: string | null
+  region: string | null
+  business_hours: string | null
+  available_time: string | null
+  reservation_method: string | null
+  created_by: string | null
 }
 
 export interface Profile {

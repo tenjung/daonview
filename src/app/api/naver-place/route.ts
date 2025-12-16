@@ -28,11 +28,11 @@ export async function POST(request: Request) {
                 },
                 timeout: 5000,
                 maxRedirects: 5,
-                validateStatus: (status) => status < 500,
+                validateStatus: (status: number) => status < 500,
             });
             finalUrl = initialRes.request.res.responseUrl || url;
         } catch (e) {
-            console.error('Initial fetch failed, continuing with original URL:', e.message);
+            console.error('Initial fetch failed, continuing with original URL:', e instanceof Error ? e.message : String(e));
         }
 
         // 2. Extract Place ID
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         if (!address) {
             // Try looking for span that matches address pattern (ends in "길" or "로" + number)
             // Or look for text following "주소"
-            $('span, div, a').each((i, el) => {
+            $('span, div, a').each((_i: number, el: cheerio.Element) => {
                 if (address) return;
                 const txt = $(el).text().trim();
                 // Heuristic: "서울 XX구"
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
 
         // 2. JSON-LD / Scripts Fallback
         if (!title || !address) {
-            $('script').each((i, el) => {
+            $('script').each((_i: number, el: cheerio.Element) => {
                 const txt = $(el).html();
                 if (!txt) return;
 

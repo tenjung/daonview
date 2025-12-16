@@ -1,40 +1,99 @@
+'use client';
+
 import Link from 'next/link';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 
 export default function Footer() {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const footerRef = useRef<HTMLElement>(null);
+
+    const handleToggle = () => {
+        setIsExpanded(!isExpanded);
+        
+        // When expanding, scroll to bottom after a short delay to allow animation
+        if (!isExpanded) {
+            setTimeout(() => {
+                window.scrollTo({
+                    top: document.documentElement.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }
+    };
+
     return (
-        <footer className="bg-surface border-t border-border py-16 mt-16">
-            <div className="grid grid-cols-[2fr_1fr_1fr_1fr] gap-8 w-[90%] max-w-[1200px] mx-auto">
-                <div>
-                    <div className="font-bold text-xl text-text-main">DAONVIEW</div>
-                    <p className="text-text-secondary text-sm mt-4 max-w-[300px] leading-relaxed">
-                        프리미엄 체험단 플랫폼 다온뷰에서<br />
-                        특별한 경험을 시작해보세요.
-                    </p>
-                </div>
+        <footer className="bg-surface border-t border-border mt-16">
+            {/* Desktop Footer - Single Line */}
+            <div className="hidden lg:block">
+                <div className="w-[90%] max-w-[1200px] mx-auto py-2.5">
+                    <div className="flex items-center justify-between">
+                        {/* Left: Toggle Button */}
+                        <button
+                            onClick={handleToggle}
+                            className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-primary transition-colors"
+                        >
+                            <span>다온컴퍼니 사업자 정보 보기</span>
+                            {isExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                            ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                            )}
+                        </button>
 
-                <div className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-text-main mb-2">서비스</h3>
-                    <Link href="/campaigns" className="text-text-secondary text-sm hover:text-primary transition-colors">캠페인 찾기</Link>
-                    <Link href="/reviews" className="text-text-secondary text-sm hover:text-primary transition-colors">베스트 리뷰</Link>
-                    <Link href="/events" className="text-text-secondary text-sm hover:text-primary transition-colors">이벤트</Link>
-                </div>
+                        {/* Center: Links */}
+                        <div className="flex items-center gap-5 text-xs">
+                            <Link href="/campaigns" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
+                            <Link href="/notice" className="text-text-secondary hover:text-primary transition-colors">공지사항</Link>
+                            <Link href="/terms" className="text-text-secondary hover:text-primary transition-colors">운영정책</Link>
+                            <Link href="/privacy" className="text-text-secondary hover:text-primary transition-colors">개인정보처리방침</Link>
+                            <Link href="/faq" className="text-text-secondary hover:text-primary transition-colors">자주묻는질문</Link>
+                            <Link href="/contact" className="text-text-secondary hover:text-primary transition-colors">문의하기</Link>
+                        </div>
 
-                <div className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-text-main mb-2">고객센터</h3>
-                    <Link href="/notice" className="text-text-secondary text-sm hover:text-primary transition-colors">공지사항</Link>
-                    <Link href="/faq" className="text-text-secondary text-sm hover:text-primary transition-colors">FAQ</Link>
-                    <Link href="/contact" className="text-text-secondary text-sm hover:text-primary transition-colors">1:1 문의</Link>
-                </div>
+                        {/* Right: Logo */}
+                        <div className="font-bold text-base text-primary">DAONVIEW</div>
+                    </div>
 
-                <div className="flex flex-col gap-3">
-                    <h3 className="font-semibold text-text-main mb-2">기업</h3>
-                    <Link href="/about" className="text-text-secondary text-sm hover:text-primary transition-colors">회사소개</Link>
-                    <Link href="/terms" className="text-text-secondary text-sm hover:text-primary transition-colors">이용약관</Link>
-                    <Link href="/privacy" className="text-text-secondary text-sm hover:text-primary transition-colors">개인정보처리방침</Link>
+                    {/* Expandable Business Info */}
+                    <div
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                            isExpanded ? 'max-h-[300px] opacity-100 mt-4' : 'max-h-0 opacity-0'
+                        }`}
+                    >
+                        <div className="pt-4 border-t border-border">
+                            <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary mb-3">
+                                <div className="flex gap-2">
+                                    <span className="font-medium text-text-main min-w-[70px]">상호명</span>
+                                    <span>다온컴퍼니</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className="font-medium text-text-main min-w-[70px]">대표자명</span>
+                                    <span>신지호</span>
+                                </div>
+                                <div className="flex gap-2">
+                                    <span className="font-medium text-text-main min-w-[70px]">전화번호</span>
+                                    <span>050-71395-0204</span>
+                                </div>
+                                <div className="flex gap-2 col-span-2">
+                                    <span className="font-medium text-text-main min-w-[70px]">주소</span>
+                                    <span>경기도 부천시 소사구 양지로 229 골든IT타워 824호</span>
+                                </div>
+                            </div>
+                            <div className="text-center text-xs text-text-secondary pt-3 border-t border-border">
+                                © 2024 DAONVIEW. All rights reserved.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div className="text-center mt-16 pt-8 border-t border-border text-text-secondary text-sm">
-                © 2024 DAONVIEW. All rights reserved.
+
+            {/* Mobile Footer - Minimal */}
+            <div className="lg:hidden py-3 text-center">
+                <div className="font-bold text-base text-primary mb-1">DAONVIEW</div>
+                <div className="text-xs text-text-secondary">
+                    © 2024 DAONVIEW. All rights reserved.
+                </div>
             </div>
         </footer>
     );

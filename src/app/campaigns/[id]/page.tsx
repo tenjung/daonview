@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight, MapPin, Package, Heart } from 'lucide-react';
 
 export default function CampaignDetailPage() {
     const params = useParams();
@@ -18,7 +19,9 @@ export default function CampaignDetailPage() {
     const [hasApplied, setHasApplied] = useState(false);
     const [user, setUser] = useState<any>(null);
     const [selectedOption, setSelectedOption] = useState<string>('');
+    const [applicationMessage, setApplicationMessage] = useState<string>('');
     const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     useEffect(() => {
         if (id) {
@@ -81,7 +84,7 @@ export default function CampaignDetailPage() {
             try {
                 const { data: applicationData, error: appError } = await supabase
                     .from('applications')
-                    .select('id, selected_option')
+                    .select('id, selected_option, application_message')
                     .eq('user_id', currentUser.id)
                     .eq('campaign_id', id)
                     .maybeSingle();
@@ -89,6 +92,7 @@ export default function CampaignDetailPage() {
                 if (!appError && applicationData) {
                     setHasApplied(true);
                     setSelectedOption(applicationData.selected_option || '');
+                    setApplicationMessage(applicationData.application_message || '');
                 }
             } catch (appErr) {
                 console.log('Applications check error:', appErr);
@@ -158,7 +162,8 @@ export default function CampaignDetailPage() {
                     user_id: user.id,
                     campaign_id: id,
                     status: 'pending',
-                    selected_option: selectedOption || null
+                    selected_option: selectedOption || null,
+                    application_message: applicationMessage || null
                 });
 
             if (error) throw error;
@@ -222,6 +227,7 @@ export default function CampaignDetailPage() {
             });
             setHasApplied(false);
             setSelectedOption('');
+            setApplicationMessage('');
             fetchCampaign(); // Refresh to update application count
         } catch (error) {
             console.error('Error canceling application:', error);
@@ -266,79 +272,172 @@ export default function CampaignDetailPage() {
     // Parse Options
     const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options : [];
 
+    // Prepare image array for slider
+    const images = [
+        campaign.thumbnail_url,
+        campaign.sub_image_1,
+        campaign.sub_image_2
+    ].filter(Boolean); // Remove null/undefined values
+
+    const nextImage = () => {
+        setCurrentImageIndex((prev) => (prev + 1) % images.length);
+    };
+
+    const prevImage = () => {
+        setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+    };
+
     return (
         <div className="container py-16 max-w-[1000px] w-[90%] mx-auto">
             {/* Top Section: Img + Info */}
             <div className="flex flex-col md:flex-row gap-12 mb-16">
-                {/* Image Area */}
-                <div className="flex-1 bg-gray-50 rounded-2xl min-h-[400px] max-h-[500px] border border-border flex items-center justify-center overflow-hidden relative shadow-sm">
-                    {campaign.thumbnail_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={campaign.thumbnail_url}
-                            alt={campaign.title}
-                            className="w-full h-full object-cover"
-                        />
+                {/* Image Slider Area */}
+                <div className="flex-1 bg-gray-50 rounded-2xl min-h-[400px] max-h-[500px] border border-border flex items-center justify-center overflow-hidden relative shadow-sm group">
+                    {images.length > 0 ? (
+                        <>
+                            {/* Main Image */}
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                                src={images[currentImageIndex]}
+                                alt={`${campaign.title} - Image ${currentImageIndex + 1}`}
+                                className="w-full h-full object-cover transition-opacity duration-300"
+                            />
+
+                            {/* Navigation Arrows - Only show if multiple images */}
+                            {images.length > 1 && (
+                                <>
+                                    <button
+                                        onClick={prevImage}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100"
+                                        aria-label="Previous image"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        onClick={nextImage}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-all opacity-0 group-hover:opacity-100"
+                                        aria-label="Next image"
+                                    >
+                                        <ChevronRight className="w-6 h-6" />
+                                    </button>
+
+                                    {/* Dot Indicators */}
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                                        {images.map((_, idx) => (
+                                            <button
+                                                key={idx}
+                                                onClick={() => setCurrentImageIndex(idx)}
+                                                className={`w-2 h-2 rounded-full transition-all ${
+                                                    idx === currentImageIndex
+                                                        ? 'bg-white w-6'
+                                                        : 'bg-white/50 hover:bg-white/75'
+                                                }`}
+                                                aria-label={`Go to image ${idx + 1}`}
+                                            />
+                                        ))}
+                                    </div>
+
+                                    {/* Image Counter */}
+                                    <div className="absolute top-4 left-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm font-medium">
+                                        {currentImageIndex + 1} / {images.length}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Favorite Button */}
+                            <button
+                                onClick={toggleFavorite}
+                                className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-all z-10 group"
+                            >
+                                {isFavorite ? (
+                                    <Heart className="w-6 h-6 fill-red-500 text-red-500" />
+                                ) : (
+                                    <Heart className="w-6 h-6 text-gray-400 group-hover:text-red-400 transition-colors" />
+                                )}
+                            </button>
+                        </>
                     ) : (
                         <div className="text-2xl text-gray-300 font-bold">No Image</div>
                     )}
-                    <button
-                        onClick={toggleFavorite}
-                        className="absolute top-4 right-4 w-12 h-12 rounded-full bg-white shadow-lg flex items-center justify-center hover:scale-110 transition-transform"
-                    >
-                        {isFavorite ? (
-                            <span className="text-2xl">❤️</span>
-                        ) : (
-                            <span className="text-2xl">🤍</span>
-                        )}
-                    </button>
                 </div>
 
                 {/* Info Area */}
                 <div className="flex-1 flex flex-col">
                     <div>
                         <AdminControls campaignId={campaign.id} />
-                        <div className="flex gap-2 mb-4">
+                        <div className="flex flex-wrap gap-2 mb-4">
                             <span className="inline-block bg-slate-800 text-white px-3 py-1 rounded font-bold text-xs uppercase tracking-wider">{campaign.platform}</span>
                             <span className={`inline-block px-3 py-1 rounded font-bold text-xs ${isVisit ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                                 {isVisit ? '방문형' : (isDelivery ? '배송형' : '기자단')}
                             </span>
+                            {/* Region Badge for VISIT type */}
+                            {isVisit && campaign.region && (
+                                <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded font-bold text-xs">
+                                    {campaign.region}
+                                </span>
+                            )}
+                            {/* Category Badge for DELIVERY type */}
+                            {isDelivery && campaign.category && (
+                                <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded font-bold text-xs">
+                                    <Package className="w-3 h-3" /> {campaign.category}
+                                </span>
+                            )}
                         </div>
-                        <h1 className="text-3xl md:text-4xl font-extrabold text-text-main mb-6 leading-tight break-keep">
+                        <h1 className="text-xl md:text-2xl font-bold text-text-main mb-6 leading-snug break-keep">
                             {campaign.title}
                         </h1>
                     </div>
 
-                    <div className="mb-8 border-y border-slate-100 py-6 space-y-3">
-                        <div className="flex justify-between text-base">
-                            <span className="text-gray-500 font-medium">모집기간</span>
-                            <span className="text-gray-900 font-bold">{startDate} ~ {endDate}</span>
-                        </div>
-                        <div className="flex justify-between text-base">
-                            <span className="text-gray-500 font-medium">모집인원</span>
-                            <span className="text-gray-900 font-bold">
-                                {campaign.recruit_count}명
-                                <span className="text-primary ml-1">(현재 {appCount}명 신청)</span>
-                            </span>
-                        </div>
-
-                        {isVisit && campaign.store_address && (
-                            <div className="flex justify-between text-base">
-                                <span className="text-gray-500 font-medium">지역/위치</span>
-                                <span className="text-gray-900 font-bold text-right break-keep w-2/3">{campaign.store_address}</span>
+                    {/* Campaign Info - Compact */}
+                    <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+                        <div className="space-y-4">
+                            {/* Period */}
+                            <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+                                <span className="text-2xl">📅</span>
+                                <div className="flex-1">
+                                    <p className="text-xs text-gray-500 mb-1">모집기간</p>
+                                    <p className="text-sm font-bold text-gray-900">{startDate} ~ {endDate}</p>
+                                </div>
                             </div>
-                        )}
 
-                        <div className="flex justify-between text-base">
-                            <span className="text-gray-500 font-medium">제공내역</span>
-                            <span className="text-primary font-bold">{campaign.provision || '별도 표기'}</span>
+                            {/* Recruit Count */}
+                            <div className="flex items-center gap-3 pb-4 border-b border-gray-100">
+                                <span className="text-2xl">👥</span>
+                                <div className="flex-1">
+                                    <p className="text-xs text-gray-500 mb-1">모집인원</p>
+                                    <p className="text-sm font-bold text-gray-900">
+                                        {campaign.recruit_count}명
+                                        <span className="text-primary text-xs ml-2">(현재 {appCount}명 신청)</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Location (VISIT only) */}
+                            {isVisit && campaign.store_address && (
+                                <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
+                                    <span className="text-2xl">📍</span>
+                                    <div className="flex-1">
+                                        <p className="text-xs text-gray-500 mb-1">지역/위치</p>
+                                        <p className="text-sm font-bold text-gray-900 break-keep">{campaign.store_address}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Provision */}
+                            <div className="flex items-center gap-3">
+                                <span className="text-2xl">🎁</span>
+                                <div className="flex-1">
+                                    <p className="text-xs text-gray-500 mb-1">제공내역</p>
+                                    <p className="text-sm font-bold text-primary">{campaign.provision || '별도 표기'}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
+                    {/* Info Notice - Compact */}
                     <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <p className="text-sm text-blue-800 text-center">
-                            📋 <strong>아래 캠페인 내용을 모두 확인</strong>하신 후<br />
-                            하단의 <strong>체험단 신청하기</strong> 버튼을 눌러주세요
+                        <p className="text-xs text-blue-800 text-center leading-relaxed">
+                            📋 <strong>아래 캠페인 내용을 모두 확인</strong>하신 후 하단의 <strong className="text-primary">체험단 신청하기</strong> 버튼을 눌러주세요
                         </p>
                     </div>
                 </div>
@@ -347,65 +446,12 @@ export default function CampaignDetailPage() {
             {/* Bottom Section: Details */}
             <div className="bg-white border border-border rounded-2xl p-8 sm:p-12 shadow-sm">
 
-                {/* Options Section */}
-                {options.length > 0 && (
-                    <div className="mb-12" id="options-section">
-                        <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
-                            <span className="text-2xl">✨</span> 제공 옵션
-                            <span className="text-red-500 text-sm">*필수</span>
-                        </h2>
-                        <p className="text-sm text-gray-600 mb-6">원하시는 옵션을 선택해주세요</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {options.map((opt: string, idx: number) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => !hasApplied && setSelectedOption(opt)}
-                                    disabled={hasApplied}
-                                    className={`p-4 rounded-xl border-2 font-medium text-left flex items-center gap-3 transition-all ${selectedOption === opt
-                                        ? 'border-primary bg-rose-50 text-primary'
-                                        : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary hover:bg-rose-50'
-                                        } ${hasApplied ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                                >
-                                    <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedOption === opt
-                                        ? 'border-primary bg-primary text-white'
-                                        : 'border-gray-300 bg-white text-gray-400'
-                                        }`}>
-                                        {selectedOption === opt ? '✓' : idx + 1}
-                                    </span>
-                                    <span className="flex-1">{opt}</span>
-                                </button>
-                            ))}
-                        </div>
-                        {selectedOption && !hasApplied && (
-                            <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                <p className="text-sm text-green-800">
-                                    ✓ 선택된 옵션: <strong>{selectedOption}</strong>
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                )}
-
                 <h2 className="text-2xl font-bold mb-6 text-text-main border-b-2 border-pink-100 pb-2 inline-block">캠페인 미션 & 가이드</h2>
 
                 {/* Description Body */}
                 <div className="text-base leading-loose text-gray-700 mb-12 whitespace-pre-line min-h-[100px]">
                     {campaign.description}
                 </div>
-
-                {/* Sub Images */}
-                {(campaign.sub_image_1 || campaign.sub_image_2) && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                        {campaign.sub_image_1 && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={campaign.sub_image_1} alt="Detail 1" className="rounded-xl w-full object-cover border border-gray-100" />
-                        )}
-                        {campaign.sub_image_2 && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={campaign.sub_image_2} alt="Detail 2" className="rounded-xl w-full object-cover border border-gray-100" />
-                        )}
-                    </div>
-                )}
 
                 {/* Map Section */}
                 {campaign.naver_map_url && (
@@ -437,6 +483,82 @@ export default function CampaignDetailPage() {
 
                 {/* Apply Button Section - Moved to Bottom */}
                 <div className="border-t-2 border-gray-200 pt-8">
+                    
+                    {/* Options Section - Only show if campaign has options */}
+                    {options.length > 0 && (
+                        <div className="mb-8" id="options-section">
+                            <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
+                                <span className="text-2xl">✨</span> 제공 옵션
+                                <span className="text-red-500 text-sm">*필수</span>
+                            </h2>
+                            <p className="text-sm text-gray-600 mb-4">원하시는 옵션을 선택해주세요</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {options.map((opt: string, idx: number) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => !hasApplied && setSelectedOption(opt)}
+                                        disabled={hasApplied}
+                                        className={`p-4 rounded-xl border-2 font-medium text-left flex items-center gap-3 transition-all ${selectedOption === opt
+                                            ? 'border-primary bg-rose-50 text-primary'
+                                            : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary hover:bg-rose-50'
+                                            } ${hasApplied ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                    >
+                                        <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedOption === opt
+                                            ? 'border-primary bg-primary text-white'
+                                            : 'border-gray-300 bg-white text-gray-400'
+                                            }`}>
+                                            {selectedOption === opt ? '✓' : idx + 1}
+                                        </span>
+                                        <span className="flex-1">{opt}</span>
+                                    </button>
+                                ))}
+                            </div>
+                            {selectedOption && !hasApplied && (
+                                <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                    <p className="text-sm text-green-800">
+                                        ✓ 선택된 옵션: <strong>{selectedOption}</strong>
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Application Message Section */}
+                    {!hasApplied && (
+                        <div className="mb-8">
+                            <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
+                                <span className="text-2xl">💬</span> 자유 멘트
+                                <span className="text-gray-400 text-sm font-normal">(선택사항)</span>
+                            </h2>
+                            <p className="text-sm text-gray-600 mb-4">
+                                어필할 점이나 하고 싶은 말씀을 자유롭게 작성해주세요. 리뷰어 선정 시 참고자료로 활용됩니다.
+                            </p>
+                            <textarea
+                                value={applicationMessage}
+                                onChange={(e) => setApplicationMessage(e.target.value)}
+                                placeholder="예) 해당 분야에 관심이 많아 신청하게 되었습니다. 성실하게 리뷰 작성하겠습니다!"
+                                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none resize-none transition-colors"
+                                rows={5}
+                                maxLength={500}
+                            />
+                            <p className="text-xs text-gray-400 mt-2 text-right">
+                                {applicationMessage.length} / 500자
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Display submitted message if already applied */}
+                    {hasApplied && applicationMessage && (
+                        <div className="mb-8">
+                            <h2 className="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
+                                <span className="text-2xl">💬</span> 제출한 자유 멘트
+                            </h2>
+                            <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl">
+                                <p className="text-gray-700 whitespace-pre-wrap">{applicationMessage}</p>
+                            </div>
+                        </div>
+                    )}
+
                     {!user && (
                         <p className="text-center text-sm text-gray-500 mb-4">
                             * 로그인 후 신청 가능합니다

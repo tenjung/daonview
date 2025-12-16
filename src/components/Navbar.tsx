@@ -4,10 +4,11 @@ import Link from 'next/link';
 import { Wand2, Menu, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -59,20 +60,62 @@ export default function Navbar() {
     setMobileMenuOpen(false);
   };
 
+  // Helper function to check if link is active
+  const isActive = (path: string) => {
+    if (path === '/') return pathname === '/';
+    return pathname.startsWith(path);
+  };
+
   return (
     <nav className="h-[70px] bg-surface border-b border-border sticky top-0 z-[100] flex items-center">
-      <div className="flex items-center justify-between w-[90%] max-w-[1200px] mx-auto">
+      <div className="flex items-center justify-between w-[90%] max-w-[1200px] mx-auto h-full">
         {/* Logo */}
         <Link href="/" className="text-xl md:text-2xl font-bold text-primary tracking-tighter">
           DAONVIEW
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-8">
-          <Link href="/campaigns" className="font-medium text-text-secondary hover:text-primary transition-colors">캠페인</Link>
-          <Link href="/reviews" className="font-medium text-text-secondary hover:text-primary transition-colors">리뷰</Link>
-          <Link href="/brand" className="font-medium text-text-secondary hover:text-primary transition-colors">브랜드존</Link>
-          <Link href="/community" className="font-medium text-text-secondary hover:text-primary transition-colors">커뮤니티</Link>
+        <div className="hidden lg:flex items-center gap-8 h-full">
+          <Link 
+            href="/campaigns" 
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
+              isActive('/campaigns') 
+                ? 'text-primary border-primary' 
+                : 'text-text-secondary border-transparent hover:text-primary'
+            }`}
+          >
+            캠페인
+          </Link>
+          <Link 
+            href="/reviews" 
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
+              isActive('/reviews') 
+                ? 'text-primary border-primary' 
+                : 'text-text-secondary border-transparent hover:text-primary'
+            }`}
+          >
+            리뷰
+          </Link>
+          <Link 
+            href="/brand" 
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
+              isActive('/brand') 
+                ? 'text-primary border-primary' 
+                : 'text-text-secondary border-transparent hover:text-primary'
+            }`}
+          >
+            브랜드존
+          </Link>
+          <Link 
+            href="/community" 
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
+              isActive('/community') 
+                ? 'text-primary border-primary' 
+                : 'text-text-secondary border-transparent hover:text-primary'
+            }`}
+          >
+            커뮤니티
+          </Link>
           <Link href="/ai-service" className="flex items-center gap-1.5 font-bold text-sm bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white px-4 py-2 rounded-full hover:shadow-lg hover:shadow-violet-500/30 transition-all hover:-translate-y-0.5 border-none">
             <Wand2 size={16} className="text-white" />
             <span>부가서비스</span>
@@ -179,28 +222,44 @@ export default function Navbar() {
               <Link
                 href="/campaigns"
                 onClick={closeMobileMenu}
-                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
+                  isActive('/campaigns')
+                    ? 'bg-rose-50 text-primary border-primary'
+                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                }`}
               >
                 캠페인
               </Link>
               <Link
                 href="/reviews"
                 onClick={closeMobileMenu}
-                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
+                  isActive('/reviews')
+                    ? 'bg-rose-50 text-primary border-primary'
+                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                }`}
               >
                 리뷰
               </Link>
               <Link
                 href="/brand"
                 onClick={closeMobileMenu}
-                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
+                  isActive('/brand')
+                    ? 'bg-rose-50 text-primary border-primary'
+                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                }`}
               >
                 브랜드존
               </Link>
               <Link
                 href="/community"
                 onClick={closeMobileMenu}
-                className="px-4 py-3 rounded-lg font-medium text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
+                  isActive('/community')
+                    ? 'bg-rose-50 text-primary border-primary'
+                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                }`}
               >
                 커뮤니티
               </Link>
@@ -246,6 +305,48 @@ export default function Navbar() {
                 )}
               </div>
             )}
+
+            {/* Footer Links Section in Mobile Menu */}
+            <div className="mt-6 pt-6 border-t border-border">
+              <h4 className="px-4 text-xs font-bold text-text-main mb-3 uppercase tracking-wider">바로가기</h4>
+              <div className="flex flex-col gap-1">
+                <Link
+                  href="/notice"
+                  onClick={closeMobileMenu}
+                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                >
+                  공지사항
+                </Link>
+                <Link
+                  href="/faq"
+                  onClick={closeMobileMenu}
+                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                >
+                  자주묻는질문
+                </Link>
+                <Link
+                  href="/contact"
+                  onClick={closeMobileMenu}
+                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                >
+                  문의하기
+                </Link>
+                <Link
+                  href="/terms"
+                  onClick={closeMobileMenu}
+                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                >
+                  운영정책
+                </Link>
+                <Link
+                  href="/privacy"
+                  onClick={closeMobileMenu}
+                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                >
+                  개인정보처리방침
+                </Link>
+              </div>
+            </div>
           </div>
 
           {/* Bottom Actions */}

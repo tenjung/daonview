@@ -43,11 +43,26 @@ export default function CampaignsPage() {
 
     useEffect(() => {
         const fetchCampaigns = async () => {
-            const { data } = await supabase.from('campaigns').select('*, applications(count)').order('created_at', { ascending: false });
-            if (data) {
-                setAllCampaigns(data.map(c => mapCampaignToCard(c as any)));
+            try {
+                const { data, error } = await supabase.from('campaigns').select('*, applications(count)').order('created_at', { ascending: false });
+                
+                if (error) {
+                    console.error('Error fetching campaigns:', error);
+                    setLoading(false);
+                    return;
+                }
+                
+                if (data) {
+                    console.log('Fetched campaigns:', data);
+                    const mappedData = data.map(c => mapCampaignToCard(c as any));
+                    console.log('Mapped campaigns:', mappedData);
+                    setAllCampaigns(mappedData);
+                }
+            } catch (err) {
+                console.error('Exception in fetchCampaigns:', err);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
         fetchCampaigns();
     }, []);

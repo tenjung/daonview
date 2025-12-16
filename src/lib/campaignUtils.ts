@@ -37,7 +37,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     total: campaign.recruit_count,
     dday: dday,
     category: campaign.category,
-    region: "전국", // Default as not in schema
+    region: (campaign as any).region || null, // Use actual region from database
     imageUrl: campaign.thumbnail_url || '',
     provision: (campaign as any).provision || '',
   };

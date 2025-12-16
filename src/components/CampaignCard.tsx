@@ -12,6 +12,7 @@ interface CampaignProps {
     imageUrl?: string;
     category?: string;
     provision?: string;
+    region?: string | null; // Add region prop
 }
 
 const PlatformIcon = ({ platform }: { platform: string }) => {
@@ -48,8 +49,9 @@ const TypeBadge = ({ type }: { type?: string }) => {
     );
 };
 
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region }: CampaignProps) {
     const linkHref = id ? `/campaigns/${id}` : '#';
+    const isVisit = type?.toUpperCase() === 'VISIT';
 
     return (
         <Link href={linkHref} className="card group border border-border rounded-xl overflow-hidden bg-surface transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col no-underline text-text-main h-full">
@@ -78,12 +80,18 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             </div>
 
             <div className="p-5 flex-1 flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-3 flex-wrap">
                     {/* Platform Icon Circle */}
                     <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
                         <PlatformIcon platform={platform} />
                     </div>
                     <TypeBadge type={type} />
+                    {/* Region Badge for VISIT type */}
+                    {isVisit && region && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border bg-orange-50 text-orange-600 border-orange-100">
+                            {region}
+                        </span>
+                    )}
                 </div>
 
                 <h3 className="text-base font-bold mb-2 leading-snug line-clamp-2 number-font group-hover:text-primary transition-colors">

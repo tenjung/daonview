@@ -5,7 +5,16 @@ import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import DaumPostcode from 'react-daum-postcode';
+import dynamic from 'next/dynamic';
+
+// Dynamic import to avoid SSR issues
+const DaumPostcode = dynamic(
+    () => import('react-daum-postcode').then((mod) => mod.default),
+    {
+        ssr: false,
+        loading: () => <div className="p-4 text-center">주소 검색 로딩 중...</div>
+    }
+) as any;
 
 type CampaignType = 'VISIT' | 'DELIVERY' | 'PURCHASE';
 
@@ -43,6 +52,11 @@ export default function NewCampaignPage() {
     const [productName, setProductName] = useState('');
     const [mission, setMission] = useState('');
     const [keywords, setKeywords] = useState('');
+    const [region, setRegion] = useState(''); // For VISIT type: e.g., "대구/수성구"
+    const [selectedCity, setSelectedCity] = useState('서울'); // For region tab selection
+    const [businessHours, setBusinessHours] = useState(''); // 영업시간 및 휴무일
+    const [availableTime, setAvailableTime] = useState(''); // 체험 가능 시간
+    const [reservationMethod, setReservationMethod] = useState(''); // 예약 방법
 
     // Campaign Options (Selection for Applicants)
     const [campaignOptions, setCampaignOptions] = useState<string[]>([]); // e.g. ["Designer A: Cut", "Designer B: Perm"]
@@ -79,6 +93,10 @@ export default function NewCampaignPage() {
                     setSubImage2(data.sub_image_2 || '');
                     setIsForever(data.is_always || false);
                     setCampaignOptions(Array.isArray(data.campaign_options) ? data.campaign_options : []);
+                    setRegion(data.region || ''); // Load region
+                    setBusinessHours(data.business_hours || ''); // Load business hours
+                    setAvailableTime(data.available_time || ''); // Load available time
+                    setReservationMethod(data.reservation_method || ''); // Load reservation method
                 } else if (error) {
                     toast.error('캠페인 정보를 불러오는데 실패했습니다.');
                 }
@@ -284,6 +302,10 @@ export default function NewCampaignPage() {
                 sub_image_2: subImage2,
                 is_always: isForever,
                 campaign_options: campaignOptions.filter(opt => opt.trim() !== ''),
+                region: region || null, // Add region
+                business_hours: businessHours || null, // Add business hours
+                available_time: availableTime || null, // Add available time
+                reservation_method: reservationMethod || null, // Add reservation method
                 created_by: user.id, // Add owner information
             };
 
@@ -656,6 +678,333 @@ export default function NewCampaignPage() {
                         {type === 'VISIT' && (
                             <div className="grid grid-cols-1 gap-6">
                                 <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-3">지역 선택 <span className="text-red-500">*</span></label>
+                                    
+                                    {/* City/Province Tabs */}
+                                    <div className="mb-4">
+                                        {/* Only show city tabs if no region is selected yet */}
+                                        {!region && (
+                                            <div className="flex flex-wrap gap-2 mb-4">
+                                                {['서울', '경기', '인천', '부산', '대구', '대전', '광주', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'].map((city) => (
+                                                    <button
+                                                        key={city}
+                                                        type="button"
+                                                        onClick={() => setSelectedCity(city)}
+                                                        className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                                                            selectedCity === city
+                                                                ? 'bg-primary text-white shadow-md'
+                                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                        }`}
+                                                    >
+                                                        {city}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* District Selection - Only show if city is selected but region is not yet chosen */}
+                                        {selectedCity && !region && (
+                                            <div className="border-2 border-gray-200 rounded-xl p-4 bg-gray-50">
+                                                <p className="text-sm text-gray-600 mb-3">
+                                                    <strong>{selectedCity}</strong>의 구/군을 선택하세요
+                                                </p>
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[300px] overflow-y-auto">
+                                                {/* Seoul Districts */}
+                                                {selectedCity === '서울' && ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`서울/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `서울/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Gyeonggi Districts */}
+                                                {selectedCity === '경기' && ['수원시', '성남시', '고양시', '용인시', '부천시', '안산시', '안양시', '남양주시', '화성시', '평택시', '의정부시', '시흥시', '파주시', '김포시', '광명시', '광주시', '군포시', '하남시', '오산시', '양주시', '이천시', '구리시', '안성시', '포천시', '의왕시', '양평군', '여주시', '동두천시', '과천시', '가평군', '연천군'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`경기/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `경기/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Incheon Districts */}
+                                                {selectedCity === '인천' && ['중구', '동구', '미추홀구', '연수구', '남동구', '부평구', '계양구', '서구', '강화군', '옹진군'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`인천/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `인천/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Busan Districts */}
+                                                {selectedCity === '부산' && ['중구', '서구', '동구', '영도구', '부산진구', '동래구', '남구', '북구', '해운대구', '사하구', '금정구', '강서구', '연제구', '수영구', '사상구', '기장군'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`부산/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `부산/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Daegu Districts */}
+                                                {selectedCity === '대구' && ['중구', '동구', '서구', '남구', '북구', '수성구', '달서구', '달성군'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`대구/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `대구/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Daejeon Districts */}
+                                                {selectedCity === '대전' && ['동구', '중구', '서구', '유성구', '대덕구'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`대전/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `대전/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Gwangju Districts */}
+                                                {selectedCity === '광주' && ['동구', '서구', '남구', '북구', '광산구'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`광주/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `광주/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Ulsan Districts */}
+                                                {selectedCity === '울산' && ['중구', '남구', '동구', '북구', '울주군'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`울산/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `울산/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Sejong */}
+                                                {selectedCity === '세종' && ['세종시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`세종/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `세종/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Gangwon */}
+                                                {selectedCity === '강원' && ['춘천시', '원주시', '강릉시', '동해시', '태백시', '속초시', '삼척시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`강원/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `강원/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Chungbuk */}
+                                                {selectedCity === '충북' && ['청주시', '충주시', '제천시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`충북/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `충북/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Chungnam */}
+                                                {selectedCity === '충남' && ['천안시', '공주시', '보령시', '아산시', '서산시', '논산시', '계룡시', '당진시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`충남/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `충남/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Jeonbuk */}
+                                                {selectedCity === '전북' && ['전주시', '군산시', '익산시', '정읍시', '남원시', '김제시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`전북/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `전북/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Jeonnam */}
+                                                {selectedCity === '전남' && ['목포시', '여수시', '순천시', '나주시', '광양시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`전남/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `전남/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Gyeongbuk */}
+                                                {selectedCity === '경북' && ['포항시', '경주시', '김천시', '안동시', '구미시', '영주시', '영천시', '상주시', '문경시', '경산시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`경북/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `경북/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Gyeongnam */}
+                                                {selectedCity === '경남' && ['창원시', '진주시', '통영시', '사천시', '김해시', '밀양시', '거제시', '양산시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`경남/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `경남/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+
+                                                {/* Jeju */}
+                                                {selectedCity === '제주' && ['제주시', '서귀포시'].map((district) => (
+                                                    <button
+                                                        key={district}
+                                                        type="button"
+                                                        onClick={() => setRegion(`제주/${district}`)}
+                                                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                                                            region === `제주/${district}`
+                                                                ? 'bg-primary text-white'
+                                                                : 'bg-white text-gray-700 hover:bg-primary/10 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {district}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        )}
+
+                                        {/* Selected Region Display */}
+                                        {region && (
+                                            <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl flex items-center justify-between">
+                                                <p className="text-sm text-green-800">
+                                                    ✓ 선택된 지역: <strong className="text-base">{region}</strong>
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setRegion('');
+                                                        setSelectedCity('서울');
+                                                    }}
+                                                    className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-primary hover:bg-white rounded-lg transition-colors"
+                                                >
+                                                    다시 선택
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">업체명 (상호명) <span className="text-red-500">*</span></label>
                                     <input
                                         type="text"
@@ -725,17 +1074,36 @@ export default function NewCampaignPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">영업시간 및 휴무일</label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="예: 매일 10:00~22:00, 연중무휴" />
+                                        <input 
+                                            type="text" 
+                                            className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                            placeholder="예: 매일 10:00~22:00, 연중무휴"
+                                            value={businessHours}
+                                            onChange={(e) => setBusinessHours(e.target.value)}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">체험 가능 시간 <span className="text-red-500">*</span></label>
-                                        <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="예: 평일 14:00 이후, 주말 불가" required />
+                                        <input 
+                                            type="text" 
+                                            className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                            placeholder="예: 평일 14:00 이후, 주말 불가"
+                                            value={availableTime}
+                                            onChange={(e) => setAvailableTime(e.target.value)}
+                                            required 
+                                        />
                                     </div>
                                 </div>
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">예약 방법</label>
-                                    <input type="text" className="w-full px-4 py-3 rounded-lg border border-gray-300" placeholder="예: 방문 2일 전 문자 예약 (010-XXXX-XXXX)" />
+                                    <input 
+                                        type="text" 
+                                        className="w-full px-4 py-3 rounded-lg border border-gray-300" 
+                                        placeholder="예: 방문 2일 전 문자 예약 (010-XXXX-XXXX)"
+                                        value={reservationMethod}
+                                        onChange={(e) => setReservationMethod(e.target.value)}
+                                    />
                                 </div>
 
                                 <div>

@@ -101,9 +101,12 @@ export default async function Home() {
                       ) : null}
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex gap-2 mb-1 text-xs items-center">
+                      <div className="flex gap-2 mb-1 text-xs items-center flex-wrap">
                         <span className="font-bold text-primary">{cam.platform}</span>
                         <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{cam.type === 'VISIT' ? '방문' : '배송'}</span>
+                        {cam.type === 'VISIT' && cam.region && (
+                          <span className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold">{cam.region}</span>
+                        )}
                       </div>
                       <div className="font-semibold text-sm mb-1 text-text-main line-clamp-1">
                         {cam.title}
@@ -142,6 +145,7 @@ export default async function Home() {
               dday={cam.dday}
               imageUrl={cam.imageUrl}
               provision={cam.provision}
+              region={cam.region}
             />
           ))}
           {/* Skeleton Fillers */}
@@ -172,6 +176,7 @@ export default async function Home() {
               dday={cam.dday}
               imageUrl={cam.imageUrl}
               provision={cam.provision}
+              region={cam.region}
             />
           ))}
           {[...Array(Math.max(0, 4 - deliveryCampaigns.length))].map((_, i) => (
@@ -201,6 +206,7 @@ export default async function Home() {
               dday={cam.dday}
               imageUrl={cam.imageUrl}
               provision={cam.provision}
+              region={cam.region}
             />
           ))}
           {[...Array(Math.max(0, 4 - visitCampaigns.length))].map((_, i) => (
