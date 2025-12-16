@@ -2,7 +2,20 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Setup
+
+First, copy the `.env.example` file to `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Then, update `.env.local` with your actual Supabase credentials:
+- Get your Supabase URL and Anon Key from: https://app.supabase.com/project/bjdxqauljfoncoueuwubd/settings/api
+- Replace the placeholder values in `.env.local`
+
+### 2. Run the Development Server
+
 
 ```bash
 npm run dev
