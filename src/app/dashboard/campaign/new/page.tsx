@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -18,7 +18,7 @@ const DaumPostcode = dynamic(
 
 type CampaignType = 'VISIT' | 'DELIVERY' | 'PURCHASE';
 
-export default function NewCampaignPage() {
+function NewCampaignPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const editId = searchParams.get('id');
@@ -1250,5 +1250,14 @@ export default function NewCampaignPage() {
                 </form>
             </div >
         </div >
+    );
+}
+
+// Wrap with Suspense to fix useSearchParams error
+export default function NewCampaignPage() {
+    return (
+        <Suspense fallback={<div className="container py-20 text-center">로딩 중...</div>}>
+            <NewCampaignPageContent />
+        </Suspense>
     );
 }
