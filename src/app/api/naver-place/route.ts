@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         if (!address) {
             // Try looking for span that matches address pattern (ends in "길" or "로" + number)
             // Or look for text following "주소"
-            $('span, div, a').each((_i: number, el: cheerio.Element) => {
+            $('span, div, a').each((_i: number, el: any) => {
                 if (address) return;
                 const txt = $(el).text().trim();
                 // Heuristic: "서울 XX구"
@@ -108,7 +108,7 @@ export async function POST(request: Request) {
 
         // 2. JSON-LD / Scripts Fallback
         if (!title || !address) {
-            $('script').each((_i: number, el: cheerio.Element) => {
+            $('script').each((_i: number, el: any) => {
                 const txt = $(el).html();
                 if (!txt) return;
 
