@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
@@ -14,7 +14,7 @@ import { Save } from 'lucide-react';
 
 const AUTOSAVE_KEY = 'campaign_draft';
 
-export default function NewCampaignPage() {
+function NewCampaignPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [currentStep, setCurrentStep] = useState(1);
@@ -544,5 +544,13 @@ export default function NewCampaignPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function NewCampaignPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div></div>}>
+            <NewCampaignPageContent />
+        </Suspense>
     );
 }

@@ -70,7 +70,7 @@ export default async function Home() {
       {/* Hero / Latest Campaigns */}
       <section className="bg-gradient-to-br from-rose-50 to-white py-16 border-b border-border">
         <div className="container">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-12 flex-wrap">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8 flex-wrap">
             <div className="flex-1 min-w-[300px]">
               <span className="inline-block bg-pink-100 text-primary px-3 py-1 rounded-full text-sm font-bold mb-4">NEW ARRIVALS</span>
               <h1 className="text-5xl font-extrabold text-text-main mb-6 tracking-tight leading-tight">
@@ -87,7 +87,7 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="flex-1 min-w-[320px] max-w-[400px]">
+            <div className="flex-1 w-full max-w-[800px]">
               <div className="flex justify-between items-center mb-4 font-bold text-text-main px-2">
                 <h3 className="text-xl">따끈따끈 신규 캠페인 🔥</h3>
                 <Link href="/campaigns?sort=new" className="text-sm text-text-secondary hover:text-primary transition-colors">더보기 &gt;</Link>
