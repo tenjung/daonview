@@ -10,7 +10,7 @@ export default function Footer() {
 
     const handleToggle = () => {
         setIsExpanded(!isExpanded);
-        
+
         // When expanding, scroll to bottom after a short delay to allow animation
         if (!isExpanded) {
             setTimeout(() => {
@@ -33,7 +33,7 @@ export default function Footer() {
                             onClick={handleToggle}
                             className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-primary transition-colors"
                         >
-                            <span><strong>다온컴퍼니</strong> 사업자 정보 보기</span>
+                            <span><strong>다온컴퍼니</strong> 사업자 정보</span>
                             {isExpanded ? (
                                 <ChevronUp className="w-3.5 h-3.5" />
                             ) : (
@@ -57,9 +57,8 @@ export default function Footer() {
 
                     {/* Expandable Business Info */}
                     <div
-                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                            isExpanded ? 'max-h-[300px] opacity-100 mt-4' : 'max-h-0 opacity-0'
-                        }`}
+                        className={`overflow-hidden transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[300px] opacity-100 mt-4' : 'max-h-0 opacity-0'
+                            }`}
                     >
                         <div className="pt-4 border-t border-border">
                             <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary mb-3">

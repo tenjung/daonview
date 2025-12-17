@@ -99,8 +99,13 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </h3>
 
                 {provision && (
-                    <div className="mb-3 px-2 py-1.5 bg-slate-50 rounded text-sm font-bold text-slate-700 truncate">
-                        🎁 {provision}
+                    <div className="mb-3 flex-1">
+                        <div className="text-[10px] font-bold text-gray-400 mb-1">제공내역</div>
+                        <div className="px-3 py-2 bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg border border-rose-100">
+                            <p className="text-sm font-bold text-rose-700 line-clamp-2 leading-relaxed">
+                                {provision}
+                            </p>
+                        </div>
                     </div>
                 )}
 

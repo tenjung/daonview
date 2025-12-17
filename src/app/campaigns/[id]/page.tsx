@@ -327,11 +327,10 @@ export default function CampaignDetailPage() {
                                             <button
                                                 key={idx}
                                                 onClick={() => setCurrentImageIndex(idx)}
-                                                className={`w-2 h-2 rounded-full transition-all ${
-                                                    idx === currentImageIndex
+                                                className={`w-2 h-2 rounded-full transition-all ${idx === currentImageIndex
                                                         ? 'bg-white w-6'
                                                         : 'bg-white/50 hover:bg-white/75'
-                                                }`}
+                                                    }`}
                                                 aria-label={`Go to image ${idx + 1}`}
                                             />
                                         ))}
@@ -364,8 +363,7 @@ export default function CampaignDetailPage() {
                 {/* Info Area */}
                 <div className="flex-1 flex flex-col">
                     <div>
-                        <AdminControls campaignId={campaign.id} />
-                        <div className="flex flex-wrap gap-2 mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
                             <span className="inline-block bg-slate-800 text-white px-3 py-1 rounded font-bold text-xs uppercase tracking-wider">{campaign.platform}</span>
                             <span className={`inline-block px-3 py-1 rounded font-bold text-xs ${isVisit ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
                                 {isVisit ? '방문형' : (isDelivery ? '배송형' : '기자단')}
@@ -382,6 +380,8 @@ export default function CampaignDetailPage() {
                                     <Package className="w-3 h-3" /> {campaign.category}
                                 </span>
                             )}
+                            {/* Admin Controls - Inline */}
+                            <AdminControls campaignId={campaign.id} />
                         </div>
                         <h1 className="text-xl md:text-2xl font-bold text-text-main mb-6 leading-snug break-keep">
                             {campaign.title}
@@ -483,7 +483,7 @@ export default function CampaignDetailPage() {
 
                 {/* Apply Button Section - Moved to Bottom */}
                 <div className="border-t-2 border-gray-200 pt-8">
-                    
+
                     {/* Options Section - Only show if campaign has options */}
                     {options.length > 0 && (
                         <div className="mb-8" id="options-section">

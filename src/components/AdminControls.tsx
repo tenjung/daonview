@@ -30,14 +30,12 @@ export default function AdminControls({ campaignId }: { campaignId: string | num
     if (!isAdmin) return null;
 
     return (
-        <div className="flex gap-2 mb-4">
-            <Link
-                href={`/dashboard/campaign/new?id=${campaignId}`}
-                className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 text-white text-xs font-bold rounded-lg hover:bg-black transition-all shadow-sm"
-            >
-                <Settings className="w-3 h-3" />
-                관리자 수정
-            </Link>
-        </div>
+        <Link
+            href={`/dashboard/campaign/new?id=${campaignId}`}
+            className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500 text-white text-xs font-bold rounded hover:bg-blue-600 transition-all shadow-sm ml-auto"
+        >
+            <Settings className="w-3 h-3" />
+            수정
+        </Link>
     );
 }

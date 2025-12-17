@@ -28,9 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} flex flex-col min-h-screen`}>
         <Navbar />
-        <main style={{ minHeight: '80vh' }}>
+        <main className="flex-1">
           {children}
         </main>
         <Footer />

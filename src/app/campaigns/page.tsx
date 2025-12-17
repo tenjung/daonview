@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import CampaignCard from '@/components/CampaignCard';
-import { Filter, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, ChevronRight, Radio, Tag, MapPin, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 
@@ -11,7 +11,63 @@ import { mapCampaignToCard } from '@/lib/campaignUtils';
 const ALL_CAMPAIGNS: any[] = [];
 
 // Define static options
-const REGIONS = ["서울", "경기/이천", "인천", "강원", "충청", "전라", "경상", "제주", "배송"];
+
+// 지역 계층 구조 데이터
+interface RegionData {
+    name: string;
+    value: string;
+    children?: { name: string; value: string }[];
+}
+
+const REGION_HIERARCHY: RegionData[] = [
+    {
+        name: "서울",
+        value: "서울",
+        children: [
+            { name: "강남구", value: "강남구" },
+            { name: "강동구", value: "강동구" },
+            { name: "강북구", value: "강북구" },
+            { name: "강서구", value: "강서구" },
+            { name: "관악구", value: "관악구" },
+            { name: "광진구", value: "광진구" },
+            { name: "구로구", value: "구로구" },
+            { name: "금천구", value: "금천구" },
+            { name: "노원구", value: "노원구" },
+            { name: "도봉구", value: "도봉구" },
+            { name: "동대문구", value: "동대문구" },
+            { name: "동작구", value: "동작구" },
+            { name: "마포구", value: "마포구" },
+            { name: "서대문구", value: "서대문구" },
+            { name: "서초구", value: "서초구" },
+            { name: "성동구", value: "성동구" },
+            { name: "성북구", value: "성북구" },
+            { name: "송파구", value: "송파구" },
+            { name: "양천구", value: "양천구" },
+            { name: "영등포구", value: "영등포구" },
+            { name: "용산구", value: "용산구" },
+            { name: "은평구", value: "은평구" },
+            { name: "종로구", value: "종로구" },
+            { name: "중구", value: "중구" },
+            { name: "중랑구", value: "중랑구" },
+        ]
+    },
+    {
+        name: "경기/인천",
+        value: "경기/인천",
+        children: [
+            { name: "일산/파주", value: "일산/파주" },
+            { name: "용인/분당/수원", value: "용인/분당/수원" },
+            { name: "인천/부천", value: "인천/부천" },
+            { name: "남양주/구리/하남", value: "남양주/구리/하남" },
+            { name: "안양/안산/광명", value: "안양/안산/광명" },
+        ]
+    },
+    { name: "충청/대전", value: "충청/대전" },
+    { name: "경상/부산/대구", value: "경상/부산/대구" },
+    { name: "전라/광주", value: "전라/광주" },
+    { name: "강원/제주", value: "강원/제주" },
+];
+
 const PLATFORMS = ["BLOG", "INSTAGRAM", "YOUTUBE", "REELS", "TIKTOK"];
 
 // Skeleton matching the representative placeholder color
@@ -45,13 +101,13 @@ export default function CampaignsPage() {
         const fetchCampaigns = async () => {
             try {
                 const { data, error } = await supabase.from('campaigns').select('*, applications(count)').order('created_at', { ascending: false });
-                
+
                 if (error) {
                     console.error('Error fetching campaigns:', error);
                     setLoading(false);
                     return;
                 }
-                
+
                 if (data) {
                     console.log('Fetched campaigns:', data);
                     const mappedData = data.map(c => mapCampaignToCard(c as any));
@@ -69,8 +125,12 @@ export default function CampaignsPage() {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
+    const [openRegions, setOpenRegions] = useState<string[]>([]); // 아코디언 열림 상태
+    const [activeRegionTab, setActiveRegionTab] = useState<string>('서울'); // 스플릿 뷰 활성 탭
     const [sortBy, setSortBy] = useState('new');
-    const [isFilterOpen, setIsFilterOpen] = useState(true);
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [purchaseReviewOnly, setPurchaseReviewOnly] = useState(false); // 구매평만 필터
 
     // Dynamic Options derived from activeTab
     const currentCategories = useMemo(() => {
@@ -81,13 +141,9 @@ export default function CampaignsPage() {
     }, [activeTab]);
 
     const showRegionFilter = activeTab === 'VISIT' || activeTab === 'ALL';
+    const showPurchaseReviewFilter = activeTab === 'DELIVERY'; // 배송형일 때 구매평만 필터 표시
 
     // Helpers
-    const handleTabChange = (newTab: 'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE') => {
-        setActiveTab(newTab);
-        resetFilters();
-    };
-
     const toggleFilter = (item: string, currentList: string[], setter: any) => {
         if (currentList.includes(item)) {
             setter(currentList.filter(i => i !== item));
@@ -100,10 +156,48 @@ export default function CampaignsPage() {
         setSelectedCategories([]);
         setSelectedPlatforms([]);
         setSelectedRegions([]);
+        setOpenRegions([]);
+        setPurchaseReviewOnly(false);
+    };
+
+    const handleTabChange = (newTab: 'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE') => {
+        setActiveTab(newTab);
+        resetFilters();
+    };
+
+    // 지역 필터 핸들러 (하이브리드 아코디언)
+    const handleRegionClick = (region: RegionData) => {
+        // Case A: 하위 지역이 있는 경우 - 아코디언 토글
+        if (region.children && region.children.length > 0) {
+            if (openRegions.includes(region.value)) {
+                setOpenRegions(openRegions.filter(r => r !== region.value));
+            } else {
+                setOpenRegions([...openRegions, region.value]);
+            }
+        }
+        // Case B: 하위 지역이 없는 경우 - 즉시 선택
+        else {
+            toggleFilter(region.value, selectedRegions, setSelectedRegions);
+        }
+    };
+
+    // 하위 지역 선택 핸들러 (여러 개 선택 가능하도록 자동 닫기 제거)
+    const handleSubRegionClick = (subRegionValue: string) => {
+        toggleFilter(subRegionValue, selectedRegions, setSelectedRegions);
     };
 
     const filteredData = useMemo(() => {
         return allCampaigns.filter(item => {
+            // 검색어 필터링 (제목, 지역, 제공내역, 상품)
+            if (searchQuery.trim()) {
+                const query = searchQuery.toLowerCase();
+                const matchesTitle = item.title?.toLowerCase().includes(query);
+                const matchesRegion = item.region?.toLowerCase().includes(query);
+                const matchesRewards = item.rewards?.toLowerCase().includes(query);
+                const matchesProduct = item.productName?.toLowerCase().includes(query);
+                if (!matchesTitle && !matchesRegion && !matchesRewards && !matchesProduct) return false;
+            }
+
             if (activeTab !== 'ALL' && item.type !== activeTab) return false;
             if (selectedCategories.length > 0 && item.category) {
                 const itemCat = item.category;
@@ -112,13 +206,17 @@ export default function CampaignsPage() {
             }
             if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(item.platform)) return false;
             if (showRegionFilter && selectedRegions.length > 0 && item.region && !selectedRegions.includes(item.region)) return false;
+
+            // 배송형: 구매평만 필터
+            if (purchaseReviewOnly && item.requiresPurchase !== true) return false;
+
             return true;
         }).sort((a, b) => {
             if (sortBy === 'deadline') return a.dday.localeCompare(b.dday);
             if (sortBy === 'popular') return b.applicants - a.applicants;
             return b.id - a.id;
         });
-    }, [activeTab, selectedCategories, selectedPlatforms, selectedRegions, sortBy, showRegionFilter, allCampaigns]);
+    }, [activeTab, selectedCategories, selectedPlatforms, selectedRegions, sortBy, showRegionFilter, allCampaigns, searchQuery, purchaseReviewOnly]);
 
     const activeFilterCount = selectedCategories.length + selectedPlatforms.length + selectedRegions.length;
 
@@ -135,7 +233,7 @@ export default function CampaignsPage() {
                                 { label: '전체보기', value: 'ALL' },
                                 { label: '방문형', value: 'VISIT' },
                                 { label: '배송형', value: 'DELIVERY' },
-                                { label: '기자단/구매평', value: 'PURCHASE' },
+                                { label: '서비스/기타', value: 'PURCHASE' },
                             ].map(tab => (
                                 <button
                                     key={tab.value}
@@ -148,6 +246,28 @@ export default function CampaignsPage() {
                                     {tab.label}
                                 </button>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* 1.5. 검색 바 */}
+                    <div className="mb-4">
+                        <div className="relative max-w-2xl mx-auto">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="캠페인 제목, 지역, 제공내역, 상품명으로 검색..."
+                                className="w-full pl-12 pr-10 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                            />
+                            {searchQuery && (
+                                <button
+                                    onClick={() => setSearchQuery('')}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -188,62 +308,269 @@ export default function CampaignsPage() {
                         </div>
                     </div>
 
-                    {/* 3. Dropdown Filters */}
+                    {/* 3. Compact Inline Filters */}
                     {isFilterOpen && (
-                        <div className="mt-4 space-y-4 animate-in fade-in slide-in-from-top-2">
-                            {/* Categories */}
-                            <div className="flex flex-wrap gap-2 items-center border-b border-gray-100 pb-4">
-                                <span className="text-xs font-bold text-gray-400 w-16 uppercase tracking-wider">Category</span>
-                                {currentCategories.map(cat => (
-                                    <button
-                                        key={cat}
-                                        onClick={() => toggleFilter(cat, selectedCategories, setSelectedCategories)}
-                                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedCategories.includes(cat)
-                                            ? 'bg-primary text-white border-primary shadow-sm'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        {cat}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Platform & Region Row */}
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="flex flex-wrap gap-2 items-center flex-1">
-                                    <span className="text-xs font-bold text-gray-400 w-16 uppercase tracking-wider">Channel</span>
-                                    {PLATFORMS.map(plt => (
-                                        <button
-                                            key={plt}
-                                            onClick={() => toggleFilter(plt, selectedPlatforms, setSelectedPlatforms)}
-                                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedPlatforms.includes(plt)
-                                                ? 'bg-slate-800 text-white border-slate-800 shadow-sm'
-                                                : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                        >
-                                            {plt}
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {showRegionFilter && (
-                                    <div className="flex flex-wrap gap-2 items-center flex-1 border-l border-gray-100 md:pl-4">
-                                        <span className="text-xs font-bold text-gray-400 w-10 uppercase tracking-wider">Area</span>
-                                        {REGIONS.map(reg => (
+                        <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                            {/* 통합 필터 - 한 줄 레이아웃 */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* CHANNEL */}
+                                <div>
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Channel</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {PLATFORMS.map(plt => (
                                             <button
-                                                key={reg}
-                                                onClick={() => toggleFilter(reg, selectedRegions, setSelectedRegions)}
-                                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${selectedRegions.includes(reg)
-                                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
-                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                                key={plt}
+                                                onClick={() => toggleFilter(plt, selectedPlatforms, setSelectedPlatforms)}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${selectedPlatforms.includes(plt)
+                                                    ? 'bg-slate-800 text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                                     }`}
                                             >
-                                                {reg}
+                                                {plt}
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+
+                                {/* CATEGORY */}
+                                <div>
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Category</div>
+                                    <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                                        {currentCategories.map(cat => (
+                                            <button
+                                                key={cat}
+                                                onClick={() => toggleFilter(cat, selectedCategories, setSelectedCategories)}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium transition-all flex-shrink-0 whitespace-nowrap ${selectedCategories.includes(cat)
+                                                    ? 'bg-primary text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                    }`}
+                                            >
+                                                {cat}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 배송형: 구매평만 필터 */}
+                                {showPurchaseReviewFilter && (
+                                    <div>
+                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">구매평만</div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <button
+                                                onClick={() => setPurchaseReviewOnly(!purchaseReviewOnly)}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium transition-all ${purchaseReviewOnly
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                                    }`}
+                                            >
+                                                {purchaseReviewOnly ? '✓ ' : ''}구매평만 보기
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 방문형/전체: AREA 필터 */}
+                                {showRegionFilter && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Area</div>
+                                            {selectedRegions.length > 0 && (
+                                                <span className="text-xs text-blue-600 font-medium">
+                                                    {selectedRegions.length}개
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        {/* 모바일: 아코디언 (< md) */}
+                                        <div className="md:hidden space-y-1">
+                                            {REGION_HIERARCHY.map((region) => {
+                                                const hasChildren = region.children && region.children.length > 0;
+                                                const isOpen = openRegions.includes(region.value);
+                                                const isSelected = selectedRegions.includes(region.value);
+
+                                                return (
+                                                    <div key={region.value}>
+                                                        <button
+                                                            onClick={() => handleRegionClick(region)}
+                                                            className={`w-full px-3 py-2 rounded text-sm font-medium transition-all flex items-center justify-between ${isSelected
+                                                                ? 'bg-blue-600 text-white'
+                                                                : isOpen
+                                                                    ? 'bg-blue-50 text-blue-700'
+                                                                    : 'bg-gray-100 text-gray-600'
+                                                                }`}
+                                                        >
+                                                            <span className="flex items-center gap-2">
+                                                                {isSelected && !hasChildren && <span>✓</span>}
+                                                                {region.name}
+                                                            </span>
+                                                            {hasChildren && (
+                                                                <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
+                                                            )}
+                                                        </button>
+
+                                                        {hasChildren && isOpen && (
+                                                            <div className="mt-1 ml-3 space-y-1">
+                                                                {region.children!.map((subRegion) => {
+                                                                    const isSubSelected = selectedRegions.includes(subRegion.value);
+                                                                    return (
+                                                                        <button
+                                                                            key={subRegion.value}
+                                                                            onClick={() => handleSubRegionClick(subRegion.value)}
+                                                                            className={`w-full px-3 py-2 rounded text-sm font-medium transition-all text-left ${isSubSelected
+                                                                                ? 'bg-blue-600 text-white'
+                                                                                : 'bg-gray-100 text-gray-600'
+                                                                                }`}
+                                                                        >
+                                                                            {isSubSelected && '✓ '}
+                                                                            {subRegion.name}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* 데스크톱: 스플릿 뷰 (>= md) */}
+                                        <div className="hidden md:block border border-gray-200 rounded overflow-hidden" style={{ height: '120px' }}>
+                                            <div className="flex h-full">
+                                                {/* Left: 상위 지역 */}
+                                                <div className="w-2/5 bg-gray-50 border-r border-gray-200 overflow-y-auto">
+                                                    {REGION_HIERARCHY.map((region) => {
+                                                        const hasChildren = region.children && region.children.length > 0;
+                                                        const isActive = activeRegionTab === region.value;
+                                                        const isSelected = selectedRegions.includes(region.value);
+
+                                                        return (
+                                                            <button
+                                                                key={region.value}
+                                                                onClick={() => {
+                                                                    if (hasChildren) {
+                                                                        setActiveRegionTab(region.value);
+                                                                    } else {
+                                                                        toggleFilter(region.value, selectedRegions, setSelectedRegions);
+                                                                    }
+                                                                }}
+                                                                className={`w-full px-2 py-1.5 text-left text-xs font-medium transition-all border-b border-gray-100 ${isActive
+                                                                    ? 'bg-white text-blue-600 border-l-2 border-l-blue-600'
+                                                                    : isSelected
+                                                                        ? 'bg-blue-50 text-blue-600'
+                                                                        : 'text-gray-600 hover:bg-gray-100'
+                                                                    }`}
+                                                            >
+                                                                <span className="flex items-center justify-between">
+                                                                    <span className="flex items-center gap-1">
+                                                                        {isSelected && !hasChildren && <span className="text-blue-600 text-[10px]">✓</span>}
+                                                                        {region.name}
+                                                                    </span>
+                                                                    {hasChildren && <ChevronRight className="w-3 h-3" />}
+                                                                </span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                {/* Right: 하위 지역 */}
+                                                <div className="flex-1 bg-white p-2 overflow-y-auto">
+                                                    {(() => {
+                                                        const activeRegion = REGION_HIERARCHY.find(r => r.value === activeRegionTab);
+
+                                                        if (!activeRegion?.children) {
+                                                            return (
+                                                                <div className="flex items-center justify-center h-full text-gray-400 text-[10px]">
+                                                                    선택하세요
+                                                                </div>
+                                                            );
+                                                        }
+
+                                                        return (
+                                                            <div className="grid grid-cols-2 gap-1">
+                                                                {activeRegion.children.map((subRegion) => {
+                                                                    const isSubSelected = selectedRegions.includes(subRegion.value);
+                                                                    return (
+                                                                        <button
+                                                                            key={subRegion.value}
+                                                                            onClick={() => handleSubRegionClick(subRegion.value)}
+                                                                            className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${isSubSelected
+                                                                                ? 'bg-blue-600 text-white'
+                                                                                : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
+                                                                                }`}
+                                                                        >
+                                                                            {isSubSelected && '✓ '}
+                                                                            {subRegion.name}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
+
+                            {/* 선택된 필터 요약 (카테고리별 아이콘 구분) */}
+                            {(selectedPlatforms.length > 0 || selectedCategories.length > 0 || selectedRegions.length > 0) && (
+                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+                                    <span className="text-xs text-gray-400">선택됨:</span>
+
+                                    {/* Channel - Slate (Radio 아이콘) */}
+                                    {selectedPlatforms.map(item => (
+                                        <span
+                                            key={item}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium"
+                                        >
+                                            <Radio className="w-3 h-3" />
+                                            {item}
+                                            <button
+                                                onClick={() => toggleFilter(item, selectedPlatforms, setSelectedPlatforms)}
+                                                className="hover:bg-slate-200 rounded-full"
+                                            >
+                                                <X className="w-2.5 h-2.5" />
+                                            </button>
+                                        </span>
+                                    ))}
+
+                                    {/* Category - Pink (Tag 아이콘) */}
+                                    {selectedCategories.map(item => (
+                                        <span
+                                            key={item}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs font-medium"
+                                        >
+                                            <Tag className="w-3 h-3" />
+                                            {item}
+                                            <button
+                                                onClick={() => toggleFilter(item, selectedCategories, setSelectedCategories)}
+                                                className="hover:bg-pink-200 rounded-full"
+                                            >
+                                                <X className="w-2.5 h-2.5" />
+                                            </button>
+                                        </span>
+                                    ))}
+
+                                    {/* Area - Blue (MapPin 아이콘) */}
+                                    {selectedRegions.map(item => (
+                                        <span
+                                            key={item}
+                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium"
+                                        >
+                                            <MapPin className="w-3 h-3" />
+                                            {item}
+                                            <button
+                                                onClick={() => toggleFilter(item, selectedRegions, setSelectedRegions)}
+                                                className="hover:bg-blue-200 rounded-full"
+                                            >
+                                                <X className="w-2.5 h-2.5" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Step1Data {
@@ -12,6 +12,7 @@ interface Step1Data {
     includeInstagram: boolean;
     // 배송체험단 제품 정보
     productUrl: string;
+    productUrlPrivate: boolean; // 링크 비공개 설정
     productName: string;
     productOptions: ProductOption[];
     productPrice: string;
@@ -19,6 +20,8 @@ interface Step1Data {
     freeShippingCondition: boolean;
     // 방문/기자단용: 플랫폼 선택
     platform: 'naver' | 'instagram' | null;
+    category?: string;  // 카테고리 (선택)
+    region?: string;    // 지역 (방문형용, 선택)
     stores: Store[];
     contactPhone: string;
     visitTime: string;
@@ -51,12 +54,14 @@ interface Store {
 
 interface CampaignStep1Props {
     onNext: (data: Step1Data) => void;
+    onChange?: (data: Step1Data) => void;
+    onSaveDraft?: () => void;
     initialData?: Partial<Step1Data>;
 }
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
-export default function CampaignStep1({ onNext, initialData }: CampaignStep1Props) {
+export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialData }: CampaignStep1Props) {
     // 스마트 기본값: 내일 날짜
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -77,12 +82,15 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
         includeNaver: initialData?.includeNaver || false,
         includeInstagram: initialData?.includeInstagram || false,
         productUrl: initialData?.productUrl || '',
+        productUrlPrivate: initialData?.productUrlPrivate || false,
         productName: initialData?.productName || '',
         productOptions: initialData?.productOptions || [],
         productPrice: initialData?.productPrice || '',
         shippingCost: initialData?.shippingCost || '',
         freeShippingCondition: initialData?.freeShippingCondition || false,
         platform: initialData?.platform || null,
+        category: initialData?.category || '',
+        region: initialData?.region || '',
         stores: initialData?.stores || [],
         contactPhone: initialData?.contactPhone || '',
         visitTime: initialData?.visitTime || '',
@@ -98,6 +106,20 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
         reviewDeadline: initialData?.reviewDeadline || '',
         reviewDeadlineDays: initialData?.reviewDeadlineDays || '7', // 스마트 기본값: 7일
     });
+
+    // 초기 데이터 로드 (임시저장 불러오기 시)
+    useEffect(() => {
+        if (initialData) {
+            setFormData(prev => ({ ...prev, ...initialData }));
+        }
+    }, [initialData]);
+
+    // 부모 컴포넌트에 데이터 변경 알림
+    useEffect(() => {
+        if (onChange) {
+            onChange(formData);
+        }
+    }, [formData, onChange]);
 
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [currentStoreIndex, setCurrentStoreIndex] = useState<number | null>(null);
@@ -351,6 +373,65 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
     };
 
     const handleNext = () => {
+        if (!formData.campaignType) {
+            toast.error('진행 유형을 선택해주세요.');
+            return;
+        }
+
+        // 배송체험단 유효성 검사
+        if (formData.campaignType === 'delivery') {
+            if (!formData.includeReview && !formData.includeNaver && !formData.includeInstagram) {
+                toast.error('최소 하나의 플랫폼을 선택해주세요.');
+                return;
+            }
+            if (!formData.productUrl) {
+                toast.error('상품 링크를 입력해주세요.');
+                return;
+            }
+            if (!formData.productName) {
+                toast.error('상품명을 입력해주세요.');
+                return;
+            }
+            if (!formData.productPrice) {
+                toast.error('상품 가격을 입력해주세요.');
+                return;
+            }
+        }
+
+        // 방문체험단/기자단 유효성 검사
+        if (formData.campaignType === 'visit' || formData.campaignType === 'press') {
+            if (!formData.platform) {
+                toast.error('플랫폼을 선택해주세요.');
+                return;
+            }
+            if (formData.stores.length === 0) {
+                toast.error('최소 1개의 매장을 추가해주세요.');
+                return;
+            }
+            if (!formData.contactPhone) {
+                toast.error('연락처를 입력해주세요.');
+                return;
+            }
+            if (!formData.visitTime) {
+                toast.error('방문 가능 시간을 입력해주세요.');
+                return;
+            }
+            if (!formData.experienceDetails) {
+                toast.error('제공 내역을 입력해주세요.');
+                return;
+            }
+        }
+
+        // 공통 필수 항목
+        if (!formData.totalRecruitment) {
+            toast.error('총 모집 인원을 입력해주세요.');
+            return;
+        }
+        if (!formData.recruitmentStartDate) {
+            toast.error('모집 시작일을 선택해주세요.');
+            return;
+        }
+
         if (isFormValid()) {
             onNext(formData);
         }
@@ -358,29 +439,6 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
-            {/* Progress Indicator */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold">
-                        1
-                    </div>
-                    <span className="font-medium text-gray-900">기본 정보</span>
-                </div>
-                <ChevronRight className="text-gray-400" />
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-semibold">
-                        2
-                    </div>
-                    <span className="font-medium text-gray-400">미션 가이드</span>
-                </div>
-                <ChevronRight className="text-gray-400" />
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-500 flex items-center justify-center font-semibold">
-                        3
-                    </div>
-                    <span className="font-medium text-gray-400">결제</span>
-                </div>
-            </div>
 
             {/* 진행 유형 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -570,7 +628,7 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
             {/* 배송체험단 - 제품 정보 */}
             {formData.campaignType === 'delivery' && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">제품 상품 · 모집 조건</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">체험 상품 · 모집 조건</h2>
 
                     {/* 진행할 쇼핑몰 상품 링크 */}
                     <div className="mb-4">
@@ -585,11 +643,31 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                             value={formData.productUrl}
                             onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
                             onBlur={() => validateField('productUrl', formData.productUrl)}
-                            placeholder="예시) https://assaview.store/products/123456"
+                            placeholder="예시) https://smartstore.naver.com/"
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productUrl === true ? 'border-green-300' : 'border-gray-300'
                                 }`}
                         />
                         <p className="mt-1 text-xs text-gray-500">https://로 시작하는 전체 URL을 입력해주세요</p>
+
+                        {/* 링크 비공개 설정 */}
+                        <div className="mt-3">
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.productUrlPrivate}
+                                    onChange={(e) => setFormData(prev => ({ ...prev, productUrlPrivate: e.target.checked }))}
+                                    className="mt-0.5 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex-1">
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        링크 비공개 설정
+                                    </span>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        ℹ️ 링크는 체험 선정된 사람들에게만 보입니다.
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
                     </div>
 
                     {/* 상품명 */}
@@ -792,29 +870,95 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                             <p className="text-sm text-gray-600">인스타그램에 리뷰 작성</p>
                         </button>
                     </div>
+
+                    {/* 선택된 플랫폼 및 진행비용 표시 */}
+                    {formData.platform && (
+                        <div className="mt-4">
+                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                                {/* 라벨 행 */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <p className="text-sm text-gray-600">선택된 진행 방식</p>
+                                    <p className="text-sm text-gray-600">진행비용 (1건)</p>
+                                </div>
+
+                                {/* 내용 행 */}
+                                <div className="flex items-center justify-between">
+                                    {/* 플랫폼 태그 */}
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.platform === 'naver' && (
+                                            <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                                📗 네이버 블로그
+                                            </span>
+                                        )}
+                                        {formData.platform === 'instagram' && (
+                                            <span className="inline-flex items-center px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">
+                                                📸 인스타그램
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* 진행비용 */}
+                                    <div className="text-right ml-4">
+                                        <p className="text-2xl font-bold text-blue-600">
+                                            10,000원
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </section>
             )}
 
             {/* 매장 정보 (방문체험단/기자단만) */}
             {(formData.campaignType === 'visit' || formData.campaignType === 'press') && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">매장 정보</h2>
-                        <button
-                            onClick={addStore}
-                            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                        >
-                            <Plus size={20} />
-                            매장 추가
-                        </button>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        매장 정보 <span className="text-red-500">*</span>
+                    </h2>
+
+                    {/* 네이버 플레이스 주소 입력 */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            네이버 플레이스 주소
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={tempNaverUrl}
+                                onChange={(e) => setTempNaverUrl(e.target.value)}
+                                placeholder="https://map.naver.com/..."
+                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={() => {
+                                    if (tempNaverUrl.trim()) {
+                                        const newStore = {
+                                            id: Date.now().toString(),
+                                            naverPlaceUrl: tempNaverUrl,
+                                            storeName: '',
+                                            address: '',
+                                        };
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            stores: [...prev.stores, newStore],
+                                        }));
+                                        fetchNaverPlaceInfo(tempNaverUrl, newStore.id);
+                                        setTempNaverUrl('');
+                                    }
+                                }}
+                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                            >
+                                불러오기
+                            </button>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                            네이버 지도에서 매장을 검색한 후 URL을 복사하여 붙여넣으세요.
+                        </p>
                     </div>
 
-                    {formData.stores.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500">
-                            <p>등록된 매장이 없습니다.</p>
-                            <p className="text-sm mt-2">매장을 추가해주세요.</p>
-                        </div>
-                    ) : (
+                    {/* 불러온 매장 목록 */}
+                    {formData.stores.length > 0 && (
                         <div className="space-y-4">
                             {formData.stores.map((store, index) => (
                                 <div key={store.id} className="border border-gray-200 rounded-lg p-4">
@@ -829,35 +973,6 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                                     </div>
 
                                     <div className="space-y-3">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                네이버 플레이스 주소
-                                            </label>
-                                            <div className="flex gap-2">
-                                                <input
-                                                    type="text"
-                                                    value={store.naverPlaceUrl}
-                                                    onChange={(e) => {
-                                                        const url = e.target.value;
-                                                        setFormData(prev => ({
-                                                            ...prev,
-                                                            stores: prev.stores.map(s =>
-                                                                s.id === store.id ? { ...s, naverPlaceUrl: url } : s
-                                                            ),
-                                                        }));
-                                                    }}
-                                                    placeholder="https://map.naver.com/..."
-                                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                                />
-                                                <button
-                                                    onClick={() => fetchNaverPlaceInfo(store.naverPlaceUrl, store.id)}
-                                                    className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                                                >
-                                                    불러오기
-                                                </button>
-                                            </div>
-                                        </div>
-
                                         {store.storeName && (
                                             <>
                                                 <div>
@@ -883,6 +998,18 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
                                                     />
                                                 </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        네이버 플레이스 URL
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={store.naverPlaceUrl}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
+                                                    />
+                                                </div>
                                             </>
                                         )}
                                     </div>
@@ -890,145 +1017,155 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                             ))}
                         </div>
                     )}
-
-                    {/* 담당자 연락처 */}
-                    <div className="mt-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            담당자 연락처 <span className="text-red-500">*</span>
-                            {fieldValidation.contactPhone === true && (
-                                <span className="ml-2 text-green-500 text-sm">✓</span>
-                            )}
-                            {fieldValidation.contactPhone === false && (
-                                <span className="ml-2 text-red-500 text-sm">✗</span>
-                            )}
-                        </label>
-                        <input
-                            type="tel"
-                            value={formData.contactPhone}
-                            onChange={handlePhoneChange}
-                            onBlur={() => validateField('contactPhone', formData.contactPhone)}
-                            placeholder="010-0000-0000"
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
-                                ? 'border-red-300 bg-red-50'
-                                : fieldValidation.contactPhone === true
-                                    ? 'border-green-300'
-                                    : 'border-gray-300'
-                                }`}
-                        />
-                        {fieldValidation.contactPhone === false && (
-                            <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
-                        )}
-                    </div>
-
-                    {/* 방문 가능 시간 */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            방문 가능 시간 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.visitTime}
-                            onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
-                            placeholder="예: 평일 11:00 - 21:00"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 방문 가능 요일 */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            방문 가능 요일
-                        </label>
-
-                        {/* 빠른 선택 버튼 */}
-                        <div className="flex gap-2 mb-3">
-                            <button
-                                type="button"
-                                onClick={setWeekdaysOnly}
-                                className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
-                            >
-                                평일만
-                            </button>
-                            <button
-                                type="button"
-                                onClick={setNoWeekends}
-                                className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
-                            >
-                                주말 불가
-                            </button>
-                            <button
-                                type="button"
-                                onClick={setAllDays}
-                                className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
-                            >
-                                전체 가능
-                            </button>
-                        </div>
-
-                        {/* 요일 선택 */}
-                        <div className="flex gap-2">
-                            {DAYS_OF_WEEK.map(day => (
-                                <button
-                                    key={day}
-                                    type="button"
-                                    onClick={() => toggleDay(day)}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all ${formData.visitDays.includes(day)
-                                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                                        : 'border-gray-200 text-gray-600 hover:border-blue-300'
-                                        }`}
-                                >
-                                    {day}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* 방문 참고사항 */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            방문 참고사항
-                        </label>
-                        <textarea
-                            value={formData.visitNotes}
-                            onChange={(e) => setFormData(prev => ({ ...prev, visitNotes: e.target.value }))}
-                            placeholder="주차 정보, 예약 필요 여부 등"
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 체험 제공 내역 */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            체험 제공 내역 <span className="text-red-500">*</span>
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.experienceDetails}
-                            onChange={(e) => setFormData(prev => ({ ...prev, experienceDetails: e.target.value }))}
-                            placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 공식 판매가 */}
-                    <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            공식 판매가 (참고용)
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={formData.officialPrice}
-                                onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
-                                placeholder="30,000"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
-                            />
-                            <span className="text-gray-600">원 상당</span>
-                        </div>
-                    </div>
                 </section>
             )}
+
+            {/* 상세 정보 */}
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">상세 정보</h2>
+
+
+
+                {formData.campaignType !== 'delivery' && (
+                    <>
+                        {/* 담당자 연락처 */}
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                담당자 연락처 <span className="text-red-500">*</span>
+                                {fieldValidation.contactPhone === true && (
+                                    <span className="ml-2 text-green-500 text-sm">✓</span>
+                                )}
+                                {fieldValidation.contactPhone === false && (
+                                    <span className="ml-2 text-red-500 text-sm">✗</span>
+                                )}
+                            </label>
+                            <input
+                                type="tel"
+                                value={formData.contactPhone}
+                                onChange={handlePhoneChange}
+                                onBlur={() => validateField('contactPhone', formData.contactPhone)}
+                                placeholder="010-0000-0000"
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
+                                    ? 'border-red-300 bg-red-50'
+                                    : fieldValidation.contactPhone === true
+                                        ? 'border-green-300'
+                                        : 'border-gray-300'
+                                    }`}
+                            />
+                            {fieldValidation.contactPhone === false && (
+                                <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
+                            )}
+                        </div>
+                        {/* 방문 가능 시간 */}
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                방문 가능 시간 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.visitTime}
+                                onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
+                                placeholder="예: 평일 11:00 - 21:00"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+
+                        {/* 방문 가능 요일 */}
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                방문 가능 요일 <span className="text-gray-500 text-xs">(선택)</span>
+                            </label>
+
+                            {/* 빠른 선택 버튼 */}
+                            <div className="flex gap-2 mb-3">
+                                <button
+                                    type="button"
+                                    onClick={setWeekdaysOnly}
+                                    className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                                >
+                                    평일만
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={setNoWeekends}
+                                    className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                                >
+                                    주말 불가
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={setAllDays}
+                                    className="px-3 py-1.5 text-xs bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors border border-gray-300"
+                                >
+                                    전체 가능
+                                </button>
+                            </div>
+
+                            {/* 요일 선택 */}
+                            <div className="flex gap-2">
+                                {DAYS_OF_WEEK.map(day => (
+                                    <button
+                                        key={day}
+                                        type="button"
+                                        onClick={() => toggleDay(day)}
+                                        className={`px-4 py-2 rounded-lg border-2 transition-all ${formData.visitDays.includes(day)
+                                            ? 'border-blue-500 bg-blue-50 text-blue-700'
+                                            : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                                            }`}
+                                    >
+                                        {day}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 방문 참고사항 */}
+                        <div className="mt-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                방문 참고사항 <span className="text-gray-500 text-xs">(선택)</span>
+                            </label>
+                            <textarea
+                                value={formData.visitNotes}
+                                onChange={(e) => setFormData(prev => ({ ...prev, visitNotes: e.target.value }))}
+                                placeholder="주차 정보, 예약 필요 여부 등"
+                                rows={3}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                        </div>
+                    </>
+                )}
+
+                {/* 체험 제공 내역 */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        체험 제공 내역 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        value={formData.experienceDetails}
+                        onChange={(e) => setFormData(prev => ({ ...prev, experienceDetails: e.target.value }))}
+                        placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                {/* 공식 판매가 */}
+                <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        공식 판매가 <span className="text-gray-500 text-xs">(선택, 참고용)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                        <input
+                            type="text"
+                            value={formData.officialPrice}
+                            onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
+                            placeholder="30,000"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                        />
+                        <span className="text-gray-600">원 상당</span>
+                    </div>
+                </div>
+            </section>
 
             {/* 모집 정보 & 일정 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1244,8 +1381,17 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                 </div>
             </section>
 
-            {/* 다음 단계 버튼 */}
-            <div className="flex justify-end">
+            {/* 하단 버튼 */}
+            <div className="flex justify-end gap-3">
+                {onSaveDraft && (
+                    <button
+                        onClick={onSaveDraft}
+                        className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm"
+                    >
+                        <Save size={18} />
+                        임시저장
+                    </button>
+                )}
                 <button
                     onClick={handleNext}
                     disabled={!isFormValid()}
@@ -1257,6 +1403,6 @@ export default function CampaignStep1({ onNext, initialData }: CampaignStep1Prop
                     다음 단계로
                 </button>
             </div>
-        </div>
+        </div >
     );
 }

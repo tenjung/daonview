@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabaseClient';
 
 type UserType = 'INFLUENCER' | 'ADVERTISER';
 
-export default function SignupPage() {
+function SignupForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [userType, setUserType] = useState<UserType>('INFLUENCER');
     const [loading, setLoading] = useState(false);
 
@@ -20,6 +21,117 @@ export default function SignupPage() {
     const [name, setName] = useState(''); // Handles 'name' or 'manager'
     const [companyName, setCompanyName] = useState('');
     const [phone, setPhone] = useState('');
+
+    // Validation States
+    const [emailChecking, setEmailChecking] = useState(false);
+    const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
+    const [passwordMatchError, setPasswordMatchError] = useState('');
+
+    // Load email from URL query parameter if available
+    useEffect(() => {
+        const emailParam = searchParams.get('email');
+        if (emailParam) {
+            setEmail(emailParam);
+        }
+    }, [searchParams]);
+
+    // Email validation and availability check
+    useEffect(() => {
+        const checkEmail = async () => {
+            if (!email) {
+                setEmailAvailable(null);
+                setEmailError('');
+                return;
+            }
+
+            // Basic email format validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                setEmailError('올바른 이메일 형식이 아닙니다.');
+                setEmailAvailable(null);
+                return;
+            }
+
+            setEmailError('');
+            setEmailChecking(true);
+
+            try {
+                // Check if email already exists in auth.users
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('email')
+                    .eq('email', email)
+                    .single();
+
+                if (data) {
+                    setEmailAvailable(false);
+                    setEmailError('이미 사용 중인 이메일입니다.');
+                } else {
+                    setEmailAvailable(true);
+                    setEmailError('');
+                }
+            } catch (error) {
+                // If no profile found, email is available
+                setEmailAvailable(true);
+                setEmailError('');
+            } finally {
+                setEmailChecking(false);
+            }
+        };
+
+        const debounceTimer = setTimeout(checkEmail, 500);
+        return () => clearTimeout(debounceTimer);
+    }, [email]);
+
+    // Password strength validation
+    useEffect(() => {
+        if (!password) {
+            setPasswordStrength(null);
+            setPasswordError('');
+            return;
+        }
+
+        if (password.length < 6) {
+            setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
+            setPasswordStrength('weak');
+            return;
+        }
+
+        // Check password strength
+        let strength = 0;
+        if (password.length >= 8) strength++;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+        if (/[0-9]/.test(password)) strength++;
+        if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+        if (strength <= 1) {
+            setPasswordStrength('weak');
+            setPasswordError('비밀번호가 너무 약합니다. 영문, 숫자, 특수문자를 조합해주세요.');
+        } else if (strength === 2) {
+            setPasswordStrength('medium');
+            setPasswordError('');
+        } else {
+            setPasswordStrength('strong');
+            setPasswordError('');
+        }
+    }, [password]);
+
+    // Password confirmation validation
+    useEffect(() => {
+        if (!passwordConfirm) {
+            setPasswordMatchError('');
+            return;
+        }
+
+        if (password !== passwordConfirm) {
+            setPasswordMatchError('비밀번호가 일치하지 않습니다.');
+        } else {
+            setPasswordMatchError('');
+        }
+    }, [password, passwordConfirm]);
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -32,8 +144,6 @@ export default function SignupPage() {
         }
 
         try {
-            // 1. SignUp with Metadata
-            // 메타데이터를 함께 보내면 나중에 트리거로 처리하기도 좋습니다.
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
@@ -48,7 +158,6 @@ export default function SignupPage() {
             });
 
             if (authError) {
-                // 이미 가입된 경우, 바로 로그인 시도 (사용자 경험 개선)
                 if (authError.message.includes('already registered')) {
                     console.log('User already registered, attempting login...');
 
@@ -62,8 +171,6 @@ export default function SignupPage() {
                             description: '자동으로 로그인되었습니다.',
                         });
 
-                        // 프로필이 없는 경우를 대비해 프로필 생성 로직(치유) 실행
-                        // (로그인 페이지의 로직과 동일하게 여기서도 한 번 더 챙겨줍니다)
                         const { data: profileCheck } = await supabase
                             .from('profiles')
                             .select('id')
@@ -85,13 +192,11 @@ export default function SignupPage() {
                         router.push('/');
                         return;
                     } else {
-                        // 로그인 실패 (비밀번호 불일치)
-                        // 강제로 페이지 이동하지 않고, 사용자가 이메일을 바꾸거나 비밀번호를 다시 입력할 수 있게 함
                         toast.error('이미 사용 중인 이메일입니다.', {
                             description: '입력하신 비밀번호와 기존 계정의 비밀번호가 다릅니다.',
                             duration: 4000,
                         });
-                        setLoading(false); // 로딩 풀기
+                        setLoading(false);
                         return;
                     }
                 }
@@ -102,20 +207,15 @@ export default function SignupPage() {
                 throw new Error('회원가입 초기화 실패');
             }
 
-            // 2. Check if email confirmation is required
-            // 세션이 없으면 이메일 인증이 필요한 상태입니다.
             if (authData.user && !authData.session) {
                 toast.success('인증 메일이 발송되었습니다!', {
                     description: '이메일함을 확인하여 가입을 완료해주세요.',
                     duration: 5000,
                 });
-                // 인증 대기 화면이나 로그인 화면으로 이동
                 setTimeout(() => router.push('/login'), 2000);
                 return;
             }
 
-            // 3. Insert Profile (Only if logged in automatically)
-            // 이메일 인증이 꺼져있어서 바로 로그인 된 경우에만 프로필 생성 시도
             const { error: profileError } = await supabase
                 .from('profiles')
                 .insert([
@@ -131,7 +231,6 @@ export default function SignupPage() {
                 ]);
 
             if (profileError) {
-                // 이미 프로필이 존재한다면(23505), 이는 사실상 성공입니다.
                 if (profileError.code === '23505') {
                     console.log('Profile already exists, proceeding as success.');
                     toast.success('회원가입이 완료되었습니다!', {
@@ -142,8 +241,6 @@ export default function SignupPage() {
                 }
 
                 console.error('Profile creation failed:', profileError);
-                // 프로필 생성에 진짜 문제가 있어도, 일단 로그인은 되었으니 메인으로 보내고
-                // 추후 로그인 시 자동 복구되도록 합니다. 쫓아내지 않습니다.
                 toast.warning('가입은 완료되었으나 프로필 설정에 지연이 있습니다.', {
                     description: '서비스 이용에는 문제가 없습니다.'
                 });
@@ -191,44 +288,162 @@ export default function SignupPage() {
                 </div>
 
                 <form onSubmit={handleSignup}>
+                    {/* Email Field with Validation */}
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="email">이메일</label>
-                        <input
-                            type="email"
-                            id="email"
-                            className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                            placeholder="example@email.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type="email"
+                                id="email"
+                                className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${emailError
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                        : emailAvailable === true
+                                            ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                            : 'border-border focus:border-primary focus:ring-primary/10'
+                                    }`}
+                                placeholder="example@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                            {emailChecking && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                            {!emailChecking && emailAvailable === true && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            )}
+                            {!emailChecking && emailAvailable === false && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                        {emailError && (
+                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                {emailError}
+                            </p>
+                        )}
+                        {!emailError && emailAvailable === true && (
+                            <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                사용 가능한 이메일입니다.
+                            </p>
+                        )}
                     </div>
 
+                    {/* Password Field with Strength Indicator */}
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="password">비밀번호</label>
                         <input
                             type="password"
                             id="password"
-                            className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
+                            className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${passwordError
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                    : passwordStrength === 'strong'
+                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                        : 'border-border focus:border-primary focus:ring-primary/10'
+                                }`}
                             placeholder="영문, 숫자, 특수문자 포함 8자 이상"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             minLength={6}
                             required
                         />
+                        {password && (
+                            <div className="mt-2">
+                                <div className="flex gap-1 mb-1.5">
+                                    <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'weak' ? 'bg-red-500' :
+                                            passwordStrength === 'medium' ? 'bg-yellow-500' :
+                                                passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}></div>
+                                    <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'medium' ? 'bg-yellow-500' :
+                                            passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}></div>
+                                    <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
+                                        }`}></div>
+                                </div>
+                                <p className={`text-xs ${passwordStrength === 'weak' ? 'text-red-500' :
+                                        passwordStrength === 'medium' ? 'text-yellow-600' :
+                                            passwordStrength === 'strong' ? 'text-green-600' : 'text-gray-500'
+                                    }`}>
+                                    {passwordStrength === 'weak' && '약함'}
+                                    {passwordStrength === 'medium' && '보통'}
+                                    {passwordStrength === 'strong' && '강함'}
+                                </p>
+                            </div>
+                        )}
+                        {passwordError && (
+                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                {passwordError}
+                            </p>
+                        )}
                     </div>
 
+                    {/* Password Confirmation Field */}
                     <div className="mb-6">
                         <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="password-confirm">비밀번호 확인</label>
-                        <input
-                            type="password"
-                            id="password-confirm"
-                            className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                            placeholder="비밀번호를 다시 입력해주세요"
-                            value={passwordConfirm}
-                            onChange={(e) => setPasswordConfirm(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <input
+                                type="password"
+                                id="password-confirm"
+                                className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${passwordMatchError
+                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                        : passwordConfirm && !passwordMatchError
+                                            ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                            : 'border-border focus:border-primary focus:ring-primary/10'
+                                    }`}
+                                placeholder="비밀번호를 다시 입력해주세요"
+                                value={passwordConfirm}
+                                onChange={(e) => setPasswordConfirm(e.target.value)}
+                                required
+                            />
+                            {passwordConfirm && !passwordMatchError && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                            )}
+                            {passwordMatchError && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </div>
+                            )}
+                        </div>
+                        {passwordMatchError && (
+                            <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                </svg>
+                                {passwordMatchError}
+                            </p>
+                        )}
+                        {passwordConfirm && !passwordMatchError && (
+                            <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                비밀번호가 일치합니다.
+                            </p>
+                        )}
                     </div>
 
                     {userType === 'ADVERTISER' ? (
@@ -309,9 +524,26 @@ export default function SignupPage() {
 
                 <div className="mt-8 text-center text-sm text-text-secondary">
                     이미 계정이 있으신가요?
-                    <Link href="/login" className="text-primary font-bold underline ml-2">로그인</Link>
+                    <Link
+                        href={`/login${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                        className="text-primary font-bold underline ml-2"
+                    >
+                        로그인
+                    </Link>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function SignupPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[80vh] flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        }>
+            <SignupForm />
+        </Suspense>
     );
 }

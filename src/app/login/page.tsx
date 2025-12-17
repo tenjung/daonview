@@ -1,15 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 
-export default function LoginPage() {
+function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+
+    // Load email from URL query parameter if available
+    useEffect(() => {
+        const emailParam = searchParams.get('email');
+        if (emailParam) {
+            setEmail(emailParam);
+        }
+    }, [searchParams]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -138,9 +147,26 @@ export default function LoginPage() {
 
                 <div className="mt-8 text-center text-sm text-text-secondary">
                     아직 계정이 없으신가요?
-                    <Link href="/signup" className="text-primary font-bold underline ml-2">회원가입</Link>
+                    <Link
+                        href={`/signup${email ? `?email=${encodeURIComponent(email)}` : ''}`}
+                        className="text-primary font-bold underline ml-2"
+                    >
+                        회원가입
+                    </Link>
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-[80vh] flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        }>
+            <LoginForm />
+        </Suspense>
     );
 }

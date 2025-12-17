@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, CreditCard, Building2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, CreditCard, Building2, Save } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
 
 interface Step3Data {
     paymentMethod: 'card' | 'transfer' | null;
@@ -11,8 +12,9 @@ interface Step3Data {
 }
 
 interface CampaignStep3Props {
-    onSubmit: (data: Step3Data) => void;
+    onSubmit: (data: Step3Data) => Promise<void> | void;
     onPrev: () => void;
+    onSaveDraft?: () => void;
     initialData?: Partial<Step3Data>;
     step1Data: any;
     step2Data: any;
@@ -21,6 +23,7 @@ interface CampaignStep3Props {
 export default function CampaignStep3({
     onSubmit,
     onPrev,
+    onSaveDraft,
     initialData,
     step1Data,
     step2Data
@@ -118,18 +121,18 @@ export default function CampaignStep3({
     };
 
     const handleSubmit = async () => {
-        if (!isFormValid()) return;
+        if (!isFormValid()) {
+            toast.error('결제 방법 선택 및 약관 동의가 필요합니다.');
+            return;
+        }
 
         setIsSubmitting(true);
 
         try {
-            // TODO: 실제 결제 처리 로직
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            onSubmit(formData);
-        } catch (error) {
+            await onSubmit(formData);
+        } catch (error: any) {
             console.error('결제 처리 중 오류:', error);
-            alert('결제 처리 중 오류가 발생했습니다.');
+            toast.error(`처리 중 오류가 발생했습니다: ${error.message || '확인되지 않은 오류'}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -137,29 +140,6 @@ export default function CampaignStep3({
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
-            {/* Progress Indicator */}
-            <div className="flex items-center justify-center gap-4 mb-8">
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
-                        ✓
-                    </div>
-                    <span className="font-medium text-gray-600">기본 정보</span>
-                </div>
-                <ChevronRight className="text-gray-400" />
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
-                        ✓
-                    </div>
-                    <span className="font-medium text-gray-600">미션 가이드</span>
-                </div>
-                <ChevronRight className="text-gray-400" />
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-semibold">
-                        3
-                    </div>
-                    <span className="font-medium text-gray-900">결제</span>
-                </div>
-            </div>
 
             {/* 캠페인 요약 */}
             <section className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
@@ -380,26 +360,38 @@ export default function CampaignStep3({
                     이전 단계
                 </button>
 
-                <button
-                    onClick={handleSubmit}
-                    disabled={!isFormValid() || isSubmitting}
-                    className={`px-8 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${isFormValid() && !isSubmitting
-                        ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                >
-                    {isSubmitting ? (
-                        <>
-                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                            처리 중...
-                        </>
-                    ) : (
-                        <>
-                            <Check size={20} />
-                            {isAdmin ? '바로 등록하기' : '승인 요청하기'}
-                        </>
+                <div className="flex gap-3">
+                    {onSaveDraft && (
+                        <button
+                            onClick={onSaveDraft}
+                            disabled={isSubmitting}
+                            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Save size={18} />
+                            임시저장
+                        </button>
                     )}
-                </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={!isFormValid() || isSubmitting}
+                        className={`px-8 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${isFormValid() && !isSubmitting
+                            ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
+                    >
+                        {isSubmitting ? (
+                            <>
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                처리 중...
+                            </>
+                        ) : (
+                            <>
+                                <Check size={20} />
+                                {isAdmin ? '바로 등록하기' : '승인 요청하기'}
+                            </>
+                        )}
+                    </button>
+                </div>
             </div>
 
             {/* 안내 메시지 */}

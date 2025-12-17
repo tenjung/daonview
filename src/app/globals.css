@@ -31,4 +31,13 @@ body {
   .container {
     @apply w-[90%] max-w-[1200px] mx-auto;
   }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
