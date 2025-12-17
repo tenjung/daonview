@@ -33,7 +33,7 @@ export default function Footer() {
                             onClick={handleToggle}
                             className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-primary transition-colors"
                         >
-                            <span>다온컴퍼니 사업자 정보 보기</span>
+                            <span><strong>다온컴퍼니</strong> 사업자 정보 보기</span>
                             {isExpanded ? (
                                 <ChevronUp className="w-3.5 h-3.5" />
                             ) : (
@@ -43,7 +43,7 @@ export default function Footer() {
 
                         {/* Center: Links */}
                         <div className="flex items-center gap-5 text-xs">
-                            <Link href="/campaigns" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
+                            <Link href="/intro" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
                             <Link href="/notice" className="text-text-secondary hover:text-primary transition-colors">공지사항</Link>
                             <Link href="/terms" className="text-text-secondary hover:text-primary transition-colors">운영정책</Link>
                             <Link href="/privacy" className="text-text-secondary hover:text-primary transition-colors">개인정보처리방침</Link>
@@ -65,7 +65,7 @@ export default function Footer() {
                             <div className="grid grid-cols-2 gap-2 text-xs text-text-secondary mb-3">
                                 <div className="flex gap-2">
                                     <span className="font-medium text-text-main min-w-[70px]">상호명</span>
-                                    <span>다온컴퍼니</span>
+                                    <span><strong>다온컴퍼니</strong></span>
                                 </div>
                                 <div className="flex gap-2">
                                     <span className="font-medium text-text-main min-w-[70px]">대표자명</span>
