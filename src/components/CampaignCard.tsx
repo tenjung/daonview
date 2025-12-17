@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Instagram, Youtube, MapPin, Package, ShoppingBag, Type } from 'lucide-react';
+import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool } from 'lucide-react';
 
 interface CampaignProps {
     id?: number | string;
@@ -12,39 +12,55 @@ interface CampaignProps {
     imageUrl?: string;
     category?: string;
     provision?: string;
-    region?: string | null; // Add region prop
+    region?: string | null;
 }
 
-const PlatformIcon = ({ platform }: { platform: string }) => {
+const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform.toUpperCase();
-    if (p === 'INSTAGRAM' || p === 'REELS') return <Instagram className="w-4 h-4 text-pink-600" />;
-    if (p === 'YOUTUBE' || p === 'SHORTS') return <Youtube className="w-4 h-4 text-red-600" />;
-    if (p === 'TIKTOK') return <svg className="w-4 h-4 text-black" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
-    // Default to Blog (Naver usually) - Green
-    return <span className="font-bold text-green-600 text-xs">N</span>;
+    let icon = <PenTool className="w-3 h-3" />;
+    let label = "블로그";
+    let colorClass = "bg-green-50 text-green-700 border-green-100"; // Default Naver
+
+    if (p === 'INSTAGRAM' || p === 'REELS') {
+        icon = <Instagram className="w-3 h-3" />;
+        label = "인스타그램";
+        colorClass = "bg-pink-50 text-pink-700 border-pink-100";
+    } else if (p === 'YOUTUBE' || p === 'SHORTS') {
+        icon = <Youtube className="w-3 h-3" />;
+        label = "유튜브";
+        colorClass = "bg-red-50 text-red-700 border-red-100";
+    } else if (p === 'TIKTOK') {
+        icon = <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
+        label = "틱톡";
+        colorClass = "bg-black text-white border-black";
+    }
+
+    return (
+        <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${colorClass}`}>
+            {icon}
+            <span>{label}</span>
+        </div>
+    );
 };
 
 const TypeBadge = ({ type }: { type?: string }) => {
     if (!type) return null;
     const t = type.toUpperCase();
 
-    let icon = <MapPin className="w-3 h-3" />;
-    let label = "방문";
+    let label = "방문형";
     let colorClass = "bg-blue-50 text-blue-600 border-blue-100";
 
     if (t === 'DELIVERY') {
-        icon = <Package className="w-3 h-3" />;
-        label = "배송";
+        label = "배송형";
         colorClass = "bg-green-50 text-green-600 border-green-100";
     } else if (t === 'PURCHASE') {
-        icon = <ShoppingBag className="w-3 h-3" />;
-        label = "구매";
+        label = "기자단";
         colorClass = "bg-purple-50 text-purple-600 border-purple-100";
     }
 
     return (
-        <span className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${colorClass}`}>
-            {icon} {label}
+        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${colorClass}`}>
+            {label}
         </span>
     );
 };
@@ -53,8 +69,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const linkHref = id ? `/campaigns/${id}` : '#';
     const isVisit = type?.toUpperCase() === 'VISIT';
 
+    // Calculate percentage
+    const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
+
     return (
-        <Link href={linkHref} className="card group border border-border rounded-xl overflow-hidden bg-surface transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col no-underline text-text-main h-full">
+        <Link href={linkHref} className="card group border border-border rounded-xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
+            {/* Image Section */}
             <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
                 {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -64,59 +84,70 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-rose-100 to-amber-50 group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
                 )}
 
-                <div className="absolute top-3 left-3 flex gap-2">
-                    <span className={`px-2 py-1 rounded-md text-xs font-bold shadow-sm backdrop-blur ${dday === '상시모집'
+                {/* Top Right: D-Day (Optional but recommended) */}
+                <div className="absolute top-3 right-3 z-10">
+                    <span className={`px-2 py-1 rounded text-[10px] font-bold shadow-sm ${dday === '상시모집'
                         ? 'bg-indigo-600 text-white'
                         : dday === '종료'
-                            ? 'bg-gray-600 text-white'
-                            : 'bg-white/90 text-primary ring-1 ring-black/5'
+                            ? 'bg-gray-800 text-white'
+                            : 'bg-rose-500 text-white'
                         }`}>
                         {dday}
                     </span>
                 </div>
             </div>
 
-            <div className="p-5 flex-1 flex flex-col">
-                <div className="flex items-center gap-2 mb-3 flex-wrap">
-                    {/* Platform Icon Circle */}
-                    <div className="w-7 h-7 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0">
-                        <PlatformIcon platform={platform} />
-                    </div>
+            {/* Content Section */}
+            <div className="p-4 flex flex-col flex-1 gap-2">
+                {/* 1. Tags: Type & Platform & Region */}
+                <div className="flex items-center gap-1.5 flex-wrap">
                     <TypeBadge type={type} />
-                    {/* Region Badge for VISIT type */}
-                    {isVisit && region && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border bg-orange-50 text-orange-600 border-orange-100">
+                    <PlatformBadge platform={platform} />
+                    {isVisit && region ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
+                            <MapPin className="w-3 h-3" />
                             {region}
+                        </span>
+                    ) : (
+                        <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
+                            <Package className="w-3 h-3" />
+                            전국
                         </span>
                     )}
                 </div>
 
-                <h3 className="text-base font-bold mb-2 leading-snug line-clamp-2 number-font group-hover:text-primary transition-colors">
+                {/* 2. Title */}
+                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 mt-1 mb-1 group-hover:text-primary transition-colors h-[40px]">
                     {title}
                 </h3>
 
-                {provision && (
-                    <div className="mb-3 flex-1">
-                        <div className="text-[10px] font-bold text-gray-400 mb-1">제공내역</div>
-                        <div className="px-3 py-2 bg-gradient-to-r from-rose-50 to-pink-50 rounded-lg border border-rose-100">
-                            <p className="text-sm font-bold text-rose-700 line-clamp-2 leading-relaxed">
-                                {provision}
-                            </p>
-                        </div>
-                    </div>
-                )}
+                {/* 3. Provision */}
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
+                    <Gift className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="truncate">{provision || '제공내역 없음'}</span>
+                </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-50 flex justify-between items-center text-xs text-text-secondary">
-                    <div className="flex gap-1">
-                        <span className="">모집</span>
-                        <span className="font-bold text-text-main">{total}명</span>
+                {/* Spacer to push bottom section down */}
+                <div className="mt-auto pt-3 border-t border-gray-50">
+                    {/* 4. Progress Section */}
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                        {/* Percentage Text */}
+                        <span className="font-bold text-blue-600">{percentage}%</span>
+                        {/* Count Text */}
+                        <span className="text-gray-400 font-medium">
+                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {total}명
+                        </span>
                     </div>
-                    <div className="flex gap-1">
-                        <span className="">신청</span>
-                        <span className="font-bold text-primary">{applicants}명</span>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                            style={{ width: `${percentage}%` }}
+                        />
                     </div>
                 </div>
             </div>

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import CampaignCard from '@/components/CampaignCard';
+import VisualCampaignSlider from '@/components/VisualCampaignSlider';
 import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 
@@ -29,7 +30,7 @@ export default async function Home() {
   const { data: latestData } = await supabase
     .from('campaigns')
     .select('*, applications(count)')
-    .eq('status', 'RECRUITING')
+    .eq('status', 'approved')
     .order('created_at', { ascending: false })
     .limit(4);
   const latestCampaigns = latestData?.map(c => mapCampaignToCard(c as any)) || [];
@@ -37,7 +38,7 @@ export default async function Home() {
   const { data: popularData } = await supabase
     .from('campaigns')
     .select('*, applications(count)')
-    .eq('status', 'RECRUITING')
+    .eq('status', 'approved')
     .order('recruit_count', { ascending: false })
     .limit(4);
   const popularCampaigns = popularData?.map(c => mapCampaignToCard(c as any)) || [];
@@ -46,7 +47,7 @@ export default async function Home() {
     .from('campaigns')
     .select('*, applications(count)')
     .eq('type', 'DELIVERY')
-    .eq('status', 'RECRUITING')
+    .eq('status', 'approved')
     .limit(4);
   const deliveryCampaigns = deliveryData?.map(c => mapCampaignToCard(c as any)) || [];
 
@@ -54,7 +55,7 @@ export default async function Home() {
     .from('campaigns')
     .select('*, applications(count)')
     .eq('type', 'VISIT')
-    .eq('status', 'RECRUITING')
+    .eq('status', 'approved')
     .limit(4);
   const visitCampaigns = visitData?.map(c => mapCampaignToCard(c as any)) || [];
 
@@ -86,39 +87,12 @@ export default async function Home() {
               </div>
             </div>
 
-            <div className="flex-1 min-w-[320px] bg-white rounded-2xl shadow-xl shadow-primary/10 p-6 border border-border">
-              <div className="flex justify-between items-center mb-4 font-bold text-text-main">
-                <h3>따끈따끈 신규 캠페인 🔥</h3>
-                <Link href="/campaigns?sort=new" className="text-sm text-text-secondary">더보기 &gt;</Link>
+            <div className="flex-1 min-w-[320px] max-w-[400px]">
+              <div className="flex justify-between items-center mb-4 font-bold text-text-main px-2">
+                <h3 className="text-xl">따끈따끈 신규 캠페인 🔥</h3>
+                <Link href="/campaigns?sort=new" className="text-sm text-text-secondary hover:text-primary transition-colors">더보기 &gt;</Link>
               </div>
-              <div className="flex flex-col gap-4">
-                {latestCampaigns.map(cam => (
-                  <Link key={cam.id} href={`/campaigns/${cam.id}`} className="flex gap-4 pb-4 border-b border-slate-100 last:border-none last:pb-0 hover:bg-slate-50 transition-colors p-2 rounded-lg -mx-2">
-                    <div className="w-[70px] h-[70px] bg-rose-100 rounded-lg flex-shrink-0 overflow-hidden">
-                      {cam.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={cam.imageUrl} alt="" className="w-full h-full object-cover" />
-                      ) : null}
-                    </div>
-                    <div className="flex-1 flex flex-col justify-center">
-                      <div className="flex gap-2 mb-1 text-xs items-center flex-wrap">
-                        <span className="font-bold text-primary">{cam.platform}</span>
-                        <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{cam.type === 'VISIT' ? '방문' : '배송'}</span>
-                        {cam.type === 'VISIT' && cam.region && (
-                          <span className="text-[10px] bg-orange-50 text-orange-600 px-1.5 py-0.5 rounded font-bold">{cam.region}</span>
-                        )}
-                      </div>
-                      <div className="font-semibold text-sm mb-1 text-text-main line-clamp-1">
-                        {cam.title}
-                      </div>
-                      <div className="text-xs text-slate-400 flex justify-between">
-                        <span>{cam.dday}</span>
-                        <span>{cam.applicants}명 신청중</span>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
+              <VisualCampaignSlider campaigns={latestCampaigns} />
             </div>
           </div>
         </div>
