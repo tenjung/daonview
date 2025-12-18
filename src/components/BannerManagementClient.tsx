@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { Plus, Trash2, Image as ImageIcon, Link as LinkIcon, Save, Upload, Pencil, X, Check, MoveUp, MoveDown, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,6 +50,15 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
     const fileInputRef = useRef<HTMLInputElement>(null);
     const editFileInputRef = useRef<HTMLInputElement>(null);
 
+    // Auth Check Logging
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            console.log('👤 현재 로그인 유저 (Singleton):', user ? `User ID: ${user.id}` : '비로그인 상태 (Anon)');
+        };
+        checkUser();
+    }, []);
+
     // --- Banner Sorting Logic ---
     async function moveBanner(index: number, direction: 'up' | 'down') {
         const newIndex = direction === 'up' ? index - 1 : index + 1;
@@ -94,23 +103,40 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
     // Image Upload Logic
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) {
         const file = e.target.files?.[0];
-        if (!file) return;
+        console.log('📁 파일 선택:', file);
+
+        if (!file) {
+            console.log('❌ 파일 없음');
+            return;
+        }
 
         try {
             setUploading(true);
+            console.log('⏳ 업로드 시작...');
+
             const fileExt = file.name.split('.').pop();
             const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
             const filePath = `banner-images/${fileName}`;
+            console.log('📂 파일 경로:', filePath);
 
+            console.log('☁️ Supabase Storage 업로드 시도...');
             const { error: uploadError } = await supabase.storage
                 .from('banners')
                 .upload(filePath, file);
 
-            if (uploadError) throw uploadError;
+            console.log('📡 업로드 응답:', { uploadError });
 
+            if (uploadError) {
+                console.error('❌ 업로드 에러:', uploadError);
+                throw uploadError;
+            }
+
+            console.log('✅ 업로드 성공, Public URL 가져오기...');
             const { data: { publicUrl } } = supabase.storage
                 .from('banners')
                 .getPublicUrl(filePath);
+
+            console.log('🔗 Public URL:', publicUrl);
 
             if (isEdit) {
                 setEditForm({ ...editForm, image_url: publicUrl });
@@ -118,38 +144,56 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                 setNewBanner({ ...newBanner, image_url: publicUrl });
             }
             toast.success('이미지가 업로드되었습니다.');
+            console.log('✅ 이미지 업로드 완료');
         } catch (error: any) {
-            toast.error('업로드 실패: ' + error.message);
+            console.error('💥 업로드 실패:', error);
+            toast.error('업로드 실패: ' + (error.message || '알 수 없는 오류'));
         } finally {
             setUploading(false);
+            console.log('🏁 업로드 프로세스 종료');
         }
     }
 
     async function handleAddBanner() {
+        console.log('🔵 handleAddBanner 시작');
+        console.log('📝 newBanner 데이터:', newBanner);
+
         if (!newBanner.title || !newBanner.image_url) {
+            console.log('❌ 유효성 검사 실패:', { title: newBanner.title, image_url: newBanner.image_url });
             toast.error('제목과 이미지 URL은 필수입니다.');
             return;
         }
 
         setIsSubmitting(true);
+        console.log('⏳ isSubmitting = true');
+
         const nextOrder = banners.length > 0 ? Math.max(...banners.map(b => b.display_order)) + 1 : 0;
+        console.log('📊 다음 순서:', nextOrder);
+
+        const insertData = {
+            ...newBanner,
+            display_order: nextOrder
+        };
+        console.log('💾 DB에 저장할 데이터:', insertData);
 
         const { data, error } = await supabase
             .from('banners')
-            .insert([{
-                ...newBanner,
-                display_order: nextOrder
-            }])
+            .insert([insertData])
             .select();
 
+        console.log('📡 Supabase 응답:', { data, error });
+
         if (error) {
+            console.error('❌ 배너 추가 실패:', error);
             toast.error('배너 추가 실패: ' + error.message);
         } else {
+            console.log('✅ 배너 추가 성공:', data);
             toast.success('배너가 추가되었습니다.');
             setBanners([...banners, data[0]]);
             setNewBanner({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true });
         }
         setIsSubmitting(false);
+        console.log('✅ handleAddBanner 완료');
     }
 
     function startEditing(banner: Banner) {
@@ -271,21 +315,31 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">배너 제목</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-2 tracking-wider">
+                                배너 제목 <span className="text-red-500">*</span>
+                            </label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                                placeholder="배너 타이틀"
+                                className={`w-full px-4 py-3 bg-gray-50 border rounded-xl outline-none transition-colors ${!newBanner.title && isSubmitting
+                                    ? 'border-red-300 bg-red-50'
+                                    : 'border-gray-200 focus:border-primary focus:bg-white'
+                                    }`}
+                                placeholder="예: 신규 캠페인 특별 할인"
                                 value={newBanner.title}
                                 onChange={e => setNewBanner({ ...newBanner, title: e.target.value })}
                             />
+                            {!newBanner.title && isSubmitting && (
+                                <p className="text-xs text-red-500 mt-1">배너 제목은 필수입니다.</p>
+                            )}
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">배너 설명</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-2 tracking-wider">
+                                배너 설명 <span className="text-gray-400 font-normal">(선택)</span>
+                            </label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none"
-                                placeholder="설명"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-primary focus:bg-white transition-colors"
+                                placeholder="예: 최대 50% 할인 혜택"
                                 value={newBanner.subtitle}
                                 onChange={e => setNewBanner({ ...newBanner, subtitle: e.target.value })}
                             />
@@ -293,34 +347,64 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                     </div>
                     <div className="space-y-6">
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">이미지 설정</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-2 tracking-wider">
+                                이미지 설정 <span className="text-red-500">*</span>
+                            </label>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
-                                    className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-                                    placeholder="URL 또는 업로드"
+                                    className={`flex-1 px-4 py-3 bg-gray-50 border rounded-xl text-sm outline-none transition-colors ${!newBanner.image_url && isSubmitting
+                                        ? 'border-red-300 bg-red-50'
+                                        : 'border-gray-200 focus:border-primary focus:bg-white'
+                                        }`}
+                                    placeholder="이미지 URL 또는 업로드"
                                     value={newBanner.image_url}
                                     onChange={e => setNewBanner({ ...newBanner, image_url: e.target.value })}
                                 />
-                                <button onClick={() => fileInputRef.current?.click()} className="px-4 bg-gray-100 rounded-xl"><Upload size={18} /></button>
+                                <button
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploading}
+                                    className="px-4 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                >
+                                    {uploading ? '...' : <Upload size={18} />}
+                                </button>
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e)} />
                             </div>
+                            {!newBanner.image_url && isSubmitting && (
+                                <p className="text-xs text-red-500 mt-1">이미지는 필수입니다.</p>
+                            )}
+                            {newBanner.image_url && (
+                                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                                    <p className="text-xs text-green-700 flex items-center gap-1">
+                                        <Check size={14} /> 이미지가 설정되었습니다.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">링크</label>
+                            <label className="block text-xs font-bold text-gray-700 mb-2 tracking-wider">
+                                링크 <span className="text-gray-400 font-normal">(선택)</span>
+                            </label>
                             <input
                                 type="text"
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl"
-                                placeholder="/link"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-primary focus:bg-white transition-colors"
+                                placeholder="예: /campaigns"
                                 value={newBanner.link_url}
                                 onChange={e => setNewBanner({ ...newBanner, link_url: e.target.value })}
                             />
                         </div>
                     </div>
                 </div>
-                <div className="mt-8 pt-6 border-t border-gray-50 flex justify-end">
-                    <button onClick={handleAddBanner} disabled={isSubmitting || uploading} className="btn btn-primary px-10 py-3 rounded-2xl">
-                        {isSubmitting ? '저장 중...' : '배너 등록하기'}
+                <div className="mt-8 pt-6 border-t border-gray-50 flex justify-between items-center">
+                    <p className="text-xs text-gray-500">
+                        <span className="text-red-500">*</span> 표시는 필수 입력 항목입니다.
+                    </p>
+                    <button
+                        onClick={handleAddBanner}
+                        disabled={isSubmitting || uploading}
+                        className="btn btn-primary px-10 py-3 rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                        {isSubmitting ? '저장 중...' : uploading ? '업로드 중...' : '배너 등록하기'}
                     </button>
                 </div>
             </div>

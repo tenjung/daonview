@@ -1,124 +1,21 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Bell, Pin, Search, PenSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import NoticeBoardClient from "./NoticeBoardClient";
 
-export default function NoticePage() {
-    const [posts, setPosts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [isAdmin, setIsAdmin] = useState(false);
+export const dynamic = 'force-dynamic';
 
-    useEffect(() => {
-        fetchPosts();
-        checkAdmin();
-    }, []);
+export default async function NoticePage() {
+    const { data, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('type', 'NOTICE')
+        .order('is_pinned', { ascending: false })
+        .order('created_at', { ascending: false });
 
-    const checkAdmin = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-            setIsAdmin(profile?.role === 'ADMIN');
-        }
-    };
+    if (error) {
+        console.error('Error fetching notices:', error);
+        return <div>공지사항을 불러오는 중 오류가 발생했습니다.</div>;
+    }
 
-    const fetchPosts = async () => {
-        try {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('posts')
-                .select('*')
-                .eq('type', 'NOTICE')
-                .order('is_pinned', { ascending: false })
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setPosts(data || []);
-        } catch (error) {
-            console.error('Error fetching notices:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <Bell className="text-primary" size={24} />
-                        공지사항
-                    </h1>
-                    <p className="text-gray-500 mt-1">다온뷰의 새로운 소식과 안내를 확인하세요.</p>
-                </div>
-                {isAdmin && (
-                    <Link
-                        href="/community/write?type=NOTICE"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
-                    >
-                        <PenSquare size={18} />
-                        공지 작성
-                    </Link>
-                )}
-            </div>
-
-            {/* 목록 */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                <div className="divide-y divide-gray-50">
-                    {loading ? (
-                        [...Array(5)].map((_, i) => (
-                            <div key={i} className="p-6 animate-pulse flex flex-col gap-2">
-                                <div className="h-4 bg-gray-100 rounded w-1/4"></div>
-                                <div className="h-6 bg-gray-100 rounded w-3/4"></div>
-                            </div>
-                        ))
-                    ) : posts.length === 0 ? (
-                        <div className="p-20 text-center text-gray-400">
-                            <Bell size={48} className="mx-auto text-gray-100 mb-4" />
-                            등록된 공지사항이 없습니다.
-                        </div>
-                    ) : (
-                        posts.map((post) => (
-                            <Link
-                                key={post.id}
-                                href={`/community/${post.id}`}
-                                className={`block p-6 hover:bg-gray-50 transition-colors group ${post.is_pinned ? 'bg-primary/5' : ''}`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            {post.is_pinned && (
-                                                <span className="flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                                    <Pin size={10} />
-                                                    공지
-                                                </span>
-                                            )}
-                                            <span className="text-xs text-gray-400">
-                                                {new Date(post.created_at).toLocaleDateString('ko-KR', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
-                                            {post.title}
-                                        </h3>
-                                    </div>
-                                    <div className="text-xs text-gray-400 font-medium">
-                                        조회 {post.view_count || 0}
-                                    </div>
-                                </div>
-                            </Link>
-                        ))
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+    return <NoticeBoardClient initialPosts={data || []} />;
 }
+

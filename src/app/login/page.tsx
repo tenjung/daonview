@@ -34,7 +34,7 @@ function LoginForm() {
             // Fetch user profile to get role
             let { data: profileData, error: profileError } = await supabase
                 .from('profiles')
-                .select('role')
+                .select('role, nickname')
                 .eq('id', authData.user?.id)
                 .single();
 
@@ -58,7 +58,7 @@ function LoginForm() {
                 // Retry fetch
                 const retry = await supabase
                     .from('profiles')
-                    .select('role')
+                    .select('role, nickname')
                     .eq('id', authData.user?.id)
                     .single();
 
@@ -72,16 +72,23 @@ function LoginForm() {
                 return;
             }
 
-            toast.success('로그인에 성공했습니다.');
+            // Show success message with user's name
+            const userName = profileData?.nickname || email.split('@')[0];
+            toast.success(`${userName}님, 환영합니다! 🎉`, {
+                description: '로그인에 성공했습니다.',
+            });
 
-            // Redirect based on role
-            if (profileData?.role === 'ADVERTISER') {
-                router.push('/dashboard/advertiser');
-            } else if (profileData?.role === 'ADMIN') {
-                router.push('/dashboard/admin');
-            } else {
-                router.push('/dashboard/influencer');
-            }
+            // Redirect based on role using window.location.href for proper navigation
+            setTimeout(() => {
+                if (profileData?.role === 'ADMIN') {
+                    window.location.href = '/dashboard/admin';
+                } else if (profileData?.role === 'ADVERTISER') {
+                    window.location.href = '/dashboard/advertiser';
+                } else {
+                    // INFLUENCER goes to campaigns page
+                    window.location.href = '/campaigns';
+                }
+            }, 1000);
 
         } catch (error: any) {
             console.error('Login Error:', error);

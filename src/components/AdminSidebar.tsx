@@ -3,9 +3,9 @@
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard } from 'lucide-react';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 
-export default function AdminSidebar() {
+function AdminSidebarContent() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
@@ -21,7 +21,7 @@ export default function AdminSidebar() {
         }
         return pathname === path;
     };
-    
+
     const isInCampaignSection = pathname.includes('/dashboard/admin/campaigns') || pathname.includes('/dashboard/campaign/new');
 
     return (
@@ -173,3 +173,12 @@ export default function AdminSidebar() {
         </aside>
     );
 }
+
+export default function AdminSidebar() {
+    return (
+        <Suspense fallback={<aside className="w-[260px] bg-white border-r border-border shrink-0" />}>
+            <AdminSidebarContent />
+        </Suspense>
+    );
+}
+

@@ -52,9 +52,10 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     if (type === 'active') {
         campaigns = campaigns.filter(cam => {
             const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
-            const startDateStr = options?.step1Data?.recruitmentStartDate;
+            const startDateStr = options?.step1Data?.recruitmentStartDate || cam.created_at;
             if (startDateStr) {
                 const startDate = new Date(startDateStr);
+                startDate.setHours(0, 0, 0, 0);
                 return startDate <= now;
             }
             return true;
@@ -62,12 +63,14 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     } else if (type === 'upcoming') {
         campaigns = campaigns.filter(cam => {
             const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
-            const startDateStr = options?.step1Data?.recruitmentStartDate;
+            const startDateStr = options?.step1Data?.recruitmentStartDate || cam.created_at;
             if (startDateStr) {
                 const startDate = new Date(startDateStr);
+                startDate.setHours(0, 0, 0, 0);
                 return startDate > now;
             }
-            return false;
+            // 날짜 정보가 없으면 진행 예정으로 간주
+            return true;
         });
     }
 

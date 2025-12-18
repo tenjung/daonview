@@ -19,28 +19,28 @@ const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform.toUpperCase();
     let icon = <PenTool className="w-3 h-3" />;
     let label = "블로그";
-    let colorClass = "bg-green-50 text-green-700 border-green-100"; // Default Naver
+    let colorClass = "bg-emerald-100 text-emerald-700"; // Default Naver
 
     if (p === 'INSTAGRAM' || p === 'REELS') {
         icon = <Instagram className="w-3 h-3" />;
         label = "인스타그램";
-        colorClass = "bg-pink-50 text-pink-700 border-pink-100";
+        colorClass = "bg-pink-100 text-pink-700";
     } else if (p === 'YOUTUBE' || p === 'SHORTS') {
         icon = <Youtube className="w-3 h-3" />;
         label = "유튜브";
-        colorClass = "bg-red-50 text-red-700 border-red-100";
+        colorClass = "bg-red-100 text-red-700";
     } else if (p === 'TIKTOK') {
         icon = <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
         label = "틱톡";
-        colorClass = "bg-black text-white border-black";
+        colorClass = "bg-slate-900 text-white";
     } else if (p === 'PURCHASE' || p === 'OTHER' || p === '기타') {
         icon = <ShoppingBag className="w-3 h-3" />;
         label = "구매평";
-        colorClass = "bg-orange-50 text-orange-700 border-orange-100";
+        colorClass = "bg-orange-100 text-orange-700";
     }
 
     return (
-        <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold border ${colorClass}`}>
+        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold ${colorClass}`}>
             {icon}
             <span>{label}</span>
         </div>
@@ -52,21 +52,21 @@ const TypeBadge = ({ type }: { type?: string }) => {
     const t = type.toUpperCase();
 
     let label = "방문";
-    let colorClass = "bg-blue-50 text-blue-600 border-blue-100";
+    let colorClass = "bg-blue-100 text-blue-700";
 
     if (t === 'DELIVERY') {
         label = "배송";
-        colorClass = "bg-green-50 text-green-600 border-green-100";
+        colorClass = "bg-green-100 text-green-700";
     } else if (t === 'PURCHASE') {
-        label = "구매평";
-        colorClass = "bg-orange-50 text-orange-600 border-orange-100";
+        label = "구매";
+        colorClass = "bg-orange-100 text-orange-700";
     } else if (t === 'PRESS') {
         label = "기자단";
-        colorClass = "bg-purple-50 text-purple-600 border-purple-100";
+        colorClass = "bg-purple-100 text-purple-700";
     }
 
     return (
-        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${colorClass}`}>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-semibold ${colorClass}`}>
             {label}
         </span>
     );

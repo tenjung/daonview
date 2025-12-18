@@ -21,23 +21,28 @@ const VisualPlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform.toUpperCase();
     let icon = <PenTool className="w-3 h-3" />;
     let label = "블로그";
+    let colorClass = "bg-emerald-500/90 text-white";
 
     if (p === 'INSTAGRAM' || p === 'REELS') {
         icon = <Instagram className="w-3 h-3" />;
         label = "인스타그램";
+        colorClass = "bg-gradient-to-r from-purple-500 to-pink-500 text-white";
     } else if (p === 'YOUTUBE' || p === 'SHORTS') {
         icon = <Youtube className="w-3 h-3" />;
         label = "유튜브";
+        colorClass = "bg-red-500/90 text-white";
     } else if (p === 'TIKTOK') {
         icon = <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
         label = "틱톡";
+        colorClass = "bg-slate-900 text-white";
     } else if (p === 'PURCHASE' || p === 'OTHER') {
         icon = <Gift className="w-3 h-3" />;
         label = "구매평";
+        colorClass = "bg-orange-500/90 text-white";
     }
 
     return (
-        <span className="bg-white text-black px-2 py-1 rounded text-[10px] font-bold flex items-center gap-1 shadow-sm">
+        <span className={`${colorClass} backdrop-blur-md px-2.5 py-1 rounded-3xl text-[10px] font-medium flex items-center gap-1 shadow-lg`}>
             {icon}
             <span>{label}</span>
         </span>
@@ -80,7 +85,7 @@ export default function VisualCampaignSlider({ campaigns }: { campaigns: Campaig
 
                     return (
                         <div key={current.id} className="min-w-[50%] px-2">
-                            <div className="relative w-full aspect-[3/4] rounded-[32px] overflow-hidden shadow-xl bg-gray-900 group select-none cursor-pointer">
+                            <div className="relative w-full aspect-[3/4] rounded-3xl overflow-hidden shadow-xl bg-gray-900 group select-none cursor-pointer">
 
                                 {/* Background Image */}
                                 <div className="absolute inset-0">
@@ -99,16 +104,16 @@ export default function VisualCampaignSlider({ campaigns }: { campaigns: Campaig
                                 </div>
 
                                 {/* Content Overlay */}
-                                <div className="absolute inset-0 p-4 flex flex-col justify-between z-10">
+                                <div className="absolute inset-0 p-8 flex flex-col justify-between z-10">
                                     {/* Top Row: Tags */}
                                     <div className="flex justify-between items-start w-full">
                                         {current.type === 'VISIT' ? (
                                             current.region ? (
-                                                <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-white/10">
+                                                <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-3xl text-xs font-medium border border-white/10">
                                                     {current.region}
                                                 </span>
                                             ) : (
-                                                <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-xs font-bold border border-white/10">
+                                                <span className="bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-3xl text-xs font-medium border border-white/10">
                                                     전국
                                                 </span>
                                             )
@@ -116,7 +121,7 @@ export default function VisualCampaignSlider({ campaigns }: { campaigns: Campaig
                                             <div /> // Spacer to keep D-Day on the right
                                         )}
 
-                                        <span className="bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-bold shadow-lg shadow-rose-500/30 ml-auto">
+                                        <span className="bg-rose-500 text-white px-3 py-1.5 rounded-full text-xs font-medium shadow-lg shadow-rose-500/30 ml-auto">
                                             {current.dday}
                                         </span>
                                     </div>
@@ -126,11 +131,11 @@ export default function VisualCampaignSlider({ campaigns }: { campaigns: Campaig
                                         {/* Platform & Type */}
                                         <div className="flex items-center gap-2">
                                             <VisualPlatformBadge platform={current.platform} />
-                                            <span className="text-gray-300 text-xs font-medium drop-shadow-md">
-                                                {current.type === 'VISIT' ? '방문형' : 
-                                                 current.type === 'DELIVERY' ? '배송형' : 
-                                                 current.type === 'PURCHASE' ? '구매평' : 
-                                                 current.type === 'PRESS' ? '기자단' : current.type}
+                                            <span className="bg-blue-500/90 backdrop-blur-md text-white px-2.5 py-1 rounded-3xl text-[10px] font-medium shadow-lg">
+                                                {current.type === 'VISIT' ? '방문' :
+                                                    current.type === 'DELIVERY' ? '배송' :
+                                                        current.type === 'PURCHASE' ? '구매' :
+                                                            current.type === 'PRESS' ? '기자단' : current.type}
                                             </span>
                                         </div>
 

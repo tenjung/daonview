@@ -126,21 +126,26 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                     <div className="flex flex-col gap-1.5">
                                         {/* 플랫폼 뱃지 */}
                                         {(() => {
-                                            const p = cam.platform;
-                                            const isPurchase = p === '기타' || p === 'OTHER' || p === '구매평' || p === 'PURCHASE';
-                                            const isBlog = p === '블로그' || p === 'BLOG';
-                                            const isInsta = p === '인스타' || p === 'INSTAGRAM';
+                                            const p = (cam.platform || '').toUpperCase();
+                                            let label = '블로그';
+                                            let colorClass = 'bg-emerald-500 text-white';
 
-                                            let label = p;
-                                            if (isPurchase) label = '구매평';
-                                            else if (isBlog) label = '블로그';
-                                            else if (isInsta) label = '인스타';
+                                            if (p === 'INSTAGRAM' || p === 'REELS') {
+                                                label = '인스타그램';
+                                                colorClass = 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
+                                            } else if (p === 'YOUTUBE' || p === 'SHORTS') {
+                                                label = '유튜브';
+                                                colorClass = 'bg-red-500 text-white';
+                                            } else if (p === 'TIKTOK') {
+                                                label = '틱톡';
+                                                colorClass = 'bg-slate-900 text-white';
+                                            } else if (p === 'PURCHASE' || p === 'OTHER') {
+                                                label = '구매평';
+                                                colorClass = 'bg-orange-500 text-white';
+                                            }
 
                                             return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold ${isPurchase ? 'bg-orange-500 text-white' :
-                                                    isBlog ? 'bg-green-600 text-white' :
-                                                        isInsta ? 'bg-pink-500 text-white' : 'bg-slate-800 text-white'
-                                                    }`}>
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium ${colorClass}`}>
                                                     {label}
                                                 </span>
                                             );
@@ -148,20 +153,23 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
 
                                         {/* 유형 뱃지 */}
                                         {(() => {
-                                            const t = cam.type;
-                                            const isVisit = t === '방문형' || t === 'VISIT';
-                                            const isDelivery = t === '배송형' || t === 'DELIVERY';
+                                            const t = (cam.type || '').toUpperCase();
+                                            let label = '방문';
+                                            let colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
 
-                                            let label = t;
-                                            if (isVisit) label = '방문';
-                                            else if (isDelivery) label = '배송';
-                                            else label = '기자단';
+                                            if (t === 'DELIVERY') {
+                                                label = '배송';
+                                                colorClass = 'bg-green-100 text-green-700 border-green-200';
+                                            } else if (t === 'PURCHASE') {
+                                                label = '구매';
+                                                colorClass = 'bg-orange-100 text-orange-700 border-orange-200';
+                                            } else if (t === 'PRESS') {
+                                                label = '기자단';
+                                                colorClass = 'bg-purple-100 text-purple-700 border-purple-200';
+                                            }
 
                                             return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold border ${isVisit ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                                                    isDelivery ? 'bg-green-50 text-green-600 border-green-100' :
-                                                        'bg-purple-50 text-purple-600 border-purple-100'
-                                                    }`}>
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium border ${colorClass}`}>
                                                     {label}
                                                 </span>
                                             );

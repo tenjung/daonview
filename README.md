@@ -11,10 +11,11 @@ README.md
 3. 위반 시 조치
 
 분석 단계에서 동의 없이 코드를 수정하는 행위는 전체 프로젝트의 의사결정 구조를 해치는 심각한 오류로 간주한다.
+
+4. 본 프로젝트는 DB 데이터를 초기 화면 로딩 시 즉시 렌더링하여 사용자 경험을 최적화하고, SEO(검색 엔진 최적화) 효율을 극대화하기 위해 Next.js 기반의 SSR(Server-Side Rendering) 방식을 전면 도입합니다.
 ## 모든 작업 내용은 한글로 설명해줘
 
 ## 💻 1. 기술 스택 및 환경 (Tech Stack)
-- **Framework:** React (Vite)
 - **Language:** TypeScript (tsx)
 - **UI Component:** shadcn/ui
 - **Icons:** Lucide React
@@ -43,3 +44,83 @@ README.md
 메인페이지
 캠페인 페이지 
 
+## 📝 6. 데이터베이스 값 규칙 (Database Value Conventions)
+
+### ⚠️ 필수 준수 사항
+데이터베이스에 직접 데이터를 입력하거나 수정할 때는 반드시 아래 규칙을 따라야 합니다.
+프론트엔드 코드는 이 값들을 기준으로 작성되어 있으며, 다른 값을 사용하면 UI가 깨지거나 데이터가 표시되지 않습니다.
+
+### campaigns 테이블
+
+#### platform (플랫폼) - 필수 값
+**반드시 영문 대문자로 입력**
+- `BLOG` - 네이버 블로그
+- `INSTAGRAM` - 인스타그램 피드
+- `REELS` - 인스타그램 릴스
+- `YOUTUBE` - 유튜브 영상
+- `SHORTS` - 유튜브 쇼츠
+- `TIKTOK` - 틱톡
+- `PURCHASE` - 구매 후기 (기타)
+
+❌ 잘못된 예: `블로그`, `인스타그램`, `blog`, `Blog`
+✅ 올바른 예: `BLOG`, `INSTAGRAM`
+
+#### type (캠페인 유형) - 필수 값
+**반드시 영문 대문자로 입력**
+- `VISIT` - 방문형 캠페인
+- `DELIVERY` - 배송형 캠페인
+- `PURCHASE` - 구매형 캠페인
+- `PRESS` - 기자단 캠페인
+
+❌ 잘못된 예: `방문`, `방문형`, `visit`, `Visit`
+✅ 올바른 예: `VISIT`, `DELIVERY`
+
+#### status (캠페인 상태)
+**반드시 영문 대문자로 입력**
+- `PENDING` - 승인 대기
+- `RECRUITING` - 모집 중
+- `ONGOING` - 진행 중
+- `COMPLETED` - 완료
+- `REJECTED` - 거절됨
+
+#### region (지역) - 선택 값
+**한글로 입력 가능**
+- 예: `서울`, `경기`, `부산`, `전국` 등
+
+### profiles 테이블
+
+#### role (사용자 역할)
+**반드시 영문 대문자로 입력**
+- `INFLUENCER` - 인플루언서 (기본값)
+- `ADVERTISER` - 광고주
+- `ADMIN` - 관리자
+
+### applications 테이블
+
+#### status (신청 상태)
+**반드시 영문 대문자로 입력**
+- `PENDING` - 심사 중
+- `APPROVED` - 승인됨
+- `REJECTED` - 거절됨
+- `COMPLETED` - 완료
+
+### 🔧 데이터 정리 SQL
+기존 데이터가 규칙에 맞지 않을 경우 다음 SQL로 일괄 수정:
+
+```sql
+-- platform 통일
+UPDATE campaigns SET platform = 'BLOG' WHERE platform IN ('블로그', 'blog', 'Blog');
+UPDATE campaigns SET platform = 'INSTAGRAM' WHERE platform IN ('인스타그램', '인스타', 'instagram');
+UPDATE campaigns SET platform = 'PURCHASE' WHERE platform IN ('구매평', '기타', 'purchase', 'OTHER');
+
+-- type 통일
+UPDATE campaigns SET type = 'VISIT' WHERE type IN ('방문', '방문형', 'visit');
+UPDATE campaigns SET type = 'DELIVERY' WHERE type IN ('배송', '배송형', 'delivery');
+UPDATE campaigns SET type = 'PURCHASE' WHERE type IN ('구매', '구매평', 'purchase');
+```
+
+### 📋 확인 쿼리
+```sql
+-- 현재 사용 중인 platform/type 값 확인
+SELECT DISTINCT platform, type FROM campaigns;
+```

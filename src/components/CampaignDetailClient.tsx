@@ -188,7 +188,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             {/* Top Section */}
             <div className="flex flex-col md:flex-row gap-12 mb-16">
                 {/* Image Slider */}
-                <div className="flex-1 bg-gray-50 rounded-[3rem] min-h-[400px] max-h-[500px] border border-border flex items-center justify-center overflow-hidden relative shadow-2xl group">
+                <div className="flex-1 bg-gray-50 rounded-2xl min-h-[400px] max-h-[500px] border border-border flex items-center justify-center overflow-hidden relative shadow-2xl group">
                     {images.length > 0 ? (
                         <>
                             <img
@@ -214,13 +214,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 {/* Info Panel */}
                 <div className="flex-1 flex flex-col justify-center">
                     <div className="flex flex-wrap items-center gap-3 mb-6">
-                        <span className="bg-slate-900 text-white px-4 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest">{campaign.platform}</span>
-                        <span className="bg-rose-100 text-rose-600 px-4 py-1.5 rounded-full text-[11px] font-black tracking-widest">{campaign.type}</span>
+                        <span className="bg-slate-900 text-white px-3 py-1.5 rounded text-[11px] font-semibold">
+                            {campaign.platform === 'BLOG' ? '블로그' :
+                                campaign.platform === 'INSTAGRAM' ? '인스타그램' :
+                                    campaign.platform === 'YOUTUBE' ? '유튜브' :
+                                        campaign.platform === 'REELS' ? '릴스' :
+                                            campaign.platform === 'SHORTS' ? '쇼츠' : campaign.platform}
+                        </span>
+                        <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded text-[11px] font-semibold">
+                            {campaign.type === 'VISIT' ? '방문' :
+                                campaign.type === 'DELIVERY' ? '배송' :
+                                    campaign.type === 'PURCHASE' ? '구매' :
+                                        campaign.type === 'PRESS' ? '기자단' : campaign.type}
+                        </span>
                         <AdminControls campaignId={campaign.id} />
                     </div>
                     <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-8 leading-tight">{campaign.title}</h1>
 
-                    <div className="space-y-6 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+                    <div className="space-y-6 bg-slate-50 p-8 rounded-xl border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm text-xl">📅</div>
                             <div>
@@ -247,7 +258,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             </div>
 
             {/* Campaign Guide Section */}
-            <div className="bg-white border-2 border-slate-100 rounded-[3.5rem] p-10 md:p-16 shadow-xl mb-16">
+            <div className="bg-white border-2 border-slate-100 rounded-2xl p-10 md:p-16 shadow-xl mb-16">
                 <h2 className="text-3xl font-black mb-12 text-slate-900 flex items-center gap-3">
                     <span className="w-2 h-10 bg-rose-500 rounded-full" />
                     캠페인 가이드
@@ -255,7 +266,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                 <div className="prose max-w-none text-slate-700 leading-relaxed mb-16">
                     <h3 className="text-xl font-black text-slate-800 mb-4">✨ 캠페인 소개</h3>
-                    <div className="whitespace-pre-line bg-slate-50 p-8 rounded-3xl border border-slate-100">
+                    <div className="whitespace-pre-line bg-slate-50 p-8 rounded-xl border border-slate-100">
                         {campaign.description}
                     </div>
                 </div>
@@ -267,7 +278,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             {/* Application Sticky Bar for Mobile or Fixed bottom */}
             {/* But for now let's use the bottom area as requested */}
 
-            <div id="options-section" className="bg-slate-900 rounded-[3.5rem] p-10 md:p-16 text-white shadow-2xl relative overflow-hidden">
+            <div id="options-section" className="bg-slate-900 rounded-2xl p-10 md:p-16 text-white shadow-2xl relative overflow-hidden">
                 <div className="relative z-10">
                     <h2 className="text-3xl font-black mb-4">함께 하실까요?</h2>
                     <p className="text-slate-400 mb-12">원하시는 옵션을 선택하고 신청 메세지를 남겨주세요.</p>
@@ -281,7 +292,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     <button
                                         key={idx}
                                         onClick={() => setSelectedOption(opt)}
-                                        className={`p-6 rounded-3xl border-2 text-left transition-all ${isSelected ? 'border-rose-500 bg-rose-500/20 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/30'}`}
+                                        className={`p-6 rounded-xl border-2 text-left transition-all ${isSelected ? 'border-rose-500 bg-rose-500/20 text-white' : 'border-white/10 bg-white/5 text-slate-300 hover:border-white/30'}`}
                                     >
                                         <p className="text-xs font-bold mb-1 opacity-50">Option {idx + 1}</p>
                                         <p className="font-black">{label}</p>
@@ -297,7 +308,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 value={applicationMessage}
                                 onChange={(e) => setApplicationMessage(e.target.value)}
                                 placeholder="광고주에게 전달할 짧은 메세지를 적어주세요 (어필 포인트 등)"
-                                className="w-full bg-white/5 border-2 border-white/10 rounded-3xl p-6 text-white focus:border-rose-500 focus:outline-none transition-all placeholder:text-white/20"
+                                className="w-full bg-white/5 border-2 border-white/10 rounded-xl p-6 text-white focus:border-rose-500 focus:outline-none transition-all placeholder:text-white/20"
                                 rows={4}
                             />
                             <button

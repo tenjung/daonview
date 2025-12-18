@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, Loader2 } from "lucide-react";
@@ -8,7 +8,7 @@ import TiptapEditor from "@/components/editor/TiptapEditor";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 
-export default function WritePage() {
+function WritePageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const typeFromQuery = searchParams.get('type') || 'FREE';
@@ -182,3 +182,17 @@ export default function WritePage() {
         </div>
     );
 }
+
+export default function WritePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                <Loader2 className="animate-spin text-primary" size={40} />
+                <p className="text-gray-400">페이지를 준비 중입니다...</p>
+            </div>
+        }>
+            <WritePageContent />
+        </Suspense>
+    );
+}
+

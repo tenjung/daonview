@@ -55,6 +55,15 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
         return null;
     }
 
+    // Ensure we have enough items for smooth looping by duplicating if needed
+    const MIN_ITEMS = 6;
+    let displayItems = [...initialItems];
+    if (displayItems.length > 0 && displayItems.length < MIN_ITEMS) {
+        while (displayItems.length < MIN_ITEMS) {
+            displayItems = [...displayItems, ...initialItems];
+        }
+    }
+
     return (
         <section className="relative w-full overflow-hidden py-10 bg-white">
             <Carousel
@@ -64,12 +73,14 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                 onMouseEnter={plugin.current.stop}
                 onMouseLeave={plugin.current.reset}
                 opts={{
-                    align: "center",
+                    align: "start",
                     loop: true,
+                    skipSnaps: false,
+                    slidesToScroll: 1,
                 }}
             >
                 <CarouselContent className="h-[280px] md:h-[340px] -ml-4">
-                    {initialItems.map((item, index) => (
+                    {displayItems.map((item, index) => (
                         <CarouselItem
                             key={`${item.id}-${index}`}
                             className="pl-4 basis-[85%] md:basis-[48%] lg:basis-[32%] transition-all duration-700 ease-in-out"

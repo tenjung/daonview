@@ -11,13 +11,17 @@ export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+
     // 1. Initial check with getSession (checks local storage first)
     const checkUser = async () => {
       try {
+        setLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -41,7 +45,6 @@ export default function Navbar() {
       } else {
         setProfile(null);
       }
-      setLoading(false);
     });
 
     return () => {
@@ -52,8 +55,8 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setMobileMenuOpen(false);
-    router.push('/');
-    window.location.reload(); // Force refresh to clear any cached state
+    // Use window.location.href to force navigation and refresh
+    window.location.href = '/';
   };
 
   const closeMobileMenu = () => {
@@ -76,43 +79,39 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8 h-full">
-          <Link 
-            href="/campaigns" 
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
-              isActive('/campaigns') 
-                ? 'text-primary border-primary' 
-                : 'text-text-secondary border-transparent hover:text-primary'
-            }`}
+          <Link
+            href="/campaigns"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/campaigns')
+              ? 'text-primary border-primary'
+              : 'text-text-secondary border-transparent hover:text-primary'
+              }`}
           >
             캠페인
           </Link>
-          <Link 
-            href="/reviews" 
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
-              isActive('/reviews') 
-                ? 'text-primary border-primary' 
-                : 'text-text-secondary border-transparent hover:text-primary'
-            }`}
+          <Link
+            href="/reviews"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/reviews')
+              ? 'text-primary border-primary'
+              : 'text-text-secondary border-transparent hover:text-primary'
+              }`}
           >
             리뷰
           </Link>
-          <Link 
-            href="/brand" 
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
-              isActive('/brand') 
-                ? 'text-primary border-primary' 
-                : 'text-text-secondary border-transparent hover:text-primary'
-            }`}
+          <Link
+            href="/brand"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/brand')
+              ? 'text-primary border-primary'
+              : 'text-text-secondary border-transparent hover:text-primary'
+              }`}
           >
             브랜드존
           </Link>
-          <Link 
-            href="/community" 
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${
-              isActive('/community') 
-                ? 'text-primary border-primary' 
-                : 'text-text-secondary border-transparent hover:text-primary'
-            }`}
+          <Link
+            href="/community"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/community')
+              ? 'text-primary border-primary'
+              : 'text-text-secondary border-transparent hover:text-primary'
+              }`}
           >
             커뮤니티
           </Link>
@@ -124,7 +123,7 @@ export default function Navbar() {
 
         {/* Desktop User Menu */}
         <div className="hidden lg:flex gap-4 items-center">
-          {loading ? (
+          {!mounted ? (
             <div className="w-20 h-8 bg-slate-100 animate-pulse rounded"></div>
           ) : user ? (
             <div className="flex items-center gap-4">
@@ -170,7 +169,7 @@ export default function Navbar() {
         {/* Mobile: User Info + Hamburger */}
         <div className="flex lg:hidden items-center gap-3">
           {/* Mobile User Info */}
-          {!loading && user && (
+          {mounted && user && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-text-main truncate max-w-[80px]">
                 {profile?.nickname || user.email?.split('@')[0]}님
@@ -222,44 +221,40 @@ export default function Navbar() {
               <Link
                 href="/campaigns"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
-                  isActive('/campaigns')
-                    ? 'bg-rose-50 text-primary border-primary'
-                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                }`}
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/campaigns')
+                  ? 'bg-rose-50 text-primary border-primary'
+                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                  }`}
               >
                 캠페인
               </Link>
               <Link
                 href="/reviews"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
-                  isActive('/reviews')
-                    ? 'bg-rose-50 text-primary border-primary'
-                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                }`}
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/reviews')
+                  ? 'bg-rose-50 text-primary border-primary'
+                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                  }`}
               >
                 리뷰
               </Link>
               <Link
                 href="/brand"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
-                  isActive('/brand')
-                    ? 'bg-rose-50 text-primary border-primary'
-                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                }`}
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/brand')
+                  ? 'bg-rose-50 text-primary border-primary'
+                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                  }`}
               >
                 브랜드존
               </Link>
               <Link
                 href="/community"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${
-                  isActive('/community')
-                    ? 'bg-rose-50 text-primary border-primary'
-                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                }`}
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/community')
+                  ? 'bg-rose-50 text-primary border-primary'
+                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                  }`}
               >
                 커뮤니티
               </Link>

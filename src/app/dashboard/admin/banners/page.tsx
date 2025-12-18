@@ -1,8 +1,32 @@
-import { supabase } from '@/lib/supabaseClient';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import AdminSidebar from '@/components/AdminSidebar';
 import BannerManagementClient from '@/components/BannerManagementClient';
 
 export default async function BannerManagementPage() {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        );
+                    } catch {
+                        // Server Component
+                    }
+                },
+            },
+        }
+    );
+
     // Fetch Banners & Config in parallel on the server
     const [bannersRes, configRes] = await Promise.all([
         supabase.from('banners').select('*').order('display_order', { ascending: true }),
