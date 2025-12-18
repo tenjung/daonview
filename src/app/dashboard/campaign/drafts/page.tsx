@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
@@ -58,7 +58,9 @@ export default function DraftCampaignsPage() {
     if (loading) {
         return (
             <div className="flex min-h-screen bg-background">
-                <AdminSidebar />
+                <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
+                     <AdminSidebar />
+                </Suspense>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-gray-500">불러오는 중...</p>
                 </div>
@@ -68,7 +70,9 @@ export default function DraftCampaignsPage() {
 
     return (
         <div className="flex min-h-screen bg-background">
-            <AdminSidebar />
+            <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
+                <AdminSidebar />
+            </Suspense>
 
             <div className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50 py-8 overflow-y-auto">
                 <div className="max-w-6xl mx-auto px-4 py-8">
