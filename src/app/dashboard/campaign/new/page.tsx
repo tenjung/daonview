@@ -17,6 +17,7 @@ const AUTOSAVE_KEY = 'campaign_draft';
 function NewCampaignPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const isEdit = !!searchParams?.get('id');
     const [currentStep, setCurrentStep] = useState(1);
     const [step1Data, setStep1Data] = useState<any>(null);
     const [step1Complete, setStep1Complete] = useState(false);
@@ -31,65 +32,119 @@ function NewCampaignPageContent() {
 
     // 사용자 정보 및 임시저장 불러오기
     useEffect(() => {
-        loadUserAndDraft();
-    }, []);
-
-    const loadUserAndDraft = async () => {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/login');
-                return;
-            }
-
-            setUserId(user.id);
-
-            // URL에서 draftId 확인
-            const draftId = searchParams?.get('draftId');
-            if (draftId) {
-                const draft = await loadDraft(user.id, draftId);
-                if (draft) {
-                    setCurrentDraftId(draft.id);
-                    setCurrentStep(draft.currentStep);
-                    setStep1Data(draft.step1Data);
-                    setInitialStep1Data(draft.step1Data); // 초기값 설정
-                    setStep2Data(draft.step2Data);
-                    setInitialStep2Data(draft.step2Data); // 초기값 설정
-                    if (draft.currentStep > 1) {
-                        setStep1Complete(true);
+        const checkUser = async () => {
+            try {
+                // getSession()은 로컬 스토리지를 더 빠르게 확인합니다.
+                const { data: { session } } = await supabase.auth.getSession();
+                const user = session?.user ?? null;
+                
+                if (user) {
+                    setUserId(user.id);
+                    
+                    // 1. URL에서 기존 캠페인 'id' 확인 (수정 모드)
+                    const campaignId = searchParams?.get('id');
+                    if (campaignId) {
+                        const { data: campaign, error } = await supabase
+                            .from('campaigns')
+                            .select('*')
+                            .eq('id', campaignId)
+                            .single();
+                        
+                        if (campaign && !error) {
+                            handleLoadCompleted(campaign, true); // silent=true
+                            setCurrentDraftId(campaignId); // 수정 시에는 id를 currentDraftId로 활용
+                            console.log('기존 캠페인 정보를 불러왔습니다:', campaignId);
+                            return; // 기존 캠페인 로딩 시 종료
+                        }
                     }
-                    toast.success('임시저장된 캠페인을 불러왔습니다.');
-                }
-            }
-        } catch (error) {
-            console.error('사용자 정보 불러오기 실패:', error);
-        }
-    };
 
-    // 임시저장 함수
+                    // 2. URL에서 'draftId' 확인 (임시저장 불러오기)
+                    const draftId = searchParams?.get('draftId');
+                    if (draftId) {
+                        const draft = await loadDraft(user.id, draftId);
+                        if (draft) {
+                            setCurrentDraftId(draft.id);
+                            setCurrentStep(draft.currentStep);
+                            setStep1Data(draft.step1Data);
+                            setInitialStep1Data(draft.step1Data);
+                            setStep2Data(draft.step2Data);
+                            setInitialStep2Data(draft.step2Data);
+                            if (draft.currentStep > 1) {
+                                setStep1Complete(true);
+                            }
+                            toast.success('임시저장된 캠페인을 불러왔습니다.', { id: 'load-campaign-success' });
+                        }
+                    }
+                } else {
+                    // 세션이 없으면 로그인 페이지로 (단, 이미 데이터가 있다면 보존을 위해 즉시 리다이렉트보다는 안내)
+                    console.log('No active session found');
+                }
+            } catch (error) {
+                console.error('사용자 정보 불러오기 실패:', error);
+            }
+        };
+
+        checkUser();
+
+        // 인증 상태 변경 구독
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user) {
+                setUserId(session.user.id);
+            } else {
+                setUserId('');
+            }
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [searchParams]);
+
     const handleSaveDraft = async () => {
-        if (!userId) {
+        console.log('--- 임시저장 시작 ---');
+        // 1. 최신 세션 확인
+        let currentUserId = userId;
+        if (!currentUserId) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+                currentUserId = session.user.id;
+                setUserId(currentUserId);
+            }
+        }
+
+        console.log('userId:', currentUserId);
+
+        if (!currentUserId) {
             toast.error('로그인이 필요합니다. 다시 로그인해주세요.');
             return;
         }
 
+        // 2. 데이터 확인
+        // step1Data가 null이더라도 CampaignStep1에서 올라온 데이터가 있을 수 있으므로 확인
         if (!step1Data) {
+            console.error('step1Data is null');
             toast.error('저장할 기본 정보가 없습니다. 1단계를 먼저 진행해주세요.');
             return;
         }
 
+        console.log('step1Data:', step1Data);
+        console.log('currentStep:', currentStep);
+
         try {
-            const draft = await saveDraft(userId, {
+            const draft = await saveDraft(currentUserId, {
                 id: currentDraftId || undefined,
                 title: step2Data?.campaignTitle || step1Data?.productName || '제목 없음',
-                campaignType: step1Data.campaignType,
+                campaignType: step1Data.campaignType, // null일 수 있음, draftUtils에서 처리됨
                 step1Data,
                 step2Data,
                 currentStep,
             });
 
-            setCurrentDraftId(draft.id);
-            toast.success('캠페인이 임시저장되었습니다.');
+            if (draft && draft.id) {
+                setCurrentDraftId(draft.id);
+                toast.success('캠페인이 임시저장되었습니다.');
+                console.log('임시저장 성공:', draft.id);
+            }
         } catch (error: any) {
             console.error('임시저장 상세 에러:', error);
             toast.error(`임시저장에 실패했습니다: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
@@ -97,23 +152,48 @@ function NewCampaignPageContent() {
     };
 
     // 캠페인 불러오기 - 임시저장
-    const handleLoadDraft = (draft: DraftCampaign) => {
+    const handleLoadDraft = (draft: DraftCampaign, silent = false) => {
         setCurrentDraftId(draft.id);
         setCurrentStep(draft.currentStep);
         setStep1Data(draft.step1Data);
         setInitialStep1Data(draft.step1Data);
         setStep2Data(draft.step2Data);
         setInitialStep2Data(draft.step2Data);
-        toast.success('임시저장된 캠페인을 불러왔습니다.');
+        if (!silent) {
+            toast.success('임시저장된 캠페인을 불러왔습니다.', { id: 'load-campaign-success' });
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    // 캠페인 불러오기 - 완료된 캠페인
-    const handleLoadCompleted = (campaign: any) => {
-        // 완료된 캠페인 데이터를 Step 1, 2 형식으로 변환
+    // 캠페인 불러오기 - 완료된 캠페인 또는 기존 캠페인 수정
+    const handleLoadCompleted = (campaign: any, silent = false) => {
+        // 1. 우선적으로 campaign_options(JSONB) 데이터가 있는지 확인
+        const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+        
+        if (options && (options.step1Data || options.step2Data)) {
+            const step1 = options.step1Data || {};
+            const step2 = options.step2Data || {};
+            
+            setCurrentDraftId(null);
+            setCurrentStep(1);
+            setStep1Data(step1);
+            setInitialStep1Data(step1);
+            setStep2Data(step2);
+            setInitialStep2Data(step2);
+            setStep1Complete(true); // 이미 완료된 캠페인이므로 Step 1은 완료 상태로 간주
+            
+            if (!silent) {
+                toast.success('캠페인 상세 데이터를 불러왔습니다.', { id: 'load-campaign-success' });
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        // 2. Fallback: campaign_options가 없는 경우 수동 매핑 (레거시 대응)
+        console.log('레거시 데이터 매핑을 시작합니다.');
         const step1: any = {
-            campaignType: campaign.campaign_type,
-            platform: campaign.platform,
+            campaignType: campaign.campaign_type || (campaign.type === '배송형' ? 'delivery' : 'visit'),
+            platform: campaign.platform === '블로그' ? 'naver' : campaign.platform === '인스타' ? 'instagram' : 'naver',
             category: campaign.category,
             region: campaign.region,
             stores: campaign.stores || [],
@@ -123,7 +203,7 @@ function NewCampaignPageContent() {
             visitNotes: campaign.visit_notes,
             experienceDetails: campaign.experience_details,
             officialPrice: campaign.official_price,
-            totalRecruitment: campaign.total_recruitment?.toString() || '',
+            totalRecruitment: campaign.recruit_count?.toString() || '',
             rewardPerPerson: campaign.reward_per_person || 0,
             recruitmentStartDate: campaign.recruitment_start_date,
             firstSelectionDate: campaign.first_selection_date,
@@ -131,9 +211,10 @@ function NewCampaignPageContent() {
             productUrl: campaign.product_url,
             productName: campaign.product_name,
             productPrice: campaign.product_price,
-            includeReview: false,
-            includeNaver: false,
-            includeInstagram: false,
+            // 레거시 데이터는 정확한 체크박스 상태를 알 수 없으나 추정함
+            includeReview: campaign.platform === '기타',
+            includeNaver: campaign.platform === '블로그',
+            includeInstagram: campaign.platform === '인스타',
         };
 
         const step2: any = {
@@ -154,17 +235,22 @@ function NewCampaignPageContent() {
         setInitialStep1Data(step1);
         setStep2Data(step2);
         setInitialStep2Data(step2);
-        toast.success('캠페인을 불러왔습니다.');
+        setStep1Complete(true);
+        if (!silent) {
+            toast.success('캠페인을 불러왔습니다.', { id: 'load-campaign-success' });
+        }
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     // 자동 저장된 데이터 복구
     useEffect(() => {
+        const id = searchParams?.get('id');
         const savedData = localStorage.getItem(AUTOSAVE_KEY);
-        if (savedData) {
+        // 기존 캠페인 수정('id')이 아닐 때만 복구 다이얼로그 노출
+        if (savedData && !id) {
             setShowRestoreDialog(true);
         }
-    }, []);
+    }, [searchParams]);
 
     // 자동 저장
     useEffect(() => {
@@ -214,10 +300,15 @@ function NewCampaignPageContent() {
     };
 
     // Step 2 완료
-    const handleStep2Complete = (data: any) => {
+    const handleStep2Complete = async (data: any) => {
         setStep2Data(data);
-        setCurrentStep(3);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (isEdit) {
+            // 수정 시에는 바로 최종 제출 처리
+            await handleFinalSubmit(null, data);
+        } else {
+            setCurrentStep(3);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
     };
 
     // Step 2로 돌아가기
@@ -233,8 +324,9 @@ function NewCampaignPageContent() {
     };
 
     // 최종 제출
-    const handleFinalSubmit = async (step3Data: any) => {
-        console.log('🚀 handleFinalSubmit 시작', { step1Data, step2Data, step3Data });
+    const handleFinalSubmit = async (step3Data: any, latestStep2Data?: any) => {
+        const finalStep2Data = latestStep2Data || step2Data;
+        console.log('🚀 handleFinalSubmit 시작', { step1Data, step2Data: finalStep2Data, step3Data });
 
         try {
             // 현재 로그인한 사용자 가져오기
@@ -247,98 +339,114 @@ function NewCampaignPageContent() {
                 return;
             }
 
+            // 1. 유저 정의 구조에 따른 유형(type) 매핑
+            const mappedType = step1Data.campaignType === 'delivery' ? '배송형' : '방문형';
+
+            // 2. 유저 정의 구조에 따른 플랫폼(platform) 매핑
+            let mappedPlatform = '구매평';
+            if (step1Data.campaignType === 'delivery') {
+                if (step1Data.includeNaver) mappedPlatform = '블로그';
+                else if (step1Data.includeInstagram) mappedPlatform = '인스타';
+                else if (step1Data.includeReview) mappedPlatform = '구매평'; 
+            } else {
+                if (step1Data.platform === 'naver') mappedPlatform = '블로그';
+                else if (step1Data.platform === 'instagram') mappedPlatform = '인스타';
+            }
+
             // 캠페인 데이터 구성
             const campaignData = {
                 created_by: user.id,
                 title: step2Data.campaignTitle,
                 description: step2Data.missionGuide || '',
 
-                // 기본 정보
-                // 기본 정보
-                campaign_type: step1Data.campaignType,  // 'delivery', 'visit', 'press'
-                type: step1Data.campaignType, // DB 스키마 필수 항목
-                platform: step1Data.platform || (() => {
-                    // 배송체험단 등 플랫폼이 명시적으로 선택되지 않은 경우 조합하여 생성
-                    const platforms = [];
-                    if (step1Data.includeNaver) platforms.push('naver_blog');
-                    if (step1Data.includeInstagram) platforms.push('instagram');
-                    if (step1Data.includeReview) platforms.push('purchase_review');
-                    return platforms.length > 0 ? platforms.join(',') : 'delivery_default';
-                })(),
+                // 분류 정보 (유저 정의 구조 반영)
+                type: mappedType,         // '방문형', '배송형'
+                platform: mappedPlatform, // '블로그', '인스타', '기타'
+                campaign_type: step1Data.campaignType, // 'delivery', 'visit', 'press' (내부 구분용 유지)
+                
                 category: step1Data.category || null,
                 region: step1Data.region || null,
 
-                // 이미지
+                // 이미지 (썸네일 및 추가 이미지)
                 thumbnail_url: step2Data.campaignImages?.[0] || null,
                 sub_image_1: step2Data.campaignImages?.[1] || null,
                 sub_image_2: step2Data.campaignImages?.[2] || null,
+                campaign_images: step2Data.campaignImages || [],
 
                 // 모집 정보
                 recruit_count: parseInt(step1Data.totalRecruitment) || 0,
                 total_recruitment: parseInt(step1Data.totalRecruitment) || 0,
-                end_date: step1Data.reviewDeadline || step1Data.firstSelectionDate || step1Data.recruitmentStartDate || ((d) => { d.setMonth(d.getMonth() + 1); return d.toISOString().split('T')[0]; })(new Date()),
+                recruitment_start_date: step1Data.recruitmentStartDate || null,
+                first_selection_date: step1Data.firstSelectionDate || null,
+                review_deadline: step1Data.reviewDeadline || null,
+                end_date: step1Data.reviewDeadline || step1Data.firstSelectionDate || step1Data.recruitmentStartDate || new Date().toISOString().split('T')[0],
 
-                // 매장 정보 (방문형/기자단용)
+                // 매장 및 제공 내역
                 store_name: step1Data.stores?.[0]?.storeName || null,
                 store_address: step1Data.stores?.[0]?.address || null,
                 naver_map_url: step1Data.stores?.[0]?.naverPlaceUrl || null,
-
-                // 제공 내역
-                provision: step1Data.experienceDetails || null,
-
-                // 추가 필드들
-                review_type: step1Data.reviewType || null,
                 stores: step1Data.stores || [],
+                provision: step1Data.experienceDetails || null,
+                experience_details: step1Data.experienceDetails || null,
+                official_price: step1Data.officialPrice || null,
+
+                // 연락 및 방문 정보
                 contact_phone: step1Data.contactPhone || null,
                 visit_time: step1Data.visitTime || null,
                 visit_days: step1Data.visitDays || [],
                 visit_notes: step1Data.visitNotes || null,
-                experience_details: step1Data.experienceDetails || null,
-                official_price: step1Data.officialPrice || null,
 
-                // 배송체험단 제품 정보
+                // 배송형/구매평 특정 정보
                 product_url: step1Data.productUrl || null,
                 product_url_private: step1Data.productUrlPrivate || false,
                 product_name: step1Data.productName || null,
-                product_options: step1Data.productOptions || [],
                 product_price: step1Data.productPrice || null,
-
+                product_options: step1Data.productOptions || [],
                 reward_per_person: step1Data.rewardPerPerson || 0,
-                recruitment_start_date: step1Data.recruitmentStartDate || null,
-                first_selection_date: step1Data.firstSelectionDate || null,
-                review_deadline: step1Data.reviewDeadline || null,
-                campaign_images: step2Data.campaignImages || [],
-                text_length: step2Data.textLength || null,
-                photo_count: step2Data.photoCount || null,
-                video_required: step2Data.videoRequired || null,
-                mission_guide: step2Data.missionGuide || null,
-                keywords: step2Data.keywords || [],
-                prohibited_words: step2Data.prohibitedWords || [],
-                additional_notes: step2Data.additionalNotes || null,
-                payment_method: step3Data.paymentMethod,
 
-                // 상태
-                status: 'PENDING',
+                // 리뷰 가이드 및 미션 정보
+                text_length: finalStep2Data.textLength || null,
+                photo_count: finalStep2Data.photoCount || null,
+                video_required: finalStep2Data.videoRequired || null,
+                mission_guide: finalStep2Data.missionGuide || null,
+                keywords: finalStep2Data.keywords || [],
+                prohibited_words: finalStep2Data.prohibitedWords || [],
+                additional_notes: finalStep2Data.additionalNotes || null,
+                payment_method: step3Data?.paymentMethod || 'manual',
+
+                // 상태 제어
+                status: isEdit ? undefined : 'PENDING',
+
+                // 전체 데이터 보존 (수정 시 정밀한 복구를 위함)
+                campaign_options: [{
+                    step1Data,
+                    step2Data: finalStep2Data,
+                    currentStep: isEdit ? 2 : 3,
+                    savedAt: new Date().toISOString()
+                }],
             };
 
             console.log('📦 캠페인 데이터:', campaignData);
 
-            // Supabase에 저장
-            const { data, error } = await supabase
-                .from('campaigns')
-                .insert([campaignData])
-                .select()
-                .single();
+            // Supabase에 저장 (수정 또는 신규 등록)
+            // URL에 id가 있거나(수정), 이번 세션에서 임시저장된 id가 있는 경우 update 실행
+            const editId = searchParams?.get('id') || currentDraftId;
+            const { data, error } = editId 
+                ? await supabase
+                    .from('campaigns')
+                    .update(campaignData)
+                    .eq('id', editId)
+                    .select()
+                    .single()
+                : await supabase
+                    .from('campaigns')
+                    .insert([campaignData])
+                    .select()
+                    .single();
 
             if (error) {
-                console.error('❌ 캠페인 저장 오류 - Full Error:', {
-                    error,
-                    message: error.message,
-                    code: error.code,
-                    details: error.details,
-                    hint: error.hint,
-                });
-                toast.error(`캠페인 등록 중 오류가 발생했습니다: ${error.message || '알 수 없는 오류'}`);
+                console.error('❌ 캠페인 저장 오류:', error);
+                toast.error(`캠페인 저장 중 오류가 발생했습니다: ${error.message}`);
                 return;
             }
 
@@ -347,12 +455,23 @@ function NewCampaignPageContent() {
             // 성공 시 임시 저장 데이터 삭제
             localStorage.removeItem(AUTOSAVE_KEY);
 
-            toast.success('캠페인이 요청되었습니다');
+            toast.success(editId ? '캠페인 정보가 업데이트되었습니다' : '캠페인이 요청되었습니다');
 
-            console.log('🔄 페이지 이동 시작: /dashboard/advertiser');
+            // 역할(Role) 확인 후 적절한 페이지로 리다이렉트
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
 
-            // 대시보드로 이동
-            router.push('/dashboard/advertiser');
+            const userRole = profile?.role;
+            console.log('🔄 페이지 이동 시작, 역할:', userRole);
+
+            if (userRole === 'ADMIN') {
+                router.push('/dashboard/admin/campaigns');
+            } else {
+                router.push('/dashboard/advertiser');
+            }
 
         } catch (error: any) {
             console.error('❌ 캠페인 등록 치명적 오류:', error);
@@ -378,13 +497,13 @@ function NewCampaignPageContent() {
                                     onClick={handleDiscardDraft}
                                     className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                 >
-                                    새로 작성
+                                    새로 시작
                                 </button>
                                 <button
                                     onClick={handleRestoreDraft}
                                     className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                                 >
-                                    불러오기
+                                    작성하던 내용 불러오기
                                 </button>
                             </div>
                         </div>
@@ -395,10 +514,10 @@ function NewCampaignPageContent() {
                     {/* 헤더 */}
                     <div className="text-center mb-8">
                         <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                            새 캠페인 등록
+                            {searchParams?.get('id') ? '캠페인 정보 수정' : '새 캠페인 등록'}
                         </h1>
                         <p className="text-gray-600">
-                            3단계로 간편하게 캠페인을 등록하세요
+                            {searchParams?.get('id') ? '캠페인 상세 내용을 수정하고 업데이트하세요' : '3단계로 간편하게 캠페인을 등록하세요'}
                         </p>
                     </div>
 
@@ -482,32 +601,36 @@ function NewCampaignPageContent() {
                             </div>
 
                             {/* Connector */}
-                            <div className={`w-24 h-1 mx-4 ${step2Data ? 'bg-green-500' : 'bg-gray-200'}`}></div>
+                            {!isEdit && (
+                                <div className={`w-24 h-1 mx-4 ${step2Data ? 'bg-green-500' : 'bg-gray-200'}`}></div>
+                            )}
 
                             {/* Step 3 */}
-                            <div className="flex flex-col items-center">
-                                <button
-                                    onClick={() => {
-                                        if (step2Data) {
-                                            setCurrentStep(3);
-                                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                                        }
-                                    }}
-                                    disabled={!step2Data}
-                                    className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${currentStep === 3
-                                        ? 'bg-blue-500 text-white shadow-lg'
-                                        : step2Data
-                                            ? 'bg-gray-300 text-gray-600 cursor-pointer hover:bg-gray-400'
-                                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                        }`}
-                                >
-                                    3
-                                </button>
-                                <span className={`mt-2 text-sm font-medium ${currentStep === 3 ? 'text-blue-600' : 'text-gray-500'
-                                    }`}>
-                                    결제
-                                </span>
-                            </div>
+                            {!isEdit && (
+                                <div className="flex flex-col items-center">
+                                    <button
+                                        onClick={() => {
+                                            if (step2Data) {
+                                                setCurrentStep(3);
+                                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                                            }
+                                        }}
+                                        disabled={!step2Data}
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg transition-all ${currentStep === 3
+                                            ? 'bg-blue-500 text-white shadow-lg'
+                                            : step2Data
+                                                ? 'bg-gray-300 text-gray-600 cursor-pointer hover:bg-gray-400'
+                                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            }`}
+                                    >
+                                        3
+                                    </button>
+                                    <span className={`mt-2 text-sm font-medium ${currentStep === 3 ? 'text-blue-600' : 'text-gray-500'
+                                        }`}>
+                                        결제
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -529,6 +652,7 @@ function NewCampaignPageContent() {
                             onSaveDraft={handleSaveDraft}
                             initialData={initialStep2Data}
                             step1Data={step1Data}
+                            isEdit={isEdit}
                         />
                     )}
 

@@ -6,10 +6,6 @@ import { Filter, X, ChevronDown, ChevronUp, ChevronRight, Radio, Tag, MapPin, Se
 import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 
-// Extended Dummy Data
-// Dummy Data removed
-const ALL_CAMPAIGNS: any[] = [];
-
 // Define static options
 
 // 지역 계층 구조 데이터
@@ -62,8 +58,29 @@ const REGION_HIERARCHY: RegionData[] = [
             { name: "안양/안산/광명", value: "안양/안산/광명" },
         ]
     },
+    {
+        name: "경상/부산/대구",
+        value: "경상/부산/대구",
+        children: [
+            { name: "대구 전체", value: "대구/전체" },
+            { name: "대구 수성구", value: "대구/수성구" },
+            { name: "대구 중구", value: "대구/중구" },
+            { name: "대구 동구", value: "대구/동구" },
+            { name: "대구 서구", value: "대구/서구" },
+            { name: "대구 남구", value: "대구/남구" },
+            { name: "대구 북구", value: "대구/북구" },
+            { name: "대구 달서구", value: "대구/달서구" },
+            { name: "대구 달성군", value: "대구/달성군" },
+            { name: "부산 전체", value: "부산/전체" },
+            { name: "부산 해운대구", value: "부산/해운대구" },
+            { name: "부산 진구", value: "부산/진구" },
+            { name: "부산 수영구", value: "부산/수영구" },
+            { name: "부산 남구", value: "부산/남구" },
+            { name: "부산 동래구", value: "부산/동래구" },
+            { name: "부산 사하구", value: "부산/사하구" },
+        ]
+    },
     { name: "충청/대전", value: "충청/대전" },
-    { name: "경상/부산/대구", value: "경상/부산/대구" },
     { name: "전라/광주", value: "전라/광주" },
     { name: "강원/제주", value: "강원/제주" },
 ];
@@ -92,36 +109,88 @@ const SkeletonCard = () => (
     </div>
 );
 
+// Placeholder for empty slots to make the grid look full
+const PlaceholderCard = () => (
+    <div className="border border-gray-100 rounded-xl overflow-hidden bg-white h-full shadow-sm opacity-40 select-none pointer-events-none">
+        <div className="aspect-[4/3] bg-gray-50 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-xl font-bold text-gray-200 tracking-widest uppercase">Coming Soon</span>
+            </div>
+        </div>
+        <div className="p-5 space-y-4">
+            <div className="flex gap-2">
+                <div className="w-8 h-8 rounded-full bg-gray-100" />
+                <div className="w-12 h-6 rounded bg-gray-100" />
+            </div>
+            <div className="w-3/4 h-5 bg-gray-100 rounded" />
+            <div className="mt-4 pt-3 border-t border-gray-50 flex justify-between">
+                <div className="w-12 h-4 bg-gray-50 rounded" />
+                <div className="w-12 h-4 bg-gray-50 rounded" />
+            </div>
+        </div>
+    </div>
+);
+
 export default function CampaignsPage() {
     const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE'>('ALL');
     const [allCampaigns, setAllCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
         const fetchCampaigns = async () => {
+            console.log('🔄 캠페인 데이터 불러오기 시작...');
+            // 만약 10초 이상 걸리면 강제로 로딩을 종료하여 사용자가 새로고침할 수 있게 함
+            const timeout = setTimeout(() => {
+                if (isMounted && loading) {
+                    console.warn('⚠️ 데이터 로딩 시간이 너무 길어 강제로 로딩 상태를 종료합니다.');
+                    setLoading(false);
+                }
+            }, 10000);
+
             try {
-                const { data, error } = await supabase.from('campaigns').select('*, applications(count)').order('created_at', { ascending: false });
+                const { data, error } = await supabase
+                    .from('campaigns')
+                    .select('*, applications(count)')
+                    .in('status', ['RECRUITING', 'ONGOING'])
+                    .order('created_at', { ascending: false });
+
+                if (!isMounted) return;
 
                 if (error) {
-                    console.error('Error fetching campaigns:', error);
-                    setLoading(false);
+                    console.error('❌ 캠페인 목록 조회 실패:', error);
                     return;
                 }
 
-                if (data) {
-                    console.log('Fetched campaigns:', data);
+                if (data && data.length > 0) {
+                    console.log(`✅ ${data.length}개의 캠페인을 불러왔습니다.`);
                     const mappedData = data.map(c => mapCampaignToCard(c as any));
-                    console.log('Mapped campaigns:', mappedData);
                     setAllCampaigns(mappedData);
+                } else {
+                    console.log('ℹ️ 조회된 캠페인이 없습니다.');
+                    setAllCampaigns([]);
                 }
             } catch (err) {
-                console.error('Exception in fetchCampaigns:', err);
+                console.error('⚠️ 데이터 처리 중 예외 발생:', err);
             } finally {
-                setLoading(false);
+                clearTimeout(timeout);
+                if (isMounted) {
+                    setLoading(false);
+                }
             }
         };
+
         fetchCampaigns();
+        return () => { isMounted = false; };
     }, []);
+
+    const manualRefresh = () => {
+        setLoading(true);
+        // window.location.reload() 대신 상태를 초기화하고 강제 리페치 유도 가능하지만
+        // 여기서는 단순하게 다시 fetch 로직을 돌리는게 좋으나, useEffect dependencies가 []이므로
+        // 간단하게 페이지 새로고침을 제안하거나 fetch 함수를 외부로 뺍니다.
+        window.location.reload(); 
+    };
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -191,11 +260,11 @@ export default function CampaignsPage() {
             // 검색어 필터링 (제목, 지역, 제공내역, 상품)
             if (searchQuery.trim()) {
                 const query = searchQuery.toLowerCase();
-                const matchesTitle = item.title?.toLowerCase().includes(query);
-                const matchesRegion = item.region?.toLowerCase().includes(query);
-                const matchesRewards = item.rewards?.toLowerCase().includes(query);
-                const matchesProduct = item.productName?.toLowerCase().includes(query);
-                if (!matchesTitle && !matchesRegion && !matchesRewards && !matchesProduct) return false;
+                const matchesTitle = item.title?.toLowerCase()?.includes(query);
+                const matchesRegion = item.region?.toLowerCase()?.includes(query);
+                const matchesProvision = item.provision?.toLowerCase()?.includes(query);
+                const matchesProduct = item.productName?.toLowerCase()?.includes(query);
+                if (!matchesTitle && !matchesRegion && !matchesProvision && !matchesProduct) return false;
             }
 
             if (activeTab !== 'ALL' && item.type !== activeTab) return false;
@@ -205,7 +274,32 @@ export default function CampaignsPage() {
                 if (!matched) return false;
             }
             if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(item.platform)) return false;
-            if (showRegionFilter && selectedRegions.length > 0 && item.region && !selectedRegions.includes(item.region)) return false;
+            if (showRegionFilter && selectedRegions.length > 0 && item.region) {
+                const isMatched = selectedRegions.some(selected => {
+                    // '/' 가 포함된 필터값(예: '대구/수성구')인 경우 조각내서 검색
+                    if (selected.includes('/')) {
+                        const parts = selected.split('/');
+                        // '대구/전체' 같은 경우 '대구'만 포함되면 매칭
+                        if (parts[1] === '전체') return item.region.includes(parts[0]);
+                        // '대구/수성구' 같은 경우 '수성구'가 포함되면 매칭
+                        return item.region.includes(parts[1]);
+                    }
+                    
+                    // 1. 선택된 필터가 캠페인 지역 텍스트에 포함되는지 확인
+                    if (item.region.includes(selected)) return true;
+                    
+                    // 2. 상위 지역(시/도) 필터가 선택된 경우 (예: '서울', '전라/광주')
+                    const mainRegion = REGION_HIERARCHY.find(r => r.name === selected || r.value === selected);
+                    if (mainRegion && mainRegion.children) {
+                        return mainRegion.children.some(child => {
+                            const subVal = child.value.includes('/') ? child.value.split('/')[1] : child.value;
+                            return item.region.includes(subVal);
+                        });
+                    }
+                    return false;
+                });
+                if (!isMatched) return false;
+            }
 
             // 배송형: 구매평만 필터
             if (purchaseReviewOnly && item.requiresPurchase !== true) return false;
@@ -222,13 +316,12 @@ export default function CampaignsPage() {
 
     return (
         <div className="min-h-screen bg-white">
-            {/* Top Filter Section */}
             <div className="sticky top-[70px] z-40 bg-white border-b border-border shadow-sm">
-                <div className="container py-4">
-
-                    {/* 1. Main Tabs */}
-                    <div className="flex justify-center mb-6">
-                        <div className="inline-flex bg-gray-100 p-1 rounded-xl">
+                <div className="container py-3">
+                    {/* 1. Top Row: Tabs (Left) & Search (Right) */}
+                    <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-3">
+                        {/* Main Tabs */}
+                        <div className="flex bg-gray-100 p-1 rounded-xl w-full lg:w-auto overflow-x-auto scrollbar-hide">
                             {[
                                 { label: '전체보기', value: 'ALL' },
                                 { label: '방문형', value: 'VISIT' },
@@ -238,7 +331,7 @@ export default function CampaignsPage() {
                                 <button
                                     key={tab.value}
                                     onClick={() => handleTabChange(tab.value as any)}
-                                    className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all min-w-[100px] ${activeTab === tab.value
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap flex-1 lg:flex-none lg:min-w-[90px] ${activeTab === tab.value
                                         ? 'bg-white text-primary shadow-sm ring-1 ring-black/5'
                                         : 'text-gray-500 hover:text-gray-900'
                                         }`}
@@ -247,63 +340,87 @@ export default function CampaignsPage() {
                                 </button>
                             ))}
                         </div>
-                    </div>
 
-                    {/* 1.5. 검색 바 */}
-                    <div className="mb-4">
-                        <div className="relative max-w-2xl mx-auto">
-                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        {/* Search Bar */}
+                        <div className="relative w-full lg:w-[350px]">
+                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="캠페인 제목, 지역, 제공내역, 상품명으로 검색..."
-                                className="w-full pl-12 pr-10 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
+                                placeholder="캠페인, 지역, 제공내역 검색..."
+                                className="w-full pl-10 pr-10 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
                             />
                             {searchQuery && (
                                 <button
                                     onClick={() => setSearchQuery('')}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                 >
-                                    <X className="w-4 h-4" />
+                                    <X className="w-3.5 h-3.5" />
                                 </button>
                             )}
                         </div>
                     </div>
 
-                    {/* 2. Detailed Filter Toggle */}
-                    <div className="flex justify-between items-center bg-rose-50/50 p-4 rounded-xl border border-rose-100">
-                        <div className="flex items-center gap-3">
+                    {/* 2. Bottom Row: Filter Toggle, Chips & Sort */}
+                    <div className="flex items-center justify-between gap-4 border-t border-gray-50 pt-3">
+                        <div className="flex items-center gap-2 flex-1 overflow-hidden">
                             <button
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                                className="flex items-center gap-2 font-bold text-gray-800 hover:text-primary transition-colors"
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-bold text-sm transition-all whitespace-nowrap ${
+                                    isFilterOpen ? 'bg-primary text-white shadow-sm' : 'bg-rose-50 text-primary border border-rose-100 hover:bg-rose-100'
+                                }`}
                             >
-                                <Filter className="w-5 h-5" />
+                                <Filter className="w-4 h-4" />
                                 상세 필터
-                                {isFilterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                {activeFilterCount > 0 && (
+                                    <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] ${isFilterOpen ? 'bg-white text-primary' : 'bg-primary text-white'}`}>
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                                {isFilterOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
                             </button>
-                            {activeFilterCount > 0 && (
-                                <span className="text-xs font-bold text-primary bg-white px-2 py-0.5 rounded-full border border-primary/20">
-                                    {activeFilterCount}개 선택됨
-                                </span>
-                            )}
+
+                            {/* Filter Chips - Hidden on small mobile, scrollable on larger */}
+                            <div className="hidden md:flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-1">
+                                {selectedPlatforms.map(item => (
+                                    <span key={item} className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-700 rounded text-[11px] font-medium whitespace-nowrap">
+                                        {item}
+                                        <X className="w-3 h-3 cursor-pointer" onClick={() => toggleFilter(item, selectedPlatforms, setSelectedPlatforms)} />
+                                    </span>
+                                ))}
+                                {selectedCategories.map(item => (
+                                    <span key={item} className="inline-flex items-center gap-1 px-2 py-1 bg-pink-100 text-pink-700 rounded text-[11px] font-medium whitespace-nowrap">
+                                        {item}
+                                        <X className="w-3 h-3 cursor-pointer" onClick={() => toggleFilter(item, selectedCategories, setSelectedCategories)} />
+                                    </span>
+                                ))}
+                                {selectedRegions.map(item => (
+                                    <span key={item} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-[11px] font-medium whitespace-nowrap">
+                                        {item}
+                                        <X className="w-3 h-3 cursor-pointer" onClick={() => toggleFilter(item, selectedRegions, setSelectedRegions)} />
+                                    </span>
+                                ))}
+                            </div>
                         </div>
 
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={resetFilters}
-                                className="text-xs text-gray-500 underline hover:text-red-500 flex items-center gap-1"
-                            >
-                                <X className="w-3 h-3" /> 초기화
-                            </button>
+                        <div className="flex items-center gap-3 flex-shrink-0">
+                            {activeFilterCount > 0 && (
+                                <button
+                                    onClick={resetFilters}
+                                    className="text-[11px] text-gray-400 underline hover:text-red-500 whitespace-nowrap"
+                                >
+                                    초기화
+                                </button>
+                            )}
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value)}
-                                className="pl-2 pr-8 py-1.5 border border-border rounded-lg text-xs font-medium bg-white focus:outline-none focus:border-primary cursor-pointer"
+                                className="pl-2 pr-8 py-1.5 border border-border rounded-lg text-xs font-bold bg-white focus:outline-none focus:border-primary cursor-pointer h-[34px]"
                             >
                                 <option value="new">최신순</option>
                                 <option value="popular">인기순</option>
-                                <option value="deadline">마감임박순</option>
+                                <option value="deadline">마감임박</option>
                             </select>
                         </div>
                     </div>
@@ -370,207 +487,88 @@ export default function CampaignsPage() {
                                     </div>
                                 )}
 
-                                {/* 방문형/전체: AREA 필터 */}
+                                {/* 방문형/전체: AREA 필터 (이중 드롭다운 방식) */}
                                 {showRegionFilter && (
-                                    <div>
-                                        <div className="flex items-center justify-between mb-2">
-                                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Area</div>
-                                            {selectedRegions.length > 0 && (
-                                                <span className="text-xs text-blue-600 font-medium">
-                                                    {selectedRegions.length}개
-                                                </span>
-                                            )}
+                                    <div className="md:col-span-1">
+                                        <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Area (지역 선택)</div>
+                                        <div className="flex gap-2">
+                                            {/* 1차 지역 선택 (시/도) */}
+                                            <select
+                                                value={activeRegionTab}
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    setActiveRegionTab(val);
+                                                    // 1차 지역 선택 시 바로 필터에 추가하고 싶어하시므로 반영
+                                                    // 단, 중복 방지 및 깔끔한 관리를 위해 '서울' 같은 대분류로 추가
+                                                    if (val && !selectedRegions.includes(val)) {
+                                                        // 기존에 선택된 상위 지역이 있다면 교체하거나 추가 (여기서는 추가)
+                                                        setSelectedRegions(prev => [...prev.filter(r => r !== val), val]);
+                                                    }
+                                                }}
+                                                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                                            >
+                                                <option value="">지역 선택 (시/도)</option>
+                                                {REGION_HIERARCHY.map(r => (
+                                                    <option key={r.value} value={r.value}>{r.name}</option>
+                                                ))}
+                                            </select>
+
+                                            {/* 2차 지역 선택 (구/군) */}
+                                            <select
+                                                onChange={(e) => {
+                                                    const val = e.target.value;
+                                                    if (val) {
+                                                        // 대분류가 선택되어 있으면 대분류 필터는 지우고 상세 필터로 대체하거나 유지
+                                                        // 사용성상 상세를 고르면 상세가 우선되도록 처리
+                                                        handleSubRegionClick(val);
+                                                        e.target.value = ''; 
+                                                    }
+                                                }}
+                                                className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={!activeRegionTab || !REGION_HIERARCHY.find(r => r.value === activeRegionTab)?.children}
+                                            >
+                                                <option value="">상세 지역 (선택사항)</option>
+                                                {activeRegionTab && (
+                                                    <option value={activeRegionTab}>
+                                                        {activeRegionTab} 전체
+                                                    </option>
+                                                )}
+                                                {REGION_HIERARCHY.find(r => r.value === activeRegionTab)?.children?.map(sub => (
+                                                    <option 
+                                                        key={sub.value} 
+                                                        value={sub.value}
+                                                        disabled={selectedRegions.includes(sub.value)}
+                                                    >
+                                                        {sub.name} {selectedRegions.includes(sub.value) ? '(선택됨)' : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
-
-                                        {/* 모바일: 아코디언 (< md) */}
-                                        <div className="md:hidden space-y-1">
-                                            {REGION_HIERARCHY.map((region) => {
-                                                const hasChildren = region.children && region.children.length > 0;
-                                                const isOpen = openRegions.includes(region.value);
-                                                const isSelected = selectedRegions.includes(region.value);
-
-                                                return (
-                                                    <div key={region.value}>
-                                                        <button
-                                                            onClick={() => handleRegionClick(region)}
-                                                            className={`w-full px-3 py-2 rounded text-sm font-medium transition-all flex items-center justify-between ${isSelected
-                                                                ? 'bg-blue-600 text-white'
-                                                                : isOpen
-                                                                    ? 'bg-blue-50 text-blue-700'
-                                                                    : 'bg-gray-100 text-gray-600'
-                                                                }`}
-                                                        >
-                                                            <span className="flex items-center gap-2">
-                                                                {isSelected && !hasChildren && <span>✓</span>}
-                                                                {region.name}
-                                                            </span>
-                                                            {hasChildren && (
-                                                                <ChevronRight className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-90' : ''}`} />
-                                                            )}
-                                                        </button>
-
-                                                        {hasChildren && isOpen && (
-                                                            <div className="mt-1 ml-3 space-y-1">
-                                                                {region.children!.map((subRegion) => {
-                                                                    const isSubSelected = selectedRegions.includes(subRegion.value);
-                                                                    return (
-                                                                        <button
-                                                                            key={subRegion.value}
-                                                                            onClick={() => handleSubRegionClick(subRegion.value)}
-                                                                            className={`w-full px-3 py-2 rounded text-sm font-medium transition-all text-left ${isSubSelected
-                                                                                ? 'bg-blue-600 text-white'
-                                                                                : 'bg-gray-100 text-gray-600'
-                                                                                }`}
-                                                                        >
-                                                                            {isSubSelected && '✓ '}
-                                                                            {subRegion.name}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* 데스크톱: 스플릿 뷰 (>= md) */}
-                                        <div className="hidden md:block border border-gray-200 rounded overflow-hidden" style={{ height: '120px' }}>
-                                            <div className="flex h-full">
-                                                {/* Left: 상위 지역 */}
-                                                <div className="w-2/5 bg-gray-50 border-r border-gray-200 overflow-y-auto">
-                                                    {REGION_HIERARCHY.map((region) => {
-                                                        const hasChildren = region.children && region.children.length > 0;
-                                                        const isActive = activeRegionTab === region.value;
-                                                        const isSelected = selectedRegions.includes(region.value);
-
-                                                        return (
-                                                            <button
-                                                                key={region.value}
-                                                                onClick={() => {
-                                                                    if (hasChildren) {
-                                                                        setActiveRegionTab(region.value);
-                                                                    } else {
-                                                                        toggleFilter(region.value, selectedRegions, setSelectedRegions);
-                                                                    }
-                                                                }}
-                                                                className={`w-full px-2 py-1.5 text-left text-xs font-medium transition-all border-b border-gray-100 ${isActive
-                                                                    ? 'bg-white text-blue-600 border-l-2 border-l-blue-600'
-                                                                    : isSelected
-                                                                        ? 'bg-blue-50 text-blue-600'
-                                                                        : 'text-gray-600 hover:bg-gray-100'
-                                                                    }`}
-                                                            >
-                                                                <span className="flex items-center justify-between">
-                                                                    <span className="flex items-center gap-1">
-                                                                        {isSelected && !hasChildren && <span className="text-blue-600 text-[10px]">✓</span>}
-                                                                        {region.name}
-                                                                    </span>
-                                                                    {hasChildren && <ChevronRight className="w-3 h-3" />}
-                                                                </span>
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-
-                                                {/* Right: 하위 지역 */}
-                                                <div className="flex-1 bg-white p-2 overflow-y-auto">
-                                                    {(() => {
-                                                        const activeRegion = REGION_HIERARCHY.find(r => r.value === activeRegionTab);
-
-                                                        if (!activeRegion?.children) {
-                                                            return (
-                                                                <div className="flex items-center justify-center h-full text-gray-400 text-[10px]">
-                                                                    선택하세요
-                                                                </div>
-                                                            );
-                                                        }
-
-                                                        return (
-                                                            <div className="grid grid-cols-2 gap-1">
-                                                                {activeRegion.children.map((subRegion) => {
-                                                                    const isSubSelected = selectedRegions.includes(subRegion.value);
-                                                                    return (
-                                                                        <button
-                                                                            key={subRegion.value}
-                                                                            onClick={() => handleSubRegionClick(subRegion.value)}
-                                                                            className={`px-2 py-1 rounded text-[10px] font-medium transition-all ${isSubSelected
-                                                                                ? 'bg-blue-600 text-white'
-                                                                                : 'bg-gray-100 text-gray-600 hover:bg-blue-50'
-                                                                                }`}
-                                                                        >
-                                                                            {isSubSelected && '✓ '}
-                                                                            {subRegion.name}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
+                                        <div className="mt-2 text-[10px] text-gray-400">
+                                            * 지역을 선택하면 아래에 필터가 추가됩니다.
                                         </div>
                                     </div>
                                 )}
+
+
                             </div>
 
-                            {/* 선택된 필터 요약 (카테고리별 아이콘 구분) */}
-                            {(selectedPlatforms.length > 0 || selectedCategories.length > 0 || selectedRegions.length > 0) && (
-                                <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
-                                    <span className="text-xs text-gray-400">선택됨:</span>
-
-                                    {/* Channel - Slate (Radio 아이콘) */}
-                                    {selectedPlatforms.map(item => (
-                                        <span
-                                            key={item}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-xs font-medium"
-                                        >
-                                            <Radio className="w-3 h-3" />
-                                            {item}
-                                            <button
-                                                onClick={() => toggleFilter(item, selectedPlatforms, setSelectedPlatforms)}
-                                                className="hover:bg-slate-200 rounded-full"
-                                            >
-                                                <X className="w-2.5 h-2.5" />
-                                            </button>
-                                        </span>
-                                    ))}
-
-                                    {/* Category - Pink (Tag 아이콘) */}
-                                    {selectedCategories.map(item => (
-                                        <span
-                                            key={item}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-pink-100 text-pink-700 rounded text-xs font-medium"
-                                        >
-                                            <Tag className="w-3 h-3" />
-                                            {item}
-                                            <button
-                                                onClick={() => toggleFilter(item, selectedCategories, setSelectedCategories)}
-                                                className="hover:bg-pink-200 rounded-full"
-                                            >
-                                                <X className="w-2.5 h-2.5" />
-                                            </button>
-                                        </span>
-                                    ))}
-
-                                    {/* Area - Blue (MapPin 아이콘) */}
-                                    {selectedRegions.map(item => (
-                                        <span
-                                            key={item}
-                                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium"
-                                        >
-                                            <MapPin className="w-3 h-3" />
-                                            {item}
-                                            <button
-                                                onClick={() => toggleFilter(item, selectedRegions, setSelectedRegions)}
-                                                className="hover:bg-blue-200 rounded-full"
-                                            >
-                                                <X className="w-2.5 h-2.5" />
-                                            </button>
-                                        </span>
-                                    ))}
-                                </div>
-                            )}
+                            {/* Area - Blue (MapPin 아이콘) */}
+                            {selectedRegions.map((item, idx) => (
+                                <span
+                                    key={`${item}-${idx}`}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs font-medium"
+                                >
+                                    <MapPin className="w-3 h-3" />
+                                    {item.includes('/') ? item.split('/').join(' ') : item}
+                                    <button
+                                        onClick={() => toggleFilter(item, selectedRegions, setSelectedRegions)}
+                                        className="hover:bg-blue-200 rounded-full"
+                                    >
+                                        <X className="w-2.5 h-2.5" />
+                                    </button>
+                                </span>
+                            ))}
                         </div>
                     )}
 
@@ -579,9 +577,17 @@ export default function CampaignsPage() {
 
             {/* Main Grid Content */}
             <div className="container py-8">
-                <h2 className="text-lg font-bold text-text-main mb-6 flex items-center gap-2">
-                    검색 결과 <span className="text-primary">{filteredData.length}</span>
-                </h2>
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold text-text-main flex items-center gap-2">
+                        검색 결과 <span className="text-primary">{filteredData.length}</span>
+                    </h2>
+                    <button 
+                        onClick={manualRefresh}
+                        className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors"
+                    >
+                        <Search className="w-3 h-3" /> 데이터 새로고침
+                    </button>
+                </div>
 
                 {loading ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
@@ -594,6 +600,10 @@ export default function CampaignsPage() {
                                 key={item.id}
                                 {...item}
                             />
+                        ))}
+                        {/* 빈 자리를 Coming Soon 카드로 채워줌 (최소 10개 유지) */}
+                        {[...Array(Math.max(0, 10 - filteredData.length))].map((_, i) => (
+                            <PlaceholderCard key={`filler-${i}`} />
                         ))}
                     </div>
                 ) : (

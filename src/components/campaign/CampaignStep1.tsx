@@ -110,7 +110,20 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     // 초기 데이터 로드 (임시저장 불러오기 시)
     useEffect(() => {
         if (initialData) {
-            setFormData(prev => ({ ...prev, ...initialData }));
+            setFormData(prev => {
+                // null 값을 제거하여 state의 기본값이 유지되도록 함
+                const sanitizedInitial = { ...initialData };
+                Object.keys(sanitizedInitial).forEach(key => {
+                    if ((sanitizedInitial as any)[key] === null) {
+                        delete (sanitizedInitial as any)[key];
+                    }
+                });
+                
+                return {
+                    ...prev,
+                    ...sanitizedInitial
+                };
+            });
         }
     }, [initialData]);
 
@@ -640,7 +653,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         </label>
                         <input
                             type="url"
-                            value={formData.productUrl}
+                            value={formData.productUrl || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
                             onBlur={() => validateField('productUrl', formData.productUrl)}
                             placeholder="예시) https://smartstore.naver.com/"
@@ -680,7 +693,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         </label>
                         <input
                             type="text"
-                            value={formData.productName}
+                            value={formData.productName || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
                             onBlur={() => validateField('productName', formData.productName)}
                             placeholder="예시) 아이폰 14 Pro"
@@ -786,7 +799,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
-                                value={formData.productPrice}
+                                value={formData.productPrice || ''}
                                 onChange={(e) => handlePriceChange('productPrice', e.target.value)}
                                 placeholder="0"
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
@@ -1041,7 +1054,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             </label>
                             <input
                                 type="tel"
-                                value={formData.contactPhone}
+                                value={formData.contactPhone || ''}
                                 onChange={handlePhoneChange}
                                 onBlur={() => validateField('contactPhone', formData.contactPhone)}
                                 placeholder="010-0000-0000"
@@ -1063,7 +1076,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             </label>
                             <input
                                 type="text"
-                                value={formData.visitTime}
+                                value={formData.visitTime || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
                                 placeholder="예: 평일 11:00 - 21:00"
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1125,7 +1138,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 방문 참고사항 <span className="text-gray-500 text-xs">(선택)</span>
                             </label>
                             <textarea
-                                value={formData.visitNotes}
+                                value={formData.visitNotes || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, visitNotes: e.target.value }))}
                                 placeholder="주차 정보, 예약 필요 여부 등"
                                 rows={3}
@@ -1142,7 +1155,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     </label>
                     <input
                         type="text"
-                        value={formData.experienceDetails}
+                        value={formData.experienceDetails || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, experienceDetails: e.target.value }))}
                         placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1157,7 +1170,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     <div className="flex items-center gap-2">
                         <input
                             type="text"
-                            value={formData.officialPrice}
+                            value={formData.officialPrice || ''}
                             onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
                             placeholder="30,000"
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
@@ -1193,7 +1206,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             <div className="flex items-center gap-2">
                                 <input
                                     type="number"
-                                    value={formData.totalRecruitment}
+                                    value={formData.totalRecruitment || ''}
                                     onChange={(e) => setFormData(prev => ({ ...prev, totalRecruitment: e.target.value }))}
                                     onBlur={() => validateField('totalRecruitment', formData.totalRecruitment)}
                                     placeholder="10"
@@ -1305,7 +1318,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             </label>
                             <input
                                 type="date"
-                                value={formData.recruitmentStartDate}
+                                value={formData.recruitmentStartDate || ''}
                                 onChange={(e) => {
                                     setFormData(prev => ({ ...prev, recruitmentStartDate: e.target.value }));
                                     validateField('recruitmentStartDate', e.target.value);
@@ -1325,7 +1338,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <div className="space-y-2">
                                         <input
                                             type="date"
-                                            value={formData.firstSelectionDate}
+                                            value={formData.firstSelectionDate || ''}
                                             onChange={(e) => setFormData(prev => ({ ...prev, firstSelectionDate: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
@@ -1358,7 +1371,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     </label>
                                     {formData.campaignType === 'delivery' ? (
                                         <select
-                                            value={formData.reviewDeadlineDays}
+                                            value={formData.reviewDeadlineDays || '7'}
                                             onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadlineDays: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         >
@@ -1369,7 +1382,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     ) : (
                                         <input
                                             type="date"
-                                            value={formData.reviewDeadline}
+                                            value={formData.reviewDeadline || ''}
                                             onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
@@ -1385,7 +1398,11 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             <div className="flex justify-end gap-3">
                 {onSaveDraft && (
                     <button
-                        onClick={onSaveDraft}
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onSaveDraft();
+                        }}
                         className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm"
                     >
                         <Save size={18} />

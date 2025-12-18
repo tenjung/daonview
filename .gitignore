@@ -40,3 +40,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQL files (managed directly in Supabase)
+*.sql
+/migrations/
+

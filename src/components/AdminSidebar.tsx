@@ -1,18 +1,28 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { usePathname, useSearchParams } from 'next/navigation';
+import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard } from 'lucide-react';
 import { useState } from 'react';
 
 export default function AdminSidebar() {
     const pathname = usePathname();
-    const [campaignMenuOpen, setCampaignMenuOpen] = useState(
-        pathname.includes('/dashboard/campaign') || pathname.includes('/dashboard/admin/campaigns')
-    );
+    const searchParams = useSearchParams();
+    const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
+    const [userMenuOpen, setUserMenuOpen] = useState(true);
 
-    const isActive = (path: string) => pathname === path;
-    const isInCampaignSection = pathname.includes('/dashboard/campaign') || pathname.includes('/dashboard/admin/campaigns');
+    const isActive = (path: string, type?: string) => {
+        if (type) {
+            return pathname === path && searchParams.get('type') === type;
+        }
+        // type이 없는 경우 (진행 중의 기본 상태 등)
+        if (path === '/dashboard/admin/campaigns' && !searchParams.get('type')) {
+            return pathname === path;
+        }
+        return pathname === path;
+    };
+    
+    const isInCampaignSection = pathname.includes('/dashboard/admin/campaigns') || pathname.includes('/dashboard/campaign/new');
 
     return (
         <aside className="w-[260px] bg-white border-r border-border p-8 flex flex-col shrink-0">
@@ -54,29 +64,41 @@ export default function AdminSidebar() {
                     {campaignMenuOpen && (
                         <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
                             <Link
-                                href="/dashboard/campaign/new"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/campaign/new')
+                                href="/dashboard/admin/campaigns?type=pending"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'pending')
                                     ? 'bg-rose-100 text-primary'
                                     : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
                                     }`}
                             >
-                                신규 캠페인 요청
+                                요청중인 캠페인
                             </Link>
                             <Link
-                                href="/dashboard/admin/campaigns"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns')
+                                href="/dashboard/admin/campaigns?type=upcoming"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'upcoming')
+                                    ? 'bg-rose-100 text-primary'
+                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                    }`}
+                            >
+                                진행 전
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/campaigns?type=active"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'active')
                                     ? 'bg-rose-100 text-primary'
                                     : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
                                     }`}
                             >
                                 진행 중
                             </Link>
-                            <div className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
+                            <Link
+                                href="/dashboard/admin/campaigns?type=completed"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'completed')
+                                    ? 'bg-rose-100 text-primary'
+                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                    }`}
+                            >
                                 완료
-                            </div>
-                            <div className="px-4 py-2 rounded-lg text-sm font-medium text-gray-400 cursor-not-allowed">
-                                진행 전
-                            </div>
+                            </Link>
                             <Link
                                 href="/dashboard/campaign/drafts"
                                 className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/campaign/drafts')
@@ -89,6 +111,59 @@ export default function AdminSidebar() {
                         </div>
                     )}
                 </div>
+
+                {/* 회원 관리 (접을 수 있는 메뉴) */}
+                <div>
+                    <button
+                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.includes('/dashboard/admin/users')
+                            ? 'bg-rose-50 text-primary'
+                            : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                            }`}
+                    >
+                        <span>회원 관리</span>
+                        {userMenuOpen ? (
+                            <ChevronDown className="w-4 h-4" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* 하위 메뉴 */}
+                    {userMenuOpen && (
+                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
+                            <Link
+                                href="/dashboard/admin/users/advertisers"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/users/advertisers')
+                                    ? 'bg-rose-100 text-primary'
+                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                    }`}
+                            >
+                                광고주 관리
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/users/influencers"
+                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/users/influencers')
+                                    ? 'bg-rose-100 text-primary'
+                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                    }`}
+                            >
+                                인플루언서 관리
+                            </Link>
+                        </div>
+                    )}
+                </div>
+
+                {/* 배너 관리 */}
+                <Link
+                    href="/dashboard/admin/banners"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isActive('/dashboard/admin/banners')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    배너 관리
+                </Link>
 
                 {/* 결제 관리 */}
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">

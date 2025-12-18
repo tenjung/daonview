@@ -58,9 +58,10 @@ interface CampaignStep2Props {
     onSaveDraft?: () => void;
     initialData?: Partial<Step2Data>;
     step1Data: Step1Data; // Step 1 데이터 추가
+    isEdit?: boolean;
 }
 
-export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData, step1Data }: CampaignStep2Props) {
+export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData, step1Data, isEdit }: CampaignStep2Props) {
     const [formData, setFormData] = useState<Step2Data>({
         campaignTitle: initialData?.campaignTitle || step1Data.productName || step1Data.stores?.[0]?.storeName || '',
         campaignImages: initialData?.campaignImages || [],
@@ -100,12 +101,22 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
     // 초기 데이터 로드 (임시저장 불러오기 시)
     useEffect(() => {
         if (initialData) {
-            setFormData(prev => ({
-                ...prev,
-                ...initialData,
-                // 제목의 경우 이미 입력된 값이 있거나 initialData에 값이 없으면 step1Data를 활용하는 로직 유지
-                campaignTitle: initialData.campaignTitle || prev.campaignTitle || step1Data.productName || step1Data.stores?.[0]?.storeName || '',
-            }));
+            setFormData(prev => {
+                // null 값을 제거하여 state의 기본값이 유지되도록 함
+                const sanitizedInitial = { ...initialData };
+                Object.keys(sanitizedInitial).forEach(key => {
+                    if ((sanitizedInitial as any)[key] === null) {
+                        delete (sanitizedInitial as any)[key];
+                    }
+                });
+
+                return {
+                    ...prev,
+                    ...sanitizedInitial,
+                    // 제목의 경우 이미 입력된 값이 있거나 initialData에 값이 없으면 step1Data를 활용하는 로직 유지
+                    campaignTitle: initialData.campaignTitle || prev.campaignTitle || step1Data.productName || step1Data.stores?.[0]?.storeName || '',
+                };
+            });
         }
     }, [initialData, step1Data.productName, step1Data.stores]);
 
@@ -126,6 +137,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        // 먼저 세션 확인
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+            toast.error('로그인이 필요한 서비스입니다. 다시 로그인해주세요.');
+            return;
+        }
+
         const remainingSlots = 4 - formData.campaignImages.length;
         if (remainingSlots <= 0) {
             toast.error('최대 4개의 이미지만 업로드 가능합니다.');
@@ -139,19 +157,39 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         try {
             for (let i = 0; i < filesToUpload; i++) {
                 const file = files[i];
-                // 파일명 안전하게 변환 (한글 포함 시 오류 방지)
-                const fileExt = file.name.split('.').pop();
+                // 파일 확장자 보안 체크
+                const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+                const fileExt = file.name.split('.').pop()?.toLowerCase();
+                
+                if (!fileExt || !allowedExtensions.includes(fileExt)) {
+                    toast.error(`허용되지 않는 파일 형식입니다: ${file.name}`);
+                    continue;
+                }
+
+                // 파일명 안전하게 변환
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${fileExt}`;
-                const filePath = `campaigns/${fileName}`;
+                const filePath = fileName; // 'campaigns/' 폴더 경로 제거
+
+                console.log(`Uploading file: ${filePath}`);
 
                 // Supabase Storage에 업로드
-                const { error: uploadError } = await supabase.storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('campaign-images')
-                    .upload(filePath, file);
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: false
+                    });
 
                 if (uploadError) {
-                    console.error('이미지 업로드 실패:', uploadError);
-                    toast.error(`이미지 업로드 실패: ${file.name}`);
+                    console.error('이미지 업로드 상세 에러:', uploadError);
+                    
+                    if (uploadError.message.includes('bucket not found') || uploadError.message.includes('does not exist')) {
+                        toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
+                    } else if (uploadError.message.includes('permission denied') || (uploadError as any).status === 403) {
+                        toast.error('이미지 업로드 권한이 없습니다. (RLS 설정 확인 필요)');
+                    } else {
+                        toast.error(`이미지 업로드 실패: ${uploadError.message}`);
+                    }
                     continue;
                 }
 
@@ -170,13 +208,12 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                 }));
                 toast.success(`${newImages.length}개의 이미지가 업로드되었습니다.`);
             }
-        } catch (error) {
-            console.error('이미지 처리 중 오류:', error);
-            toast.error('이미지 처리 중 오류가 발생했습니다.');
+        } catch (error: any) {
+            console.error('이미지 처리 중 치명적 오류:', error);
+            toast.error(`이미지 처리 중 오류 발생: ${error.message || '알 수 없는 오류'}`);
         } finally {
             setUploadingImage(false);
-            // 입력값 초기화 (동일 파일 재선택 가능하게)
-            e.target.value = '';
+            if (e.target) e.target.value = '';
         }
     };
 
@@ -337,7 +374,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                 <h2 className="text-xl font-bold text-gray-900 mb-4">캠페인 제목</h2>
                 <input
                     type="text"
-                    value={formData.campaignTitle}
+                    value={formData.campaignTitle || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, campaignTitle: e.target.value }))}
                     placeholder={`예: ${step1Data.productName || '강남 맛집 족발'} 체험단 모집`}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
@@ -513,7 +550,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         </label>
                         <input
                             type="url"
-                            value={formData.purchaseLink}
+                            value={formData.purchaseLink || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, purchaseLink: e.target.value }))}
                             placeholder="리뷰어가 구매할 페이지 URL"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -530,7 +567,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         </label>
                         <input
                             type="text"
-                            value={formData.purchaseOption}
+                            value={formData.purchaseOption || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, purchaseOption: e.target.value }))}
                             placeholder='예: 검색창에 "무설탕" 검색 후 3번째 상품 클릭'
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -545,7 +582,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
-                                value={formData.paybackAmount}
+                                value={formData.paybackAmount || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, paybackAmount: e.target.value }))}
                                 placeholder="0"
                                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
@@ -563,7 +600,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             구매 시 주의사항
                         </label>
                         <textarea
-                            value={formData.purchaseNotes}
+                            value={formData.purchaseNotes || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, purchaseNotes: e.target.value }))}
                             placeholder="예: 비공개 요청, 쿠폰 사용 금지 등"
                             rows={3}
@@ -577,7 +614,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             미션 내용
                         </label>
                         <textarea
-                            value={formData.reviewMissionContent}
+                            value={formData.reviewMissionContent || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, reviewMissionContent: e.target.value }))}
                             placeholder='예: "찜하기 필수", "포토리뷰 필수"'
                             rows={4}
@@ -695,7 +732,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             ✍️ 작성 가이드 (선택)
                         </label>
                         <textarea
-                            value={formData.missionGuide}
+                            value={formData.missionGuide || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, missionGuide: e.target.value }))}
                             placeholder="자유롭게 작성해주세요"
                             rows={6}
@@ -730,7 +767,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         </label>
                         <input
                             type="text"
-                            value={formData.blogMainKeyword}
+                            value={formData.blogMainKeyword || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, blogMainKeyword: e.target.value }))}
                             placeholder="예: 강남 맛집"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -786,7 +823,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         </label>
                         <input
                             type="text"
-                            value={formData.blogTitleGuide}
+                            value={formData.blogTitleGuide || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, blogTitleGuide: e.target.value }))}
                             placeholder="예: 키워드를 제목 앞부분에 배치해주세요"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
@@ -799,11 +836,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             본문 작성 가이드
                         </label>
                         <textarea
-                            value={formData.blogContentGuide}
+                            value={formData.blogContentGuide || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, blogContentGuide: e.target.value }))}
                             placeholder="예: 제품 사용 후기를 상세하게 작성해주세요. 장점과 단점을 균형있게 서술하고, 실제 사용 사진을 포함해주세요."
                             rows={5}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:green-500 focus:border-transparent"
                         />
                         <p className="mt-1 text-xs text-gray-500">
                             블로그 본문 작성 시 리뷰어가 따라야 할 가이드를 자유롭게 작성해주세요.
@@ -944,7 +981,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         </label>
                         <input
                             type="text"
-                            value={formData.instagramAccountTag}
+                            value={formData.instagramAccountTag || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, instagramAccountTag: e.target.value }))}
                             placeholder="예: @your_brand_account"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -960,7 +997,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             촬영 가이드
                         </label>
                         <textarea
-                            value={formData.instagramPhotoGuide}
+                            value={formData.instagramPhotoGuide || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, instagramPhotoGuide: e.target.value }))}
                             placeholder="예: 제품 상세컷 2장 이상, 동영상 1개 필수"
                             rows={4}
@@ -1082,7 +1119,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">추가 안내사항</h2>
                 <textarea
-                    value={formData.additionalNotes}
+                    value={formData.additionalNotes || ''}
                     onChange={(e) => setFormData(prev => ({ ...prev, additionalNotes: e.target.value }))}
                     placeholder="리뷰어에게 전달할 추가 안내사항이 있다면 작성해주세요."
                     rows={4}
@@ -1103,7 +1140,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                 <div className="flex gap-3">
                     {onSaveDraft && (
                         <button
-                            onClick={onSaveDraft}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                onSaveDraft();
+                            }}
                             className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm"
                         >
                             <Save size={18} />
@@ -1114,11 +1155,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         onClick={handleNext}
                         disabled={!isFormValid()}
                         className={`px-8 py-3 rounded-lg font-semibold transition-all ${isFormValid()
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
+                            ? isEdit 
+                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl'
+                                : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                             }`}
                     >
-                        다음 단계로
+                        {isEdit ? '수정완료' : '다음 단계로'}
                     </button>
                 </div>
             </div>

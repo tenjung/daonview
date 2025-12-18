@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, MapPin, Package, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MapPin, Package, Heart, ShoppingBag, PenTool, Instagram, Gift } from 'lucide-react';
 
 export default function CampaignDetailPage() {
     const params = useParams();
@@ -144,8 +144,8 @@ export default function CampaignDetailPage() {
             return;
         }
 
-        // Parse Options
-        const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options : [];
+        // Parse Options from product_options field (selection options for applicants)
+        const options = Array.isArray(campaign.product_options) ? campaign.product_options : [];
 
         // Check if option selection is required
         if (options.length > 0 && !selectedOption) {
@@ -162,7 +162,7 @@ export default function CampaignDetailPage() {
                     user_id: user.id,
                     campaign_id: id,
                     status: 'pending',
-                    selected_option: selectedOption || null,
+                    selected_option: (typeof selectedOption === 'object' ? (selectedOption as any).optionName : selectedOption) || null,
                     application_message: applicationMessage || null
                 });
 
@@ -269,8 +269,8 @@ export default function CampaignDetailPage() {
     const isVisit = campaign.type === 'VISIT';
     const isDelivery = campaign.type === 'DELIVERY';
 
-    // Parse Options
-    const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options : [];
+    // Parse Options from product_options field
+    const options = Array.isArray(campaign.product_options) ? campaign.product_options : [];
 
     // Prepare image array for slider
     const images = [
@@ -364,18 +364,54 @@ export default function CampaignDetailPage() {
                 <div className="flex-1 flex flex-col">
                     <div>
                         <div className="flex flex-wrap items-center gap-2 mb-4">
-                            <span className="inline-block bg-slate-800 text-white px-3 py-1 rounded font-bold text-xs uppercase tracking-wider">{campaign.platform}</span>
-                            <span className={`inline-block px-3 py-1 rounded font-bold text-xs ${isVisit ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
-                                {isVisit ? '방문형' : (isDelivery ? '배송형' : '기자단')}
-                            </span>
+                            {/* Platform Badge */}
+                            {(() => {
+                                const p = campaign.platform;
+                                let label = p;
+                                let colorClass = "bg-slate-800 text-white";
+                                
+                                if (p === '기타' || p === 'OTHER') {
+                                    label = "구매평";
+                                    colorClass = "bg-orange-500 text-white";
+                                } else if (p === '블로그' || p === 'BLOG') {
+                                    label = "블로그";
+                                    colorClass = "bg-green-600 text-white";
+                                } else if (p === '인스타' || p === 'INSTAGRAM') {
+                                    label = "인스타그램";
+                                    colorClass = "bg-pink-500 text-white";
+                                }
+                                
+                                return <span className={`inline-block px-3 py-1 rounded font-bold text-xs uppercase tracking-wider ${colorClass}`}>{label}</span>;
+                            })()}
+
+                            {/* Type Badge */}
+                            {(() => {
+                                const t = campaign.type;
+                                let label = t;
+                                let colorClass = "bg-blue-100 text-blue-700";
+                                
+                                if (t === '방문형' || t === 'VISIT') {
+                                    label = "방문";
+                                    colorClass = "bg-blue-100 text-blue-700";
+                                } else if (t === '배송형' || t === 'DELIVERY') {
+                                    label = "배송";
+                                    colorClass = "bg-green-100 text-green-700";
+                                } else if (t === '기자단' || t === 'PRESS' || t === 'PURCHASE') {
+                                    label = "기자단";
+                                    colorClass = "bg-purple-100 text-purple-700";
+                                }
+                                
+                                return <span className={`inline-block px-3 py-1 rounded font-bold text-xs ${colorClass}`}>{label}</span>;
+                            })()}
+
                             {/* Region Badge for VISIT type */}
-                            {isVisit && campaign.region && (
+                            {(campaign.type === '방문형' || campaign.type === 'VISIT') && campaign.region && (
                                 <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 px-3 py-1 rounded font-bold text-xs">
                                     {campaign.region}
                                 </span>
                             )}
                             {/* Category Badge for DELIVERY type */}
-                            {isDelivery && campaign.category && (
+                            {(campaign.type === '배송형' || campaign.type === 'DELIVERY') && campaign.category && (
                                 <span className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1 rounded font-bold text-xs">
                                     <Package className="w-3 h-3" /> {campaign.category}
                                 </span>
@@ -445,34 +481,194 @@ export default function CampaignDetailPage() {
 
             {/* Bottom Section: Details */}
             <div className="bg-white border border-border rounded-2xl p-8 sm:p-12 shadow-sm">
+                <h2 className="text-2xl font-bold mb-8 text-text-main border-b-2 border-pink-100 pb-2 inline-block">캠페인 미션 & 가이드</h2>
 
-                <h2 className="text-2xl font-bold mb-6 text-text-main border-b-2 border-pink-100 pb-2 inline-block">캠페인 미션 & 가이드</h2>
+                {/* DB 데이터 기반 상세 가이드 영역 */}
+                <div className="space-y-12">
+                    {/* 1. 기본 설명 (기존 description) */}
+                    {campaign.description && (
+                        <div>
+                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-6 bg-primary rounded-full"></span>
+                                캠페인 소개
+                            </h3>
+                            <div className="text-base leading-loose text-gray-700 whitespace-pre-line bg-gray-50 p-6 rounded-xl border border-gray-100">
+                                {campaign.description}
+                            </div>
+                        </div>
+                    )}
 
-                {/* Description Body */}
-                <div className="text-base leading-loose text-gray-700 mb-12 whitespace-pre-line min-h-[100px]">
-                    {campaign.description}
+                    {/* campaign_options에서 step2Data 추출 */}
+                    {(() => {
+                        const opt = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+                        const s2 = opt?.step2Data;
+                        const s1 = opt?.step1Data;
+                        if (!s2) return null;
+
+                        return (
+                            <>
+                                {/* 2. 구매평 가이드 (배송형/구매평 케이스) */}
+                                {(campaign.type === '배송형' || campaign.type === 'DELIVERY') && s1?.includeReview && (
+                                    <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100">
+                                        <h3 className="text-lg font-bold text-blue-900 mb-4 flex items-center gap-2">
+                                            <ShoppingBag className="w-5 h-5" />
+                                            구매평 작성 가이드
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                            {s2.purchaseLink && (
+                                                <div className="col-span-full bg-white p-4 rounded-lg border border-blue-50">
+                                                    <p className="text-blue-700 font-bold mb-1">구매 링크</p>
+                                                    <a href={s2.purchaseLink} target="_blank" className="text-blue-600 underline break-all">{s2.purchaseLink}</a>
+                                                </div>
+                                            )}
+                                            {s2.purchaseOption && (
+                                                <div className="bg-white p-4 rounded-lg border border-blue-50">
+                                                    <p className="text-blue-700 font-bold mb-1">구매 옵션</p>
+                                                    <p className="text-gray-900">{s2.purchaseOption}</p>
+                                                </div>
+                                            )}
+                                            {s2.paybackAmount && (
+                                                <div className="bg-white p-4 rounded-lg border border-blue-50">
+                                                    <p className="text-blue-700 font-bold mb-1">페이백 금액</p>
+                                                    <p className="text-rose-600 font-bold">{Number(s2.paybackAmount).toLocaleString()}원</p>
+                                                </div>
+                                            )}
+                                            {s2.reviewMissionContent && (
+                                                <div className="col-span-full bg-white p-4 rounded-lg border border-blue-50">
+                                                    <p className="text-blue-700 font-bold mb-1">리뷰 미션</p>
+                                                    <p className="text-gray-900 whitespace-pre-line">{s2.reviewMissionContent}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 3. 블로그 미션 (네이버 플랫폼) */}
+                                {(campaign.platform === '블로그' || campaign.platform === 'BLOG' || s1?.includeNaver) && (
+                                    <div className="bg-green-50/50 rounded-2xl p-6 border border-green-100">
+                                        <h3 className="text-lg font-bold text-green-900 mb-4 flex items-center gap-2">
+                                            <PenTool className="w-5 h-5" />
+                                            블로그 포스팅 가이드
+                                        </h3>
+                                        <div className="space-y-4 text-sm">
+                                            <div className="bg-white p-4 rounded-lg border border-green-50">
+                                                <p className="text-green-700 font-bold mb-2">필수 키워드</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <span className="px-3 py-1 bg-green-600 text-white rounded-full font-bold">제목: {s2.blogMainKeyword}</span>
+                                                    {s2.blogSubKeywords?.map((k: string) => (
+                                                        <span key={k} className="px-3 py-1 bg-green-100 text-green-700 rounded-full">#{k}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {s2.blogTitleGuide && (
+                                                <div className="bg-white p-4 rounded-lg border border-green-50">
+                                                    <p className="text-green-700 font-bold mb-1">제목 작성 가이드</p>
+                                                    <p className="text-gray-900">{s2.blogTitleGuide}</p>
+                                                </div>
+                                            )}
+                                            {s2.blogContentGuide && (
+                                                <div className="bg-white p-4 rounded-lg border border-green-50">
+                                                    <p className="text-green-700 font-bold mb-1">본문 작성 가이드</p>
+                                                    <p className="text-gray-900 whitespace-pre-line">{s2.blogContentGuide}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 4. 인스타그램 미션 */}
+                                {(campaign.platform === '인스타' || campaign.platform === 'INSTAGRAM' || s1?.includeInstagram) && (
+                                    <div className="bg-pink-50/50 rounded-2xl p-6 border border-pink-100">
+                                        <h3 className="text-lg font-bold text-pink-900 mb-4 flex items-center gap-2">
+                                            <Instagram className="w-5 h-5" />
+                                            인스타그램 업로드 가이드
+                                        </h3>
+                                        <div className="space-y-4 text-sm">
+                                            <div className="bg-white p-4 rounded-lg border border-pink-50">
+                                                <p className="text-pink-700 font-bold mb-2">필수 해시태그</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {s2.instagramHashtags?.map((h: string) => (
+                                                        <span key={h} className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full font-medium">{h}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {s2.instagramAccountTag && (
+                                                <div className="bg-white p-4 rounded-lg border border-pink-50">
+                                                    <p className="text-pink-700 font-bold mb-1">계정 태그</p>
+                                                    <p className="text-gray-900 font-bold">@{s2.instagramAccountTag.replace('@', '')}</p>
+                                                </div>
+                                            )}
+                                            {s2.instagramPhotoGuide && (
+                                                <div className="bg-white p-4 rounded-lg border border-pink-50">
+                                                    <p className="text-pink-700 font-bold mb-1">촬영 가이드</p>
+                                                    <p className="text-gray-900 whitespace-pre-line">{s2.instagramPhotoGuide}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 5. 공통 가이드 & 작성 조건 */}
+                                {(s2.missionGuide || s2.additionalNotes || s2.photoCount || s2.textLength) && (
+                                    <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
+                                        <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                            <Gift className="w-5 h-5" />
+                                            체험 및 작성 상세 가이드
+                                        </h3>
+                                        <div className="space-y-4 text-sm">
+                                            {/* 작성 조건 요약 */}
+                                            {(s2.photoCount || s2.textLength || s2.videoRequired) && (
+                                                <div className="flex flex-wrap gap-3 mb-4">
+                                                    {s2.photoCount && s2.photoCount !== 'none' && (
+                                                        <div className="px-3 py-2 bg-white rounded-lg border border-gray-200 flex items-center gap-2">
+                                                            <span className="text-gray-400">사진</span>
+                                                            <span className="font-bold text-gray-900">{s2.photoCount}장 이상</span>
+                                                        </div>
+                                                    )}
+                                                    {s2.videoRequired === 'yes' && (
+                                                        <div className="px-3 py-2 bg-white rounded-lg border border-gray-200 flex items-center gap-2">
+                                                            <span className="text-gray-400">동영상</span>
+                                                            <span className="font-bold text-primary">필수 포함</span>
+                                                        </div>
+                                                    )}
+                                                    {s2.textLength && s2.textLength !== 'free' && (
+                                                        <div className="px-3 py-2 bg-white rounded-lg border border-gray-200 flex items-center gap-2">
+                                                            <span className="text-gray-400">리뷰 분량</span>
+                                                            <span className="font-bold text-gray-900">
+                                                                {s2.textLength === 'short' ? '20자 내외 간단히' :
+                                                                 s2.textLength === 'medium' ? '150자 내외' :
+                                                                 s2.textLength === 'long' ? '300자 이상' : 
+                                                                 s2.textLength === 'custom' ? '가이드 참조' : '자유'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {s2.missionGuide && (
+                                                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm leading-relaxed">
+                                                    <p className="font-bold text-gray-400 mb-3 border-b border-gray-50 pb-2">작성 가이드</p>
+                                                    <p className="text-gray-800 whitespace-pre-line">{s2.missionGuide}</p>
+                                                </div>
+                                            )}
+                                            {s2.additionalNotes && (
+                                                <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm leading-relaxed">
+                                                    <p className="font-bold text-gray-400 mb-3 border-b border-gray-50 pb-2">기타 추가 안내</p>
+                                                    <p className="text-gray-800 whitespace-pre-line">{s2.additionalNotes}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </>
+                        );
+                    })()}
                 </div>
 
-                {/* Map Section */}
-                {campaign.naver_map_url && (
-                    <div className="bg-green-50 p-6 rounded-xl border border-green-100 mb-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-bold text-green-800 mb-1">📍 체험 매장 위치</h3>
-                            <p className="text-green-700 text-sm">{campaign.store_name} ({campaign.store_address})</p>
-                        </div>
-                        <a
-                            href={campaign.naver_map_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-6 py-3 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition-colors shadow-sm whitespace-nowrap"
-                        >
-                            네이버 지도로 보기
-                        </a>
-                    </div>
-                )}
-
-                <div className="bg-rose-50 p-8 rounded-xl border border-dashed border-primary-light mb-8">
-                    <h3 className="text-lg font-bold text-primary-dark mb-4">📢 주의사항</h3>
+                <div className="mt-12 bg-rose-50 p-8 rounded-xl border border-dashed border-primary-light">
+                    <h3 className="text-lg font-bold text-primary-dark mb-4 flex items-center gap-2">
+                        <span className="text-xl">📢</span> 주의사항
+                    </h3>
                     <ul className="list-disc pl-5 text-gray-700 space-y-2 text-sm">
                         <li>예약 후 노쇼(No-Show) 시 향후 캠페인 참여에 제한이 있을 수 있습니다.</li>
                         <li>제공받은 서비스/제품에 대한 리뷰는 반드시 캠페인 마감일 내에 등록해야 합니다.</li>
@@ -493,30 +689,38 @@ export default function CampaignDetailPage() {
                             </h2>
                             <p className="text-sm text-gray-600 mb-4">원하시는 옵션을 선택해주세요</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {options.map((opt: string, idx: number) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => !hasApplied && setSelectedOption(opt)}
-                                        disabled={hasApplied}
-                                        className={`p-4 rounded-xl border-2 font-medium text-left flex items-center gap-3 transition-all ${selectedOption === opt
-                                            ? 'border-primary bg-rose-50 text-primary'
-                                            : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary hover:bg-rose-50'
-                                            } ${hasApplied ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
-                                    >
-                                        <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 ${selectedOption === opt
-                                            ? 'border-primary bg-primary text-white'
-                                            : 'border-gray-300 bg-white text-gray-400'
-                                            }`}>
-                                            {selectedOption === opt ? '✓' : idx + 1}
-                                        </span>
-                                        <span className="flex-1">{opt}</span>
-                                    </button>
-                                ))}
+                                {options.map((opt: any, idx: number) => {
+                                    // 옵션이 객체인 경우(최신형)와 문자열인 경우(레거시) 모두 대응
+                                    const optionLabel = typeof opt === 'object' ? opt.optionName : opt;
+                                    const isSelected = typeof selectedOption === 'object' 
+                                        ? (selectedOption as any).optionName === optionLabel
+                                        : selectedOption === optionLabel;
+
+                                    return (
+                                        <button
+                                            key={idx}
+                                            onClick={() => !hasApplied && setSelectedOption(opt)}
+                                            disabled={hasApplied}
+                                            className={`p-4 rounded-xl border-2 font-medium text-left flex items-center gap-3 transition-all ${isSelected
+                                                ? 'border-primary bg-rose-50 text-primary'
+                                                : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary hover:bg-rose-50'
+                                                } ${hasApplied ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'}`}
+                                        >
+                                            <span className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0 ${isSelected
+                                                ? 'border-primary bg-primary text-white'
+                                                : 'border-gray-300 bg-white text-gray-400'
+                                                }`}>
+                                                {isSelected ? '✓' : idx + 1}
+                                            </span>
+                                            <span className="flex-1">{optionLabel}</span>
+                                        </button>
+                                    );
+                                })}
                             </div>
                             {selectedOption && !hasApplied && (
                                 <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                                     <p className="text-sm text-green-800">
-                                        ✓ 선택된 옵션: <strong>{selectedOption}</strong>
+                                        ✓ 선택된 옵션: <strong>{typeof selectedOption === 'object' ? (selectedOption as any).optionName : selectedOption}</strong>
                                     </p>
                                 </div>
                             )}
@@ -602,7 +806,7 @@ export default function CampaignDetailPage() {
                     {hasApplied && selectedOption && (
                         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
                             <p className="text-sm text-blue-800">
-                                선택하신 옵션: <strong>{selectedOption}</strong>
+                                선택하신 옵션: <strong>{typeof selectedOption === 'object' ? (selectedOption as any).optionName : selectedOption}</strong>
                             </p>
                         </div>
                     )}

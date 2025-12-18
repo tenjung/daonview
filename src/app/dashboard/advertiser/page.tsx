@@ -159,7 +159,7 @@ export default function AdvertiserDashboard() {
             <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">캠페인 관제탑</h1>
+                        <h1 className="text-3xl font-bold text-gray-900">캠페인 관리페이지</h1>
                         <p className="text-gray-500 mt-1">주의가 필요한 캠페인을 확인하고 즉시 조치하세요</p>
                     </div>
                     <Link href="/dashboard/campaign/new" className="btn btn-primary">+ 새 캠페인 등록</Link>

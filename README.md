@@ -1,49 +1,33 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+코딩 주의사항
 
-## Getting Started
-
-### 1. Environment Setup
-
-First, copy the `.env.example` file to `.env.local`:
-
-```bash
-cp .env.example .env.local
-```
-
-Then, update `.env.local` with your actual Supabase credentials:
-- Get your Supabase URL and Anon Key from: https://app.supabase.com/project/bjdxqauljfoncoueuwubd/settings/api
-- Replace the placeholder values in `.env.local`
-
-### 2. Run the Development Server
+## 💻 1. 기술 스택 및 환경 (Tech Stack)
+- **Framework:** React (Vite)
+- **Language:** TypeScript (tsx)
+- **UI Component:** shadcn/ui
+- **Icons:** Lucide React
+- **Styling:** Tailwind CSS
+- **Backend:** Supabase
 
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 🔄 2. 데이터베이스 및 타입 관리 (DB & Types)
+- **타입 참조 파일:** `src/types/database.ts`
+- **동기화 필수:** 데이터베이스에 CRUD 작업이 발생하거나 스키마가 변경될 경우, 반드시 다음 명령어를 실행하여 타입을 최신화한 후 진행한다.
+  ```bash
+  npm run update-types
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+무결성 체크: 프론트엔드 항목의 추가/제거 시 항상 DB와의 무결성을 확인하며, 필요 시 적용 가능한 SQL 쿼리를 함께 제공한다.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📝 3. 단계별 소통:
+질문/제안 단계: 사용자가 질문하거나 의견을 물을 때는 코드를 수정하지 않고 상세한 답변과 원리 설명에 집중한다.
 
-## Learn More
+실행 단계: 사용자가 **"해줘", "실행해줘", "진행해줘", "바꿔줘"**와 같이 명시적인 명령을 내릴 때만 실제 코드 수정을 진행한다.
 
-To learn more about Next.js, take a look at the following resources:
+## 📝 4. 프론트엔드쪽에 항목이 추가되거나 제거될떄에는
+항상 DB쪽과 무결성을 체크하여 문제되는 부분에 대한 SQL을 전달줘야 적용가능함
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📝 5. 캠페인 카드 내의 뱃지데이터는 항상 바뀌어도 DB와 일치하게 만들어줘
+메인페이지
+캠페인 페이지 
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+#구매평은 배송체험의 종류이기 때문에 전국 장소에 대한 뱃지는 빼야함

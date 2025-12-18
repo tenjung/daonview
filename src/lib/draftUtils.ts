@@ -43,44 +43,99 @@ export const saveDraft = async (userId: string, campaignData: {
     currentStep: number;
 }): Promise<DraftCampaign> => {
     try {
-        // 필수 필드 채우기 (NOT NULL 제약조건 만족용)
-        // step1Data가 항상 존재한다는 가정하에
-        const platform = campaignData.step1Data?.platform || 'OTHER'; // DB NOT NULL 제약 대응
-        const type = campaignData.campaignType;
-        const endDate = campaignData.step1Data?.reviewDeadline || campaignData.step1Data?.recruitmentStartDate || new Date().toISOString();
-
-        // campaign_options에 전체 데이터 저장하여 상태 보존
-        const campaignOptions = {
-            step1Data: campaignData.step1Data,
-            step2Data: campaignData.step2Data,
-            currentStep: campaignData.currentStep,
-            draftId: campaignData.id // 기존 로컬 ID 유지용 (필요시)
-        };
-
-        const draftPayload = {
-            created_by: userId,
-            title: campaignData.title,
-            platform: platform,
-            type: type,
-            campaign_type: type,
-            status: 'DRAFT',
-            end_date: endDate,
-            campaign_options: campaignOptions,
-            // 필요한 경우 id 업데이트 (기존 draft가 DB에 있는 경우)
-            ...(campaignData.id && !isNaN(Number(campaignData.id)) ? { id: Number(campaignData.id) } : {})
-        };
-
-        const { data, error } = await supabase
-            .from('campaigns')
-            .upsert(draftPayload)
-            .select()
+        // 1. 프로필 존재 여부 확인 (외래 키 제약 조건 체크)
+        console.log('[saveDraft] 프로필 확인 중...');
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', userId)
             .single();
 
-        if (error) throw error;
+        if (profileError || !profile) {
+            console.error('프로필 확인 실패:', profileError);
+            throw new Error('프로필 정보가 없습니다. DB의 profiles 테이블에 사용자 정보를 등록해야 합니다.');
+        }
 
-        return normalizeDraftFromDB(data);
-    } catch (error) {
-        console.error('임시저장 실패:', error);
+        // 2. 유형(type) 및 플랫폼(platform) 매핑 (유저 정의 구조 반영)
+        const mappedType = campaignData.campaignType === 'delivery' ? '배송형' : '방문형';
+        
+        let mappedPlatform = '구매평';
+        if (campaignData.campaignType === 'delivery') {
+            if (campaignData.step1Data?.includeNaver) mappedPlatform = '블로그';
+            else if (campaignData.step1Data?.includeInstagram) mappedPlatform = '인스타';
+            else if (campaignData.step1Data?.includeReview) mappedPlatform = '구매평';
+        } else {
+            const step1Platform = campaignData.step1Data?.platform;
+            if (step1Platform === 'naver') mappedPlatform = '블로그';
+            else if (step1Platform === 'instagram') mappedPlatform = '인스타';
+        }
+
+        // 3. 날짜 형식 최적화 (YYYY-MM-DD)
+        const now = new Date().toISOString().split('T')[0];
+        const endDate = campaignData.step1Data?.reviewDeadline || 
+                        campaignData.step1Data?.recruitmentStartDate || 
+                        now;
+
+        // 4. campaign_options 구조 (스키마 DEFAULT '[]'에 맞춰 배열로 감쌈)
+        const campaignOptions = [{
+            step1Data: campaignData.step1Data || {},
+            step2Data: campaignData.step2Data || {},
+            currentStep: campaignData.currentStep || 1,
+            savedAt: new Date().toISOString()
+        }];
+
+        // 전송할 데이터 페이로드 (DB 스키마 필드명과 1:1 매칭)
+        const draftPayload: any = {
+            created_by: userId,
+            title: campaignData.title || campaignData.step1Data?.productName || '제목 없음',
+            platform: mappedPlatform,
+            type: mappedType,
+            campaign_type: campaignData.campaignType || 'delivery',
+            status: 'DRAFT',
+            end_date: endDate,
+            campaign_options: campaignOptions, // jsonb 배열
+            recruit_count: 0, // 기본값
+            is_always: false
+        };
+
+        // 5. ID 처리 및 DB 쿼리 실행
+        const isExisting = campaignData.id && !isNaN(Number(campaignData.id)) && Number(campaignData.id) > 0;
+        
+        console.log(`[saveDraft] 실제 DB 전송 시작... (${isExisting ? 'UPDATE' : 'INSERT'})`, draftPayload);
+
+        if (isExisting) {
+            const { data, error } = await supabase
+                .from('campaigns')
+                .update(draftPayload)
+                .eq('id', Number(campaignData.id))
+                .select();
+
+            if (error) {
+                console.error('업데이트 에러:', error);
+                throw error;
+            }
+            console.log('[saveDraft] 업데이트 성공:', data?.[0]?.id);
+            return normalizeDraftFromDB(data?.[0]);
+        } else {
+            const { data, error } = await supabase
+                .from('campaigns')
+                .insert([draftPayload])
+                .select();
+
+            if (error) {
+                console.error('인설트 에러:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                throw new Error('저장되었으나 데이터를 반환받지 못했습니다. RLS 정책을 확인해주세요.');
+            }
+
+            console.log('[saveDraft] 신규 생성 성공! ID:', data[0].id);
+            return normalizeDraftFromDB(data[0]);
+        }
+    } catch (error: any) {
+        console.error('saveDraft 최종 실패 원인:', error.message || error);
         throw error;
     }
 };
@@ -123,17 +178,20 @@ export const loadDraft = async (userId: string, draftId: string): Promise<DraftC
 
 // DB 데이터를 DraftCampaign 형식으로 변환
 const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
-    const options = dbData.campaign_options || {};
+    // campaign_options가 배열로 저장되어 있을 경우 첫 번째 요소 사용
+    const optionsRaw = dbData.campaign_options;
+    const options = Array.isArray(optionsRaw) ? (optionsRaw[0] || {}) : (optionsRaw || {});
+
     return {
         id: dbData.id.toString(),
         userId: dbData.created_by,
         title: dbData.title,
-        campaignType: dbData.campaign_type as 'delivery' | 'visit' | 'press',
+        campaignType: (dbData.campaign_type || dbData.type) as 'delivery' | 'visit' | 'press',
         step1Data: options.step1Data || {},
         step2Data: options.step2Data,
         currentStep: options.currentStep || 1,
         createdAt: dbData.created_at,
-        updatedAt: dbData.created_at, // DB에 updated_at이 없다면 created_at 사용
+        updatedAt: dbData.created_at,
     };
 };
 
