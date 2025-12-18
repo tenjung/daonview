@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import AdminSidebar from '@/components/AdminSidebar';
 import { supabase } from '@/lib/supabaseClient';
 import { Users, Search, Filter, Mail, Star, Award, CheckCircle2, ChevronRight, Instagram, MessageSquare } from 'lucide-react';
@@ -81,7 +81,9 @@ export default function AdminInfluencersPage() {
 
     return (
         <div className="flex min-h-screen bg-background">
-            <AdminSidebar />
+            <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
+                <AdminSidebar />
+            </Suspense>
 
             <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center mb-8">
