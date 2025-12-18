@@ -4,29 +4,8 @@ import InteractiveRollingBanner from '@/components/InteractiveRollingBanner';
 import StaticPromoBanners from '@/components/StaticPromoBanners';
 import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
-import { Package } from 'lucide-react';
-
-// Skeleton Component for empty slots
-const CampaignSkeleton = () => (
-    <div className="border border-gray-100 rounded-xl overflow-hidden bg-white h-full shadow-sm">
-        <div className="aspect-[4/3] bg-gray-100 animate-pulse relative">
-            <div className="absolute inset-0 flex items-center justify-center text-gray-300">
-                <span className="text-4xl opacity-20">Coming Soon</span>
-            </div>
-        </div>
-        <div className="p-5 space-y-3">
-            <div className="flex gap-2">
-                <div className="w-8 h-8 rounded-full bg-gray-100 animate-pulse" />
-                <div className="w-12 h-6 rounded bg-gray-100 animate-pulse" />
-            </div>
-            <div className="w-3/4 h-5 bg-gray-100 rounded animate-pulse" />
-            <div className="mt-4 pt-3 border-t border-gray-50 flex justify-between">
-                <div className="w-12 h-4 bg-gray-100 rounded animate-pulse" />
-                <div className="w-12 h-4 bg-gray-100 rounded animate-pulse" />
-            </div>
-        </div>
-    </div>
-);
+import { fetchAllBannerData } from '@/lib/bannerUtils';
+import CampaignSkeleton from '@/components/CampaignSkeleton';
 
 export default async function Home() {
     // 1. Latest Campaigns (Limited to 4)
@@ -50,23 +29,6 @@ export default async function Home() {
         .sort((a, b) => (b.applicants || 0) - (a.applicants || 0))
         .slice(0, 4);
 
-    // 4. Delivery & Visit (Remain at 4)
-    const { data: deliveryData } = await supabase
-        .from('campaigns')
-        .select('*, applications(count)')
-        .in('type', ['배송형', 'DELIVERY'])
-        .in('status', ['RECRUITING', 'ONGOING'])
-        .limit(4);
-    const deliveryCampaigns = deliveryData?.map(c => mapCampaignToCard(c as any)) || [];
-
-    const { data: visitData } = await supabase
-        .from('campaigns')
-        .select('*, applications(count)')
-        .in('type', ['방문형', 'VISIT'])
-        .in('status', ['RECRUITING', 'ONGOING'])
-        .limit(4);
-    const visitCampaigns = visitData?.map(c => mapCampaignToCard(c as any)) || [];
-
     // Fetch latest notices from database
     const { data: noticesData } = await supabase
         .from('notices')
@@ -77,10 +39,13 @@ export default async function Home() {
 
     const notices = noticesData || [];
 
+    // Fetch banner items for SSR
+    const bannerItems = await fetchAllBannerData();
+
     return (
         <div className="bg-background">
             {/* NEW Interactive Rolling Banner System */}
-            <InteractiveRollingBanner />
+            <InteractiveRollingBanner initialItems={bannerItems} />
 
             {/* Static Promotional Banners */}
             <StaticPromoBanners />
@@ -128,52 +93,6 @@ export default async function Home() {
                         ))}
                         {[...Array(Math.max(0, 4 - popularCampaigns.length))].map((_, i) => (
                             <CampaignSkeleton key={`skel-pop-${i}`} />
-                        ))}
-                    </div>
-                </div>
-            </section>
-
-            {/* Delivery Campaigns */}
-            <section className="container py-16">
-                <div className="flex justify-between items-end mb-8">
-                    <div>
-                        <span className="inline-block bg-green-100 text-green-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">DELIVERY</span>
-                        <h2 className="text-3xl font-black text-text-main flex items-center gap-2">
-                            <Package className="w-8 h-8" /> 편하게 받는 배송형
-                        </h2>
-                    </div>
-                    <Link href="/campaigns?type=delivery" className="text-sm font-bold text-gray-400 hover:text-green-600 transition-colors flex items-center gap-1 group">
-                        전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
-                    </Link>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {deliveryCampaigns.map(cam => (
-                        <CampaignCard key={cam.id} {...cam} />
-                    ))}
-                    {[...Array(Math.max(0, 4 - deliveryCampaigns.length))].map((_, i) => (
-                        <CampaignSkeleton key={`skel-delivery-${i}`} />
-                    ))}
-                </div>
-            </section>
-
-            {/* Visit Campaigns */}
-            <section className="bg-slate-50 border-y border-gray-100">
-                <div className="container py-16">
-                    <div className="flex justify-between items-end mb-8">
-                        <div>
-                            <span className="inline-block bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">VISIT</span>
-                            <h2 className="text-3xl font-black text-text-main">직접 체험하는 방문형</h2>
-                        </div>
-                        <Link href="/campaigns?type=visit" className="text-sm font-bold text-gray-400 hover:text-purple-600 transition-colors flex items-center gap-1 group">
-                            전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
-                        </Link>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {visitCampaigns.map(cam => (
-                            <CampaignCard key={cam.id} {...cam} />
-                        ))}
-                        {[...Array(Math.max(0, 4 - visitCampaigns.length))].map((_, i) => (
-                            <CampaignSkeleton key={`skel-visit-${i}`} />
                         ))}
                     </div>
                 </div>

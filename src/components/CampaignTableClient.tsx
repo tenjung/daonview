@@ -1,0 +1,234 @@
+'use client';
+
+import { useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
+import { toast } from 'sonner';
+import { Check, X, Eye, Calendar } from 'lucide-react';
+import Link from 'next/link';
+import ConfirmDialog from '@/components/ConfirmDialog';
+
+interface CampaignTableClientProps {
+    initialCampaigns: any[];
+    type: string;
+}
+
+export default function CampaignTableClient({ initialCampaigns, type }: CampaignTableClientProps) {
+    const [campaigns, setCampaigns] = useState(initialCampaigns);
+
+    // Confirm Dialog State
+    const [confirmModal, setConfirmModal] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+        type: 'info' | 'danger' | 'warning';
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => { },
+        type: 'info'
+    });
+
+    const handleApprove = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: '캠페인 승인',
+            message: '이 캠페인을 승인하시겠습니까?\n승인 후 날짜에 맞춰 메인에 노출됩니다.',
+            type: 'info',
+            onConfirm: async () => {
+                const { error } = await supabase
+                    .from('campaigns')
+                    .update({ status: 'RECRUITING' })
+                    .eq('id', id);
+
+                if (error) {
+                    toast.error('승인 처리 중 오류가 발생했습니다.');
+                    console.error(error);
+                } else {
+                    toast.success('캠페인이 승인되었습니다.');
+                    setCampaigns(prev => prev.filter(c => c.id !== id));
+                }
+            }
+        });
+    };
+
+    const handleReject = (id: string) => {
+        setConfirmModal({
+            isOpen: true,
+            title: '캠페인 거절',
+            message: '이 캠페인을 거절하시겠습니까?\n거절된 캠페인은 승인 대기 목록에서 제외됩니다.',
+            type: 'danger',
+            onConfirm: async () => {
+                const { error } = await supabase
+                    .from('campaigns')
+                    .update({ status: 'REJECTED' })
+                    .eq('id', id);
+
+                if (error) {
+                    toast.error('거절 처리 중 오류가 발생했습니다.');
+                    console.error(error);
+                } else {
+                    toast.success('캠페인이 거절되었습니다.');
+                    setCampaigns(prev => prev.filter(c => c.id !== id));
+                }
+            }
+        });
+    };
+
+    if (campaigns.length === 0) {
+        const getEmptyMessage = () => {
+            switch (type) {
+                case 'pending': return '승인 대기 중인 캠페인이 없습니다.';
+                case 'active': return '진행 중인 캠페인이 없습니다.';
+                case 'completed': return '완료된 캠페인이 없습니다.';
+                case 'upcoming': return '진행 예정인 캠페인이 없습니다.';
+                default: return '목록이 비어있습니다.';
+            }
+        };
+
+        return (
+            <div className="p-20 text-center text-gray-400 flex flex-col items-center bg-white">
+                <div className="text-5xl mb-4">
+                    {type === 'pending' ? '✨' : type === 'active' ? '📢' : type === 'upcoming' ? '⏳' : '✅'}
+                </div>
+                <p className="text-lg font-medium">{getEmptyMessage()}</p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="overflow-x-auto bg-white">
+            <table className="w-full text-left">
+                <thead className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-y border-gray-200">
+                    <tr>
+                        <th className="px-6 py-4">등록/시작일</th>
+                        <th className="px-6 py-4">유형</th>
+                        <th className="px-6 py-4">캠페인 정보</th>
+                        <th className="px-6 py-4">모집 현황</th>
+                        <th className="px-6 py-4 text-center">관리</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                    {campaigns.map((cam) => {
+                        const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
+                        const startDate = options?.step1Data?.recruitmentStartDate || cam.created_at;
+
+                        return (
+                            <tr key={cam.id} className="hover:bg-gray-50 transition-colors">
+                                <td className="px-6 py-4">
+                                    <div className="text-sm font-medium text-gray-900">{new Date(cam.created_at).toLocaleDateString()}</div>
+                                    <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
+                                        <Calendar size={12} /> {new Date(startDate).toLocaleDateString()} 시작
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col gap-1.5">
+                                        {/* 플랫폼 뱃지 */}
+                                        {(() => {
+                                            const p = cam.platform;
+                                            const isPurchase = p === '기타' || p === 'OTHER' || p === '구매평' || p === 'PURCHASE';
+                                            const isBlog = p === '블로그' || p === 'BLOG';
+                                            const isInsta = p === '인스타' || p === 'INSTAGRAM';
+
+                                            let label = p;
+                                            if (isPurchase) label = '구매평';
+                                            else if (isBlog) label = '블로그';
+                                            else if (isInsta) label = '인스타';
+
+                                            return (
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold ${isPurchase ? 'bg-orange-500 text-white' :
+                                                    isBlog ? 'bg-green-600 text-white' :
+                                                        isInsta ? 'bg-pink-500 text-white' : 'bg-slate-800 text-white'
+                                                    }`}>
+                                                    {label}
+                                                </span>
+                                            );
+                                        })()}
+
+                                        {/* 유형 뱃지 */}
+                                        {(() => {
+                                            const t = cam.type;
+                                            const isVisit = t === '방문형' || t === 'VISIT';
+                                            const isDelivery = t === '배송형' || t === 'DELIVERY';
+
+                                            let label = t;
+                                            if (isVisit) label = '방문';
+                                            else if (isDelivery) label = '배송';
+                                            else label = '기자단';
+
+                                            return (
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold border ${isVisit ? 'bg-blue-50 text-blue-600 border-blue-100' :
+                                                    isDelivery ? 'bg-green-50 text-green-600 border-green-100' :
+                                                        'bg-purple-50 text-purple-600 border-purple-100'
+                                                    }`}>
+                                                    {label}
+                                                </span>
+                                            );
+                                        })()}
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="font-bold text-gray-900 line-clamp-1">{cam.title}</div>
+                                    <div className="text-xs text-gray-500 mt-1 italic">{cam.category || '카테고리 없음'}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                        {(() => {
+                                            const applicants = Array.isArray(cam.applications)
+                                                ? cam.applications[0]?.count
+                                                : (cam.applications as any)?.count || 0;
+                                            return <span className="text-sm font-bold text-primary">{applicants}</span>;
+                                        })()}
+                                        <span className="text-gray-300">/</span>
+                                        <span className="text-sm text-gray-600">{cam.recruit_count}명</span>
+                                    </div>
+                                    <div className="text-[10px] text-gray-400 mt-1">
+                                        ~ {new Date(cam.end_date).toLocaleDateString()} 마감
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="flex justify-center gap-2">
+                                        {type === 'pending' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleApprove(cam.id)}
+                                                    className="flex items-center gap-1 bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 transition-colors font-bold text-xs shadow-sm"
+                                                >
+                                                    <Check size={14} /> 승인
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReject(cam.id)}
+                                                    className="flex items-center gap-1 bg-white text-gray-500 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-100 transition-all font-medium text-xs"
+                                                >
+                                                    <X size={14} /> 거절
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <Link
+                                                href={`/campaigns/${cam.id}`}
+                                                className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
+                                            >
+                                                <Eye size={14} /> 상세보기
+                                            </Link>
+                                        )}
+                                    </div>
+                                </td>
+                            </tr>
+                        );
+                    })}
+                </tbody>
+            </table>
+
+            <ConfirmDialog
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmModal.onConfirm}
+                title={confirmModal.title}
+                message={confirmModal.message}
+                type={confirmModal.type}
+                confirmText={confirmModal.title.includes('승인') ? '승인하기' : '거절하기'}
+            />
+        </div>
+    );
+}

@@ -11,17 +11,19 @@ export default function StaticPromoBanners() {
             bgColor: 'bg-gradient-to-br from-blue-500 to-blue-600',
             icon: BookOpen,
             link: '/guide',
-            accentColor: 'text-blue-100'
+            accentColor: 'text-blue-100',
+            cta: '자세히 보기'
         },
         {
             id: 2,
-            title: '광고주를 위한',
-            subtitle: '체험단 진행 가이드',
-            description: '광고주님이라면 여기로! 클릭하세요!',
+            title: '광고주 전용',
+            subtitle: '성공적인 비즈니스를 위한 파트너',
+            description: '광고주를 위한 다온뷰 100% 활용 가이드',
             bgColor: 'bg-gradient-to-br from-green-500 to-green-600',
             icon: Briefcase,
             link: '/intro',
-            accentColor: 'text-green-100'
+            accentColor: 'text-green-100',
+            cta: '서비스 소개서 보기'
         },
         {
             id: 3,
@@ -31,7 +33,8 @@ export default function StaticPromoBanners() {
             bgColor: 'bg-gradient-to-br from-orange-400 to-orange-500',
             icon: Sparkles,
             link: '/campaigns?sort=new',
-            accentColor: 'text-orange-100'
+            accentColor: 'text-orange-100',
+            cta: '자세히 보기'
         }
     ];
 
@@ -41,7 +44,7 @@ export default function StaticPromoBanners() {
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
                     return (
-                        <Link 
+                        <Link
                             key={banner.id}
                             href={banner.link}
                             className={`${banner.bgColor} rounded-3xl p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer`}
@@ -74,7 +77,7 @@ export default function StaticPromoBanners() {
                                 {/* CTA */}
                                 <div className="mt-6 pt-4 border-t border-white/20">
                                     <span className="inline-flex items-center gap-2 text-white font-bold text-sm group-hover:gap-3 transition-all">
-                                        자세히 보기 
+                                        {banner.cta}
                                         <span className="text-lg">→</span>
                                     </span>
                                 </div>

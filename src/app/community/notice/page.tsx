@@ -1,113 +1,124 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { supabase } from '@/lib/supabaseClient';
-import { Bell, Pin } from 'lucide-react';
+import { Bell, Pin, Search, PenSquare } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
-interface Notice {
-    id: number;
-    type: string;
-    title: string;
-    content: string | null;
-    is_pinned: boolean;
-    view_count: number;
-    created_at: string;
-}
+export default function NoticePage() {
+    const [posts, setPosts] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [isAdmin, setIsAdmin] = useState(false);
 
-export default async function NoticePage() {
-    // Fetch notices from database
-    const { data: notices } = await supabase
-        .from('notices')
-        .select('*')
-        .order('is_pinned', { ascending: false })
-        .order('created_at', { ascending: false });
+    useEffect(() => {
+        fetchPosts();
+        checkAdmin();
+    }, []);
 
-    // Check if user is admin (server-side)
-    const { data: { user } } = await supabase.auth.getUser();
-    let isAdmin = false;
-    
-    if (user) {
-        const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-        
-        isAdmin = profile?.role === 'ADMIN';
-    }
+    const checkAdmin = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            setIsAdmin(profile?.role === 'ADMIN');
+        }
+    };
 
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case '공지': return 'bg-blue-100 text-blue-700';
-            case '이벤트': return 'bg-rose-100 text-primary';
-            case '업데이트': return 'bg-green-100 text-green-700';
-            default: return 'bg-gray-100 text-gray-700';
+    const fetchPosts = async () => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*')
+                .eq('type', 'NOTICE')
+                .order('is_pinned', { ascending: false })
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            setPosts(data || []);
+        } catch (error) {
+            console.error('Error fetching notices:', error);
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div className="container py-16 max-w-5xl">
-            <div className="flex justify-between items-center mb-8">
+        <div className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-black text-text-main flex items-center gap-3">
-                        <Bell className="w-8 h-8 text-primary" />
-                        이벤트 & 공지사항
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <Bell className="text-primary" size={24} />
+                        공지사항
                     </h1>
-                    <p className="text-gray-500 text-sm mt-2 font-medium">다온뷰의 새로운 소식과 이벤트를 확인하세요</p>
+                    <p className="text-gray-500 mt-1">다온뷰의 새로운 소식과 안내를 확인하세요.</p>
                 </div>
                 {isAdmin && (
-                    <Link 
-                        href="/dashboard/admin/notices/new" 
-                        className="btn btn-primary px-6 py-2.5 text-sm font-bold rounded-xl shadow-lg shadow-primary/20"
+                    <Link
+                        href="/community/write?type=NOTICE"
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
                     >
-                        + 공지 작성
+                        <PenSquare size={18} />
+                        공지 작성
                     </Link>
                 )}
             </div>
 
-            {!notices || notices.length === 0 ? (
-                <div className="p-16 border-2 border-dashed border-gray-200 rounded-3xl text-center">
-                    <Bell className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-400 font-medium text-lg">등록된 공지사항이 없습니다.</p>
+            {/* 목록 */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                <div className="divide-y divide-gray-50">
+                    {loading ? (
+                        [...Array(5)].map((_, i) => (
+                            <div key={i} className="p-6 animate-pulse flex flex-col gap-2">
+                                <div className="h-4 bg-gray-100 rounded w-1/4"></div>
+                                <div className="h-6 bg-gray-100 rounded w-3/4"></div>
+                            </div>
+                        ))
+                    ) : posts.length === 0 ? (
+                        <div className="p-20 text-center text-gray-400">
+                            <Bell size={48} className="mx-auto text-gray-100 mb-4" />
+                            등록된 공지사항이 없습니다.
+                        </div>
+                    ) : (
+                        posts.map((post) => (
+                            <Link
+                                key={post.id}
+                                href={`/community/${post.id}`}
+                                className={`block p-6 hover:bg-gray-50 transition-colors group ${post.is_pinned ? 'bg-primary/5' : ''}`}
+                            >
+                                <div className="flex items-start gap-4">
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            {post.is_pinned && (
+                                                <span className="flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                                    <Pin size={10} />
+                                                    공지
+                                                </span>
+                                            )}
+                                            <span className="text-xs text-gray-400">
+                                                {new Date(post.created_at).toLocaleDateString('ko-KR', {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
+                                            {post.title}
+                                        </h3>
+                                    </div>
+                                    <div className="text-xs text-gray-400 font-medium">
+                                        조회 {post.view_count || 0}
+                                    </div>
+                                </div>
+                            </Link>
+                        ))
+                    )}
                 </div>
-            ) : (
-                <div className="bg-white rounded-3xl border border-gray-200 overflow-hidden shadow-sm">
-                    {notices.map((notice: Notice, index: number) => (
-                        <Link
-                            key={notice.id}
-                            href={`/community/notice/${notice.id}`}
-                            className={`flex flex-col md:flex-row md:items-center py-5 px-6 hover:bg-gray-50 transition-colors group ${
-                                index !== notices.length - 1 ? 'border-b border-gray-100' : ''
-                            }`}
-                        >
-                            {/* Date */}
-                            <div className="text-gray-400 text-sm w-28 mb-2 md:mb-0 font-medium">
-                                {new Date(notice.created_at).toLocaleDateString('ko-KR', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit'
-                                }).replace(/\. /g, '.').replace(/\.$/, '')}
-                            </div>
-
-                            {/* Title & Type */}
-                            <div className="flex-1 flex items-center gap-3">
-                                {notice.is_pinned && (
-                                    <Pin className="w-4 h-4 text-primary shrink-0" />
-                                )}
-                                <span className={`inline-block ${getTypeColor(notice.type)} px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider shrink-0`}>
-                                    {notice.type}
-                                </span>
-                                <span className="font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
-                                    {notice.title}
-                                </span>
-                            </div>
-
-                            {/* View Count */}
-                            <div className="text-gray-400 text-xs mt-2 md:mt-0 md:w-24 md:text-right font-medium">
-                                조회 {notice.view_count}
-                            </div>
-                        </Link>
-                    ))}
-                </div>
-            )}
+            </div>
         </div>
     );
 }

@@ -88,7 +88,7 @@ const ToolbarSeparator = () => (
     <Toolbar.Separator className="w-[1px] bg-gray-200 mx-1 flex-shrink-0 h-5 self-center" />
 );
 
-export default function TiptapEditor() {
+export default function TiptapEditor({ initialContent = '', onChange }: { initialContent?: string, onChange?: (content: string) => void }) {
     const [color, setColor] = React.useState('#000000');
 
     // Editor Setup
@@ -113,7 +113,7 @@ export default function TiptapEditor() {
             Highlight.configure({ multicolor: true }),
             TextAlign.configure({ types: ['heading', 'paragraph'] }),
         ],
-        content: '',
+        content: initialContent,
         editorProps: {
             attributes: {
                 class: 'prose prose-lg max-w-none focus:outline-none min-h-[500px] p-8 prose-ul:list-disc prose-ol:list-decimal prose-ul:pl-6 prose-ol:pl-6 prose-li:my-1',
@@ -121,6 +121,9 @@ export default function TiptapEditor() {
         },
         onUpdate: ({ editor }) => {
             setColor(editor.getAttributes('textStyle').color || '#000000');
+            if (onChange) {
+                onChange(editor.getHTML());
+            }
         }
     });
 
