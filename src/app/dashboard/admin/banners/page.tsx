@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Plus, Trash2, Image as ImageIcon, Link as LinkIcon, Save, Upload, Pencil, X, Check, MoveUp, MoveDown, Settings2 } from 'lucide-react';
@@ -235,7 +235,9 @@ export default function BannerManagementPage() {
 
     return (
         <div className="flex min-h-screen bg-gray-50">
-            <AdminSidebar />
+            <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
+                <AdminSidebar />
+            </Suspense>
             <main className="flex-1 p-8">
                 <div className="max-w-5xl mx-auto">
                     <header className="mb-8 flex justify-between items-center">

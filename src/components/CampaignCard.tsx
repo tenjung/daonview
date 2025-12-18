@@ -113,7 +113,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 <div className="flex items-center gap-1.5 flex-wrap">
                     <TypeBadge type={type} />
                     <PlatformBadge platform={platform} />
-                    {isVisit && (
+                    {isVisit && platform !== 'PURCHASE' && (
                         region ? (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
                                 <MapPin className="w-3 h-3" />
