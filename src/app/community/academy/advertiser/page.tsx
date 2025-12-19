@@ -1,15 +1,28 @@
-import Link from "next/link";
+import { createServerClient } from "@/lib/supabaseClient";
+import AdvertiserColumnClient from "./AdvertiserColumnClient";
 
-export default function AdvertiserPage() {
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">광고주 칼럼</h1>
-                <Link href="/community/write?mode=notion" className="btn btn-primary py-2 text-sm">글쓰기</Link>
-            </div>
-            <div className="p-8 border border-gray-200 rounded-xl text-center text-gray-500">
-                준비 중입니다.
-            </div>
-        </div>
-    );
+export const dynamic = 'force-dynamic';
+
+export default async function AdvertiserColumnPage() {
+    const supabase = createServerClient();
+    
+    // Fetch advertiser columns from posts table
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('type', 'ACADEMY_ADVERTISER')
+        .order('created_at', { ascending: false });
+
+    // Debug logging
+    console.log('=== ADVERTISER COLUMN DEBUG ===');
+    console.log('Posts data:', posts);
+    console.log('Posts count:', posts?.length || 0);
+    console.log('Error:', error);
+    console.log('================================');
+
+    if (error) {
+        console.error('Supabase error details:', error);
+    }
+
+    return <AdvertiserColumnClient initialPosts={posts || []} />;
 }

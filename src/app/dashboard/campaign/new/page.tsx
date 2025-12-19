@@ -12,7 +12,7 @@ import CampaignLoader from '@/components/campaign/CampaignLoader';
 import { saveDraft, loadDraft, DraftCampaign } from '@/lib/draftUtils';
 import { Save } from 'lucide-react';
 
-const AUTOSAVE_KEY = 'campaign_draft';
+// const AUTOSAVE_KEY = 'campaign_draft'; // Deprecated in favor of user-specific keys
 
 function NewCampaignPageContent() {
     const router = useRouter();
@@ -34,9 +34,8 @@ function NewCampaignPageContent() {
     useEffect(() => {
         const checkUser = async () => {
             try {
-                // getSession()은 로컬 스토리지를 더 빠르게 확인합니다.
-                const { data: { session } } = await supabase.auth.getSession();
-                const user = session?.user ?? null;
+                // getUser()가 보안상 더 안전하며 최신 상태를 보장합니다.
+                const { data: { user } } = await supabase.auth.getUser();
                 
                 if (user) {
                     setUserId(user.id);
@@ -104,10 +103,12 @@ function NewCampaignPageContent() {
         console.log('--- 임시저장 시작 ---');
         // 1. 최신 세션 확인
         let currentUserId = userId;
+        
+        // userId가 state에 없으면 직접 확인
         if (!currentUserId) {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user) {
-                currentUserId = session.user.id;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUserId = user.id;
                 setUserId(currentUserId);
             }
         }
@@ -115,7 +116,9 @@ function NewCampaignPageContent() {
         console.log('userId:', currentUserId);
 
         if (!currentUserId) {
-            toast.error('로그인이 필요합니다. 다시 로그인해주세요.');
+            toast.error('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
+            // 선택 사항: 로그인 페이지로 리다이렉트
+            // router.push('/login'); 
             return;
         }
 
@@ -134,7 +137,7 @@ function NewCampaignPageContent() {
             const draft = await saveDraft(currentUserId, {
                 id: currentDraftId || undefined,
                 title: step2Data?.campaignTitle || step1Data?.productName || '제목 없음',
-                campaignType: step1Data.campaignType, // null일 수 있음, draftUtils에서 처리됨
+                campaignType: step1Data.campaignType, 
                 step1Data,
                 step2Data,
                 currentStep,
@@ -244,30 +247,45 @@ function NewCampaignPageContent() {
 
     // 자동 저장된 데이터 복구
     useEffect(() => {
+        if (!userId) return; // 유저 정보가 없으면 실행하지 않음
+
         const id = searchParams?.get('id');
-        const savedData = localStorage.getItem(AUTOSAVE_KEY);
+        const userSpecificKey = `campaign_draft_${userId}`;
+        const savedData = localStorage.getItem(userSpecificKey);
+        
+        // 레거시 키 확인 (이전 버전 호환성 혹은 잘못된 공유 방지)
+        // 만약 레거시 키가 있고 유저별 키가 없다면? 
+        // 보안상 다른 사람의 데이터일 수 있으므로, 명시적으로 내 것이 아니면 무시하는게 맞음.
+        // 따라서 레거시 키(campaign_draft)는 이제 무시합니다.
+
         // 기존 캠페인 수정('id')이 아닐 때만 복구 다이얼로그 노출
         if (savedData && !id) {
             setShowRestoreDialog(true);
         }
-    }, [searchParams]);
+    }, [searchParams, userId]);
 
     // 자동 저장
     useEffect(() => {
-        if (step1Data || step2Data) {
-            const draftData = {
-                currentStep,
-                step1Data,
-                step2Data,
-                savedAt: new Date().toISOString(),
-            };
-            localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(draftData));
-        }
-    }, [currentStep, step1Data, step2Data]);
+        if (!userId) return;
+
+        // 데이터가 비어있으면 저장하지 않음 (초기 로딩 시 덮어쓰기 방지)
+        if (!step1Data && !step2Data) return;
+
+        const userSpecificKey = `campaign_draft_${userId}`;
+        const draftData = {
+            currentStep,
+            step1Data,
+            step2Data,
+            savedAt: new Date().toISOString(),
+        };
+        localStorage.setItem(userSpecificKey, JSON.stringify(draftData));
+    }, [currentStep, step1Data, step2Data, userId]);
 
     // 임시 저장 데이터 복구
     const handleRestoreDraft = () => {
-        const savedData = localStorage.getItem(AUTOSAVE_KEY);
+        if (!userId) return;
+        const userSpecificKey = `campaign_draft_${userId}`;
+        const savedData = localStorage.getItem(userSpecificKey);
         if (savedData) {
             const draft = JSON.parse(savedData);
             setCurrentStep(draft.currentStep);
@@ -282,7 +300,9 @@ function NewCampaignPageContent() {
 
     // 임시 저장 데이터 삭제
     const handleDiscardDraft = () => {
-        localStorage.removeItem(AUTOSAVE_KEY);
+        if (!userId) return;
+        const userSpecificKey = `campaign_draft_${userId}`;
+        localStorage.removeItem(userSpecificKey);
         setShowRestoreDialog(false);
     };
 
@@ -362,7 +382,6 @@ function NewCampaignPageContent() {
                 // 분류 정보 (유저 정의 구조 반영)
                 type: mappedType,         // '방문형', '배송형'
                 platform: mappedPlatform, // '블로그', '인스타', '기타'
-                campaign_type: step1Data.campaignType, // 'delivery', 'visit', 'press' (내부 구분용 유지)
                 
                 category: step1Data.category || null,
                 region: step1Data.region || null,
@@ -453,7 +472,8 @@ function NewCampaignPageContent() {
             console.log('✅ 캠페인 저장 성공:', data);
 
             // 성공 시 임시 저장 데이터 삭제
-            localStorage.removeItem(AUTOSAVE_KEY);
+            const userSpecificKey = `campaign_draft_${user.id}`;
+            localStorage.removeItem(userSpecificKey);
 
             toast.success(editId ? '캠페인 정보가 업데이트되었습니다' : '캠페인이 요청되었습니다');
 

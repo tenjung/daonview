@@ -90,7 +90,6 @@ export const saveDraft = async (userId: string, campaignData: {
             title: campaignData.title || campaignData.step1Data?.productName || '제목 없음',
             platform: mappedPlatform,
             type: mappedType,
-            campaign_type: campaignData.campaignType || 'delivery',
             status: 'DRAFT',
             end_date: endDate,
             campaign_options: campaignOptions, // jsonb 배열

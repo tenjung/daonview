@@ -128,9 +128,11 @@ export default function Navbar() {
           ) : user ? (
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
-                  {profile?.role === 'ADMIN' ? '관리자' : profile?.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
-                </span>
+                {profile && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
+                    {profile.role === 'ADMIN' ? '관리자' : profile.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
+                  </span>
+                )}
                 <span className="text-sm font-bold text-text-main">{profile?.nickname || user.email?.split('@')[0]}님</span>
               </div>
 
@@ -203,11 +205,13 @@ export default function Navbar() {
           {/* User Info Section */}
           {user && (
             <div className="p-6 border-b border-border bg-rose-50">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-2 py-1 rounded text-xs font-bold bg-white text-primary">
-                  {profile?.role === 'ADMIN' ? '관리자' : profile?.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
-                </span>
-              </div>
+              {profile && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-1 rounded text-xs font-bold bg-white text-primary">
+                    {profile.role === 'ADMIN' ? '관리자' : profile.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
+                  </span>
+                </div>
+              )}
               <p className="text-sm font-bold text-text-main">
                 {profile?.nickname || user.email?.split('@')[0]}님
               </p>

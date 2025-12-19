@@ -40,7 +40,7 @@ const PlatformBadge = ({ platform }: { platform: string }) => {
     }
 
     return (
-        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11px] font-semibold ${colorClass}`}>
+        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
             {icon}
             <span>{label}</span>
         </div>
@@ -66,7 +66,7 @@ const TypeBadge = ({ type }: { type?: string }) => {
     }
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded text-[11px] font-semibold ${colorClass}`}>
+        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
             {label}
         </span>
     );
@@ -80,7 +80,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
 
     return (
-        <Link href={linkHref} className="card group border border-border rounded-xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
+        <Link href={linkHref} className="card group border border-border rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
             {/* Image Section */}
             <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
                 {imageUrl ? (
@@ -96,7 +96,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                 {/* Top Right: D-Day (Optional but recommended) */}
                 <div className="absolute top-3 right-3 z-10">
-                    <span className={`px-2 py-1 rounded text-[10px] font-bold shadow-sm ${dday === '상시모집'
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm ${dday === '상시모집'
                         ? 'bg-indigo-600 text-white'
                         : dday === '종료'
                             ? 'bg-gray-800 text-white'
@@ -115,12 +115,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <PlatformBadge platform={platform} />
                     {isVisit && platform !== 'PURCHASE' && (
                         region ? (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
                                 <MapPin className="w-3 h-3" />
                                 {region}
                             </span>
                         ) : (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
+                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
                                 <MapPin className="w-3 h-3" />
                                 전국
                             </span>

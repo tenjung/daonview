@@ -47,7 +47,7 @@ export default function StaticPromoBanners() {
                         <Link
                             key={banner.id}
                             href={banner.link}
-                            className={`${banner.bgColor} rounded-3xl p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer`}
+                            className={`${banner.bgColor} rounded-2xl p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer`}
                         >
                             {/* Background Pattern */}
                             <div className="absolute inset-0 opacity-10">

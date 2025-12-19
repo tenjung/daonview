@@ -1,4 +1,225 @@
-## 🛑 [MUST READ] 코딩 어시스턴트 필수 준수 사항
+# 📘 DAONVIEW 프로젝트 아키텍처
+
+> **⚠️ 중요**: 구조 변경이나 기능 추가 시 이 섹션을 반드시 업데이트할 것!
+
+## 🏗️ 전체 구조 개요
+
+### 프로젝트 구조
+```
+daonview/
+├── src/
+│   ├── app/                    # Next.js App Router (페이지)
+│   ├── components/             # 재사용 가능한 컴포넌트
+│   ├── lib/                    # 유틸리티 함수
+│   └── types/                  # TypeScript 타입 정의
+└── public/                     # 정적 파일
+```
+
+---
+
+## � 데이터베이스 구조
+
+### 주요 테이블
+| 테이블명 | 용도 | 주요 필드 |
+|---------|------|----------|
+| `campaigns` | 캠페인 정보 | id, title, platform, type, status, recruitment_start_date |
+| `profiles` | 사용자 프로필 | id, email, role, nickname, point |
+| `applications` | 캠페인 신청 | id, user_id, campaign_id, status |
+| `notices` | 공지사항 & 이벤트 (관리자 전용) | id, type ('공지' or '이벤트'), title, content, author, is_pinned, view_count |
+| `posts` | 사용자 생성 콘텐츠 | id, user_id, type (FREE, BLOG_INTRO, ACADEMY_*), title, content, view_count |
+| `banners` | 메인 배너 | id, title, image_url, link_url, order_index |
+
+### ⚠️ 중요: 데이터 소스 통일
+- **공지사항/이벤트**: `notices` 테이블 (관리자 전용)
+- **커뮤니티 게시글**: `posts` 테이블 (사용자 생성)
+- **캠페인**: `campaigns` 테이블만 사용
+
+### 🔐 커뮤니티 권한 구조
+| 게시판 | 테이블 | type 값 | 작성 권한 |
+|--------|--------|---------|----------|
+| 공지사항 | notices | '공지' | ADMIN |
+| 이벤트 | notices | '이벤트' | ADMIN |
+| 광고주 칼럼 | posts | ACADEMY_ADVERTISER | ADMIN |
+| 인플루언서 칼럼 | posts | ACADEMY_INFLUENCER | ADMIN |
+| 자유게시판 | posts | FREE | ALL |
+| 블로그 소개 | posts | BLOG_INTRO | ALL |
+
+---
+
+## 🗺️ 라우팅 구조
+
+### 공개 페이지
+```
+/                                    → 메인 페이지 (SSR)
+/campaigns                           → 캠페인 목록
+/campaigns/[id]                      → 캠페인 상세
+/intro                               → 서비스 소개
+/pricing                             → 요금제
+/login                               → 로그인
+/signup                              → 회원가입
+```
+
+### 커뮤니티 (공개)
+```
+/community/notice                    → 공지사항 목록 (notices, type='공지')
+/community/event                     → 이벤트 목록 (notices, type='이벤트')
+/community/notice/[id]               → 공지/이벤트 상세 (notices)
+/community/academy                   → 아카데미 허브
+/community/academy/advertiser        → 광고주 칼럼 (posts, ACADEMY_ADVERTISER)
+/community/academy/influencer        → 인플루언서 칼럼 (posts, ACADEMY_INFLUENCER)
+/community/free                      → 자유게시판 (posts, FREE)
+/community/blog-intro                → 블로그 소개 (posts, BLOG_INTRO)
+/community/[id]                      → 게시글 상세 (posts)
+/community/write?type=XXX            → 글쓰기 (권한별 분기)
+```
+
+### 대시보드 (인증 필요)
+```
+/dashboard/influencer                → 인플루언서 대시보드
+/dashboard/advertiser                → 광고주 대시보드
+/dashboard/admin                     → 관리자 대시보드
+/dashboard/admin/campaigns           → 관리자 캠페인 관리
+/dashboard/admin/users               → 관리자 사용자 관리
+```
+
+---
+
+## 🔄 데이터 흐름
+
+### 1. 캠페인 데이터 흐름
+```mermaid
+graph LR
+    A[Supabase campaigns] --> B[Server Component]
+    B --> C[mapCampaignToCard]
+    C --> D[CampaignListClient]
+    D --> E[CampaignCard]
+    
+    style A fill:#e1f5ff
+    style D fill:#fff3cd
+    style E fill:#d4edda
+```
+
+**흐름 설명:**
+1. **Server Component** (`page.tsx`): Supabase에서 데이터 fetch (SSR)
+2. **mapCampaignToCard**: DB 데이터를 UI 형식으로 변환
+3. **Client Component**: 필터링, 정렬 등 인터랙션 처리
+4. **CampaignCard**: 개별 캠페인 카드 렌더링
+
+### 2. 공지사항 & 이벤트 데이터 흐름
+```mermaid
+graph LR
+    A[Supabase notices] --> B[메인 페이지<br/>최신 3개<br/>전체 type]
+    A --> C[공지사항 목록<br/>type='공지']
+    A --> D[이벤트 목록<br/>type='이벤트']
+    C --> E[NoticeBoardClient]
+    D --> F[EventBoardClient]
+    E --> G[공지/이벤트 상세<br/>/notice/[id]]
+    F --> G
+    
+    style A fill:#e1f5ff
+    style B fill:#d4edda
+    style C fill:#fff3cd
+    style D fill:#fff3cd
+    style G fill:#fce4ec
+```
+
+**중요 포인트:**
+- 모든 공지사항과 이벤트는 `notices` 테이블에서 가져옴
+- 메인 페이지: 최신 3개 (type 구분 없이 전체)
+- 공지사항 목록: `type='공지'` 필터링
+- 이벤트 목록: `type='이벤트'` 필터링
+- 상세 페이지: 공통으로 `/community/notice/[id]` 사용
+
+### 3. 사용자 인증 흐름
+```mermaid
+graph TD
+    A[로그인] --> B{Supabase Auth}
+    B --> C[profiles 테이블 조회]
+    C --> D{role 확인}
+    D -->|ADMIN| E[/dashboard/admin]
+    D -->|ADVERTISER| F[/dashboard/advertiser]
+    D -->|INFLUENCER| G[/campaigns]
+    
+    style B fill:#e1f5ff
+    style D fill:#fff3cd
+```
+
+---
+
+## 🧩 컴포넌트 계층 구조
+
+### Server Components (SSR)
+```
+page.tsx (Server)
+  ├── 데이터 fetch from Supabase
+  └── Client Component에 props 전달
+```
+
+### Client Components (CSR)
+```
+*Client.tsx (Client)
+  ├── useState로 props 받기
+  ├── useEffect로 props 동기화 ⚠️ 필수!
+  └── 사용자 인터랙션 처리
+```
+
+### ⚠️ 필수 패턴: Server → Client Props 동기화
+```tsx
+'use client';
+import { useState, useEffect } from 'react';
+
+export default function ClientComponent({ initialData }) {
+    const [data, setData] = useState(initialData);
+    
+    // ✅ 필수: props 변경 시 상태 동기화
+    useEffect(() => {
+        setData(initialData);
+    }, [initialData]);
+}
+```
+
+---
+
+## 📦 주요 컴포넌트
+
+| 컴포넌트 | 타입 | 용도 |
+|---------|------|------|
+| `CampaignCard` | Client | 캠페인 카드 UI |
+| `CampaignListClient` | Client | 캠페인 목록 + 필터링 |
+| `CampaignTableClient` | Client | 관리자 캠페인 테이블 |
+| `NoticeBoardClient` | Client | 공지사항 목록 |
+| `MainBanner` | Server | 메인 배너 (롤링) |
+| `Navbar` | Client | 네비게이션 바 |
+| `Footer` | Server | 푸터 |
+
+---
+
+## 🔧 유틸리티 함수
+
+### `/lib/campaignUtils.ts`
+- `mapCampaignToCard()`: DB 데이터 → UI 형식 변환
+
+### `/lib/supabaseClient.ts`
+- Supabase 클라이언트 초기화
+
+### `/lib/bannerUtils.ts`
+- 배너 데이터 fetch 및 변환
+
+---
+
+## 🎨 UI 컴포넌트 라이브러리
+
+- **shadcn/ui**: 기본 UI 컴포넌트
+- **Lucide React**: 아이콘
+- **Tailwind CSS**: 스타일링
+- **Sonner**: Toast 알림
+
+---
+
+## �🛑 [MUST READ] 코딩 어시스턴트 필수 준수 사항
+
+✅ 전체 구조 먼저 파악 - 파일 검색, 스키마 확인 ✅ 관련된 모든 파일 한 번에 수정 - 패턴이 같으면 일괄 처리 ✅ 의존성 체인 분석 - A → B → C 순서로 해결 ✅ 테스트 시나리오 미리 예상 - 목록/상세/작성 모두 고려
+
 1. 분석과 실행의 절대적 분리 (Zero Preemption Policy)
 
 어떤 상황에서도 사용자의 명시적 실행 명령("해줘", "수정해줘", "진행해줘", "바꿔줘")이 없으면 파일 수정 도구(write_file, replace_file 등)를 절대 호출하지 않는다.
@@ -13,6 +234,9 @@ README.md
 분석 단계에서 동의 없이 코드를 수정하는 행위는 전체 프로젝트의 의사결정 구조를 해치는 심각한 오류로 간주한다.
 
 4. 본 프로젝트는 DB 데이터를 초기 화면 로딩 시 즉시 렌더링하여 사용자 경험을 최적화하고, SEO(검색 엔진 최적화) 효율을 극대화하기 위해 Next.js 기반의 SSR(Server-Side Rendering) 방식을 전면 도입합니다.
+
+5. **구조 변경 시 README 업데이트 필수**: 라우팅, 데이터베이스, 컴포넌트 구조 변경 시 반드시 이 문서를 함께 업데이트할 것!
+
 ## 모든 작업 내용은 한글로 설명해줘
 
 ## 💻 1. 기술 스택 및 환경 (Tech Stack)
@@ -22,12 +246,6 @@ README.md
 - **Styling:** Tailwind CSS
 - **Backend:** Supabase
 
-
-## 🔄 2. 데이터베이스 및 타입 관리 (DB & Types)
-- **타입 참조 파일:** `src/types/database.ts`
-- **동기화 필수:** 데이터베이스에 CRUD 작업이 발생하거나 스키마가 변경될 경우, 반드시 다음 명령어를 실행하여 타입을 최신화한 후 진행한다.
-  ```bash
-  npm run update-types
 
 무결성 체크: 프론트엔드 항목의 추가/제거 시 항상 DB와의 무결성을 확인하며, 필요 시 적용 가능한 SQL 쿼리를 함께 제공한다.
 
@@ -49,6 +267,9 @@ README.md
 ### ⚠️ 필수 준수 사항
 데이터베이스에 직접 데이터를 입력하거나 수정할 때는 반드시 아래 규칙을 따라야 합니다.
 프론트엔드 코드는 이 값들을 기준으로 작성되어 있으며, 다른 값을 사용하면 UI가 깨지거나 데이터가 표시되지 않습니다.
+
+직접 터미널이나 명령을 했는데 작동이 지연되거나 제대로 안되면
+수동으로 작업하라고 나한테 말해줘
 
 ### campaigns 테이블
 
@@ -82,6 +303,17 @@ README.md
 - `ONGOING` - 진행 중
 - `COMPLETED` - 완료
 - `REJECTED` - 거절됨
+- `DRAFT` - 임시저장
+
+**상태별 상세 설명**:
+- **PENDING (요청중)**: 광고주가 캠페인을 등록했으나 관리자 승인 전 상태
+- **RECRUITING (진행전/진행중)**: 관리자가 승인한 상태
+  - `recruitment_start_date > 오늘` → **진행전** (승인은 되었으나 시작일이 미래)
+  - `recruitment_start_date <= 오늘` → **진행중** (모집 진행 중)
+- **ONGOING (진행중)**: 모집이 마감되고 인플루언서들이 리뷰 작성 중
+- **COMPLETED (완료)**: 모든 인플루언서의 작업물이 등록 완료되어 마감된 캠페인
+- **REJECTED (거절됨)**: 관리자가 캠페인을 거절
+- **DRAFT (임시저장)**: 캠페인 등록 중 임시저장한 상태
 
 #### region (지역) - 선택 값
 **한글로 입력 가능**
@@ -124,3 +356,38 @@ UPDATE campaigns SET type = 'PURCHASE' WHERE type IN ('구매', '구매평', 'pu
 -- 현재 사용 중인 platform/type 값 확인
 SELECT DISTINCT platform, type FROM campaigns;
 ```
+
+## 📝 7. React/Next.js 렌더링 필수 체크사항
+
+### ⚠️ Server Component → Client Component Props 전달 시 주의사항
+
+**문제 상황:**
+- Server Component에서 데이터를 fetch하여 Client Component에 props로 전달
+- Client Component에서 `useState(initialProps)`로만 초기화
+- → Props가 변경되어도 화면이 업데이트되지 않음 (새로고침 시에만 보임)
+
+**해결 방법:**
+```tsx
+'use client';
+import { useState, useEffect } from 'react';
+
+export default function ClientComponent({ initialData }) {
+    const [data, setData] = useState(initialData);
+    
+    // ✅ 필수: props 변경 시 상태 동기화
+    useEffect(() => {
+        setData(initialData);
+    }, [initialData]);
+    
+    // ...
+}
+```
+
+**체크리스트:**
+- [ ] Client Component가 Server Component로부터 props를 받는가?
+- [ ] 해당 props를 `useState`로 관리하는가?
+- [ ] `useEffect`로 props 변경을 감지하여 상태를 업데이트하는가?
+
+**디버깅 팁:**
+- "데이터는 있는데 (숫자/카운트는 보임) 목록이 안 보임" → Server/Client 상태 동기화 문제 의심
+- 새로고침하면 보이는 경우 → 100% 이 문제임

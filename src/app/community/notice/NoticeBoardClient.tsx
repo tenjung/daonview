@@ -10,7 +10,13 @@ interface NoticeBoardClientProps {
 }
 
 export default function NoticeBoardClient({ initialPosts }: NoticeBoardClientProps) {
+    const [posts, setPosts] = useState(initialPosts);
     const [isAdmin, setIsAdmin] = useState(false);
+
+    // initialPosts가 변경될 때마다 posts 상태 업데이트
+    useEffect(() => {
+        setPosts(initialPosts);
+    }, [initialPosts]);
 
     useEffect(() => {
         checkAdmin();
@@ -52,16 +58,16 @@ export default function NoticeBoardClient({ initialPosts }: NoticeBoardClientPro
             {/* 목록 */}
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
                 <div className="divide-y divide-gray-50">
-                    {initialPosts.length === 0 ? (
+                    {posts.length === 0 ? (
                         <div className="p-20 text-center text-gray-400">
                             <Bell size={48} className="mx-auto text-gray-100 mb-4" />
                             등록된 공지사항이 없습니다.
                         </div>
                     ) : (
-                        initialPosts.map((post) => (
+                        posts.map((post) => (
                             <Link
                                 key={post.id}
-                                href={`/community/${post.id}`}
+                                href={`/community/notice/${post.id}`}
                                 className={`block p-6 hover:bg-gray-50 transition-colors group ${post.is_pinned ? 'bg-primary/5' : ''}`}
                             >
                                 <div className="flex items-start gap-4">

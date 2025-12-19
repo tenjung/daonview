@@ -40,6 +40,8 @@ function SignupForm() {
 
     // Email validation and availability check
     useEffect(() => {
+        let isCancelled = false;
+        
         const checkEmail = async () => {
             if (!email) {
                 setEmailAvailable(null);
@@ -59,31 +61,45 @@ function SignupForm() {
             setEmailChecking(true);
 
             try {
-                // Check if email already exists in auth.users
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('email')
-                    .eq('email', email)
-                    .single();
+                // Using RPC for secure and faster check
+                // This checks both Auth Users (if configured) or just Profiles table via secure function
+                const { data: isAvailable, error } = await supabase
+                    .rpc('check_email_available', { email_to_check: email });
 
-                if (data) {
-                    setEmailAvailable(false);
-                    setEmailError('이미 사용 중인 이메일입니다.');
+                if (isCancelled) return;
+
+                if (error) {
+                    console.error('Email check error:', error);
+                    // Fallback or just show error, but don't hang
+                    setEmailError('이메일 확인 중 오류가 발생했습니다.');
+                    setEmailAvailable(null);
                 } else {
-                    setEmailAvailable(true);
-                    setEmailError('');
+                    if (isAvailable) {
+                        setEmailAvailable(true);
+                        setEmailError('');
+                    } else {
+                        setEmailAvailable(false);
+                        setEmailError('이미 사용 중인 이메일입니다.');
+                    }
                 }
             } catch (error) {
-                // If no profile found, email is available
-                setEmailAvailable(true);
-                setEmailError('');
+                if (isCancelled) return;
+                console.error('Email check exception:', error);
+                setEmailError('이메일 확인에 실패했습니다.');
+                setEmailAvailable(null);
             } finally {
-                setEmailChecking(false);
+                if (!isCancelled) {
+                    setEmailChecking(false);
+                }
             }
         };
 
         const debounceTimer = setTimeout(checkEmail, 500);
-        return () => clearTimeout(debounceTimer);
+        
+        return () => {
+            isCancelled = true;
+            clearTimeout(debounceTimer);
+        };
     }, [email]);
 
     // Password strength validation
@@ -496,7 +512,20 @@ function SignupForm() {
                             className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
                             placeholder="010-0000-0000"
                             value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
+                            onChange={(e) => {
+                                const raw = e.target.value.replace(/[^0-9]/g, '');
+                                let formatted = raw;
+                                if (raw.length < 4) {
+                                    formatted = raw;
+                                } else if (raw.length < 8) {
+                                    formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
+                                } else {
+                                    formatted = `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
+                                }
+                                if (formatted.length > 13) formatted = formatted.slice(0, 13);
+                                setPhone(formatted);
+                            }}
+                            pattern="010-[0-9]{4}-[0-9]{4}"
                             required
                         />
                     </div>

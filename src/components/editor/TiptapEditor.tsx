@@ -90,6 +90,7 @@ const ToolbarSeparator = () => (
 
 export default function TiptapEditor({ initialContent = '', onChange }: { initialContent?: string, onChange?: (content: string) => void }) {
     const [color, setColor] = React.useState('#000000');
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     // Editor Setup
     const editor = useEditor({
@@ -143,8 +144,35 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
     };
 
     const addImage = () => {
-        const url = window.prompt('Image URL');
-        if (url) editor.chain().focus().setImage({ src: url }).run();
+        fileInputRef.current?.click();
+    };
+
+    const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        // Check if file is an image
+        if (!file.type.startsWith('image/')) {
+            alert('이미지 파일만 업로드 가능합니다.');
+            return;
+        }
+
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('이미지 크기는 5MB 이하여야 합니다.');
+            return;
+        }
+
+        // Convert to base64 and insert
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const base64 = e.target?.result as string;
+            editor.chain().focus().setImage({ src: base64 }).run();
+        };
+        reader.readAsDataURL(file);
+
+        // Reset input
+        event.target.value = '';
     };
 
     const addYoutube = () => {
@@ -286,6 +314,15 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
                 </div>
 
             </Toolbar.Root>
+
+            {/* Hidden file input for image upload */}
+            <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
+            />
 
             <EditorContent editor={editor} />
         </div>

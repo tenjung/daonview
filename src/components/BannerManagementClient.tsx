@@ -18,6 +18,7 @@ interface Banner {
 interface BannerConfig {
     new_count: number;
     hot_count: number;
+    rolling_interval?: number;
 }
 
 interface BannerManagementClientProps {
@@ -90,110 +91,126 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
     // --- Banner Config Logic ---
     async function saveConfig() {
         setConfigLoading(true);
+        // Ensure default if not set
+        const finalConfig = {
+            ...config,
+            rolling_interval: config.rolling_interval || 3
+        };
+
         const { error } = await supabase
             .from('site_settings')
-            .upsert({ key: 'banner_config', value: config }, { onConflict: 'key' })
+            .upsert({ key: 'banner_config', value: finalConfig }, { onConflict: 'key' })
             .select();
 
-        if (error) toast.error('설정 저장 실패');
-        else toast.success('배너 노출 설정이 저장되었습니다.');
+        if (error) {
+            console.error('Config save error:', error);
+            toast.error('설정 저장 실패: ' + (error.message || '알 수 없는 오류'));
+        } else {
+            toast.success('배너 노출 설정이 저장되었습니다.');
+        }
         setConfigLoading(false);
     }
 
     // Image Upload Logic
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean = false) {
         const file = e.target.files?.[0];
-        console.log('📁 파일 선택:', file);
-
-        if (!file) {
-            console.log('❌ 파일 없음');
-            return;
-        }
+        if (!file) return;
 
         try {
             setUploading(true);
-            console.log('⏳ 업로드 시작...');
-
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `banner-images/${fileName}`;
-            console.log('📂 파일 경로:', filePath);
-
-            console.log('☁️ Supabase Storage 업로드 시도...');
-            const { error: uploadError } = await supabase.storage
-                .from('banners')
-                .upload(filePath, file);
-
-            console.log('📡 업로드 응답:', { uploadError });
-
-            if (uploadError) {
-                console.error('❌ 업로드 에러:', uploadError);
-                throw uploadError;
+            toast.loading('사용자 확인 중...', { id: 'upload-status' });
+            
+            // 1. 세션 확인
+            const { data: { user }, error: authError } = await supabase.auth.getUser();
+            if (authError || !user) {
+                toast.error('로그인이 필요하거나 세션이 만료되었습니다.', { id: 'upload-status' });
+                setUploading(false);
+                return;
             }
 
-            console.log('✅ 업로드 성공, Public URL 가져오기...');
+            // 2. 파일 형식 체크
+            const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            if (!fileExt || !allowedExtensions.includes(fileExt)) {
+                toast.error('허용되지 않는 파일 형식입니다.', { id: 'upload-status' });
+                setUploading(false);
+                return;
+            }
+
+            toast.loading('저장소에 연결 중...', { id: 'upload-status' });
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const filePath = fileName;
+
+            // 3. 업로드 시도
+            const { error: uploadError } = await supabase.storage
+                .from('banners')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Error uploading:', uploadError);
+                toast.error(`업로드 오류: ${uploadError.message}`, { id: 'upload-status' });
+                setUploading(false);
+                return;
+            }
+
+            toast.loading('이미지 주소 생성 중...', { id: 'upload-status' });
+            // 4. URL 가져오기
             const { data: { publicUrl } } = supabase.storage
                 .from('banners')
                 .getPublicUrl(filePath);
 
-            console.log('🔗 Public URL:', publicUrl);
-
             if (isEdit) {
-                setEditForm({ ...editForm, image_url: publicUrl });
+                setEditForm(prev => ({ ...prev, image_url: publicUrl }));
             } else {
-                setNewBanner({ ...newBanner, image_url: publicUrl });
+                setNewBanner(prev => ({ ...prev, image_url: publicUrl }));
             }
-            toast.success('이미지가 업로드되었습니다.');
-            console.log('✅ 이미지 업로드 완료');
+            toast.success('이미지 업로드 완료!', { id: 'upload-status' });
         } catch (error: any) {
-            console.error('💥 업로드 실패:', error);
-            toast.error('업로드 실패: ' + (error.message || '알 수 없는 오류'));
+            console.error('Upload process error:', error);
+            toast.error('처리 중 오류 발생: ' + (error.message || '알 수 없는 오류'), { id: 'upload-status' });
         } finally {
             setUploading(false);
-            console.log('🏁 업로드 프로세스 종료');
+            if (e.target) e.target.value = '';
         }
     }
 
     async function handleAddBanner() {
-        console.log('🔵 handleAddBanner 시작');
-        console.log('📝 newBanner 데이터:', newBanner);
-
         if (!newBanner.title || !newBanner.image_url) {
-            console.log('❌ 유효성 검사 실패:', { title: newBanner.title, image_url: newBanner.image_url });
             toast.error('제목과 이미지 URL은 필수입니다.');
             return;
         }
 
         setIsSubmitting(true);
-        console.log('⏳ isSubmitting = true');
+        toast.loading('배너 정보 저장 중...', { id: 'submit-status' });
 
-        const nextOrder = banners.length > 0 ? Math.max(...banners.map(b => b.display_order)) + 1 : 0;
-        console.log('📊 다음 순서:', nextOrder);
+        try {
+            const nextOrder = banners.length > 0 ? Math.max(...banners.map(b => b.display_order)) + 1 : 0;
+            const insertData = {
+                ...newBanner,
+                display_order: nextOrder
+            };
 
-        const insertData = {
-            ...newBanner,
-            display_order: nextOrder
-        };
-        console.log('💾 DB에 저장할 데이터:', insertData);
+            const { data, error } = await supabase
+                .from('banners')
+                .insert([insertData])
+                .select();
 
-        const { data, error } = await supabase
-            .from('banners')
-            .insert([insertData])
-            .select();
-
-        console.log('📡 Supabase 응답:', { data, error });
-
-        if (error) {
-            console.error('❌ 배너 추가 실패:', error);
-            toast.error('배너 추가 실패: ' + error.message);
-        } else {
-            console.log('✅ 배너 추가 성공:', data);
-            toast.success('배너가 추가되었습니다.');
-            setBanners([...banners, data[0]]);
-            setNewBanner({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true });
+            if (error) {
+                console.error('❌ 배너 추가 실패:', error);
+                toast.error('배너 추가 실패: ' + error.message, { id: 'submit-status' });
+            } else {
+                toast.success('배너가 추가되었습니다.', { id: 'submit-status' });
+                setBanners([...banners, data[0]]);
+                setNewBanner({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true });
+            }
+        } catch (error: any) {
+            toast.error('오류 발생: ' + error.message, { id: 'submit-status' });
+        } finally {
+            setIsSubmitting(false);
         }
-        setIsSubmitting(false);
-        console.log('✅ handleAddBanner 완료');
     }
 
     function startEditing(banner: Banner) {
@@ -303,6 +320,21 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 {config.hot_count}
                             </span>
                         </div>
+                    </div>
+                    <div className="space-y-2 col-span-1 md:col-span-2 pt-4 border-t border-gray-50">
+                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">자동 롤링 간격 (초)</label>
+                        <div className="flex items-center gap-4">
+                            <input
+                                type="range" min="1" max="10" step="1"
+                                className="flex-1 accent-indigo-500"
+                                value={config.rolling_interval || 3}
+                                onChange={e => setConfig({ ...config, rolling_interval: parseInt(e.target.value) })}
+                            />
+                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-black text-indigo-600">
+                                {config.rolling_interval || 3}s
+                            </span>
+                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">* 배너가 다음 장으로 자동으로 넘어가는 시간 간격입니다. (권장: 3~5초)</p>
                     </div>
                 </div>
             </div>

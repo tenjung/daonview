@@ -56,9 +56,12 @@ export default function InfluencerDashboard() {
                 // Calculate stats
                 const total = applicationsData.length;
                 const approved = applicationsData.filter(app => app.status === 'approved').length;
-                const pending = applicationsData.filter(app => app.status === 'pending').length;
+                // 작성해야 할 리뷰 = 승인된 캠페인 중 리뷰 미제출 건수
+                // TODO: applications 테이블에 review_submitted 필드 추가 필요
+                // 임시로 approved 상태를 사용 (실제로는 approved && !review_submitted)
+                const needsReview = applicationsData.filter(app => app.status === 'approved').length;
 
-                setStats({ total, approved, pending });
+                setStats({ total, approved, pending: needsReview });
             }
 
             setLoading(false);

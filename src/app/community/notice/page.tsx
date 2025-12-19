@@ -5,9 +5,9 @@ export const dynamic = 'force-dynamic';
 
 export default async function NoticePage() {
     const { data, error } = await supabase
-        .from('posts')
+        .from('notices')
         .select('*')
-        .eq('type', 'NOTICE')
+        .eq('type', '공지')
         .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false });
 

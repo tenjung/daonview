@@ -94,7 +94,8 @@ export default function VisualCampaignSlider({ campaigns }: { campaigns: Campaig
                                         <img
                                             src={current.imageUrl}
                                             alt={current.title}
-                                            className="w-full h-full object-cover transition-transform duration-[3000ms] ease-linear group-hover:scale-110"
+                                            className="w-full h-full object-cover transition-transform ease-linear group-hover:scale-110"
+                                            style={{ transitionDuration: '3000ms' }}
                                         />
                                     ) : (
                                         <div className="w-full h-full bg-slate-800" />

@@ -3,6 +3,10 @@ import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import CampaignTableClient from '@/components/CampaignTableClient';
 
+// Next.js 캐싱 비활성화 (매번 최신 데이터 가져오기)
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
     searchParams: Promise<{ type?: string }>;
 }
@@ -29,13 +33,17 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
 
     // Apply filters based on type
     if (type === 'pending') {
+        // 요청중: 승인 대기
         query = query.eq('status', 'PENDING');
+    } else if (type === 'upcoming') {
+        // 진행전: RECRUITING 상태만 (날짜 필터는 아래에서)
+        query = query.eq('status', 'RECRUITING');
     } else if (type === 'active') {
+        // 진행중: RECRUITING 또는 ONGOING (날짜 필터는 아래에서)
         query = query.in('status', ['RECRUITING', 'ONGOING']);
     } else if (type === 'completed') {
+        // 완료: 모든 작업 완료
         query = query.eq('status', 'COMPLETED');
-    } else if (type === 'upcoming') {
-        query = query.eq('status', 'RECRUITING');
     }
 
     const { data, error } = await query;
@@ -45,32 +53,37 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     }
 
     let campaigns = data || [];
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
+    
+    // 오늘 날짜를 YYYY-MM-DD 형식으로 (타임존 문제 해결)
+    const today = new Date().toISOString().split('T')[0];
 
-    // Client-side filtering logic moved to server for better performance
-    if (type === 'active') {
+    // DB 필드 기반 날짜 필터링 (RECRUITING 상태 분리)
+    if (type === 'upcoming') {
+        // 진행전: RECRUITING 상태 + 시작일이 미래
         campaigns = campaigns.filter(cam => {
-            const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
-            const startDateStr = options?.step1Data?.recruitmentStartDate || cam.created_at;
-            if (startDateStr) {
-                const startDate = new Date(startDateStr);
-                startDate.setHours(0, 0, 0, 0);
-                return startDate <= now;
-            }
-            return true;
+            // recruitment_start_date가 없으면 created_at 사용
+            const startDateStr = cam.recruitment_start_date || cam.created_at;
+            // YYYY-MM-DD 형식으로 변환
+            const startDate = startDateStr.split('T')[0];
+            // 시작일이 오늘 이후인 경우만
+            return startDate > today;
         });
-    } else if (type === 'upcoming') {
+    } else if (type === 'active') {
+        // 진행중: (RECRUITING + 시작일 과거/오늘) 또는 ONGOING
         campaigns = campaigns.filter(cam => {
-            const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
-            const startDateStr = options?.step1Data?.recruitmentStartDate || cam.created_at;
-            if (startDateStr) {
-                const startDate = new Date(startDateStr);
-                startDate.setHours(0, 0, 0, 0);
-                return startDate > now;
+            // ONGOING 상태는 무조건 포함
+            if (cam.status === 'ONGOING') return true;
+            
+            // RECRUITING 상태는 시작일 체크
+            if (cam.status === 'RECRUITING') {
+                const startDateStr = cam.recruitment_start_date || cam.created_at;
+                // YYYY-MM-DD 형식으로 변환
+                const startDate = startDateStr.split('T')[0];
+                // 시작일이 오늘 이전이거나 오늘인 경우
+                return startDate <= today;
             }
-            // 날짜 정보가 없으면 진행 예정으로 간주
-            return true;
+            
+            return false;
         });
     }
 

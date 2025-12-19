@@ -1,17 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, PenSquare, MessageSquare } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface FreeBoardClientProps {
     initialPosts: any[];
 }
 
 export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) {
+    const [posts, setPosts] = useState(initialPosts);
     const [searchQuery, setSearchQuery] = useState("");
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    const filteredPosts = initialPosts.filter(post =>
+    // Props 동기화
+    useEffect(() => {
+        setPosts(initialPosts);
+    }, [initialPosts]);
+
+    // 로그인 상태 체크
+    useEffect(() => {
+        checkAuth();
+    }, []);
+
+    const checkAuth = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsLoggedIn(!!user);
+    };
+
+    const filteredPosts = posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (post.profiles?.nickname || post.profiles?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -23,13 +41,15 @@ export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) 
                     <h1 className="text-2xl font-bold text-gray-900">자유게시판</h1>
                     <p className="text-gray-500 mt-1">자유롭게 이야기를 나누는 공간입니다.</p>
                 </div>
-                <Link
-                    href="/community/write?type=FREE"
-                    className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
-                >
-                    <PenSquare size={18} />
-                    글쓰기
-                </Link>
+                {isLoggedIn && (
+                    <Link
+                        href="/community/write?type=FREE"
+                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
+                    >
+                        <PenSquare size={18} />
+                        글쓰기
+                    </Link>
+                )}
             </div>
 
             {/* 검색 및 필터 */}
@@ -74,7 +94,7 @@ export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) 
                                 filteredPosts.map((post, index) => (
                                     <tr key={post.id} className="hover:bg-gray-50 transition-colors cursor-pointer group">
                                         <td className="px-6 py-4 text-center text-gray-400 font-medium">
-                                            {initialPosts.length - index}
+                                            {posts.length - index}
                                         </td>
                                         <td className="px-6 py-4">
                                             <Link href={`/community/${post.id}`} className="block">

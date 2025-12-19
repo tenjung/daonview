@@ -52,6 +52,7 @@ const REGION_HIERARCHY = [
 ];
 
 export default function CampaignListClient({ initialCampaigns }: CampaignListClientProps) {
+    const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE'>('ALL');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -62,13 +63,18 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [sortBy, setSortBy] = useState('new');
 
+    // initialCampaigns가 변경될 때마다 campaigns 상태 업데이트
+    useEffect(() => {
+        setCampaigns(initialCampaigns);
+    }, [initialCampaigns]);
+
     // Scroll to top when tab changes
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [activeTab]);
 
     const filteredData = useMemo(() => {
-        return initialCampaigns.filter(item => {
+        return campaigns.filter(item => {
             if (activeTab !== 'ALL' && item.type !== activeTab) return false;
 
             if (searchQuery) {
@@ -95,7 +101,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
             }
             return b.id - a.id;
         });
-    }, [activeTab, initialCampaigns, searchQuery, selectedPlatforms, selectedRegions, selectedMajorRegion, sortBy]);
+    }, [activeTab, campaigns, searchQuery, selectedPlatforms, selectedRegions, selectedMajorRegion, sortBy]);
 
     const toggleFilter = (item: string, list: string[], setter: any) => {
         setter(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);

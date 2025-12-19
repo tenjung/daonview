@@ -1,15 +1,21 @@
-import Link from "next/link";
+import { createServerClient } from "@/lib/supabaseClient";
+import BlogIntroClient from "./BlogIntroClient";
 
-export default function BlogIntroPage() {
-    return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">내블로그 소개</h1>
-                <Link href="/community/write?mode=notion" className="btn btn-primary py-2 text-sm">글쓰기</Link>
-            </div>
-            <div className="p-8 border border-gray-200 rounded-xl text-center text-gray-500">
-                준비 중입니다.
-            </div>
-        </div>
-    );
+export const dynamic = 'force-dynamic';
+
+export default async function BlogIntroPage() {
+    const supabase = createServerClient();
+    
+    // Fetch blog intro posts
+    const { data: posts, error } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('type', 'BLOG_INTRO')
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        // Silently handle error - this is expected in Server Components
+    }
+
+    return <BlogIntroClient initialPosts={posts || []} />;
 }

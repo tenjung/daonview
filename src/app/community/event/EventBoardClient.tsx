@@ -10,7 +10,13 @@ interface EventBoardClientProps {
 }
 
 export default function EventBoardClient({ initialPosts }: EventBoardClientProps) {
+    const [posts, setPosts] = useState(initialPosts);
     const [isAdmin, setIsAdmin] = useState(false);
+
+    // initialPosts가 변경될 때마다 posts 상태 업데이트
+    useEffect(() => {
+        setPosts(initialPosts);
+    }, [initialPosts]);
 
     useEffect(() => {
         checkAdmin();
@@ -50,16 +56,16 @@ export default function EventBoardClient({ initialPosts }: EventBoardClientProps
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {initialPosts.length === 0 ? (
+                {posts.length === 0 ? (
                     <div className="col-span-full py-20 bg-white rounded-2xl border border-gray-100 text-center text-gray-400">
                         <Gift size={48} className="mx-auto text-gray-100 mb-4" />
                         진행 중인 이벤트가 없습니다.
                     </div>
                 ) : (
-                    initialPosts.map((post) => (
+                    posts.map((post) => (
                         <Link
                             key={post.id}
-                            href={`/community/${post.id}`}
+                            href={`/community/notice/${post.id}`}
                             className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all group"
                         >
                             <div className="p-6">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { Check, X, Eye, Calendar } from 'lucide-react';
@@ -14,6 +14,11 @@ interface CampaignTableClientProps {
 
 export default function CampaignTableClient({ initialCampaigns, type }: CampaignTableClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
+
+    // initialCampaigns가 변경될 때마다 campaigns 상태 업데이트
+    useEffect(() => {
+        setCampaigns(initialCampaigns);
+    }, [initialCampaigns]);
 
     // Confirm Dialog State
     const [confirmModal, setConfirmModal] = useState<{
@@ -111,8 +116,8 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                     {campaigns.map((cam) => {
-                        const options = Array.isArray(cam.campaign_options) ? cam.campaign_options[0] : cam.campaign_options;
-                        const startDate = options?.step1Data?.recruitmentStartDate || cam.created_at;
+                        // DB 필드 기반: recruitment_start_date 사용
+                        const startDate = cam.recruitment_start_date || cam.created_at;
 
                         return (
                             <tr key={cam.id} className="hover:bg-gray-50 transition-colors">

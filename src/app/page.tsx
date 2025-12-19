@@ -104,22 +104,22 @@ export default async function Home() {
                     <h2 className="text-3xl font-black text-text-main mb-16">DAONVIEW는 무엇이 다른가요?</h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-12">
                         <div className="flex flex-col items-center group">
-                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-6">🛍️</div>
+                            <div className="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-6">🛍️</div>
                             <h3 className="text-xl font-bold mb-3 text-primary-dark">다양한 캠페인</h3>
                             <p className="text-sm text-text-secondary leading-relaxed">맛집부터 뷰티, IT기기까지<br />매일 새로운 체험이 가득!</p>
                         </div>
                         <div className="flex flex-col items-center group">
-                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-6">⚡</div>
+                            <div className="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-6">⚡</div>
                             <h3 className="text-xl font-bold mb-3 text-primary-dark">빠른 선정</h3>
                             <p className="text-sm text-text-secondary leading-relaxed">기다림은 그만!<br />신속한 매칭 시스템</p>
                         </div>
                         <div className="flex flex-col items-center group">
-                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-6">💰</div>
+                            <div className="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:rotate-6">💰</div>
                             <h3 className="text-xl font-bold mb-3 text-primary-dark">포인트 혜택</h3>
                             <p className="text-sm text-text-secondary leading-relaxed">체험도 하고 포인트도 쌓고<br />현금처럼 환급까지</p>
                         </div>
                         <div className="flex flex-col items-center group">
-                            <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-6">📊</div>
+                            <div className="w-20 h-20 bg-rose-50 rounded-2xl flex items-center justify-center text-4xl mb-6 text-rose-500 shadow-sm transition-transform group-hover:scale-110 group-hover:-rotate-6">📊</div>
                             <h3 className="text-xl font-bold mb-3 text-primary-dark">성과 리포트</h3>
                             <p className="text-sm text-text-secondary leading-relaxed">나의 영향력을 한눈에<br />확인하는 데이터 제공</p>
                         </div>
@@ -129,7 +129,7 @@ export default async function Home() {
 
             {/* Notices & Events */}
             <section className="container py-20">
-                <div className="bg-white rounded-3xl border border-border p-10 shadow-sm">
+                <div className="bg-white rounded-2xl border border-border p-10 shadow-sm">
                     <div className="flex justify-between items-center mb-8 border-b border-gray-100 pb-6">
                         <h2 className="text-2xl font-black">이벤트 & 공지 <span className="text-primary">📢</span></h2>
                         <Link href="/community/notice" className="text-sm font-bold text-gray-400 hover:text-primary transition-colors">전체보기</Link>
@@ -141,13 +141,15 @@ export default async function Home() {
                     ) : (
                         <ul className="space-y-4">
                             {notices.map(notice => (
-                                <li key={notice.id} className="flex items-center gap-4 py-4 px-4 rounded-2xl hover:bg-slate-50 transition-colors cursor-pointer group">
-                                    <div className={`px-3 py-1 text-xs rounded-full font-bold ${notice.type === '이벤트' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>{notice.type}</div>
-                                    <div className="flex-1 text-base font-bold text-text-main group-hover:text-primary transition-colors">{notice.title}</div>
-                                    <div className="text-sm text-slate-400">
-                                        {new Date(notice.created_at).toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '')}
-                                    </div>
-                                </li>
+                                <Link key={notice.id} href={`/community/notice/${notice.id}`}>
+                                    <li className="flex items-center gap-4 py-4 px-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
+                                        <div className={`px-3 py-1 text-xs rounded-lg font-bold ${notice.type === '이벤트' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>{notice.type}</div>
+                                        <div className="flex-1 text-base font-bold text-text-main group-hover:text-primary transition-colors">{notice.title}</div>
+                                        <div className="text-sm text-slate-400">
+                                            {new Date(notice.created_at).toLocaleDateString('ko-KR').replace(/\. /g, '.').replace(/\.$/, '')}
+                                        </div>
+                                    </li>
+                                </Link>
                             ))}
                         </ul>
                     )}
