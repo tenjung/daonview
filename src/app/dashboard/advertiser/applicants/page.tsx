@@ -92,7 +92,7 @@ export default function AdvertiserApplicantsPage() {
 
             toast.success(newStatus === 'SELECTED' ? '리뷰어를 선정했습니다!' : '신청을 거절했습니다.');
 
-            // 목록 갱신 (Optimistic Update)
+            // 목록 갱신** (Optimistic Update)
             setApplicants(prev => prev.map(app =>
                 app.id === applicationId ? { ...app, status: newStatus } : app
             ));
