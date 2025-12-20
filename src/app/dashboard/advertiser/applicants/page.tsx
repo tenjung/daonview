@@ -127,7 +127,7 @@ export default function AdvertiserApplicantsPage() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-lg">{app.user.nickname}</span>
+                                                <span className="font-bold text-lg">{app.user.nickname}</span>{/* deploy trigger */}
                                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                                                     {app.campaign.title}
                                                 </span>
