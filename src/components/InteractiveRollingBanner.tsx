@@ -102,11 +102,11 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
 
     // Let's use Ref for paused to avoid re-setting interval constantly.
     const isPausedRef = React.useRef(false);
-    
+
     // Update ref when state changes (or just use ref directly)
     // Let's overwrite the useEffect above slightly to use ref for pause.
 
-     if (!initialItems || initialItems.length === 0) {
+    if (!initialItems || initialItems.length === 0) {
         return null;
     }
 
@@ -131,7 +131,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
         <section className="relative w-full overflow-hidden py-10 bg-white">
             <Carousel
                 setApi={setApi}
-                className="w-full h-[300px] relative"
+                className="w-full h-[320px] relative"
                 onMouseEnter={() => { isPausedRef.current = true; }}
                 onMouseLeave={() => { isPausedRef.current = false; }}
                 opts={{
@@ -141,7 +141,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                     slidesToScroll: 1,
                 }}
             >
-                <CarouselContent className="h-[300px] -ml-4">
+                <CarouselContent className="h-[320px] -ml-4">
                     {displayItems.map((item, index) => (
                         <CarouselItem
                             key={`${item.id}-${index}`}

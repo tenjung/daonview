@@ -28,7 +28,17 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     // Fetch campaigns on the server
     let query = supabase
         .from('campaigns')
-        .select('*, applications(count)')
+        .select(`
+            *,
+            applications(count),
+            profiles:created_by (
+                id,
+                nickname,
+                email,
+                role,
+                company_name
+            )
+        `)
         .order('created_at', { ascending: false });
 
     // Apply filters based on type
@@ -53,7 +63,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     }
 
     let campaigns = data || [];
-    
+
     // 오늘 날짜를 YYYY-MM-DD 형식으로 (타임존 문제 해결)
     const today = new Date().toISOString().split('T')[0];
 
@@ -73,7 +83,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
         campaigns = campaigns.filter(cam => {
             // ONGOING 상태는 무조건 포함
             if (cam.status === 'ONGOING') return true;
-            
+
             // RECRUITING 상태는 시작일 체크
             if (cam.status === 'RECRUITING') {
                 const startDateStr = cam.recruitment_start_date || cam.created_at;
@@ -82,7 +92,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
                 // 시작일이 오늘 이전이거나 오늘인 경우
                 return startDate <= today;
             }
-            
+
             return false;
         });
     }

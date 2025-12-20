@@ -57,24 +57,24 @@ export const saveDraft = async (userId: string, campaignData: {
         }
 
         // 2. 유형(type) 및 플랫폼(platform) 매핑 (유저 정의 구조 반영)
-        const mappedType = campaignData.campaignType === 'delivery' ? '배송형' : '방문형';
-        
-        let mappedPlatform = '구매평';
+        const mappedType = campaignData.campaignType === 'delivery' ? 'DELIVERY' : 'VISIT';
+
+        let mappedPlatform = 'PURCHASE';
         if (campaignData.campaignType === 'delivery') {
-            if (campaignData.step1Data?.includeNaver) mappedPlatform = '블로그';
-            else if (campaignData.step1Data?.includeInstagram) mappedPlatform = '인스타';
-            else if (campaignData.step1Data?.includeReview) mappedPlatform = '구매평';
+            if (campaignData.step1Data?.includeNaver) mappedPlatform = 'BLOG';
+            else if (campaignData.step1Data?.includeInstagram) mappedPlatform = 'INSTAGRAM';
+            else if (campaignData.step1Data?.includeReview) mappedPlatform = 'PURCHASE';
         } else {
             const step1Platform = campaignData.step1Data?.platform;
-            if (step1Platform === 'naver') mappedPlatform = '블로그';
-            else if (step1Platform === 'instagram') mappedPlatform = '인스타';
+            if (step1Platform === 'naver') mappedPlatform = 'BLOG';
+            else if (step1Platform === 'instagram') mappedPlatform = 'INSTAGRAM';
         }
 
         // 3. 날짜 형식 최적화 (YYYY-MM-DD)
         const now = new Date().toISOString().split('T')[0];
-        const endDate = campaignData.step1Data?.reviewDeadline || 
-                        campaignData.step1Data?.recruitmentStartDate || 
-                        now;
+        const endDate = campaignData.step1Data?.reviewDeadline ||
+            campaignData.step1Data?.recruitmentStartDate ||
+            now;
 
         // 4. campaign_options 구조 (스키마 DEFAULT '[]'에 맞춰 배열로 감쌈)
         const campaignOptions = [{
@@ -86,11 +86,10 @@ export const saveDraft = async (userId: string, campaignData: {
 
         // 전송할 데이터 페이로드 (DB 스키마 필드명과 1:1 매칭)
         const draftPayload: any = {
-            created_by: userId,
+            // created_by는 신규 생성일 때만 설정 (아래에서 처리)
             title: campaignData.title || campaignData.step1Data?.productName || '제목 없음',
             platform: mappedPlatform,
             type: mappedType,
-            status: 'DRAFT',
             end_date: endDate,
             campaign_options: campaignOptions, // jsonb 배열
             recruit_count: 0, // 기본값
@@ -99,7 +98,15 @@ export const saveDraft = async (userId: string, campaignData: {
 
         // 5. ID 처리 및 DB 쿼리 실행
         const isExisting = campaignData.id && !isNaN(Number(campaignData.id)) && Number(campaignData.id) > 0;
-        
+
+        // 신규 생성일 때만:
+        // 1. created_by 설정
+        // 2. status를 DRAFT로 설정 (기존 캠페인 수정 중 임시저장 시 상태 유지)
+        if (!isExisting) {
+            draftPayload.created_by = userId;
+            draftPayload.status = 'DRAFT';
+        }
+
         console.log(`[saveDraft] 실제 DB 전송 시작... (${isExisting ? 'UPDATE' : 'INSERT'})`, draftPayload);
 
         if (isExisting) {

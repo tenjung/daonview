@@ -176,12 +176,23 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         }
     }
 
-    // UI Helpers (derived from kampaign data)
+    // UI Helpers (derived from campaign data)
     const appCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
-    const startDate = new Date(campaign.created_at).toLocaleDateString();
-    const endDate = new Date(campaign.end_date).toLocaleDateString();
+    const startDate = campaign.recruitment_start_date ? new Date(campaign.recruitment_start_date).toLocaleDateString() : new Date(campaign.created_at).toLocaleDateString();
+    const endDate = campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '미정';
     const images = [campaign.thumbnail_url, campaign.sub_image_1, campaign.sub_image_2].filter(Boolean);
     const options = Array.isArray(campaign.product_options) ? campaign.product_options : [];
+
+    // JSON options fallback (for data in step1Data/step2Data)
+    const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+    const step2Data = campaignOptions?.step2Data || {};
+
+    const missionGuide = campaign.mission_guide || step2Data.missionGuide || step2Data.reviewMissionContent || '';
+    const keywords = Array.isArray(campaign.keywords) ? campaign.keywords :
+        Array.isArray(step2Data.keywords) ? step2Data.keywords :
+            typeof step2Data.blogMainKeyword === 'string' ? [step2Data.blogMainKeyword, ...(step2Data.blogSubKeywords || [])] : [];
+    const photoCount = campaign.photo_count || step2Data.photoCount || '';
+    const videoRequired = campaign.video_required || step2Data.videoRequired || 'no';
 
     return (
         <div className="container py-16 max-w-[1000px] w-[90%] mx-auto pb-40">
@@ -264,19 +275,59 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     캠페인 가이드
                 </h2>
 
-                <div className="prose max-w-none text-slate-700 leading-relaxed mb-16">
-                    <h3 className="text-xl font-black text-slate-800 mb-4">✨ 캠페인 소개</h3>
-                    <div className="whitespace-pre-line bg-slate-50 p-8 rounded-xl border border-slate-100">
-                        {campaign.description}
+                <div className="space-y-16">
+                    {/* Intro */}
+                    <div className="prose max-w-none text-slate-700 leading-relaxed">
+                        <h3 className="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <span className="text-rose-500">✨</span> 캠페인 소개
+                        </h3>
+                        <div className="whitespace-pre-line bg-slate-50 p-8 rounded-2xl border border-slate-100">
+                            {campaign.description || '상세 소개 내용이 없습니다.'}
+                        </div>
+                    </div>
+
+                    {/* Keywords */}
+                    {keywords.length > 0 && (
+                        <div>
+                            <h3 className="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                                <span className="text-rose-500">🔑</span> 필수 키워드
+                            </h3>
+                            <div className="flex flex-wrap gap-3">
+                                {keywords.map((kw: string, i: number) => (
+                                    <span key={i} className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold border border-slate-200">
+                                        #{kw}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Missions */}
+                    <div className="prose max-w-none text-slate-700 leading-relaxed">
+                        <h3 className="text-xl font-black text-slate-800 mb-4 flex items-center gap-2">
+                            <span className="text-rose-500">📝</span> 리뷰 미션
+                        </h3>
+                        <div className="bg-slate-50 p-8 rounded-2xl border border-slate-100 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200/50">
+                                    <p className="text-xs text-slate-400 font-bold mb-1">사진 촬영 조건</p>
+                                    <p className="font-black text-slate-800">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200/50">
+                                    <p className="text-xs text-slate-400 font-bold mb-1">동영상 포함 여부</p>
+                                    <p className="font-black text-slate-800">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
+                                </div>
+                            </div>
+                            {missionGuide && (
+                                <div className="pt-4 border-t border-slate-200">
+                                    <p className="text-xs text-slate-400 font-bold mb-3">상세 가이드라인</p>
+                                    <div className="whitespace-pre-line text-slate-700">{missionGuide}</div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
-
-                {/* Platform specific guides could go here */}
-                {/* ... existing guide logic simplified for space ... */}
             </div>
-
-            {/* Application Sticky Bar for Mobile or Fixed bottom */}
-            {/* But for now let's use the bottom area as requested */}
 
             <div id="options-section" className="bg-slate-900 rounded-2xl p-10 md:p-16 text-white shadow-2xl relative overflow-hidden">
                 <div className="relative z-10">

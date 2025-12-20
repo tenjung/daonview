@@ -2,6 +2,9 @@ import { supabase } from '@/lib/supabaseClient';
 import CampaignDetailClient from '@/components/CampaignDetailClient';
 import { notFound } from 'next/navigation';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PageProps {
     params: Promise<{ id: string }>;
 }

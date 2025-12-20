@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+// ... imports
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
 import AdvertiserCampaignTable from '@/components/AdvertiserCampaignTable';
 
-export default function AdvertiserCampaignsPage() {
+function AdvertiserCampaignsContent() {
     const searchParams = useSearchParams();
     const status = searchParams?.get('status');
-    
+
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -41,7 +42,7 @@ export default function AdvertiserCampaignsPage() {
         console.log('Fetching campaigns... Status:', status);
 
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (!user) {
             console.error('User not logged in');
             setLoading(false);
@@ -103,5 +104,13 @@ export default function AdvertiserCampaignsPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function AdvertiserCampaignsPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <AdvertiserCampaignsContent />
+        </Suspense>
     );
 }

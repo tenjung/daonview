@@ -16,7 +16,7 @@ interface Applicant {
     };
     user: {
         id: string;
-        username: string;
+        nickname: string;
         blog_url?: string;
         instagram_url?: string;
         avatar_url?: string;
@@ -41,7 +41,7 @@ export default function AdvertiserApplicantsPage() {
                 .from('campaigns')
                 .select('id')
                 .eq('created_by', user.id);
-            
+
             if (!myCampaigns || myCampaigns.length === 0) {
                 setLoading(false);
                 return;
@@ -58,7 +58,7 @@ export default function AdvertiserApplicantsPage() {
                     status,
                     message,
                     campaign:campaign_id (id, title),
-                    user:user_id (id, username, blog_url, instagram_url, avatar_url)
+                    user:user_id (id, nickname, blog_url, instagram_url, avatar_url)
                 `)
                 .in('campaign_id', campaignIds)
                 .order('created_at', { ascending: false });
@@ -91,9 +91,9 @@ export default function AdvertiserApplicantsPage() {
             if (error) throw error;
 
             toast.success(newStatus === 'SELECTED' ? '리뷰어를 선정했습니다!' : '신청을 거절했습니다.');
-            
+
             // 목록 갱신 (Optimistic Update)
-            setApplicants(prev => prev.map(app => 
+            setApplicants(prev => prev.map(app =>
                 app.id === applicationId ? { ...app, status: newStatus } : app
             ));
 
@@ -127,7 +127,7 @@ export default function AdvertiserApplicantsPage() {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-lg">{app.user.full_name}</span>
+                                                <span className="font-bold text-lg">{app.user.nickname}</span>
                                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                                                     {app.campaign.title}
                                                 </span>
@@ -139,17 +139,17 @@ export default function AdvertiserApplicantsPage() {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2">
                                         {app.status === 'PENDING' ? (
                                             <>
-                                                <button 
+                                                <button
                                                     onClick={() => handleStatusChange(app.id, 'SELECTED')}
                                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                                                 >
                                                     선정하기
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleStatusChange(app.id, 'REJECTED')}
                                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                                                 >
@@ -157,9 +157,8 @@ export default function AdvertiserApplicantsPage() {
                                                 </button>
                                             </>
                                         ) : (
-                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${
-                                                app.status === 'SELECTED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                                            }`}>
+                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${app.status === 'SELECTED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                                }`}>
                                                 {app.status === 'SELECTED' ? '선정됨' : '거절됨'}
                                             </span>
                                         )}

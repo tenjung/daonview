@@ -36,10 +36,10 @@ function NewCampaignPageContent() {
             try {
                 // getUser()가 보안상 더 안전하며 최신 상태를 보장합니다.
                 const { data: { user } } = await supabase.auth.getUser();
-                
+
                 if (user) {
                     setUserId(user.id);
-                    
+
                     // 1. URL에서 기존 캠페인 'id' 확인 (수정 모드)
                     const campaignId = searchParams?.get('id');
                     if (campaignId) {
@@ -48,7 +48,7 @@ function NewCampaignPageContent() {
                             .select('*')
                             .eq('id', campaignId)
                             .single();
-                        
+
                         if (campaign && !error) {
                             handleLoadCompleted(campaign, true); // silent=true
                             setCurrentDraftId(campaignId); // 수정 시에는 id를 currentDraftId로 활용
@@ -103,7 +103,7 @@ function NewCampaignPageContent() {
         console.log('--- 임시저장 시작 ---');
         // 1. 최신 세션 확인
         let currentUserId = userId;
-        
+
         // userId가 state에 없으면 직접 확인
         if (!currentUserId) {
             const { data: { user } } = await supabase.auth.getUser();
@@ -136,8 +136,8 @@ function NewCampaignPageContent() {
         try {
             const draft = await saveDraft(currentUserId, {
                 id: currentDraftId || undefined,
-                title: step2Data?.campaignTitle || step1Data?.productName || '제목 없음',
-                campaignType: step1Data.campaignType, 
+                title: step1Data.campaignTitle || step1Data.productName || step2Data?.campaignTitle || '제목 없음',
+                campaignType: step1Data.campaignType,
                 step1Data,
                 step2Data,
                 currentStep,
@@ -172,11 +172,11 @@ function NewCampaignPageContent() {
     const handleLoadCompleted = (campaign: any, silent = false) => {
         // 1. 우선적으로 campaign_options(JSONB) 데이터가 있는지 확인
         const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
-        
+
         if (options && (options.step1Data || options.step2Data)) {
             const step1 = options.step1Data || {};
             const step2 = options.step2Data || {};
-            
+
             setCurrentDraftId(null);
             setCurrentStep(1);
             setStep1Data(step1);
@@ -184,7 +184,7 @@ function NewCampaignPageContent() {
             setStep2Data(step2);
             setInitialStep2Data(step2);
             setStep1Complete(true); // 이미 완료된 캠페인이므로 Step 1은 완료 상태로 간주
-            
+
             if (!silent) {
                 toast.success('캠페인 상세 데이터를 불러왔습니다.', { id: 'load-campaign-success' });
             }
@@ -252,7 +252,7 @@ function NewCampaignPageContent() {
         const id = searchParams?.get('id');
         const userSpecificKey = `campaign_draft_${userId}`;
         const savedData = localStorage.getItem(userSpecificKey);
-        
+
         // 레거시 키 확인 (이전 버전 호환성 혹은 잘못된 공유 방지)
         // 만약 레거시 키가 있고 유저별 키가 없다면? 
         // 보안상 다른 사람의 데이터일 수 있으므로, 명시적으로 내 것이 아니면 무시하는게 맞음.
@@ -359,30 +359,48 @@ function NewCampaignPageContent() {
                 return;
             }
 
+            // 사용자 역할 및 현재 캠페인 상태 확인
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
+            const userRole = profile?.role;
+
+            const editId = searchParams?.get('id') || currentDraftId;
+            let currentStatus = null;
+            if (editId) {
+                const { data: campaign } = await supabase
+                    .from('campaigns')
+                    .select('status')
+                    .eq('id', editId)
+                    .single();
+                currentStatus = campaign?.status;
+            }
+
             // 1. 유저 정의 구조에 따른 유형(type) 매핑
-            const mappedType = step1Data.campaignType === 'delivery' ? '배송형' : '방문형';
+            const mappedType = step1Data.campaignType === 'delivery' ? 'DELIVERY' : 'VISIT';
 
             // 2. 유저 정의 구조에 따른 플랫폼(platform) 매핑
-            let mappedPlatform = '구매평';
+            let mappedPlatform = 'PURCHASE';
             if (step1Data.campaignType === 'delivery') {
-                if (step1Data.includeNaver) mappedPlatform = '블로그';
-                else if (step1Data.includeInstagram) mappedPlatform = '인스타';
-                else if (step1Data.includeReview) mappedPlatform = '구매평'; 
+                if (step1Data.includeNaver) mappedPlatform = 'BLOG';
+                else if (step1Data.includeInstagram) mappedPlatform = 'INSTAGRAM';
+                else if (step1Data.includeReview) mappedPlatform = 'PURCHASE';
             } else {
-                if (step1Data.platform === 'naver') mappedPlatform = '블로그';
-                else if (step1Data.platform === 'instagram') mappedPlatform = '인스타';
+                if (step1Data.platform === 'naver') mappedPlatform = 'BLOG';
+                else if (step1Data.platform === 'instagram') mappedPlatform = 'INSTAGRAM';
             }
 
             // 캠페인 데이터 구성
-            const campaignData = {
-                created_by: user.id,
+            const campaignData: any = {
                 title: step2Data.campaignTitle,
                 description: step2Data.missionGuide || '',
 
                 // 분류 정보 (유저 정의 구조 반영)
                 type: mappedType,         // '방문형', '배송형'
                 platform: mappedPlatform, // '블로그', '인스타', '기타'
-                
+
                 category: step1Data.category || null,
                 region: step1Data.region || null,
 
@@ -434,7 +452,11 @@ function NewCampaignPageContent() {
                 payment_method: step3Data?.paymentMethod || 'manual',
 
                 // 상태 제어
-                status: isEdit ? undefined : 'PENDING',
+                // 신규 등록이면 PENDING, 수정이면 기존 상태 유지 
+                // 단, 기존 상태가 DRAFT인 경우 완성된 것이므로 상태 전환 필요
+                status: isEdit
+                    ? (currentStatus === 'DRAFT' ? (userRole === 'ADMIN' ? 'RECRUITING' : 'PENDING') : undefined)
+                    : 'PENDING',
 
                 // 전체 데이터 보존 (수정 시 정밀한 복구를 위함)
                 campaign_options: [{
@@ -445,12 +467,16 @@ function NewCampaignPageContent() {
                 }],
             };
 
+            // 신규 등록일 때만 소유자 설정 (수정 시에는 기존 소유자 유지)
+            if (!isEdit) {
+                campaignData.created_by = user.id;
+            }
+
             console.log('📦 캠페인 데이터:', campaignData);
 
             // Supabase에 저장 (수정 또는 신규 등록)
             // URL에 id가 있거나(수정), 이번 세션에서 임시저장된 id가 있는 경우 update 실행
-            const editId = searchParams?.get('id') || currentDraftId;
-            const { data, error } = editId 
+            const { data, error } = editId
                 ? await supabase
                     .from('campaigns')
                     .update(campaignData)
@@ -478,13 +504,6 @@ function NewCampaignPageContent() {
             toast.success(editId ? '캠페인 정보가 업데이트되었습니다' : '캠페인이 요청되었습니다');
 
             // 역할(Role) 확인 후 적절한 페이지로 리다이렉트
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-
-            const userRole = profile?.role;
             console.log('🔄 페이지 이동 시작, 역할:', userRole);
 
             if (userRole === 'ADMIN') {

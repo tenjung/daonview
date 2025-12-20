@@ -110,6 +110,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                         <th className="px-6 py-4">등록/시작일</th>
                         <th className="px-6 py-4">유형</th>
                         <th className="px-6 py-4">캠페인 정보</th>
+                        <th className="px-6 py-4">등록자</th>
                         <th className="px-6 py-4">모집 현황</th>
                         <th className="px-6 py-4 text-center">관리</th>
                     </tr>
@@ -144,8 +145,11 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                             } else if (p === 'TIKTOK') {
                                                 label = '틱톡';
                                                 colorClass = 'bg-slate-900 text-white';
-                                            } else if (p === 'PURCHASE' || p === 'OTHER') {
+                                            } else if (p === 'PURCHASE') {
                                                 label = '구매평';
+                                                colorClass = 'bg-orange-500 text-white';
+                                            } else if (p === 'OTHER') {
+                                                label = '기타';
                                                 colorClass = 'bg-orange-500 text-white';
                                             }
 
@@ -184,6 +188,27 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                 <td className="px-6 py-4">
                                     <div className="font-bold text-gray-900 line-clamp-1">{cam.title}</div>
                                     <div className="text-xs text-gray-500 mt-1 italic">{cam.category || '카테고리 없음'}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    {cam.profiles ? (
+                                        <div className="flex flex-col gap-1">
+                                            {cam.profiles.role === 'ADMIN' ? (
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                                    관리자
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                                                    광고주
+                                                </span>
+                                            )}
+                                            <div className="text-xs font-semibold text-gray-700">
+                                                {cam.profiles.nickname || cam.profiles.company_name || '이름 없음'}
+                                            </div>
+                                            <div className="text-[10px] text-gray-400">{cam.profiles.email}</div>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-gray-400 italic">정보 없음</span>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex items-center gap-2">

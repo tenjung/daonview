@@ -25,19 +25,27 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     applicants = campaign.applications.count || 0;
   }
 
-  // DB의 한글 데이터를 UI용 영문 키로 변환
+  // DB의 한글 데이터를 UI용 영문 키로 변환 (역호환성 유지)
   const typeMap: Record<string, string> = {
     '배송형': 'DELIVERY',
     '방문형': 'VISIT',
     '기자단': 'PRESS',
-    '구매평': 'PURCHASE'
+    '구매평': 'PURCHASE',
+    'DELIVERY': 'DELIVERY',
+    'VISIT': 'VISIT',
+    'PRESS': 'PRESS',
+    'PURCHASE': 'PURCHASE'
   };
 
   const platformMap: Record<string, string> = {
     '블로그': 'BLOG',
     '인스타': 'INSTAGRAM',
     '기타': 'OTHER',
-    '구매평': 'PURCHASE'
+    '구매평': 'PURCHASE',
+    'BLOG': 'BLOG',
+    'INSTAGRAM': 'INSTAGRAM',
+    'OTHER': 'OTHER',
+    'PURCHASE': 'PURCHASE'
   };
 
   // 캠페인 옵션에서 데이터 추출 시도 (임시저장 데이터 대응)
@@ -45,14 +53,14 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const provision = campaign.provision || options?.step1Data?.experienceDetails || '';
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
-  const rawPlatform = campaign.platform || '블로그';
-  const rawType = campaign.type || '방문형';
+  const rawPlatform = campaign.platform || 'BLOG';
+  const rawType = campaign.type || 'VISIT';
 
   return {
     id: campaign.id,
-    title: productName,
-    platform: platformMap[rawPlatform] || rawPlatform.toUpperCase(),
-    type: typeMap[rawType] || rawType.toUpperCase(),
+    title: campaign.title || productName,
+    platform: platformMap[rawPlatform] || (typeof rawPlatform === 'string' ? rawPlatform.toUpperCase() : 'BLOG'),
+    type: typeMap[rawType] || (typeof rawType === 'string' ? rawType.toUpperCase() : 'VISIT'),
     applicants: applicants,
     total: campaign.recruit_count || 0,
     dday: campaign.is_always ? "상시모집" : formatDDay(campaign.end_date),

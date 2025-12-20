@@ -13,6 +13,7 @@ interface Step1Data {
     includeInstagram: boolean;
     productUrl: string;
     productName: string;
+    campaignTitle: string; // Step 1에서 추가된 캠페인 제목
     platform: 'naver' | 'instagram' | null;
     stores?: { storeName: string; }[];
 }
@@ -63,7 +64,7 @@ interface CampaignStep2Props {
 
 export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData, step1Data, isEdit }: CampaignStep2Props) {
     const [formData, setFormData] = useState<Step2Data>({
-        campaignTitle: initialData?.campaignTitle || step1Data.productName || step1Data.stores?.[0]?.storeName || '',
+        campaignTitle: initialData?.campaignTitle || step1Data.campaignTitle || '',
         campaignImages: initialData?.campaignImages || [],
 
         // 구매평 가이드
@@ -98,6 +99,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         instagramReelsRequired: initialData?.instagramReelsRequired || false,
     });
 
+
     // 초기 데이터 로드 (임시저장 불러오기 시)
     useEffect(() => {
         if (initialData) {
@@ -113,12 +115,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                 return {
                     ...prev,
                     ...sanitizedInitial,
-                    // 제목의 경우 이미 입력된 값이 있거나 initialData에 값이 없으면 step1Data를 활용하는 로직 유지
-                    campaignTitle: initialData.campaignTitle || prev.campaignTitle || step1Data.productName || step1Data.stores?.[0]?.storeName || '',
+                    campaignTitle: initialData.campaignTitle || prev.campaignTitle || step1Data.campaignTitle || '',
                 };
             });
         }
-    }, [initialData, step1Data.productName, step1Data.stores]);
+    }, [initialData, step1Data.campaignTitle]);
 
     const [keywordInput, setKeywordInput] = useState('');
     const [prohibitedInput, setProhibitedInput] = useState('');
@@ -160,7 +161,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                 // 파일 확장자 보안 체크
                 const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
                 const fileExt = file.name.split('.').pop()?.toLowerCase();
-                
+
                 if (!fileExt || !allowedExtensions.includes(fileExt)) {
                     toast.error(`허용되지 않는 파일 형식입니다: ${file.name}`);
                     continue;
@@ -182,7 +183,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
 
                 if (uploadError) {
                     console.error('이미지 업로드 상세 에러:', uploadError);
-                    
+
                     if (uploadError.message.includes('bucket not found') || uploadError.message.includes('does not exist')) {
                         toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
                     } else if (uploadError.message.includes('permission denied') || (uploadError as any).status === 403) {
@@ -370,15 +371,23 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         <div className="max-w-4xl mx-auto p-6 space-y-8">
 
             {/* 캠페인 제목 */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">캠페인 제목</h2>
-                <input
-                    type="text"
-                    value={formData.campaignTitle || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, campaignTitle: e.target.value }))}
-                    placeholder={`예: ${step1Data.productName || '강남 맛집 족발'} 체험단 모집`}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
-                />
+            {/* 캠페인 제목 (읽기 전용) */}
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 bg-gray-50/30">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">캠페인 제목 (모집글 제목)</h2>
+                    <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-full uppercase">Step 1 완료</span>
+                </div>
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={step1Data.campaignTitle || ''}
+                        readOnly
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed text-lg font-medium"
+                    />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                    💡 캠페인 제목은 1단계에서 확인 및 수정이 가능합니다.
+                </p>
             </section>
 
             {/* 캠페인 이미지 */}
@@ -1155,7 +1164,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         onClick={handleNext}
                         disabled={!isFormValid()}
                         className={`px-8 py-3 rounded-lg font-semibold transition-all ${isFormValid()
-                            ? isEdit 
+                            ? isEdit
                                 ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl'
                                 : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
                             : 'bg-gray-300 text-gray-500 cursor-not-allowed'

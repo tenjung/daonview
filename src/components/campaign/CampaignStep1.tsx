@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface Step1Data {
     campaignType: 'delivery' | 'visit' | 'press' | null;
@@ -14,6 +16,7 @@ interface Step1Data {
     productUrl: string;
     productUrlPrivate: boolean; // 링크 비공개 설정
     productName: string;
+    campaignTitle: string; // 캠페인 제목 동기화용 추가
     productOptions: ProductOption[];
     productPrice: string;
     shippingCost: string;
@@ -84,6 +87,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         productUrl: initialData?.productUrl || '',
         productUrlPrivate: initialData?.productUrlPrivate || false,
         productName: initialData?.productName || '',
+        campaignTitle: initialData?.campaignTitle || '',
         productOptions: initialData?.productOptions || [],
         productPrice: initialData?.productPrice || '',
         shippingCost: initialData?.shippingCost || '',
@@ -118,7 +122,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         delete (sanitizedInitial as any)[key];
                     }
                 });
-                
+
                 return {
                     ...prev,
                     ...sanitizedInitial
@@ -138,6 +142,15 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     const [currentStoreIndex, setCurrentStoreIndex] = useState<number | null>(null);
     const [tempNaverUrl, setTempNaverUrl] = useState('');
     const [showCouponTooltip, setShowCouponTooltip] = useState(false);
+
+    // 모집 인원 조정
+    const adjustRecruitmentCount = (amount: number) => {
+        setFormData(prev => {
+            const currentCount = parseInt(prev.totalRecruitment) || 0;
+            const newCount = Math.max(0, currentCount + amount);
+            return { ...prev, totalRecruitment: newCount.toString() };
+        });
+    };
 
     // 실시간 유효성 검사 상태
     const [fieldValidation, setFieldValidation] = useState<Record<string, boolean>>({});
@@ -453,6 +466,25 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
 
+            {/* 캠페인 제목 (모집글 제목) */}
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-gray-900">캠페인 제목 (모집글 제목)</h2>
+                </div>
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={formData.campaignTitle || ''}
+                        onChange={(e) => setFormData(prev => ({ ...prev, campaignTitle: e.target.value }))}
+                        placeholder="예시) [무료배송] 다온뷰 최고급 세안밴드 체험단 모집"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                    />
+                </div>
+                <p className="mt-2 text-xs text-gray-500">
+                    💡 인플루언서들이 모집 목록에서 보게 될 중요 제목입니다.
+                </p>
+            </section>
+
             {/* 진행 유형 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">진행 유형 선택</h2>
@@ -686,7 +718,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     {/* 상품명 */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            상품명을 입력해 주세요 (모집글 제목에 사용) <span className="text-red-500">*</span>
+                            상품명 (체험 제품) <span className="text-red-500">*</span>
                             {fieldValidation.productName === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
                             )}
@@ -696,10 +728,11 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             value={formData.productName || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
                             onBlur={() => validateField('productName', formData.productName)}
-                            placeholder="예시) 아이폰 14 Pro"
+                            placeholder="예시) 다온뷰 최고급 세안밴드"
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productName === true ? 'border-green-300' : 'border-gray-300'
                                 }`}
                         />
+                        <p className="mt-1 text-xs text-gray-500">💡 체험 받으실 상품의 정확한 명칭을 입력해주세요.</p>
                     </div>
 
                     {/* 제공할 옵션 정보 */}
@@ -1196,66 +1229,102 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         </div>
 
                         {/* 전체 모집 인원 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <div className="space-y-3">
+                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                                 전체 모집 인원 <span className="text-red-500">*</span>
                                 {fieldValidation.totalRecruitment === true && (
-                                    <span className="ml-2 text-green-500 text-sm">✓</span>
+                                    <span className="text-green-500 text-sm">✓</span>
                                 )}
                             </label>
                             <div className="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    value={formData.totalRecruitment || ''}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, totalRecruitment: e.target.value }))}
-                                    onBlur={() => validateField('totalRecruitment', formData.totalRecruitment)}
-                                    placeholder="10"
-                                    min="1"
-                                    className={`w-32 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right ${fieldValidation.totalRecruitment === true ? 'border-green-300' : 'border-gray-300'
-                                        }`}
-                                />
-                                <span className="text-gray-600">명</span>
+                                <div className="relative w-32">
+                                    <Input
+                                        type="number"
+                                        value={formData.totalRecruitment || ''}
+                                        onChange={(e) => setFormData(prev => ({ ...prev, totalRecruitment: e.target.value }))}
+                                        onBlur={() => validateField('totalRecruitment', formData.totalRecruitment)}
+                                        placeholder="10"
+                                        min="1"
+                                        className={`text-right pr-8 font-bold text-lg h-11 border-2 ${fieldValidation.totalRecruitment === true ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">명</span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 font-bold">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => adjustRecruitmentCount(5)}
+                                        className="h-11 px-4 font-bold active:scale-95 transition-transform"
+                                    >
+                                        +5
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => adjustRecruitmentCount(10)}
+                                        className="h-11 px-4 font-bold active:scale-95 transition-transform"
+                                    >
+                                        +10
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setFormData(prev => ({ ...prev, totalRecruitment: '0' }))}
+                                        className="h-11 px-3 text-muted-foreground active:scale-95 transition-transform"
+                                    >
+                                        초기화
+                                    </Button>
+                                </div>
                             </div>
                         </div>
 
                         {/* 미션 완료 리워드 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                미션 완료 리워드 (1인당) <span className="text-gray-500 text-xs">(선택)</span>
+                        <div className="space-y-3">
+                            <label className="text-sm font-semibold text-gray-700">
+                                미션 완료 리워드 (1인당) <span className="text-muted-foreground font-normal">(선택)</span>
                             </label>
 
-                            <div className="flex items-center gap-2 mb-3">
-                                <input
-                                    type="text"
-                                    value={formData.rewardPerPerson.toLocaleString()}
-                                    readOnly
-                                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-right font-semibold"
-                                />
-                                <span className="text-gray-600">포인트</span>
+                            <div className="flex items-center gap-2">
+                                <div className="relative flex-1 max-w-[200px]">
+                                    <Input
+                                        type="text"
+                                        value={formData.rewardPerPerson.toLocaleString()}
+                                        readOnly
+                                        className="bg-muted font-bold text-lg h-11 text-right pr-12 focus-visible:ring-0"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">포인트</span>
+                                </div>
                             </div>
 
                             <div className="flex gap-2">
-                                <button
+                                <Button
                                     type="button"
+                                    variant="secondary"
+                                    className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
                                     onClick={() => adjustReward(5000)}
-                                    className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
                                 >
                                     + 5,000
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="button"
+                                    variant="secondary"
+                                    className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
                                     onClick={() => adjustReward(10000)}
-                                    className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
                                 >
                                     + 10,000
-                                </button>
-                                <button
+                                </Button>
+                                <Button
                                     type="button"
+                                    variant="outline"
+                                    className="h-11 px-4 text-muted-foreground active:scale-95 transition-transform"
                                     onClick={() => setFormData(prev => ({ ...prev, rewardPerPerson: 0 }))}
-                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                                 >
                                     초기화
-                                </button>
+                                </Button>
                             </div>
 
                             <div className="mt-3 p-3 bg-blue-50 rounded-lg flex items-start gap-2">

@@ -9,7 +9,48 @@
 daonview/
 ├── src/
 │   ├── app/                    # Next.js App Router (페이지)
+│   │   ├── dashboard/          # 대시보드 (역할별)
+│   │   │   ├── admin/          # 관리자 대시보드
+│   │   │   │   ├── banners/    # 배너 관리
+│   │   │   │   ├── campaigns/  # 캠페인 관리
+│   │   │   │   └── users/      # 사용자 관리 (advertisers, influencers)
+│   │   │   ├── advertiser/     # 광고주 대시보드
+│   │   │   │   ├── applicants/ # 신청자 관리
+│   │   │   │   ├── campaigns/  # 내 캠페인
+│   │   │   │   └── reviews/    # 리뷰 관리
+│   │   │   └── influencer/     # 인플루언서 대시보드
+│   │   │       ├── campaigns/  # 신청한 캠페인
+│   │   │       ├── favorites/  # 찜한 캠페인
+│   │   │       └── settings/   # 설정
+│   │   ├── campaign/           # 캠페인 등록
+│   │   │   ├── new/            # 새 캠페인 등록
+│   │   │   └── drafts/         # 임시저장 목록
+│   │   ├── campaigns/          # 캠페인 목록 및 상세
+│   │   ├── community/          # 커뮤니티
+│   │   │   ├── notice/         # 공지사항
+│   │   │   ├── event/          # 이벤트
+│   │   │   ├── academy/        # 아카데미 (advertiser, influencer)
+│   │   │   ├── free/           # 자유게시판
+│   │   │   ├── blog-intro/     # 블로그 소개
+│   │   │   └── write/          # 글쓰기
+│   │   ├── ai-service/         # AI 서비스
+│   │   ├── brand/              # 브랜드 소개
+│   │   ├── contact/            # 문의하기
+│   │   ├── events/             # 이벤트
+│   │   ├── faq/                # FAQ
+│   │   ├── guide/              # 가이드
+│   │   ├── intro/              # 서비스 소개
+│   │   ├── login/              # 로그인
+│   │   ├── pricing/            # 요금제
+│   │   ├── privacy/            # 개인정보처리방침
+│   │   ├── reviews/            # 리뷰
+│   │   ├── signup/             # 회원가입
+│   │   └── terms/              # 이용약관
 │   ├── components/             # 재사용 가능한 컴포넌트
+│   │   ├── campaign/           # 캠페인 관련 컴포넌트
+│   │   ├── community/          # 커뮤니티 관련 컴포넌트
+│   │   ├── editor/             # TipTap 에디터 관련
+│   │   └── ui/                 # shadcn/ui 컴포넌트
 │   ├── lib/                    # 유틸리티 함수
 │   └── types/                  # TypeScript 타입 정의
 └── public/                     # 정적 파일
@@ -17,17 +58,21 @@ daonview/
 
 ---
 
-## � 데이터베이스 구조
+## 🗄️ 데이터베이스 구조
+DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 
 ### 주요 테이블
 | 테이블명 | 용도 | 주요 필드 |
 |---------|------|----------|
-| `campaigns` | 캠페인 정보 | id, title, platform, type, status, recruitment_start_date |
-| `profiles` | 사용자 프로필 | id, email, role, nickname, point |
-| `applications` | 캠페인 신청 | id, user_id, campaign_id, status |
+| `campaigns` | 캠페인 정보 | id, title, platform, type, status, recruitment_start_date, recruit_count, provision, region, category |
+| `profiles` | 사용자 프로필 | id, email, role, nickname, company_name, phone_number, sns_url, point, avatar_url |
+| `applications` | 캠페인 신청 | id, user_id, campaign_id, status, message, created_at |
 | `notices` | 공지사항 & 이벤트 (관리자 전용) | id, type ('공지' or '이벤트'), title, content, author, is_pinned, view_count |
 | `posts` | 사용자 생성 콘텐츠 | id, user_id, type (FREE, BLOG_INTRO, ACADEMY_*), title, content, view_count |
-| `banners` | 메인 배너 | id, title, image_url, link_url, order_index |
+| `banners` | 메인 배너 | id, title, image_url, link_url, order_index, is_active |
+| `campaign_drafts` | 캠페인 임시저장 | id, advertiser_id, draft_data (JSONB), created_at, updated_at |
+| `reviews` | 캠페인 리뷰 | id, campaign_id, user_id, content, rating, created_at |
+| `favorites` | 찜한 캠페인 | id, user_id, campaign_id, created_at |
 
 ### ⚠️ 중요: 데이터 소스 통일
 - **공지사항/이벤트**: `notices` 테이블 (관리자 전용)
@@ -55,8 +100,17 @@ daonview/
 /campaigns/[id]                      → 캠페인 상세
 /intro                               → 서비스 소개
 /pricing                             → 요금제
+/brand                               → 브랜드 소개
+/reviews                             → 리뷰
+/guide                               → 가이드
+/faq                                 → FAQ
+/contact                             → 문의하기
+/ai-service                          → AI 서비스
+/events                              → 이벤트
 /login                               → 로그인
 /signup                              → 회원가입
+/terms                               → 이용약관
+/privacy                             → 개인정보처리방침
 ```
 
 ### 커뮤니티 (공개)
@@ -73,13 +127,32 @@ daonview/
 /community/write?type=XXX            → 글쓰기 (권한별 분기)
 ```
 
-### 대시보드 (인증 필요)
+### 대시보드 - 관리자 (ADMIN)
+```
+/dashboard/admin                     → 관리자 대시보드
+/dashboard/admin/campaigns           → 캠페인 관리
+/dashboard/admin/banners             → 배너 관리
+/dashboard/admin/users               → 사용자 관리
+/dashboard/admin/users/advertisers   → 광고주 목록
+/dashboard/admin/users/influencers   → 인플루언서 목록
+```
+
+### 대시보드 - 광고주 (ADVERTISER)
+```
+/dashboard/advertiser                → 광고주 대시보드
+/dashboard/advertiser/campaigns      → 내 캠페인 목록
+/dashboard/advertiser/applicants     → 신청자 관리
+/dashboard/advertiser/reviews        → 리뷰 관리
+/dashboard/campaign/new              → 새 캠페인 등록 (다단계 폼)
+/dashboard/campaign/drafts           → 임시저장 목록
+```
+
+### 대시보드 - 인플루언서 (INFLUENCER)
 ```
 /dashboard/influencer                → 인플루언서 대시보드
-/dashboard/advertiser                → 광고주 대시보드
-/dashboard/admin                     → 관리자 대시보드
-/dashboard/admin/campaigns           → 관리자 캠페인 관리
-/dashboard/admin/users               → 관리자 사용자 관리
+/dashboard/influencer/campaigns      → 신청한 캠페인 목록
+/dashboard/influencer/favorites      → 찜한 캠페인
+/dashboard/influencer/settings       → 설정
 ```
 
 ---
@@ -182,15 +255,44 @@ export default function ClientComponent({ initialData }) {
 
 ## 📦 주요 컴포넌트
 
+### 캠페인 관련
 | 컴포넌트 | 타입 | 용도 |
 |---------|------|------|
-| `CampaignCard` | Client | 캠페인 카드 UI |
-| `CampaignListClient` | Client | 캠페인 목록 + 필터링 |
+| `CampaignCard` | Client | 캠페인 카드 UI (목록 표시) |
+| `CampaignListClient` | Client | 캠페인 목록 + 필터링 + 정렬 |
+| `CampaignDetailClient` | Client | 캠페인 상세 페이지 |
+| `CampaignSkeleton` | Client | 캠페인 로딩 스켈레톤 |
+| `VisualCampaignSlider` | Client | 메인 페이지 캠페인 슬라이더 |
+| `campaign/CampaignStep1~4` | Client | 캠페인 등록 다단계 폼 |
+
+### 대시보드 관련
+| 컴포넌트 | 타입 | 용도 |
+|---------|------|------|
+| `AdminDashboardClient` | Client | 관리자 대시보드 메인 |
+| `AdminSidebar` | Client | 관리자 사이드바 네비게이션 |
+| `AdvertiserSidebar` | Client | 광고주 사이드바 네비게이션 |
 | `CampaignTableClient` | Client | 관리자 캠페인 테이블 |
-| `NoticeBoardClient` | Client | 공지사항 목록 |
-| `MainBanner` | Server | 메인 배너 (롤링) |
-| `Navbar` | Client | 네비게이션 바 |
+| `AdvertiserCampaignTable` | Client | 광고주 캠페인 테이블 |
+| `AdvertiserListClient` | Client | 광고주 목록 관리 |
+| `InfluencerListClient` | Client | 인플루언서 목록 관리 |
+| `BannerManagementClient` | Client | 배너 관리 (드래그앤드롭) |
+
+### 커뮤니티 관련
+| 컴포넌트 | 타입 | 용도 |
+|---------|------|------|
+| `NoticeBoardClient` | Client | 공지사항/이벤트 목록 |
+| `editor/TipTapEditor` | Client | TipTap 기반 리치 텍스트 에디터 |
+| `editor/MenuBar` | Client | 에디터 툴바 |
+
+### 레이아웃 & UI
+| 컴포넌트 | 타입 | 용도 |
+|---------|------|------|
+| `Navbar` | Client | 네비게이션 바 (역할별 메뉴) |
 | `Footer` | Server | 푸터 |
+| `MainBanner` | Server | 메인 배너 (롤링) |
+| `InteractiveRollingBanner` | Client | 인터랙티브 배너 슬라이더 |
+| `StaticPromoBanners` | Server | 정적 프로모션 배너 |
+| `ConfirmDialog` | Client | 확인 다이얼로그 |
 
 ---
 
@@ -198,21 +300,35 @@ export default function ClientComponent({ initialData }) {
 
 ### `/lib/campaignUtils.ts`
 - `mapCampaignToCard()`: DB 데이터 → UI 형식 변환
+- 캠페인 관련 헬퍼 함수
 
 ### `/lib/supabaseClient.ts`
-- Supabase 클라이언트 초기화
+- Supabase 클라이언트 초기화 (브라우저용)
+
+### `/lib/supabaseServer.ts`
+- Supabase 서버 클라이언트 (SSR용)
 
 ### `/lib/bannerUtils.ts`
 - 배너 데이터 fetch 및 변환
+
+### `/lib/utils.ts`
+- 공통 유틸리티 함수 (cn 등)
 
 ---
 
 ## 🎨 UI 컴포넌트 라이브러리
 
-- **shadcn/ui**: 기본 UI 컴포넌트
+- **Next.js 16**: React 프레임워크 (App Router)
+- **React 19**: UI 라이브러리
+- **shadcn/ui**: 기본 UI 컴포넌트 (Radix UI 기반)
 - **Lucide React**: 아이콘
 - **Tailwind CSS**: 스타일링
+- **TipTap**: 리치 텍스트 에디터
+- **Embla Carousel**: 캐러셀/슬라이더
 - **Sonner**: Toast 알림
+- **React DnD**: 드래그앤드롭 (배너 관리)
+- **Axios**: HTTP 클라이언트
+- **Cheerio**: HTML 파싱 (네이버 플레이스 크롤링)
 
 ---
 
@@ -237,14 +353,17 @@ README.md
 
 5. **구조 변경 시 README 업데이트 필수**: 라우팅, 데이터베이스, 컴포넌트 구조 변경 시 반드시 이 문서를 함께 업데이트할 것!
 
-## 모든 작업 내용은 한글로 설명해줘
+
 
 ## 💻 1. 기술 스택 및 환경 (Tech Stack)
+- **Framework:** Next.js 16 (App Router)
 - **Language:** TypeScript (tsx)
-- **UI Component:** shadcn/ui
+- **UI Component:** shadcn/ui (Radix UI 기반)
 - **Icons:** Lucide React
 - **Styling:** Tailwind CSS
-- **Backend:** Supabase
+- **Editor:** TipTap (리치 텍스트 에디터)
+- **Backend:** Supabase (PostgreSQL + Auth + Storage)
+- **Deployment:** Vercel (권장)
 
 
 무결성 체크: 프론트엔드 항목의 추가/제거 시 항상 DB와의 무결성을 확인하며, 필요 시 적용 가능한 SQL 쿼리를 함께 제공한다.
