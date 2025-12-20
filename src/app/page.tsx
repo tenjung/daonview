@@ -51,7 +51,7 @@ export default async function Home() {
             <StaticPromoBanners />
 
             {/* New Campaigns Section (4 items) */}
-            <section className="container py-16">
+            <section className="w-full max-w-[1200px] mx-auto px-4 md:px-10 py-16">
                 <div className="flex justify-between items-end mb-8">
                     <div>
                         <span className="inline-block bg-pink-100 text-primary px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">NEW ARRIVALS</span>
@@ -75,7 +75,7 @@ export default async function Home() {
 
             {/* Popular Campaigns Section (4 items) */}
             <section className="bg-slate-50 border-y border-gray-100">
-                <div className="container py-16">
+                <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10 py-16">
                     <div className="flex justify-between items-end mb-8">
                         <div>
                             <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">HOT & POPULAR</span>

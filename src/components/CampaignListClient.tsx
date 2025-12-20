@@ -108,7 +108,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-12">
+        <div className="max-w-[1600px] mx-auto px-4 md:px-10 py-12">
             {/* Filter Bar */}
             <div className={`bg-white border border-slate-100 shadow-xl mb-12 sticky top-24 z-30 px-6 md:px-10 ${isFilterOpen ? 'rounded-[2.5rem] py-8' : 'rounded-full py-3 md:py-4'}`}>
                 <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
