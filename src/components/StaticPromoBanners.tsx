@@ -17,12 +17,12 @@ export default function StaticPromoBanners() {
         {
             id: 2,
             title: '광고주 전용',
-            subtitle: '성공적인 비즈니스를 위한 파트너',
-            description: '광고주를 위한 다온뷰 100% 활용 가이드',
-            bgColor: 'bg-gradient-to-br from-green-500 to-green-600',
+            subtitle: '왜 내 브랜드만 안 보일까?',
+            description: '검색 결과 1면을 장악하는 다온뷰만의 노출 전략',
+            bgColor: 'bg-gradient-to-br from-rose-500 to-rose-600',
             icon: Briefcase,
             link: '/intro',
-            accentColor: 'text-green-100',
+            accentColor: 'text-rose-100',
             cta: '서비스 소개서 보기'
         },
         {
@@ -43,11 +43,15 @@ export default function StaticPromoBanners() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
+                    const isSpecial = banner.id === 2;
                     return (
                         <Link
                             key={banner.id}
                             href={banner.link}
-                            className={`${banner.bgColor} rounded-2xl p-8 relative overflow-hidden group hover:shadow-2xl hover:scale-105 transition-all duration-300 cursor-pointer`}
+                            className={`${banner.bgColor} rounded-2xl p-8 relative overflow-hidden group transition-all duration-300 cursor-pointer ${isSpecial
+                                    ? 'shadow-xl shadow-rose-200 ring-4 ring-rose-400/30 scale-[1.02] hover:scale-[1.07] hover:shadow-2xl'
+                                    : 'hover:shadow-2xl hover:scale-105'
+                                }`}
                         >
                             {/* Background Pattern */}
                             <div className="absolute inset-0 opacity-10">

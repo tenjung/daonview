@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { fadeIn, staggerContainer, slideInLeft, slideInRight, scaleUp } from '@/lib/motion';
 import Link from 'next/link';
-import { 
-    Zap, 
-    TrendingUp, 
-    Shield, 
-    BarChart3, 
-    Users, 
+import {
+    Zap,
+    TrendingUp,
+    Shield,
+    BarChart3,
+    Users,
     CheckCircle2,
     ArrowRight,
     Sparkles,
@@ -31,77 +32,83 @@ import {
 } from 'lucide-react';
 
 export default function IntroPage() {
-    const [isVisible, setIsVisible] = useState(false);
-
-    useEffect(() => {
-        setIsVisible(true);
-    }, []);
-
     return (
         <div className="bg-gradient-to-b from-pink-50 via-white to-pink-50">
             {/* Hero Section */}
             <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
-                
+
                 <div className="container relative py-24 lg:py-32">
-                    <div className={`text-center transform transition-all duration-1000 ${isVisible ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}>
-                        <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
+                    <motion.div
+                        className="text-center"
+                        initial="hidden"
+                        animate="visible"
+                        variants={staggerContainer}
+                    >
+                        <motion.div variants={fadeIn} className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
                             <Sparkles className="w-4 h-4" />
                             <span className="text-sm font-medium">프리미엄 체험단 플랫폼</span>
-                        </div>
-                        
-                        <h1 className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
+                        </motion.div>
+
+                        <motion.h1 variants={fadeIn} className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
                             소량부터 무제한까지<br />
                             <span className="bg-gradient-to-r from-yellow-200 to-pink-200 bg-clip-text text-transparent">
                                 고효율 리뷰 체험단 솔루션
                             </span>
-                        </h1>
-                        
-                        <p className="text-xl lg:text-2xl mb-8 text-pink-100 max-w-3xl mx-auto">
+                        </motion.h1>
+
+                        <motion.p variants={fadeIn} className="text-xl lg:text-2xl mb-8 text-pink-100 max-w-3xl mx-auto">
                             예산 걱정 없이 원하는 만큼 진행하세요
-                        </p>
-                        
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                            <Link 
-                                href="/signup" 
-                                className="btn btn-primary bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group"
+                        </motion.p>
+
+                        <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                            <Link
+                                href="/signup"
+                                className="btn btn-primary bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group transition-all"
                             >
                                 무료로 시작하기
                                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                             </Link>
-                            <Link 
-                                href="/campaigns" 
-                                className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg"
+                            <Link
+                                href="/campaigns"
+                                className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg transition-all"
                             >
                                 캠페인 둘러보기
                             </Link>
-                        </div>
+                        </motion.div>
 
                         {/* Stats */}
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-16 max-w-4xl mx-auto">
+                        <motion.div
+                            variants={staggerContainer}
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-16 max-w-4xl mx-auto"
+                        >
                             {[
                                 { label: '함께한 브랜드', value: '500+', icon: Award },
                                 { label: '진행된 캠페인', value: '2,000+', icon: Target },
                                 { label: '제작된 콘텐츠', value: '15,000+', icon: MessageSquare },
                                 { label: '평균 만족도', value: '98%', icon: CheckCircle2 }
                             ].map((stat, idx) => (
-                                <div 
-                                    key={idx} 
+                                <motion.div
+                                    key={idx}
+                                    variants={scaleUp}
                                     className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 transform hover:scale-105 transition-all duration-300"
                                 >
                                     <stat.icon className="w-8 h-8 mb-3 mx-auto text-yellow-200" />
                                     <div className="text-3xl font-bold mb-1">{stat.value}</div>
                                     <div className="text-sm text-pink-100">{stat.label}</div>
-                                </div>
+                                </motion.div>
                             ))}
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 </div>
 
                 {/* Wave Divider */}
                 <div className="absolute bottom-0 left-0 right-0">
                     <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white"/>
+                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" />
                     </svg>
                 </div>
             </section>
@@ -109,16 +116,28 @@ export default function IntroPage() {
             {/* Features Section - 4대 강점 */}
             <section className="py-20 lg:py-32">
                 <div className="container">
-                    <div className="text-center mb-16">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-16"
+                    >
                         <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
                             DAONVIEW는 무엇이 다른가요?
                         </h2>
                         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
                             브랜드 성장을 위한 <span className="font-bold text-primary">최고의</span> 파트너가 되어드립니다
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={staggerContainer}
+                        className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
+                    >
                         {[
                             {
                                 icon: Puzzle,
@@ -143,7 +162,7 @@ export default function IntroPage() {
                                 description: '먹튀/잠수 걱정 NO. 불량 리뷰어 필터링은 기본, 제휴 법무법인을 통해 연락 두절까지 책임지고 해결합니다.',
                                 gradient: 'from-blue-600 to-indigo-600',
                                 borderColor: 'border-blue-200 hover:border-blue-500',
-                                badge: '업계 유일',
+                                badge: '법률보호',
                                 highlight: true
                             },
                             {
@@ -155,9 +174,11 @@ export default function IntroPage() {
                                 borderColor: 'border-purple-200 hover:border-purple-400'
                             }
                         ].map((feature, idx) => (
-                            <div 
+                            <motion.div
                                 key={idx}
-                                className={`group bg-white rounded-3xl p-6 lg:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-2 ${feature.borderColor} relative ${feature.highlight ? 'ring-2 ring-blue-300' : ''}`}
+                                variants={fadeIn}
+                                className={`group bg-white rounded-3xl p-6 lg:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform border-2 ${feature.borderColor} relative ${feature.highlight ? 'ring-2 ring-blue-300' : ''}`}
+                                whileHover={{ y: -8 }}
                             >
                                 {/* 뱃지 (법적 보호에만) */}
                                 {feature.badge && (
@@ -185,17 +206,23 @@ export default function IntroPage() {
                                 <p className="text-sm lg:text-base text-text-secondary leading-relaxed">
                                     {feature.description}
                                 </p>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* Unlimited Pass Section */}
-            <section className="py-20 lg:py-32 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50">
+            <section className="py-20 lg:py-32 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 overflow-hidden">
                 <div className="container">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div className="relative">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInLeft}
+                            className="relative"
+                        >
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-300 to-pink-300 rounded-3xl transform -rotate-3"></div>
                             <div className="relative bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white rounded-3xl p-12 shadow-2xl">
                                 <Infinity className="w-16 h-16 mb-6 text-yellow-200" />
@@ -218,23 +245,28 @@ export default function IntroPage() {
                                         </div>
                                     ))}
                                 </div>
-                                <Link 
-                                    href="/campaigns" 
+                                <Link
+                                    href="/campaigns"
                                     className="inline-flex items-center gap-2 mt-8 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-pink-50 transition-all hover:shadow-xl group"
                                 >
                                     자세히 보기
                                     <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </Link>
                             </div>
-                        </div>
+                        </motion.div>
 
-                        <div>
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInRight}
+                        >
                             <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-primary">
                                 예산 걱정 없이<br />
                                 마음껏 진행하세요
                             </h2>
                             <p className="text-lg text-text-secondary mb-8 leading-relaxed">
-                                기존 체험단 플랫폼은 캠페인마다 비용이 발생하지만, 
+                                기존 체험단 플랫폼은 캠페인마다 비용이 발생하지만,
                                 다온뷰의 무제한 이용권은 월 정액으로 무제한 캠페인을 진행할 수 있습니다.
                             </p>
                             <div className="grid grid-cols-2 gap-6">
@@ -251,7 +283,7 @@ export default function IntroPage() {
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
@@ -259,7 +291,13 @@ export default function IntroPage() {
             {/* 1+1 Campaign Section - 3개 카드 */}
             <section className="py-20 lg:py-32">
                 <div className="container">
-                    <div className="text-center mb-16">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-16"
+                    >
                         <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-100 to-purple-100 px-4 py-2 rounded-full mb-4">
                             <Sparkles className="w-4 h-4 text-primary" />
                             <span className="text-sm font-semibold text-primary">DAONVIEW만의 특별함</span>
@@ -270,30 +308,37 @@ export default function IntroPage() {
                         <p className="text-lg text-text-secondary max-w-3xl mx-auto">
                             <span className="font-bold text-primary">"구매평 체험단"</span>에 <span className="font-bold text-primary">"SNS 마케팅"</span>을 더해 시너지를 극대화하세요.
                         </p>
-                    </div>
+                    </motion.div>
 
                     <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                         {/* 카드 1: 구매평 체험단 */}
-                        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-3xl p-8 shadow-xl transform hover:scale-105 transition-all duration-300 relative">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={fadeIn}
+                            className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-3xl p-8 shadow-xl relative"
+                            whileHover={{ scale: 1.05 }}
+                        >
                             <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 text-xs px-3 py-1.5 rounded-full font-bold shadow-lg">
                                 ⭐ 추천
                             </div>
-                            
+
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
                                 <ShoppingCart className="w-8 h-8" />
                             </div>
-                            
+
                             <h3 className="text-2xl font-bold mb-3">구매평 체험단</h3>
-                            
+
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#스토어지수상승</span>
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#실구매리뷰</span>
                             </div>
-                            
+
                             <p className="text-blue-100 mb-6 leading-relaxed">
                                 실제 구매 트래픽과 고퀄리티 포토리뷰로 스토어의 신뢰도와 랭킹을 동시에 높입니다.
                             </p>
-                            
+
                             <ul className="space-y-3">
                                 {[
                                     '키워드 검색 후 실제 구매 (트래픽 효과)',
@@ -306,26 +351,33 @@ export default function IntroPage() {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
+                        </motion.div>
 
                         {/* 카드 2: 블로그 체험단 */}
-                        <div className="bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-3xl p-8 shadow-xl transform hover:scale-105 transition-all duration-300 relative">
-                            
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={fadeIn}
+                            transition={{ delay: 0.2 }}
+                            className="bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-3xl p-8 shadow-xl relative"
+                            whileHover={{ scale: 1.05 }}
+                        >
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
                                 <MessageSquare className="w-8 h-8" />
                             </div>
-                            
+
                             <h3 className="text-2xl font-bold mb-3">블로그 체험단</h3>
-                            
+
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#상위노출</span>
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#정보성리뷰</span>
                             </div>
-                            
+
                             <p className="text-pink-100 mb-6 leading-relaxed">
                                 네이버 검색 시 가장 먼저 노출되는 상세 리뷰로 고민하는 고객을 설득하고 유입시킵니다.
                             </p>
-                            
+
                             <ul className="space-y-3">
                                 {[
                                     '타겟 키워드 상위 노출 공략',
@@ -338,26 +390,33 @@ export default function IntroPage() {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
+                        </motion.div>
 
                         {/* 카드 3: 인스타그램 체험단 */}
-                        <div className="bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-3xl p-8 shadow-xl transform hover:scale-105 transition-all duration-300 relative">
-                            
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={fadeIn}
+                            transition={{ delay: 0.4 }}
+                            className="bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-3xl p-8 shadow-xl relative"
+                            whileHover={{ scale: 1.05 }}
+                        >
                             <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
                                 <Smartphone className="w-8 h-8" />
                             </div>
-                            
+
                             <h3 className="text-2xl font-bold mb-3">인스타그램 체험단</h3>
-                            
+
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#비주얼마케팅</span>
                                 <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#트렌드확산</span>
                             </div>
-                            
+
                             <p className="text-purple-100 mb-6 leading-relaxed">
                                 감각적인 이미지와 숏폼(릴스) 콘텐츠로 브랜드의 매력을 보여주고 인지도를 넓힙니다.
                             </p>
-                            
+
                             <ul className="space-y-3">
                                 {[
                                     '트렌디한 감성 사진 및 영상 제작',
@@ -370,10 +429,16 @@ export default function IntroPage() {
                                     </li>
                                 ))}
                             </ul>
-                        </div>
+                        </motion.div>
                     </div>
 
-                    <div className="mt-16 relative">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="mt-16 relative"
+                    >
                         <div className="text-center mb-8">
                             <h3 className="text-2xl lg:text-3xl font-bold text-primary mb-2">
                                 왜 1석2조 체험단이 효율적일까요?
@@ -384,17 +449,16 @@ export default function IntroPage() {
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-center">
-                            {/* 기존 방식 - 왼쪽 */}
-                            <div className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl p-8 shadow-lg border-2 border-gray-300 relative">
+                            {/* 기존 방식 */}
+                            <motion.div
+                                variants={slideInLeft}
+                                className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl p-8 shadow-lg border-2 border-gray-300 relative"
+                            >
                                 <div className="absolute top-4 right-4 bg-gray-400 text-white text-xs px-3 py-1 rounded-full font-semibold">
                                     기존 방식
                                 </div>
-                                
-                                <h4 className="text-xl font-bold text-gray-700 mb-6">
-                                    따로 진행 (타 업체/개별)
-                                </h4>
-
-                                {/* 비용 */}
+                                <h4 className="text-xl font-bold text-gray-700 mb-6">따로 진행 (타 업체/개별)</h4>
+                                {/* ... 내용 생략 없이 복원 ... */}
                                 <div className="bg-white rounded-2xl p-6 mb-4 border border-gray-300">
                                     <div className="flex items-center justify-between mb-3">
                                         <span className="text-gray-600">쇼핑몰 구매평</span>
@@ -411,8 +475,6 @@ export default function IntroPage() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* 제품 발송 */}
                                 <div className="bg-red-50 rounded-2xl p-6 border border-red-200">
                                     <div className="flex items-center gap-3 mb-3">
                                         <Package className="w-6 h-6 text-red-500" />
@@ -425,31 +487,32 @@ export default function IntroPage() {
                                         ❌ 관리 복잡
                                     </p>
                                 </div>
-                            </div>
+                            </motion.div>
 
-                            {/* 중앙 화살표 */}
+                            {/* 화살표 */}
                             <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex-col items-center">
-                                <div className="bg-gradient-to-r from-primary to-pink-500 text-white rounded-full p-4 shadow-2xl">
+                                <motion.div
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ duration: 2, repeat: Infinity }}
+                                    className="bg-gradient-to-r from-primary to-pink-500 text-white rounded-full p-4 shadow-2xl"
+                                >
                                     <ArrowRight className="w-8 h-8" />
-                                </div>
+                                </motion.div>
                                 <div className="mt-2 bg-white px-4 py-2 rounded-full shadow-lg border-2 border-primary">
-                                    <p className="text-sm font-bold text-primary whitespace-nowrap">
-                                        비용 64% 절감!
-                                    </p>
+                                    <p className="text-sm font-bold text-primary whitespace-nowrap">비용 64% 절감!</p>
                                 </div>
                             </div>
 
-                            {/* 다온뷰 방식 - 오른쪽 */}
-                            <div className="bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-400 rounded-3xl p-8 shadow-2xl border-2 border-cyan-300 relative transform hover:scale-105 transition-all duration-300 hover:shadow-3xl">
+                            {/* 다온뷰 방식 */}
+                            <motion.div
+                                variants={slideInRight}
+                                className="bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-400 rounded-3xl p-8 shadow-2xl border-2 border-cyan-300 relative"
+                                whileHover={{ scale: 1.02 }}
+                            >
                                 <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs px-3 py-1 rounded-full font-bold animate-pulse">
                                     ⭐ 추천!
                                 </div>
-                                
-                                <h4 className="text-xl font-bold text-white mb-6 drop-shadow-lg">
-                                    1석2조 체험단 (다온뷰)
-                                </h4>
-
-                                {/* 비용 */}
+                                <h4 className="text-xl font-bold text-white mb-6 drop-shadow-lg">1석2조 체험단 (다온뷰)</h4>
                                 <div className="bg-white rounded-2xl p-6 mb-4 border-2 border-cyan-200 shadow-lg">
                                     <div className="flex items-center justify-between mb-3">
                                         <span className="text-gray-700 font-medium">구매평 + SNS 리뷰</span>
@@ -464,8 +527,6 @@ export default function IntroPage() {
                                         </div>
                                     </div>
                                 </div>
-
-                                {/* 제품 발송 */}
                                 <div className="bg-green-50 rounded-2xl p-6 border-2 border-green-300 shadow-lg">
                                     <div className="flex items-center gap-3 mb-3">
                                         <div className="relative">
@@ -480,48 +541,37 @@ export default function IntroPage() {
                                         ✅ 간편한 관리
                                     </p>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
-
-                        {/* 하단 요약 */}
-                        <div className="mt-12 text-center">
-                            <div className="inline-block bg-gradient-to-r from-cyan-50 via-sky-50 to-blue-50 rounded-2xl p-8 border-2 border-cyan-200 shadow-xl">
-                                <p className="text-2xl font-bold text-primary mb-3">
-                                    💡 1석2조 체험단의 핵심 가치
-                                </p>
-                                <div className="grid md:grid-cols-3 gap-6 mt-6">
-                                    <div className="text-center">
-                                        <div className="text-3xl font-bold text-primary mb-1">64%</div>
-                                        <div className="text-sm text-text-secondary">비용 절감</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-3xl font-bold text-primary mb-1">1회</div>
-                                        <div className="text-sm text-text-secondary">제품 발송</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-3xl font-bold text-primary mb-1">2배</div>
-                                        <div className="text-sm text-text-secondary">마케팅 효과</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* Campaign Types Section */}
             <section className="py-20 lg:py-32 bg-gradient-to-br from-pink-50 to-purple-50">
                 <div className="container">
-                    <div className="text-center mb-16">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-16"
+                    >
                         <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
                             다온뷰 체험단 상품 소개
                         </h2>
                         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
                             필요한 체험단을 선택하세요 👇
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={staggerContainer}
+                        className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+                    >
                         {[
                             {
                                 icon: ShoppingBag,
@@ -552,9 +602,11 @@ export default function IntroPage() {
                                 examples: '패션, 도서, 반려동물'
                             }
                         ].map((type, idx) => (
-                            <div 
+                            <motion.div
                                 key={idx}
-                                className="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-pink-100 cursor-pointer"
+                                variants={fadeIn}
+                                whileHover={{ y: -5 }}
+                                className="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-pink-100 cursor-pointer"
                             >
                                 <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                                     <type.icon className="w-8 h-8 text-white" />
@@ -562,25 +614,37 @@ export default function IntroPage() {
                                 <h3 className="text-xl font-bold mb-2 text-primary">{type.title}</h3>
                                 <p className="text-text-secondary mb-3">{type.description}</p>
                                 <p className="text-sm text-text-secondary/70">{type.examples}</p>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* Testimonials Section */}
             <section className="py-20 lg:py-32">
                 <div className="container">
-                    <div className="text-center mb-16">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-16"
+                    >
                         <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
                             다온뷰 이용 후기
                         </h2>
                         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
                             실제 고객들의 생생한 후기를 확인하세요
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={staggerContainer}
+                        className="grid md:grid-cols-3 gap-8"
+                    >
                         {[
                             {
                                 name: '김민지 대표',
@@ -604,8 +668,10 @@ export default function IntroPage() {
                                 avatar: '👩‍💻'
                             }
                         ].map((testimonial, idx) => (
-                            <div 
+                            <motion.div
                                 key={idx}
+                                variants={scaleUp}
+                                whileHover={{ y: -5 }}
                                 className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-pink-100 relative"
                             >
                                 <Quote className="absolute top-6 right-6 w-12 h-12 text-pink-100" />
@@ -628,25 +694,37 @@ export default function IntroPage() {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
             {/* How It Works Section */}
             <section className="py-20 lg:py-32 bg-gradient-to-br from-pink-50 to-purple-50">
                 <div className="container">
-                    <div className="text-center mb-16">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-16"
+                    >
                         <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
                             이용 방법
                         </h2>
                         <p className="text-lg text-text-secondary max-w-2xl mx-auto">
                             간단한 3단계로 시작하세요
                         </p>
-                    </div>
+                    </motion.div>
 
-                    <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={staggerContainer}
+                        className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto"
+                    >
                         {[
                             {
                                 step: '01',
@@ -670,7 +748,7 @@ export default function IntroPage() {
                                 color: 'bg-rose-500'
                             }
                         ].map((step, idx) => (
-                            <div key={idx} className="relative">
+                            <motion.div key={idx} variants={fadeIn} className="relative">
                                 {idx < 2 && (
                                     <div className="hidden md:block absolute top-1/4 -right-4 w-8 h-0.5 bg-gradient-to-r from-pink-300 to-purple-300 z-0"></div>
                                 )}
@@ -682,9 +760,9 @@ export default function IntroPage() {
                                     <h3 className="text-xl font-bold mb-3 text-primary">{step.title}</h3>
                                     <p className="text-text-secondary leading-relaxed">{step.description}</p>
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
@@ -692,17 +770,22 @@ export default function IntroPage() {
             <section className="py-20 lg:py-32">
                 <div className="container">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <div>
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInLeft}
+                        >
                             <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-primary">
                                 왜 DAONVIEW를<br />선택해야 할까요?
                             </h2>
                             <p className="text-lg text-text-secondary mb-8 leading-relaxed">
-                                다온뷰는 스몰 브랜드를 위한 서비스에 집중합니다. 
-                                합리적인 가격에 서비스를 제공하고, 효율적인 솔루션 개발에 투자하여, 
+                                다온뷰는 스몰 브랜드를 위한 서비스에 집중합니다.
+                                합리적인 가격에 서비스를 제공하고, 효율적인 솔루션 개발에 투자하여,
                                 스몰 브랜드가 적은 비용으로 경쟁할 수 있도록 돕습니다.
                             </p>
-                            
-                            <div className="space-y-4">
+
+                            <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" className="space-y-4">
                                 {[
                                     '합리적인 가격으로 최대의 효과',
                                     '빈틈없는 관리 서비스',
@@ -711,17 +794,23 @@ export default function IntroPage() {
                                     '다양한 플랫폼 지원 (블로그, 인스타, 유튜브)',
                                     '투명한 리뷰 관리 시스템'
                                 ].map((benefit, idx) => (
-                                    <div key={idx} className="flex items-center gap-3 group">
+                                    <motion.div key={idx} variants={fadeIn} className="flex items-center gap-3 group">
                                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
                                             <CheckCircle2 className="w-4 h-4 text-white" />
                                         </div>
                                         <span className="text-lg text-text-main">{benefit}</span>
-                                    </div>
+                                    </motion.div>
                                 ))}
-                            </div>
-                        </div>
+                            </motion.div>
+                        </motion.div>
 
-                        <div className="relative">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInRight}
+                            className="relative"
+                        >
                             <div className="absolute inset-0 bg-gradient-to-br from-pink-200 to-purple-200 rounded-3xl transform rotate-3"></div>
                             <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-pink-100">
                                 <div className="space-y-6">
@@ -732,7 +821,7 @@ export default function IntroPage() {
                                             철저한 인플루언서 검증 시스템으로 품질 높은 리뷰를 보장합니다
                                         </p>
                                     </div>
-                                    
+
                                     <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6">
                                         <TrendingUp className="w-12 h-12 text-primary mb-4" />
                                         <h3 className="text-xl font-bold mb-2 text-primary">검증된 성과</h3>
@@ -740,7 +829,7 @@ export default function IntroPage() {
                                             평균 98%의 고객 만족도와 지속적인 재구매율을 자랑합니다
                                         </p>
                                     </div>
-                                    
+
                                     <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6">
                                         <Clock className="w-12 h-12 text-primary mb-4" />
                                         <h3 className="text-xl font-bold mb-2 text-primary">빠른 진행</h3>
@@ -750,7 +839,7 @@ export default function IntroPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
@@ -758,30 +847,36 @@ export default function IntroPage() {
             {/* CTA Section */}
             <section className="py-20 lg:py-32 bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
-                
-                <div className="container relative text-center">
+
+                <motion.div
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={scaleUp}
+                    className="container relative text-center"
+                >
                     <h2 className="text-3xl lg:text-5xl font-bold mb-6">
                         지금 바로 시작하세요
                     </h2>
                     <p className="text-xl text-pink-100 mb-8 max-w-2xl mx-auto">
                         본질이 뛰어난 브랜드가 선택받는 환경을 만들겠습니다
                     </p>
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link 
-                            href="/signup" 
-                            className="btn bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group"
+                    <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Link
+                            href="/signup"
+                            className="btn bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group transition-all"
                         >
                             무료로 시작하기
                             <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                         </Link>
-                        <Link 
-                            href="/contact" 
-                            className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg"
+                        <Link
+                            href="/contact"
+                            className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg transition-all"
                         >
                             문의하기
                         </Link>
-                    </div>
-                </div>
+                    </motion.div>
+                </motion.div>
             </section>
         </div>
     );

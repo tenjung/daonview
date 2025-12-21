@@ -148,9 +148,11 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </h3>
 
                 {/* 3. Provision */}
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-3">
-                    <Gift className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="truncate">{provision || '제공내역 없음'}</span>
+                <div className="flex flex-col gap-1.5 text-xs text-gray-500 mb-3 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
+                        제공내역
+                    </span>
+                    <span className="line-clamp-1 text-slate-600 pl-0.5">{provision || '제공내역 없음'}</span>
                 </div>
 
                 {/* Spacer to push bottom section down */}

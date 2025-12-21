@@ -1,3 +1,31 @@
+###기본 원칙
+사용자가 하는 모든 질문과 요청에 대해, AI는 아래 3단계 구조에 따라 분석 리포트 형식으로 답변해야 한다.
+1️⃣ 현재로직 (Current Logic)
+현재 동작 중인 로직, 구조, 또는 프로세스를 분석한다.
+
+현재 방식의 문제점, 비효율성, 제약사항, 또는 개선 가능성을 명확히 식별한다.
+
+필요 시 구체적 코드 흐름, 데이터 처리 방식, 사용자 경험상의 문제 등을 함께 설명한다.
+
+2️⃣ 수정방향 (Improvement Direction)
+사용자의 요청사항을 반영하여, 어떤 방식으로 개선하거나 변경해야 하는지를 제시한다.
+
+단순 피드백이 아니라 명확한 수정 방향 또는 로직 재설계 방안을 포함한다.
+
+변경 목적(예: 성능 개선, 유지보수성 증가, 가독성 향상 등)을 명시한다.
+
+3️⃣ 적용계획 (Implementation Plan)
+수정 방향을 실제 반영하기 위한 구체적인 실행 계획을 제시한다.
+
+필요 시 단계별 절차, 예상 결과, 사용 기술 스택, 예시 코드, 테스트 전략 등을 포함한다.
+
+구현 시 주의사항이나 예상 리스크도 함께 제시한다.
+
+ #작업진행 규칙
+분석 리포트 전달 후, 사용자가 “작업 진행 요청” 명령을 내릴 때만 실제 수정 또는 구현 작업을 진행한다.
+“작업 진행 요청”이 있기 전에는 실제 코드 수정이나 결론 실행을 하지 않는다.
+
+
 # 📘 DAONVIEW 프로젝트 아키텍처
 
 > **⚠️ 중요**: 구조 변경이나 기능 추가 시 이 섹션을 반드시 업데이트할 것!
@@ -9,6 +37,7 @@
 daonview/
 ├── src/
 │   ├── app/                    # Next.js App Router (페이지)
+│   │   ├── api/                # API Routes
 │   │   ├── dashboard/          # 대시보드 (역할별)
 │   │   │   ├── admin/          # 관리자 대시보드
 │   │   │   │   ├── banners/    # 배너 관리
@@ -23,7 +52,7 @@ daonview/
 │   │   │       ├── favorites/  # 찜한 캠페인
 │   │   │       └── settings/   # 설정
 │   │   ├── campaign/           # 캠페인 등록
-│   │   │   ├── new/            # 새 캠페인 등록
+│   │   │   ├── new/            # 새 캠페인 등록 (다단계 폼)
 │   │   │   └── drafts/         # 임시저장 목록
 │   │   ├── campaigns/          # 캠페인 목록 및 상세
 │   │   ├── community/          # 커뮤니티
@@ -32,22 +61,22 @@ daonview/
 │   │   │   ├── academy/        # 아카데미 (advertiser, influencer)
 │   │   │   ├── free/           # 자유게시판
 │   │   │   ├── blog-intro/     # 블로그 소개
+│   │   │   ├── faq/            # FAQ
 │   │   │   └── write/          # 글쓰기
 │   │   ├── ai-service/         # AI 서비스
 │   │   ├── brand/              # 브랜드 소개
 │   │   ├── contact/            # 문의하기
-│   │   ├── events/             # 이벤트
-│   │   ├── faq/                # FAQ
+│   │   ├── events/             # 메인 이벤트 페이지
 │   │   ├── guide/              # 가이드
 │   │   ├── intro/              # 서비스 소개
 │   │   ├── login/              # 로그인
 │   │   ├── pricing/            # 요금제
 │   │   ├── privacy/            # 개인정보처리방침
-│   │   ├── reviews/            # 리뷰
+│   │   ├── reviews/            # 리뷰 모음
 │   │   ├── signup/             # 회원가입
 │   │   └── terms/              # 이용약관
 │   ├── components/             # 재사용 가능한 컴포넌트
-│   │   ├── campaign/           # 캠페인 관련 컴포넌트
+│   │   ├── campaign/           # 캠페인 등록/로딩 관련 (Step1~3, Loader)
 │   │   ├── community/          # 커뮤니티 관련 컴포넌트
 │   │   ├── editor/             # TipTap 에디터 관련
 │   │   └── ui/                 # shadcn/ui 컴포넌트
@@ -67,7 +96,6 @@ DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 - **커뮤니티 게시글**: `posts` 테이블 (사용자 생성)
 - **캠페인**: `campaigns` 테이블만 사용
 
-
 ---
 
 ## 🗺️ 라우팅 구조
@@ -82,7 +110,7 @@ DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 /brand                               → 브랜드 소개
 /reviews                             → 리뷰
 /guide                               → 가이드
-/faq                                 → FAQ
+/community/faq                       → FAQ
 /contact                             → 문의하기
 /ai-service                          → AI 서비스
 /events                              → 이벤트
@@ -109,7 +137,7 @@ DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 ### 대시보드 - 관리자 (ADMIN)
 ```
 /dashboard/admin                     → 관리자 대시보드
-/dashboard/admin/campaigns           → 캠페인 관리
+/dashboard/admin/campaigns           → 캠페인 관리 (전체)
 /dashboard/admin/banners             → 배너 관리
 /dashboard/admin/users               → 사용자 관리
 /dashboard/admin/users/advertisers   → 광고주 목록
@@ -122,7 +150,7 @@ DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 /dashboard/advertiser/campaigns      → 내 캠페인 목록
 /dashboard/advertiser/applicants     → 신청자 관리
 /dashboard/advertiser/reviews        → 리뷰 관리
-/dashboard/campaign/new              → 새 캠페인 등록 (다단계 폼)
+/dashboard/campaign/new              → 새 캠페인 등록 (Step 1~3)
 /dashboard/campaign/drafts           → 임시저장 목록
 ```
 
@@ -222,13 +250,15 @@ export default function ClientComponent({ initialData }) {
 | `CampaignDetailClient` | Client | 캠페인 상세 페이지 |
 | `CampaignSkeleton` | Client | 캠페인 로딩 스켈레톤 |
 | `VisualCampaignSlider` | Client | 메인 페이지 캠페인 슬라이더 |
-| `campaign/CampaignStep1~4` | Client | 캠페인 등록 다단계 폼 |
+| `campaign/CampaignStep1~3` | Client | 캠페인 등록 다단계 폼 |
+| `campaign/CampaignLoader` | Client | 캠페인 로딩 애니메이션/상태 |
 
 ### 대시보드 관련
 | 컴포넌트 | 타입 | 용도 |
 |---------|------|------|
 | `AdminDashboardClient` | Client | 관리자 대시보드 메인 |
 | `AdminSidebar` | Client | 관리자 사이드바 네비게이션 |
+| `DashboardSidebar` | Client | 공용/기본 대시보드 사이드바 |
 | `AdvertiserSidebar` | Client | 광고주 사이드바 네비게이션 |
 | `CampaignTableClient` | Client | 관리자 캠페인 테이블 |
 | `AdvertiserCampaignTable` | Client | 광고주 캠페인 테이블 |
@@ -252,6 +282,7 @@ export default function ClientComponent({ initialData }) {
 | `InteractiveRollingBanner` | Client | 인터랙티브 배너 슬라이더 |
 | `StaticPromoBanners` | Server | 정적 프로모션 배너 |
 | `ConfirmDialog` | Client | 확인 다이얼로그 |
+| `AdminControls` | Client | 관리자 제어 컴포넌트 |
 
 ---
 
@@ -282,7 +313,7 @@ export default function ClientComponent({ initialData }) {
 - **shadcn/ui**: 기본 UI 컴포넌트 (Radix UI 기반)
 - **Lucide React**: 아이콘
 - **Tailwind CSS**: 스타일링
-- **TipTap**: 리치 텍스트 에디터
+- **TipTap**: 리치 텍스트 에디터 (커뮤니티/캠페인 본문)
 - **Embla Carousel**: 캐러셀/슬라이더
 - **Sonner**: Toast 알림
 - **React DnD**: 드래그앤드롭 (배너 관리)
@@ -291,28 +322,35 @@ export default function ClientComponent({ initialData }) {
 
 ---
 
-## �🛑 [MUST READ] 코딩 어시스턴트 필수 준수 사항
+## 🛑 [MUST READ] 코딩 어시스턴트 필수 준수 사항
 
-✅ 전체 구조 먼저 파악 - 파일 검색, 스키마 확인 ✅ 관련된 모든 파일 한 번에 수정 - 패턴이 같으면 일괄 처리 ✅ 의존성 체인 분석 - A → B → C 순서로 해결 ✅ 테스트 시나리오 미리 예상 - 목록/상세/작성 모두 고려
+✅ 전체 구조 먼저 파악 - 파일 검색, 스키마 확인
+✅ 관련된 모든 파일 한 번에 수정 - 패턴이 같으면 일괄 처리
+✅ 의존성 체인 분석 - A → B → C 순서로 해결
+✅ 테스트 시나리오 미리 예상 - 목록/상세/작성 모두 고려
 
-1. 분석과 실행의 절대적 분리 (Zero Preemption Policy)
+### 1. 분석과 실행의 절대적 분리 (Zero Preemption Policy)
 
-어떤 상황에서도 사용자의 명시적 실행 명령("해줘", "수정해줘", "진행해줘", "바꿔줘")이 없으면 파일 수정 도구(write_file, replace_file 등)를 절대 호출하지 않는다.
-분석, 원인 파악, 제안 요청 시에는 오직 텍스트 기반의 답변만 제공한다. "수정할까요?"라고 먼저 묻는 것이 유일한 허용 행동이다.
-2. 컨텍스트 우선순위
+- 어떤 상황에서도 사용자의 명시적 실행 명령("해줘", "수정해줘", "진행해줘", "바꿔줘")이 없으면 파일 수정 도구(write_file, replace_file 등)를 절대 호출하지 않는다.
+- 분석, 원인 파악, 제안 요청 시에는 오직 텍스트 기반의 답변만 제공한다. "수정할까요?"라고 먼저 묻는 것이 유일한 허용 행동이다.
 
-모든 대화 시작 시 최우선적으로 이 
-README.md
-를 로드하고, 모든 행동이 위 단계별 소통 원칙에 부합하는지 스스로 검열(Self-Correction)한 후 답변한다.
-3. 위반 시 조치
+### 2. 컨텍스트 우선순위
 
-분석 단계에서 동의 없이 코드를 수정하는 행위는 전체 프로젝트의 의사결정 구조를 해치는 심각한 오류로 간주한다.
+- 모든 대화 시작 시 최우선적으로 이 `README.md`를 로드하고, 모든 행동이 위 단계별 소통 원칙에 부합하는지 스스로 검열(Self-Correction)한 후 답변한다.
 
-4. 본 프로젝트는 DB 데이터를 초기 화면 로딩 시 즉시 렌더링하여 사용자 경험을 최적화하고, SEO(검색 엔진 최적화) 효율을 극대화하기 위해 Next.js 기반의 SSR(Server-Side Rendering) 방식을 전면 도입합니다.
+### 3. 위반 시 조치
 
-5. **구조 변경 시 README 업데이트 필수**: 라우팅, 데이터베이스, 컴포넌트 구조 변경 시 반드시 이 문서를 함께 업데이트할 것!
+- 분석 단계에서 동의 없이 코드를 수정하는 행위는 전체 프로젝트의 의사결정 구조를 해치는 심각한 오류로 간주한다.
 
+### 4. 핵심 렌더링 원칙 (Next.js SSR)
 
+- 본 프로젝트는 DB 데이터를 초기 화면 로딩 시 즉시 렌더링하여 사용자 경험을 최적화하고, SEO(검색 엔진 최적화) 효율을 극대화하기 위해 Next.js 기반의 SSR(Server-Side Rendering) 방식을 전면 도입합니다.
+
+### 5. 구조 변경 시 문서 동기화
+
+- **구조 변경 시 README 업데이트 필수**: 라우팅, 데이터베이스, 컴포넌트 구조 변경 시 반드시 이 문서를 함께 업데이트할 것!
+
+---
 
 ## 💻 1. 기술 스택 및 환경 (Tech Stack)
 - **Framework:** Next.js 16 (App Router)
@@ -324,21 +362,17 @@ README.md
 - **Backend:** Supabase (PostgreSQL + Auth + Storage)
 - **Deployment:** Vercel (권장)
 
-
 무결성 체크: 프론트엔드 항목의 추가/제거 시 항상 DB와의 무결성을 확인하며, 필요 시 적용 가능한 SQL 쿼리를 함께 제공한다.
 
+## 📝 3. 단계별 소통 규칙
+- **질문/제안 단계**: 사용자가 질문하거나 의견을 물을 때는 코드를 수정하지 않고 상세한 답변과 원리 설명에 집중한다.
+- **실행 단계**: 사용자가 **"해줘", "실행해줘", "진행해줘", "바꿔줘"**와 같이 명시적인 명령을 내릴 때만 실제 코드 수정을 진행한다.
 
-## 📝 3. 단계별 소통:
-질문/제안 단계: 사용자가 질문하거나 의견을 물을 때는 코드를 수정하지 않고 상세한 답변과 원리 설명에 집중한다.
+## 📝 4. 프론트엔드/DB 무결성
+- 프론트엔드쪽에 항목이 추가되거나 제거될 때에는 항상 DB쪽과 무결성을 체크하여 문제되는 부분에 대한 SQL을 전달해줘야 적용 가능하다.
 
-실행 단계: 사용자가 **"해줘", "실행해줘", "진행해줘", "바꿔줘"**와 같이 명시적인 명령을 내릴 때만 실제 코드 수정을 진행한다.
-
-## 📝 4. 프론트엔드쪽에 항목이 추가되거나 제거될떄에는
-항상 DB쪽과 무결성을 체크하여 문제되는 부분에 대한 SQL을 전달줘야 적용가능함
-
-## 📝 5. 캠페인 카드 내의 뱃지데이터는 항상 바뀌어도 DB와 일치하게 만들어줘
-메인페이지
-캠페인 페이지 
+## 📝 5. 캠페인 카드/배지 일관성
+- 메인페이지, 캠페인 목록, 상세 페이지 등 어디서든 캠페인 카드의 뱃지 데이터 표시는 DB 값과 일관되게 유지되어야 한다.
 
 ## 📝 6. 데이터베이스 값 규칙 (Database Value Conventions)
 
@@ -346,8 +380,7 @@ README.md
 데이터베이스에 직접 데이터를 입력하거나 수정할 때는 반드시 아래 규칙을 따라야 합니다.
 프론트엔드 코드는 이 값들을 기준으로 작성되어 있으며, 다른 값을 사용하면 UI가 깨지거나 데이터가 표시되지 않습니다.
 
-직접 터미널이나 명령을 했는데 작동이 지연되거나 제대로 안되면
-수동으로 작업하라고 나한테 말해줘
+**직접 터미널이나 명령을 했는데 작동이 지연되거나 제대로 안되면 수동으로 작업하라고 사용자에게 알려주세요.**
 
 ### campaigns 테이블
 
@@ -359,7 +392,6 @@ README.md
 - `YOUTUBE` - 유튜브 영상
 - `SHORTS` - 유튜브 쇼츠
 - `TIKTOK` - 틱톡
-- `PURCHASE` - 구매 후기 (기타)
 
 ❌ 잘못된 예: `블로그`, `인스타그램`, `blog`, `Blog`
 ✅ 올바른 예: `BLOG`, `INSTAGRAM`
@@ -368,7 +400,6 @@ README.md
 **반드시 영문 대문자로 입력**
 - `VISIT` - 방문형 캠페인
 - `DELIVERY` - 배송형 캠페인
-- `PURCHASE` - 구매형 캠페인
 - `PRESS` - 기자단 캠페인
 
 ❌ 잘못된 예: `방문`, `방문형`, `visit`, `Visit`
@@ -393,10 +424,6 @@ README.md
 - **REJECTED (거절됨)**: 관리자가 캠페인을 거절
 - **DRAFT (임시저장)**: 캠페인 등록 중 임시저장한 상태
 
-
-
-
-
 ## 📝 7. React/Next.js 렌더링 필수 체크사항
 
 ### ⚠️ Server Component → Client Component Props 전달 시 주의사항
@@ -405,8 +432,6 @@ README.md
 - Server Component에서 데이터를 fetch하여 Client Component에 props로 전달
 - Client Component에서 `useState(initialProps)`로만 초기화
 - → Props가 변경되어도 화면이 업데이트되지 않음 (새로고침 시에만 보임)
-
-
 
 **체크리스트:**
 - [ ] Client Component가 Server Component로부터 props를 받는가?

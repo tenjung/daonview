@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
-import { Filter, X, ChevronDown, ChevronUp, Search, MapPin } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, Search, MapPin, Puzzle, Rocket, Shield, BarChart3 } from 'lucide-react';
 
 interface CampaignListClientProps {
     initialCampaigns: any[];
@@ -53,7 +53,7 @@ const REGION_HIERARCHY = [
 
 export default function CampaignListClient({ initialCampaigns }: CampaignListClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
-    const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE'>('ALL');
+    const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE_REVIEW'>('ALL');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -75,7 +75,14 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
 
     const filteredData = useMemo(() => {
         return campaigns.filter(item => {
-            if (activeTab !== 'ALL' && item.type !== activeTab) return false;
+            // [수정] 탭 필터 로직 개선
+            if (activeTab === 'PURCHASE_REVIEW') {
+                // 구매평만: 배송형(DELIVERY)이면서 플랫폼이 구매평(PURCHASE)인 경우
+                if (!(item.type === 'DELIVERY' && item.platform === 'PURCHASE')) return false;
+            } else if (activeTab !== 'ALL' && item.type !== activeTab) {
+                // 그 외(ALL 제외): 탭 이름과 캠페인 타입이 일치해야 함
+                return false;
+            }
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -114,13 +121,13 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                 <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
                     {/* Tabs (Left) */}
                     <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-hide">
-                        {['ALL', 'VISIT', 'DELIVERY', 'PURCHASE'].map(tab => (
+                        {['ALL', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab as any)}
                                 className={`px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
                             >
-                                {tab === 'ALL' ? '전체보기' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '서비스'}
+                                {tab === 'ALL' ? '전체보기' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
                             </button>
                         ))}
                     </div>

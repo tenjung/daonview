@@ -392,9 +392,18 @@ function NewCampaignPageContent() {
                 else if (step1Data.platform === 'instagram') mappedPlatform = 'INSTAGRAM';
             }
 
+            // [수정] 타이틀 결정 로직 개선
+            // step1Data의 타이틀을 최우선으로 사용 (사용자가 Step 1에서 수정했을 가능성이 높음)
+            const finalTitle = step1Data.campaignTitle || step1Data.productName || step2Data?.campaignTitle || '제목 없음';
+
+            // [수정] step2Data에도 타이틀 동기화 (상세 페이지 등에서 데이터 일관성 유지)
+            if (finalStep2Data) {
+                finalStep2Data.campaignTitle = finalTitle;
+            }
+
             // 캠페인 데이터 구성
             const campaignData: any = {
-                title: step2Data.campaignTitle,
+                title: finalTitle,
                 description: step2Data.missionGuide || '',
 
                 // 분류 정보 (유저 정의 구조 반영)
