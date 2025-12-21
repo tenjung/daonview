@@ -13,10 +13,12 @@ import {
     PenTool,
     Instagram,
     Gift,
-    ArrowRight
+    ArrowRight,
+    Youtube
 } from 'lucide-react';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { Button } from '@/components/ui/button';
 
 interface CampaignDetailClientProps {
     campaign: any;
@@ -187,6 +189,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step2Data = campaignOptions?.step2Data || {};
 
+    // Title fallback
+    const displayTitle = step2Data.campaignTitle || campaign.title;
+
     const missionGuide = campaign.mission_guide || step2Data.missionGuide || step2Data.reviewMissionContent || '';
     const keywords = Array.isArray(campaign.keywords) ? campaign.keywords :
         Array.isArray(step2Data.keywords) ? step2Data.keywords :
@@ -204,7 +209,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         <>
                             <img
                                 src={images[currentImageIndex]}
-                                alt={campaign.title}
+                                alt={displayTitle}
                                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                             />
                             {images.length > 1 && (
@@ -213,9 +218,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     <button onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)} className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/80 backdrop-blur-md text-gray-800 flex items-center justify-center hover:bg-white transition-all opacity-0 group-hover:opacity-100 shadow-lg"><ChevronRight /></button>
                                 </>
                             )}
-                            <button onClick={toggleFavorite} className="absolute top-6 right-6 w-14 h-14 rounded-full bg-white shadow-2xl flex items-center justify-center hover:scale-110 transition-all z-10">
-                                <Heart className={`w-7 h-7 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-gray-300'}`} />
-                            </button>
+                            <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={toggleFavorite}
+                                className="absolute top-4 right-4 z-10 w-12 h-12 rounded-full bg-black/5 hover:bg-black/20 backdrop-blur-md text-white border-0 transition-all hover:scale-110"
+                            >
+                                <Heart className={`w-6 h-6 drop-shadow-sm ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white'}`} />
+                            </Button>
                         </>
                     ) : (
                         <div className="text-gray-300 font-black text-2xl">NO IMAGE</div>
@@ -225,22 +235,65 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 {/* Info Panel */}
                 <div className="flex-1 flex flex-col justify-center">
                     <div className="flex flex-wrap items-center gap-3 mb-6">
-                        <span className="bg-slate-900 text-white px-3 py-1.5 rounded text-[11px] font-semibold">
-                            {campaign.platform === 'BLOG' ? '블로그' :
-                                campaign.platform === 'INSTAGRAM' ? '인스타그램' :
-                                    campaign.platform === 'YOUTUBE' ? '유튜브' :
-                                        campaign.platform === 'REELS' ? '릴스' :
-                                            campaign.platform === 'SHORTS' ? '쇼츠' : campaign.platform}
-                        </span>
-                        <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded text-[11px] font-semibold">
-                            {campaign.type === 'VISIT' ? '방문' :
-                                campaign.type === 'DELIVERY' ? '배송' :
-                                    campaign.type === 'PURCHASE' ? '구매' :
-                                        campaign.type === 'PRESS' ? '기자단' : campaign.type}
-                        </span>
+                        {/* 1. Type Badge */}
+                        <div className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold ${campaign.type === 'DELIVERY' ? 'bg-indigo-100 text-indigo-700' :
+                            campaign.type === 'PURCHASE' ? 'bg-orange-100 text-orange-700' :
+                                campaign.type === 'PRESS' ? 'bg-purple-100 text-purple-700' :
+                                    'bg-blue-100 text-blue-700'
+                            }`}>
+                            {campaign.type === 'DELIVERY' ? <Package className="w-3.5 h-3.5" /> :
+                                campaign.type === 'PURCHASE' ? <ShoppingBag className="w-3.5 h-3.5" /> :
+                                    campaign.type === 'PRESS' ? <PenTool className="w-3.5 h-3.5" /> :
+                                        <MapPin className="w-3.5 h-3.5" />}
+                            <span className="leading-none pt-[1px]">
+                                {campaign.type === 'VISIT' ? '방문' :
+                                    campaign.type === 'DELIVERY' ? '배송' :
+                                        campaign.type === 'PURCHASE' ? '구매' :
+                                            campaign.type === 'PRESS' ? '기자단' : campaign.type}
+                            </span>
+                        </div>
+
+                        {/* 2. Optional Purchase Badge for Delivery */}
+                        {campaign.type === 'DELIVERY' && campaign.platform !== 'PURCHASE' && (
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold bg-orange-100 text-orange-700">
+                                <ShoppingBag className="w-3.5 h-3.5" />
+                                <span className="leading-none pt-[1px]">구매평</span>
+                            </div>
+                        )}
+
+                        {/* 3. Platform Badge */}
+                        <div className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold ${['INSTAGRAM', 'REELS'].includes(campaign.platform) ? 'bg-pink-100 text-pink-700' :
+                            ['YOUTUBE', 'SHORTS'].includes(campaign.platform) ? 'bg-red-100 text-red-700' :
+                                campaign.platform === 'TIKTOK' ? 'bg-slate-900 text-white' :
+                                    ['PURCHASE', 'OTHER', '기타'].includes(campaign.platform) ? 'bg-orange-100 text-orange-700' :
+                                        'bg-emerald-100 text-emerald-700'
+                            }`}>
+                            {['INSTAGRAM', 'REELS'].includes(campaign.platform) ? <Instagram className="w-3.5 h-3.5" /> :
+                                ['PURCHASE', 'OTHER', '기타'].includes(campaign.platform) ? <ShoppingBag className="w-3.5 h-3.5" /> :
+                                    <PenTool className="w-3.5 h-3.5" />}
+
+                            <span className="leading-none pt-[1px]">
+                                {campaign.platform === 'BLOG' ? '블로그' :
+                                    campaign.platform === 'INSTAGRAM' ? '인스타그램' :
+                                        campaign.platform === 'YOUTUBE' ? '유튜브' :
+                                            campaign.platform === 'REELS' ? '릴스' :
+                                                campaign.platform === 'SHORTS' ? '쇼츠' :
+                                                    ['PURCHASE', 'OTHER', '기타'].includes(campaign.platform) ? '구매평' :
+                                                        campaign.platform}
+                            </span>
+                        </div>
+
+                        {/* 4. Region Badge (for Visit campaigns) */}
+                        {campaign.type === 'VISIT' && campaign.platform !== 'PURCHASE' && (
+                            <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold bg-gray-100 text-gray-500 border border-gray-200">
+                                <MapPin className="w-3.5 h-3.5" />
+                                <span className="leading-none pt-[1px]">{campaign.region || '전국'}</span>
+                            </div>
+                        )}
+
                         <AdminControls campaignId={campaign.id} />
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-8 leading-tight">{campaign.title}</h1>
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-900 mb-8 leading-tight">{displayTitle}</h1>
 
                     <div className="space-y-6 bg-slate-50 p-8 rounded-xl border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-4">

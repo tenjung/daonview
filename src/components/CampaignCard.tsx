@@ -15,7 +15,8 @@ interface CampaignProps {
     region?: string | null;
 }
 
-const PlatformBadge = ({ platform }: { platform: string }) => {
+// Exported Badge Components for reuse
+export const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform.toUpperCase();
     let icon = <PenTool className="w-3 h-3" />;
     let label = "블로그";
@@ -40,34 +41,39 @@ const PlatformBadge = ({ platform }: { platform: string }) => {
     }
 
     return (
-        <div className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
+        <div className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
             {icon}
-            <span>{label}</span>
+            <span className="leading-none pt-[1px]">{label}</span>
         </div>
     );
 };
 
-const TypeBadge = ({ type }: { type?: string }) => {
+export const TypeBadge = ({ type }: { type?: string }) => {
     if (!type) return null;
     const t = type.toUpperCase();
 
     let label = "방문";
     let colorClass = "bg-blue-100 text-blue-700";
+    let icon = <MapPin className="w-3 h-3" />;
 
     if (t === 'DELIVERY') {
         label = "배송";
-        colorClass = "bg-green-100 text-green-700";
+        icon = <Package className="w-3 h-3" />;
+        colorClass = "bg-indigo-100 text-indigo-700";
     } else if (t === 'PURCHASE') {
         label = "구매";
+        icon = <ShoppingBag className="w-3 h-3" />;
         colorClass = "bg-orange-100 text-orange-700";
     } else if (t === 'PRESS') {
         label = "기자단";
+        icon = <PenTool className="w-3 h-3" />;
         colorClass = "bg-purple-100 text-purple-700";
     }
 
     return (
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
-            {label}
+        <span className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
+            {icon}
+            <span className="leading-none pt-[1px]">{label}</span>
         </span>
     );
 };
@@ -111,8 +117,16 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             <div className="p-4 flex flex-col flex-1 gap-2">
                 {/* 1. Tags: Type & Platform & Region */}
                 <div className="flex items-center gap-1.5 flex-wrap">
+                    {/* 1. Badge Order: Type -> (Purchase if Delivery) -> Platform -> Region */}
                     <TypeBadge type={type} />
+
+                    {/* Special Rule: For Delivery campaigns, insert 'Purchase' badge if not already main platform */}
+                    {type?.toUpperCase() === 'DELIVERY' && platform.toUpperCase() !== 'PURCHASE' && (
+                        <PlatformBadge platform="PURCHASE" />
+                    )}
+
                     <PlatformBadge platform={platform} />
+
                     {isVisit && platform !== 'PURCHASE' && (
                         region ? (
                             <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">

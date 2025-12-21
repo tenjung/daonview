@@ -61,33 +61,12 @@ daonview/
 ## 🗄️ 데이터베이스 구조
 DB는 Supabase MCP서버를 통해 불러오고 동기화해줘
 
-### 주요 테이블
-| 테이블명 | 용도 | 주요 필드 |
-|---------|------|----------|
-| `campaigns` | 캠페인 정보 | id, title, platform, type, status, recruitment_start_date, recruit_count, provision, region, category |
-| `profiles` | 사용자 프로필 | id, email, role, nickname, company_name, phone_number, sns_url, point, avatar_url |
-| `applications` | 캠페인 신청 | id, user_id, campaign_id, status, message, created_at |
-| `notices` | 공지사항 & 이벤트 (관리자 전용) | id, type ('공지' or '이벤트'), title, content, author, is_pinned, view_count |
-| `posts` | 사용자 생성 콘텐츠 | id, user_id, type (FREE, BLOG_INTRO, ACADEMY_*), title, content, view_count |
-| `banners` | 메인 배너 | id, title, image_url, link_url, order_index, is_active |
-| `campaign_drafts` | 캠페인 임시저장 | id, advertiser_id, draft_data (JSONB), created_at, updated_at |
-| `reviews` | 캠페인 리뷰 | id, campaign_id, user_id, content, rating, created_at |
-| `favorites` | 찜한 캠페인 | id, user_id, campaign_id, created_at |
 
 ### ⚠️ 중요: 데이터 소스 통일
 - **공지사항/이벤트**: `notices` 테이블 (관리자 전용)
 - **커뮤니티 게시글**: `posts` 테이블 (사용자 생성)
 - **캠페인**: `campaigns` 테이블만 사용
 
-### 🔐 커뮤니티 권한 구조
-| 게시판 | 테이블 | type 값 | 작성 권한 |
-|--------|--------|---------|----------|
-| 공지사항 | notices | '공지' | ADMIN |
-| 이벤트 | notices | '이벤트' | ADMIN |
-| 광고주 칼럼 | posts | ACADEMY_ADVERTISER | ADMIN |
-| 인플루언서 칼럼 | posts | ACADEMY_INFLUENCER | ADMIN |
-| 자유게시판 | posts | FREE | ALL |
-| 블로그 소개 | posts | BLOG_INTRO | ALL |
 
 ---
 
@@ -188,12 +167,7 @@ graph LR
     D --> F[EventBoardClient]
     E --> G[공지/이벤트 상세<br/>/notice/[id]]
     F --> G
-    
-    style A fill:#e1f5ff
-    style B fill:#d4edda
-    style C fill:#fff3cd
-    style D fill:#fff3cd
-    style G fill:#fce4ec
+
 ```
 
 **중요 포인트:**
@@ -203,21 +177,6 @@ graph LR
 - 이벤트 목록: `type='이벤트'` 필터링
 - 상세 페이지: 공통으로 `/community/notice/[id]` 사용
 
-### 3. 사용자 인증 흐름
-```mermaid
-graph TD
-    A[로그인] --> B{Supabase Auth}
-    B --> C[profiles 테이블 조회]
-    C --> D{role 확인}
-    D -->|ADMIN| E[/dashboard/admin]
-    D -->|ADVERTISER| F[/dashboard/advertiser]
-    D -->|INFLUENCER| G[/campaigns]
-    
-    style B fill:#e1f5ff
-    style D fill:#fff3cd
-```
-
----
 
 ## 🧩 컴포넌트 계층 구조
 
@@ -434,47 +393,9 @@ README.md
 - **REJECTED (거절됨)**: 관리자가 캠페인을 거절
 - **DRAFT (임시저장)**: 캠페인 등록 중 임시저장한 상태
 
-#### region (지역) - 선택 값
-**한글로 입력 가능**
-- 예: `서울`, `경기`, `부산`, `전국` 등
 
-### profiles 테이블
 
-#### role (사용자 역할)
-**반드시 영문 대문자로 입력**
-- `INFLUENCER` - 인플루언서 (기본값)
-- `ADVERTISER` - 광고주
-- `ADMIN` - 관리자
 
-### applications 테이블
-
-#### status (신청 상태)
-**반드시 영문 대문자로 입력**
-- `PENDING` - 심사 중
-- `APPROVED` - 승인됨
-- `REJECTED` - 거절됨
-- `COMPLETED` - 완료
-
-### 🔧 데이터 정리 SQL
-기존 데이터가 규칙에 맞지 않을 경우 다음 SQL로 일괄 수정:
-
-```sql
--- platform 통일
-UPDATE campaigns SET platform = 'BLOG' WHERE platform IN ('블로그', 'blog', 'Blog');
-UPDATE campaigns SET platform = 'INSTAGRAM' WHERE platform IN ('인스타그램', '인스타', 'instagram');
-UPDATE campaigns SET platform = 'PURCHASE' WHERE platform IN ('구매평', '기타', 'purchase', 'OTHER');
-
--- type 통일
-UPDATE campaigns SET type = 'VISIT' WHERE type IN ('방문', '방문형', 'visit');
-UPDATE campaigns SET type = 'DELIVERY' WHERE type IN ('배송', '배송형', 'delivery');
-UPDATE campaigns SET type = 'PURCHASE' WHERE type IN ('구매', '구매평', 'purchase');
-```
-
-### 📋 확인 쿼리
-```sql
--- 현재 사용 중인 platform/type 값 확인
-SELECT DISTINCT platform, type FROM campaigns;
-```
 
 ## 📝 7. React/Next.js 렌더링 필수 체크사항
 
@@ -485,22 +406,7 @@ SELECT DISTINCT platform, type FROM campaigns;
 - Client Component에서 `useState(initialProps)`로만 초기화
 - → Props가 변경되어도 화면이 업데이트되지 않음 (새로고침 시에만 보임)
 
-**해결 방법:**
-```tsx
-'use client';
-import { useState, useEffect } from 'react';
 
-export default function ClientComponent({ initialData }) {
-    const [data, setData] = useState(initialData);
-    
-    // ✅ 필수: props 변경 시 상태 동기화
-    useEffect(() => {
-        setData(initialData);
-    }, [initialData]);
-    
-    // ...
-}
-```
 
 **체크리스트:**
 - [ ] Client Component가 Server Component로부터 props를 받는가?
