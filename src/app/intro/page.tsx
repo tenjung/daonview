@@ -493,7 +493,7 @@ export default function IntroPage() {
                             <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex-col items-center">
                                 <motion.div
                                     animate={{ scale: [1, 1.1, 1] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
+                                    transition={{ duration: 2, repeat: 999999 }}
                                     className="bg-gradient-to-r from-primary to-pink-500 text-white rounded-full p-4 shadow-2xl"
                                 >
                                     <ArrowRight className="w-8 h-8" />
