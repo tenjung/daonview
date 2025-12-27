@@ -14,7 +14,7 @@ interface ApplicationWithCampaign extends Application {
 export default function MyCampaignsPage() {
     const [profile, setProfile] = useState<Profile | null>(null);
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
-    const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected' | 'completed'>('all');
+    const [filter, setFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED'>('all');
     const [loading, setLoading] = useState(true);
     const [cancelDialog, setCancelDialog] = useState<{ isOpen: boolean; appId: number; title: string; status: string }>({
         isOpen: false,
@@ -69,13 +69,13 @@ export default function MyCampaignsPage() {
 
     const getStatusBadge = (status: string) => {
         switch (status) {
-            case 'pending':
+            case 'PENDING':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-orange-50 text-orange-600">심사중</span>;
-            case 'approved':
+            case 'APPROVED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-600">선정됨</span>;
-            case 'rejected':
+            case 'REJECTED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-red-50 text-red-600">미선정</span>;
-            case 'completed':
+            case 'COMPLETED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-600">완료</span>;
             default:
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-gray-50 text-gray-600">{status}</span>;
@@ -83,7 +83,7 @@ export default function MyCampaignsPage() {
     };
 
     async function handleCancel(applicationId: number, campaignTitle: string, status: string) {
-        if (status !== 'pending') {
+        if (status !== 'PENDING') {
             toast.error('심사중인 신청만 취소할 수 있습니다.');
             return;
         }
@@ -152,29 +152,29 @@ export default function MyCampaignsPage() {
                         전체
                     </button>
                     <button
-                        onClick={() => setFilter('pending')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'pending' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        onClick={() => setFilter('PENDING')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'PENDING' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         심사중
                     </button>
                     <button
-                        onClick={() => setFilter('approved')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'approved' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        onClick={() => setFilter('APPROVED')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'APPROVED' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         선정됨
                     </button>
                     <button
-                        onClick={() => setFilter('rejected')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'rejected' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        onClick={() => setFilter('REJECTED')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'REJECTED' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         미선정
                     </button>
                     <button
-                        onClick={() => setFilter('completed')}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'completed' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                        onClick={() => setFilter('COMPLETED')}
+                        className={`px-4 py-2 rounded-lg font-medium transition-all ${filter === 'COMPLETED' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                             }`}
                     >
                         완료
@@ -213,7 +213,7 @@ export default function MyCampaignsPage() {
                                                 <Link href={`/campaigns/${app.campaign_id}`} className="text-primary hover:underline text-sm">
                                                     상세보기
                                                 </Link>
-                                                {app.status === 'pending' && (
+                                                {app.status === 'PENDING' && (
                                                     <>
                                                         <span className="text-gray-300">|</span>
                                                         <button
