@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 import { fetchAllBannerData } from '@/lib/bannerUtils';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
+import CampaignCarousel from '@/components/CampaignCarousel';
 
 export default async function Home() {
     // 1. Latest Campaigns (Limited to 4)
@@ -65,14 +66,11 @@ export default async function Home() {
                             전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
                         </Link>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {latestCampaigns.map(cam => (
-                            <CampaignCard key={cam.id} {...cam} />
-                        ))}
-                        {[...Array(Math.max(0, 4 - latestCampaigns.length))].map((_, i) => (
-                            <CampaignSkeleton key={`skel-new-${i}`} />
-                        ))}
-                    </div>
+                    <CampaignCarousel
+                        campaigns={latestCampaigns}
+                        maxItems={4}
+                        showNavigation={false}
+                    />
                 </div>
             </section>
 
@@ -90,14 +88,11 @@ export default async function Home() {
                             전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
                         </Link>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {popularCampaigns.map(cam => (
-                            <CampaignCard key={cam.id} {...cam} />
-                        ))}
-                        {[...Array(Math.max(0, 4 - popularCampaigns.length))].map((_, i) => (
-                            <CampaignSkeleton key={`skel-pop-${i}`} />
-                        ))}
-                    </div>
+                    <CampaignCarousel
+                        campaigns={popularCampaigns}
+                        maxItems={4}
+                        showNavigation={false}
+                    />
                 </div>
             </section>
 
