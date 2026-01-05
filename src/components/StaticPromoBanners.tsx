@@ -1,7 +1,57 @@
+'use client';
+
 import Link from 'next/link';
-import { BookOpen, Briefcase, Sparkles } from 'lucide-react';
+import { BookOpen, Briefcase, Sparkles, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function StaticPromoBanners() {
+    const [role, setRole] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const checkUser = async () => {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                if (session?.user) {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('role')
+                        .eq('id', session.user.id)
+                        .single();
+                    setRole(profile?.role || 'INFLUENCER');
+                } else {
+                    setRole(null);
+                }
+            } catch (error) {
+                console.error('Error checking user role:', error);
+                setRole(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        checkUser();
+
+        // auth 상태 변화 구독
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (session?.user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', session.user.id)
+                    .single();
+                setRole(profile?.role || 'INFLUENCER');
+            } else {
+                setRole(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const isAdvertiserOrAdmin = role === 'ADVERTISER' || role === 'ADMIN';
+
     const banners = [
         {
             id: 1,
@@ -14,7 +64,8 @@ export default function StaticPromoBanners() {
             accentColor: 'text-blue-100',
             cta: '자세히 보기'
         },
-        {
+        // 가운데 배너 (ID 2): 역할에 따라 변경
+        isAdvertiserOrAdmin ? {
             id: 2,
             title: '광고주 전용',
             subtitle: '왜 내 브랜드만 안 보일까?',
@@ -24,6 +75,16 @@ export default function StaticPromoBanners() {
             link: '/intro',
             accentColor: 'text-rose-100',
             cta: '서비스 소개서 보기'
+        } : {
+            id: 2,
+            title: '이용방법 안내',
+            subtitle: '다온뷰 200% 활용법',
+            description: '신청부터 리뷰 등록까지, 한눈에 보는 가이드',
+            bgColor: 'bg-gradient-to-br from-rose-500 to-rose-600',
+            icon: Zap,
+            link: '/guide',
+            accentColor: 'text-rose-100',
+            cta: '이용 가이드 보기'
         },
         {
             id: 3,
@@ -48,7 +109,7 @@ export default function StaticPromoBanners() {
                         <Link
                             key={banner.id}
                             href={banner.link}
-                            className={`${banner.bgColor} rounded-2xl p-8 relative overflow-hidden group transition-all duration-300 cursor-pointer ${isSpecial
+                            className={`${banner.bgColor} rounded-2xl p-8 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-col h-full ${isSpecial
                                     ? 'shadow-xl shadow-rose-200 ring-4 ring-rose-400/30 scale-[1.02] hover:scale-[1.07] hover:shadow-2xl'
                                     : 'hover:shadow-2xl hover:scale-105'
                                 }`}
@@ -60,26 +121,26 @@ export default function StaticPromoBanners() {
                             </div>
 
                             {/* Content */}
-                            <div className="relative z-10">
-                                <div className="flex items-start justify-between mb-4">
-                                    <div>
-                                        <p className={`text-sm font-bold ${banner.accentColor} mb-1`}>{banner.title}</p>
-                                        <h3 className="text-2xl font-black text-white leading-tight mb-2">
+                            <div className="relative z-10 flex flex-col h-full flex-1">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-bold ${banner.accentColor} mb-2 uppercase tracking-tight`}>{banner.title}</p>
+                                        <h3 className="text-2xl font-black text-white leading-tight mb-3 min-h-[64px] flex items-center">
                                             {banner.subtitle}
                                         </h3>
-                                        <p className="text-white/90 text-sm font-medium">
+                                        <p className="text-white/90 text-sm font-medium min-h-[40px] line-clamp-2 leading-relaxed">
                                             {banner.description}
                                         </p>
                                     </div>
                                     <div className="shrink-0 ml-4">
-                                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                                        <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:bg-white/30 transition-transform group-hover:scale-110 duration-300">
                                             <IconComponent className="w-8 h-8 text-white" />
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* CTA */}
-                                <div className="mt-6 pt-4 border-t border-white/20">
+                                <div className="mt-auto pt-5 border-t border-white/20">
                                     <span className="inline-flex items-center gap-2 text-white font-bold text-sm group-hover:gap-3 transition-all">
                                         {banner.cta}
                                         <span className="text-lg">→</span>

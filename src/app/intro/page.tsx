@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { fadeIn, staggerContainer, slideInLeft, slideInRight, scaleUp } from '@/lib/motion';
 import Link from 'next/link';
+import { useState } from 'react';
 import {
     Zap,
     TrendingUp,
@@ -28,94 +29,261 @@ import {
     Puzzle,
     Rocket,
     Scale,
-    ShoppingCart
+    ShoppingCart,
+    HelpCircle,
+    MousePointerClick,
+    Search,
+    Eye,
+    Send
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 export default function IntroPage() {
-    return (
-        <div className="bg-gradient-to-b from-pink-50 via-white to-pink-50">
-            {/* Hero Section */}
-            <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+    const [formData, setFormData] = useState({
+        name: '',
+        contact: '',
+        message: '',
+        agreed: false
+    });
 
-                <div className="container relative py-24 lg:py-32">
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.agreed) {
+            toast.error("개인정보 처리방침에 동의해주세요.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        // 시뮬레이션
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        toast.success("문의가 성공적으로 전달되었습니다. 빠른 시일 내에 연락드리겠습니다!");
+        setFormData({ name: '', contact: '', message: '', agreed: false });
+        setIsSubmitting(false);
+    };
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    return (
+        <div className="bg-white">
+            {/* 1. Hero Section: 압도적 성과와 신뢰성 */}
+            <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white min-h-[85vh] flex items-center">
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
+                
+                <div className="container relative py-20 px-4">
                     <motion.div
                         className="text-center"
                         initial="hidden"
                         animate="visible"
                         variants={staggerContainer}
                     >
-                        <motion.div variants={fadeIn} className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6 border border-white/20">
-                            <Sparkles className="w-4 h-4" />
-                            <span className="text-sm font-medium">프리미엄 체험단 플랫폼</span>
+                        <motion.div variants={fadeIn} className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-5 py-2 rounded-full mb-8 border border-white/20">
+                            <Award className="w-5 h-5 text-yellow-300" />
+                            <span className="text-sm font-bold tracking-tight">수천 개의 브랜드가 선택한 고성능 리뷰 솔루션</span>
                         </motion.div>
 
-                        <motion.h1 variants={fadeIn} className="text-4xl lg:text-6xl font-bold mb-6 leading-tight">
-                            소량부터 무제한까지<br />
-                            <span className="bg-gradient-to-r from-yellow-200 to-pink-200 bg-clip-text text-transparent">
-                                고효율 리뷰 체험단 솔루션
+                        <motion.h1 variants={fadeIn} className="text-5xl lg:text-7xl font-bold mb-8 leading-[1.15] tracking-tight text-white">
+                            단순한 리뷰를 넘어,<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-white to-pink-200">
+                                브랜드의 검색 1면을 장악하세요
                             </span>
                         </motion.h1>
 
-                        <motion.p variants={fadeIn} className="text-xl lg:text-2xl mb-8 text-pink-100 max-w-3xl mx-auto">
-                            예산 걱정 없이 원하는 만큼 진행하세요
+                        <motion.p variants={fadeIn} className="text-xl lg:text-2xl mb-12 text-pink-100/90 max-w-3xl mx-auto leading-relaxed">
+                            매회 예산 걱정하는 체험단은 그만.<br />
+                            효과가 증명된 다온뷰만의 시스템으로 매출의 임계점을 돌파합니다.
                         </motion.p>
 
-                        <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
                             <Link
-                                href="/signup"
-                                className="btn btn-primary bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group transition-all"
+                                href="#contact-form"
+                                className="inline-flex items-center justify-center bg-white text-primary hover:bg-pink-50 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] px-10 py-5 text-xl font-black group transition-all rounded-full h-16"
                             >
-                                무료로 시작하기
-                                <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+                                무료 맞춤형 컨설팅 신청
+                                <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
                             </Link>
                             <Link
                                 href="/campaigns"
-                                className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg transition-all"
+                                className="inline-flex items-center justify-center border-2 border-white/40 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-10 py-5 text-xl font-bold transition-all rounded-full h-16"
                             >
-                                캠페인 둘러보기
+                                진행 사례 보기
                             </Link>
-                        </motion.div>
-
-                        {/* Stats */}
-                        <motion.div
-                            variants={staggerContainer}
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-16 max-w-4xl mx-auto"
-                        >
-                            {[
-                                { label: '함께한 브랜드', value: '500+', icon: Award },
-                                { label: '진행된 캠페인', value: '2,000+', icon: Target },
-                                { label: '제작된 콘텐츠', value: '15,000+', icon: MessageSquare },
-                                { label: '평균 만족도', value: '98%', icon: CheckCircle2 }
-                            ].map((stat, idx) => (
-                                <motion.div
-                                    key={idx}
-                                    variants={scaleUp}
-                                    className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 transform hover:scale-105 transition-all duration-300"
-                                >
-                                    <stat.icon className="w-8 h-8 mb-3 mx-auto text-yellow-200" />
-                                    <div className="text-3xl font-bold mb-1">{stat.value}</div>
-                                    <div className="text-sm text-pink-100">{stat.label}</div>
-                                </motion.div>
-                            ))}
                         </motion.div>
                     </motion.div>
                 </div>
 
-                {/* Wave Divider */}
-                <div className="absolute bottom-0 left-0 right-0">
-                    <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M0 120L60 110C120 100 240 80 360 70C480 60 600 60 720 65C840 70 960 80 1080 85C1200 90 1320 90 1380 90L1440 90V120H1380C1320 120 1200 120 1080 120C960 120 840 120 720 120C600 120 480 120 360 120C240 120 120 120 60 120H0Z" fill="white" />
-                    </svg>
+                <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white to-transparent"></div>
+            </section>
+
+            {/* 2. Problem Section (Pain Point): 광고주의 고민 환기 */}
+            <section className="py-24 bg-white relative">
+                <div className="container px-4">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-20"
+                    >
+                        <span className="text-primary font-bold text-lg mb-4 block">WHY DAONVIEW?</span>
+                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                            아직도 돈만 쓰는 마케팅을 하고 계신가요?
+                        </h2>
+                    </motion.div>
+
+                    <div className="grid md:grid-cols-3 gap-8">
+                        {[
+                            {
+                                icon: Search,
+                                title: "키워드 검색 결과 1면,\n우리 브랜드는 없나요?",
+                                desc: "아무리 좋은 상품도 고객의 눈에 띄지 않으면 의미가 없습니다. 타겟 키워드 점유율이 곧 매출 점유율입니다."
+                            },
+                            {
+                                icon: MousePointerClick,
+                                title: "방문자는 늘었는데\n구매 전환이 안 되나요?",
+                                desc: "고객은 신뢰할 수 있는 '리턴 이미지'와 '포토리뷰'를 보고 결제합니다. 신뢰를 구축하는 고품질 콘텐츠가 부족하기 때문입니다."
+                            },
+                            {
+                                icon: HelpCircle,
+                                title: "체험단 관리하느라\n본업을 소홀히 하시나요?",
+                                desc: "리뷰어 선정, 가이드 배포, 마감 관리... 복잡한 수동 관리는 마케팅 사고와 스트레스의 주범입니다."
+                            }
+                        ].map((item, i) => (
+                            <motion.div
+                                key={i}
+                                variants={fadeIn}
+                                initial="hidden"
+                                whileInView="visible"
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className="bg-slate-50 rounded-3xl p-10 border border-slate-100 hover:shadow-xl transition-all"
+                            >
+                                <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-6 shadow-sm">
+                                    <item.icon className="w-8 h-8 text-primary" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-slate-900 mb-4 whitespace-pre-line leading-tight">
+                                    {item.title}
+                                </h3>
+                                <p className="text-slate-600 leading-relaxed">
+                                    {item.desc}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
                 </div>
             </section>
 
-            {/* Features Section - 4대 강점 */}
-            <section className="py-20 lg:py-32">
-                <div className="container">
+            {/* 3. Solution Section (USP): 다온뷰만의 차별화 솔루션 */}
+            <section className="py-24 bg-slate-900 text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 blur-[150px] -z-0"></div>
+                <div className="container relative z-10 px-4">
+                    <div className="grid lg:grid-cols-2 gap-20 items-center">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInLeft}
+                        >
+                            <div className="inline-flex items-center gap-2 bg-primary/20 text-primary-light px-4 py-2 rounded-full mb-6 font-bold text-sm">
+                                <Sparkles className="w-4 h-4" />
+                                1석 2조 리뷰 자동화 시스템
+                            </div>
+                            <h2 className="text-4xl lg:text-6xl font-black mb-10 leading-[1.2] text-white">
+                                리뷰와 SNS의<br />
+                                <span className="text-primary-light">강력한 시너지</span>
+                            </h2>
+                            <p className="text-xl text-slate-300 mb-8 font-bold">
+                                통합 마케팅으로 매출을 극대화하세요
+                            </p>
+                            <div className="space-y-8 text-left">
+                                {[
+                                    { title: "실구매 데이터 확보", desc: "단순 리뷰를 넘어 실제 구매 기반의 검색량과 판매 지수를 높입니다." },
+                                    { title: "검색 결과 지배력", desc: "블로그, 인스타, 유튜브 등 주요 플랫폼을 동시에 공략하여 브랜드 노출을 극대화합니다." },
+                                    { title: "체계적 자동화 시스템", desc: "다온뷰만의 런칭 시스템으로 선정부터 결과 분석까지 번거로운 과정이 사라집니다." }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex gap-5">
+                                        <div className="w-10 h-10 bg-primary/30 rounded-lg flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle2 className="w-6 h-6 text-primary-light" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-xl font-bold mb-2 text-white">{item.title}</h4>
+                                            <p className="text-slate-400 leading-relaxed">{item.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={slideInRight}
+                            className="relative"
+                        >
+                             <div className="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-[2.5rem] p-4 shadow-2xl">
+                                <div className="bg-white rounded-[2rem] p-8 text-slate-900">
+                                    <div className="flex items-center justify-between mb-8">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                                            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                                        </div>
+                                        <span className="text-xs font-bold text-slate-400 tracking-widest uppercase">Real-time Performance</span>
+                                    </div>
+                                    <div className="space-y-6">
+                                        <div className="h-4 w-3/4 bg-slate-100 rounded-full animate-pulse"></div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="h-32 bg-pink-50 rounded-3xl flex flex-col items-center justify-center border border-pink-100">
+                                                <Eye className="w-8 h-8 text-primary mb-2 opacity-80" />
+                                                <span className="text-2xl font-black text-primary">2,500+</span>
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase">Daily Reach</span>
+                                            </div>
+                                            <div className="h-32 bg-blue-50 rounded-3xl flex flex-col items-center justify-center border border-blue-100">
+                                                <TrendingUp className="w-8 h-8 text-blue-600 mb-2 opacity-80" />
+                                                <span className="text-2xl font-black text-blue-600">350%</span>
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase">ROI Growth</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-4 w-1/2 bg-slate-100 rounded-full"></div>
+                                        <div className="h-20 bg-slate-50 rounded-2xl p-4 flex items-center gap-4">
+                                            <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center">
+                                                <Smartphone className="w-6 h-6 text-slate-400" />
+                                            </div>
+                                            <div className="flex-1 space-y-2">
+                                                <div className="h-2 w-full bg-slate-200 rounded-full"></div>
+                                                <div className="h-2 w-2/3 bg-slate-200 rounded-full"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                             </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. Features: 다온뷰 핵심 경쟁력 */}
+            <section className="py-24 lg:py-32">
+                <div className="container px-4">
                     <motion.div
                         initial="hidden"
                         whileInView="visible"
@@ -123,760 +291,312 @@ export default function IntroPage() {
                         variants={fadeIn}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
-                            DAONVIEW는 무엇이 다른가요?
+                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                            전문성이 만드는 한 끗 차이
                         </h2>
-                        <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-                            브랜드 성장을 위한 <span className="font-bold text-primary">최고의</span> 파트너가 되어드립니다
+                        <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+                            우리는 단순한 실행사가 아닌, 브랜드의 <span className="text-primary font-bold">마케팅 팀</span>으로 움직입니다.
                         </p>
                     </motion.div>
 
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={staggerContainer}
-                        className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8"
-                    >
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {[
                             {
-                                icon: Puzzle,
-                                title: '브랜드 맞춤형 매칭',
-                                subtitle: 'Brand Fit',
-                                description: '단순 방문자 수보다 중요한 건 \'브랜드와의 결\'입니다. 귀사의 감성과 딱 맞는 블로거를 찾아 연결합니다.',
-                                gradient: 'from-pink-500 to-rose-500',
-                                borderColor: 'border-pink-200 hover:border-pink-400'
-                            },
-                            {
-                                icon: Rocket,
-                                title: '지체 없는 캠페인 런칭',
-                                subtitle: 'Quick Start',
-                                description: '불필요한 대기 시간을 시스템으로 줄였습니다. 신청 즉시 빠르게 모집이 시작되는 신속 프로세스.',
-                                gradient: 'from-orange-500 to-red-500',
-                                borderColor: 'border-orange-200 hover:border-orange-400'
+                                icon: Target,
+                                title: "핵심 키워드 타겟팅",
+                                desc: "고객이 검색하는 정확한 '구매 키워드'를 분석하여 노출 경로를 설계합니다."
                             },
                             {
                                 icon: Shield,
-                                title: '법적 보호 솔루션',
-                                subtitle: 'Legal Protection',
-                                description: '먹튀/잠수 걱정 NO. 불량 리뷰어 필터링은 기본, 제휴 법무법인을 통해 연락 두절까지 책임지고 해결합니다.',
-                                gradient: 'from-blue-600 to-indigo-600',
-                                borderColor: 'border-blue-200 hover:border-blue-500',
-                                badge: '법률보호',
-                                highlight: true
+                                title: "엄격한 리뷰어 필터링",
+                                desc: "팔로워 봇, 작업성 계정은 철저히 배제합니다. 진정성 있는 인플루언서만 엄선합니다."
+                            },
+                            {
+                                icon: Award,
+                                title: "법적 책임 보호 서비스",
+                                desc: "리뷰 미작성, 먹튀 우려 ZERO. 제휴 법무법인을 통해 광고주 권익을 확실히 보호합니다."
                             },
                             {
                                 icon: BarChart3,
-                                title: '인사이트 성과 분석',
-                                subtitle: 'Data Insight',
-                                description: '단순 노출 수치를 넘어 도달, 반응 등 실제 마케팅 효율(ROI)을 한눈에 확인하세요.',
-                                gradient: 'from-purple-500 to-pink-500',
-                                borderColor: 'border-purple-200 hover:border-purple-400'
+                                title: "실시간 성과 대시보드",
+                                desc: "진행 현황부터 노출 데이터까지, 대시보드에서 한눈에 실적을 확인하세요."
                             }
-                        ].map((feature, idx) => (
+                        ].map((feature, i) => (
                             <motion.div
-                                key={idx}
+                                key={i}
                                 variants={fadeIn}
-                                className={`group bg-white rounded-3xl p-6 lg:p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform border-2 ${feature.borderColor} relative ${feature.highlight ? 'ring-2 ring-blue-300' : ''}`}
-                                whileHover={{ y: -8 }}
+                                whileHover={{ y: -10 }}
+                                className="bg-white border border-slate-100 rounded-[2rem] p-8 shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_60px_rgba(0,0,0,0.08)] transition-all flex flex-col items-center text-center"
                             >
-                                {/* 뱃지 (법적 보호에만) */}
-                                {feature.badge && (
-                                    <div className="absolute -top-3 -right-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow-lg animate-pulse">
-                                        {feature.badge}
-                                    </div>
-                                )}
-
-                                {/* 아이콘 */}
-                                <div className={`w-16 h-16 lg:w-20 lg:h-20 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 lg:mb-6 group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
-                                    <feature.icon className="w-8 h-8 lg:w-10 lg:h-10 text-white" />
+                                <div className="w-20 h-20 bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl flex items-center justify-center mb-8">
+                                    <feature.icon className="w-10 h-10 text-primary" />
                                 </div>
-
-                                {/* 타이틀 */}
-                                <h3 className="text-lg lg:text-xl font-bold mb-2 text-primary group-hover:text-primary-dark transition-colors">
-                                    {feature.title}
-                                </h3>
-
-                                {/* 서브타이틀 (영문) */}
-                                <p className="text-xs lg:text-sm font-semibold text-text-secondary/60 mb-3 lg:mb-4 uppercase tracking-wide">
-                                    {feature.subtitle}
-                                </p>
-
-                                {/* 설명 */}
-                                <p className="text-sm lg:text-base text-text-secondary leading-relaxed">
-                                    {feature.description}
-                                </p>
+                                <h3 className="text-xl font-bold text-slate-900 mb-4">{feature.title}</h3>
+                                <p className="text-slate-500 text-sm leading-relaxed">{feature.desc}</p>
                             </motion.div>
                         ))}
-                    </motion.div>
+                    </div>
                 </div>
             </section>
 
-            {/* Unlimited Pass Section */}
-            <section className="py-20 lg:py-32 bg-gradient-to-br from-purple-50 via-pink-50 to-rose-50 overflow-hidden">
-                <div className="container">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* 5. Process: 1분 안에 파악하는 진행 단계 */}
+            <section className="py-24 bg-slate-50">
+                <div className="container px-4">
+                    <motion.div
+                        initial="hidden"
+                        whileInView="visible"
+                        viewport={{ once: true }}
+                        variants={fadeIn}
+                        className="text-center mb-20"
+                    >
+                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                            상담부터 런칭까지 단 24시간
+                        </h2>
+                        <p className="text-lg text-slate-500">
+                            효율을 극대화한 다온뷰의 5단계 프로세스
+                        </p>
+                    </motion.div>
+
+                    <div className="relative">
+                        {/* Connecting Line (Desktop) */}
+                        <div className="hidden lg:block absolute top-[60px] left-0 w-full h-0.5 bg-slate-200"></div>
+
+                        <div className="grid lg:grid-cols-5 gap-12 relative z-10">
+                            {[
+                                { step: "01", title: "무료 상담 신청", desc: "전문 어드바이저와 브랜드 고민을 나눕니다." },
+                                { step: "02", title: "맞춤 전략 제안", desc: "키워드 분석 및 최적의 채널을 제안합니다." },
+                                { step: "03", title: "캠페인 런칭", desc: "검증된 인플루언서 모집을 시작합니다." },
+                                { step: "04", title: "콘텐츠 검수", desc: "품질 높은 리뷰가 업로드됩니다." },
+                                { step: "05", title: "최종 성과 보고", desc: "도달률과 전환 데이터를 분석해 보고합니다." }
+                            ].map((item, i) => (
+                                <motion.div
+                                    key={i}
+                                    variants={fadeIn}
+                                    initial="hidden"
+                                    whileInView="visible"
+                                    viewport={{ once: true }}
+                                    transition={{ delay: i * 0.1 }}
+                                    className="flex flex-col items-center text-center group"
+                                >
+                                    <div className="w-14 h-14 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-6 font-black text-slate-400 group-hover:border-primary group-hover:text-primary transition-all shadow-sm">
+                                        {item.step}
+                                    </div>
+                                    <h4 className="text-lg font-bold text-slate-900 mb-3">{item.title}</h4>
+                                    <p className="text-sm text-slate-500 leading-relaxed px-2">{item.desc}</p>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 6. Stats: 데이터로 증명하는 가치 */}
+            <section className="py-24 overflow-hidden relative">
+                <div className="container px-4">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center">
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={fadeIn}
+                        >
+                            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 leading-tight tracking-tight">
+                                수치로 증명하는<br />다온뷰의 압도적 클래스
+                            </h2>
+                            <p className="text-xl text-slate-500 mb-12 leading-relaxed text-left">
+                                화려한 광고 문구보다 강력한 것은 실제 진행 내역과 성과 지표입니다. 
+                                이미 많은 리더들이 다온뷰와 함께 성장하고 있습니다.
+                            </p>
+                            <div className="grid grid-cols-2 gap-8 text-left">
+                                {[
+                                    { label: "함께한 브랜드", value: "500+", suffix: "개 브랜드" },
+                                    { label: "누적 캠페인", value: "2,000+", suffix: "건 돌파" },
+                                    { label: "콘텐츠 제작", value: "15,000+", suffix: "개 포스팅" },
+                                    { label: "평균 만족도", value: "98%", suffix: "매우 만족" }
+                                ].map((stat, i) => (
+                                    <div key={i} className="border-l-4 border-primary pl-6 py-2">
+                                        <div className="text-3xl font-black text-slate-900 mb-1">{stat.value}</div>
+                                        <div className="text-sm text-slate-400 font-bold uppercase">{stat.label}</div>
+                                        <div className="text-xs text-primary mt-1 font-medium">{stat.suffix}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial="hidden"
+                            whileInView="visible"
+                            viewport={{ once: true }}
+                            variants={fadeIn}
+                            className="bg-gradient-to-br from-primary/5 to-pink-100/30 rounded-[3rem] p-12 lg:p-20 flex items-center justify-center relative"
+                        >
+                            <div className="absolute top-0 left-0 w-full h-full opacity-5 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary via-transparent to-transparent"></div>
+                            <div className="relative text-center">
+                                <Rocket className="w-32 h-32 text-primary mb-10 mx-auto opacity-80" />
+                                <div className="text-2xl font-bold text-slate-700 italic">"성장의 임계점을 넘기 위해 필요한 것은"</div>
+                                <div className="text-4xl font-black text-primary mt-4">확신과 전략입니다.</div>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 7. Final Contact Form Section: 최하단 상담 피드 */}
+            <section id="contact-form" className="py-24 lg:py-32 bg-slate-900 relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(244,63,94,0.15),transparent_70%)]"></div>
+                
+                <div className="container relative z-10 px-4">
+                    <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+                        {/* 좌측: 텍스트 안내 */}
                         <motion.div
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
                             variants={slideInLeft}
-                            className="relative"
+                            className="text-white text-left"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-purple-300 to-pink-300 rounded-3xl transform -rotate-3"></div>
-                            <div className="relative bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white rounded-3xl p-12 shadow-2xl">
-                                <Infinity className="w-16 h-16 mb-6 text-yellow-200" />
-                                <h3 className="text-3xl lg:text-4xl font-bold mb-4">
-                                    초고효율 무제한 이용권
-                                </h3>
-                                <p className="text-xl text-pink-100 mb-6">
-                                    한 번의 결제로 무제한 캠페인 진행
-                                </p>
-                                <div className="space-y-3">
-                                    {[
-                                        '월 정액제로 무제한 캠페인 생성',
-                                        '추가 비용 없이 원하는 만큼 진행',
-                                        '예산 걱정 없는 마케팅',
-                                        '최대 90% 비용 절감 효과'
-                                    ].map((item, idx) => (
-                                        <div key={idx} className="flex items-center gap-3">
-                                            <CheckCircle2 className="w-5 h-5 text-yellow-200 flex-shrink-0" />
-                                            <span className="text-pink-50">{item}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <Link
-                                    href="/campaigns"
-                                    className="inline-flex items-center gap-2 mt-8 bg-white text-primary px-6 py-3 rounded-xl font-semibold hover:bg-pink-50 transition-all hover:shadow-xl group"
-                                >
-                                    자세히 보기
-                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                                </Link>
-                            </div>
-                        </motion.div>
-
-                        <motion.div
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            variants={slideInRight}
-                        >
-                            <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-primary">
-                                예산 걱정 없이<br />
-                                마음껏 진행하세요
+                            <h2 className="text-4xl lg:text-6xl font-black mb-8 leading-tight tracking-tighter">
+                                DAONVIEW<br />
+                                <span className="text-primary-light font-black italic">광고주세요?</span>
                             </h2>
-                            <p className="text-lg text-text-secondary mb-8 leading-relaxed">
-                                기존 체험단 플랫폼은 캠페인마다 비용이 발생하지만,
-                                다온뷰의 무제한 이용권은 월 정액으로 무제한 캠페인을 진행할 수 있습니다.
+                            <p className="text-xl lg:text-2xl text-slate-300 leading-relaxed mb-10">
+                                전문 마케터가 브랜드 진단부터<br />
+                                <span className="text-white font-bold">1:1 맞춤형 컨설팅</span>을 도와드립니다.
                             </p>
-                            <div className="grid grid-cols-2 gap-6">
+                            
+                            <div className="space-y-6">
                                 {[
-                                    { label: '비용 절감', value: '최대 90%', icon: TrendingUp },
-                                    { label: '캠페인 수', value: '무제한', icon: Infinity },
-                                    { label: '평균 ROI', value: '350%', icon: BarChart3 },
-                                    { label: '만족도', value: '98%', icon: Heart }
-                                ].map((stat, idx) => (
-                                    <div key={idx} className="bg-white rounded-2xl p-6 shadow-lg border border-pink-100">
-                                        <stat.icon className="w-8 h-8 text-primary mb-3" />
-                                        <div className="text-2xl font-bold text-primary mb-1">{stat.value}</div>
-                                        <div className="text-sm text-text-secondary">{stat.label}</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 1+1 Campaign Section - 3개 카드 */}
-            <section className="py-20 lg:py-32">
-                <div className="container">
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={fadeIn}
-                        className="text-center mb-16"
-                    >
-                        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-pink-100 to-purple-100 px-4 py-2 rounded-full mb-4">
-                            <Sparkles className="w-4 h-4 text-primary" />
-                            <span className="text-sm font-semibold text-primary">DAONVIEW만의 특별함</span>
-                        </div>
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
-                            고효율 1석 2조 솔루션
-                        </h2>
-                        <p className="text-lg text-text-secondary max-w-3xl mx-auto">
-                            <span className="font-bold text-primary">"구매평 체험단"</span>에 <span className="font-bold text-primary">"SNS 마케팅"</span>을 더해 시너지를 극대화하세요.
-                        </p>
-                    </motion.div>
-
-                    <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                        {/* 카드 1: 구매평 체험단 */}
-                        <motion.div
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            variants={fadeIn}
-                            className="bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-3xl p-8 shadow-xl relative"
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <div className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-gray-900 text-xs px-3 py-1.5 rounded-full font-bold shadow-lg">
-                                ⭐ 추천
-                            </div>
-
-                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                                <ShoppingCart className="w-8 h-8" />
-                            </div>
-
-                            <h3 className="text-2xl font-bold mb-3">구매평 체험단</h3>
-
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#스토어지수상승</span>
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#실구매리뷰</span>
-                            </div>
-
-                            <p className="text-blue-100 mb-6 leading-relaxed">
-                                실제 구매 트래픽과 고퀄리티 포토리뷰로 스토어의 신뢰도와 랭킹을 동시에 높입니다.
-                            </p>
-
-                            <ul className="space-y-3">
-                                {[
-                                    '키워드 검색 후 실제 구매 (트래픽 효과)',
-                                    '스토어 찜 & 소식 알림 (관심고객 확보)',
-                                    '고화질 포토 리뷰 (구매전환율 상승)'
-                                ].map((item, idx) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                                        <span className="text-sm">{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </motion.div>
-
-                        {/* 카드 2: 블로그 체험단 */}
-                        <motion.div
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            variants={fadeIn}
-                            transition={{ delay: 0.2 }}
-                            className="bg-gradient-to-br from-pink-500 to-rose-500 text-white rounded-3xl p-8 shadow-xl relative"
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                                <MessageSquare className="w-8 h-8" />
-                            </div>
-
-                            <h3 className="text-2xl font-bold mb-3">블로그 체험단</h3>
-
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#상위노출</span>
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#정보성리뷰</span>
-                            </div>
-
-                            <p className="text-pink-100 mb-6 leading-relaxed">
-                                네이버 검색 시 가장 먼저 노출되는 상세 리뷰로 고민하는 고객을 설득하고 유입시킵니다.
-                            </p>
-
-                            <ul className="space-y-3">
-                                {[
-                                    '타겟 키워드 상위 노출 공략',
-                                    '정보 전달 중심의 꼼꼼한 스토리텔링',
-                                    '구매 링크 삽입으로 유입 경로 확보'
-                                ].map((item, idx) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                                        <span className="text-sm">{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </motion.div>
-
-                        {/* 카드 3: 인스타그램 체험단 */}
-                        <motion.div
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            variants={fadeIn}
-                            transition={{ delay: 0.4 }}
-                            className="bg-gradient-to-br from-purple-500 to-pink-500 text-white rounded-3xl p-8 shadow-xl relative"
-                            whileHover={{ scale: 1.05 }}
-                        >
-                            <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mb-6">
-                                <Smartphone className="w-8 h-8" />
-                            </div>
-
-                            <h3 className="text-2xl font-bold mb-3">인스타그램 체험단</h3>
-
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#비주얼마케팅</span>
-                                <span className="text-xs bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">#트렌드확산</span>
-                            </div>
-
-                            <p className="text-purple-100 mb-6 leading-relaxed">
-                                감각적인 이미지와 숏폼(릴스) 콘텐츠로 브랜드의 매력을 보여주고 인지도를 넓힙니다.
-                            </p>
-
-                            <ul className="space-y-3">
-                                {[
-                                    '트렌디한 감성 사진 및 영상 제작',
-                                    '해시태그를 통한 잠재 고객 도달',
-                                    '공식 계정 태그로 팔로워 유입 유도'
-                                ].map((item, idx) => (
-                                    <li key={idx} className="flex items-start gap-2">
-                                        <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                                        <span className="text-sm">{item}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </motion.div>
-                    </div>
-
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={fadeIn}
-                        className="mt-16 relative"
-                    >
-                        <div className="text-center mb-8">
-                            <h3 className="text-2xl lg:text-3xl font-bold text-primary mb-2">
-                                왜 1석2조 체험단이 효율적일까요?
-                            </h3>
-                            <p className="text-text-secondary">
-                                기존 방식과 비교해보세요
-                            </p>
-                        </div>
-
-                        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-center">
-                            {/* 기존 방식 */}
-                            <motion.div
-                                variants={slideInLeft}
-                                className="bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl p-8 shadow-lg border-2 border-gray-300 relative"
-                            >
-                                <div className="absolute top-4 right-4 bg-gray-400 text-white text-xs px-3 py-1 rounded-full font-semibold">
-                                    기존 방식
-                                </div>
-                                <h4 className="text-xl font-bold text-gray-700 mb-6">따로 진행 (타 업체/개별)</h4>
-                                {/* ... 내용 생략 없이 복원 ... */}
-                                <div className="bg-white rounded-2xl p-6 mb-4 border border-gray-300">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-gray-600">쇼핑몰 구매평</span>
-                                        <span className="text-lg font-bold text-gray-700">5,000원</span>
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-gray-600">SNS 체험단</span>
-                                        <span className="text-lg font-bold text-gray-700">20,000원</span>
-                                    </div>
-                                    <div className="border-t border-gray-300 mt-3 pt-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-semibold text-gray-700">총 비용</span>
-                                            <span className="text-2xl font-bold text-gray-800">25,000원</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bg-red-50 rounded-2xl p-6 border border-red-200">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <Package className="w-6 h-6 text-red-500" />
-                                        <Package className="w-6 h-6 text-red-500" />
-                                        <span className="text-red-700 font-semibold">제품 발송 2회</span>
-                                    </div>
-                                    <p className="text-sm text-red-600">
-                                        ❌ 번거로운 과정<br />
-                                        ❌ 배송비 2배<br />
-                                        ❌ 관리 복잡
-                                    </p>
-                                </div>
-                            </motion.div>
-
-                            {/* 화살표 */}
-                            <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex-col items-center">
-                                <motion.div
-                                    animate={{ scale: [1, 1.1, 1] }}
-                                    transition={{ duration: 2, repeat: 999999 }}
-                                    className="bg-gradient-to-r from-primary to-pink-500 text-white rounded-full p-4 shadow-2xl"
-                                >
-                                    <ArrowRight className="w-8 h-8" />
-                                </motion.div>
-                                <div className="mt-2 bg-white px-4 py-2 rounded-full shadow-lg border-2 border-primary">
-                                    <p className="text-sm font-bold text-primary whitespace-nowrap">비용 64% 절감!</p>
-                                </div>
-                            </div>
-
-                            {/* 다온뷰 방식 */}
-                            <motion.div
-                                variants={slideInRight}
-                                className="bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-400 rounded-3xl p-8 shadow-2xl border-2 border-cyan-300 relative"
-                                whileHover={{ scale: 1.02 }}
-                            >
-                                <div className="absolute top-4 right-4 bg-yellow-400 text-gray-900 text-xs px-3 py-1 rounded-full font-bold animate-pulse">
-                                    ⭐ 추천!
-                                </div>
-                                <h4 className="text-xl font-bold text-white mb-6 drop-shadow-lg">1석2조 체험단 (다온뷰)</h4>
-                                <div className="bg-white rounded-2xl p-6 mb-4 border-2 border-cyan-200 shadow-lg">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <span className="text-gray-700 font-medium">구매평 + SNS 리뷰</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-2xl font-bold text-primary">9,000원</span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-3 border border-primary/20">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Sparkles className="w-5 h-5 text-primary" />
-                                            <span className="text-primary font-bold">3배 저렴함!</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bg-green-50 rounded-2xl p-6 border-2 border-green-300 shadow-lg">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="relative">
-                                            <Package className="w-7 h-7 text-green-600" />
-                                            <CheckCircle2 className="w-4 h-4 text-green-600 absolute -top-1 -right-1 bg-white rounded-full" />
-                                        </div>
-                                        <span className="text-green-700 font-bold text-lg">제품 발송 1회로 끝!</span>
-                                    </div>
-                                    <p className="text-sm text-green-700 font-medium">
-                                        ✅ 구매평 & SNS 동시 해결<br />
-                                        ✅ 배송비 절감<br />
-                                        ✅ 간편한 관리
-                                    </p>
-                                </div>
-                            </motion.div>
-                        </div>
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Campaign Types Section */}
-            <section className="py-20 lg:py-32 bg-gradient-to-br from-pink-50 to-purple-50">
-                <div className="container">
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={fadeIn}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
-                            다온뷰 체험단 상품 소개
-                        </h2>
-                        <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-                            필요한 체험단을 선택하세요 👇
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={staggerContainer}
-                        className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-                    >
-                        {[
-                            {
-                                icon: ShoppingBag,
-                                title: '생활용품',
-                                description: '일상 속 필수 아이템',
-                                gradient: 'from-pink-500 to-rose-500',
-                                examples: '화장품, 세제, 주방용품'
-                            },
-                            {
-                                icon: Coffee,
-                                title: '식품/음료',
-                                description: '맛있는 체험의 시작',
-                                gradient: 'from-orange-500 to-red-500',
-                                examples: '건강식품, 음료, 간식'
-                            },
-                            {
-                                icon: Laptop,
-                                title: 'IT/전자기기',
-                                description: '최신 기술 체험',
-                                gradient: 'from-blue-500 to-purple-500',
-                                examples: '스마트폰, 이어폰, 가전'
-                            },
-                            {
-                                icon: Package,
-                                title: '기타 상품',
-                                description: '다양한 카테고리',
-                                gradient: 'from-purple-500 to-pink-500',
-                                examples: '패션, 도서, 반려동물'
-                            }
-                        ].map((type, idx) => (
-                            <motion.div
-                                key={idx}
-                                variants={fadeIn}
-                                whileHover={{ y: -5 }}
-                                className="group bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-pink-100 cursor-pointer"
-                            >
-                                <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${type.gradient} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
-                                    <type.icon className="w-8 h-8 text-white" />
-                                </div>
-                                <h3 className="text-xl font-bold mb-2 text-primary">{type.title}</h3>
-                                <p className="text-text-secondary mb-3">{type.description}</p>
-                                <p className="text-sm text-text-secondary/70">{type.examples}</p>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Testimonials Section */}
-            <section className="py-20 lg:py-32">
-                <div className="container">
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={fadeIn}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
-                            다온뷰 이용 후기
-                        </h2>
-                        <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-                            실제 고객들의 생생한 후기를 확인하세요
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={staggerContainer}
-                        className="grid md:grid-cols-3 gap-8"
-                    >
-                        {[
-                            {
-                                name: '김민지 대표',
-                                company: '뷰티 스타트업',
-                                rating: 5,
-                                comment: '무제한 이용권으로 마케팅 비용을 70% 절감했어요. 소규모 브랜드에게 정말 최고의 선택입니다!',
-                                avatar: '👩‍💼'
-                            },
-                            {
-                                name: '박준호 마케터',
-                                company: '식품 브랜드',
-                                rating: 5,
-                                comment: '1석2조 체험단 덕분에 블로그와 인스타 동시 진행으로 효과가 2배! ROI가 350%나 나왔어요.',
-                                avatar: '👨‍💼'
-                            },
-                            {
-                                name: '이서연 대표',
-                                company: 'IT 액세서리',
-                                rating: 5,
-                                comment: '빠른 선정과 투명한 관리 시스템이 인상적이에요. 24시간 내 캠페인 시작은 정말 놀라워요!',
-                                avatar: '👩‍💻'
-                            }
-                        ].map((testimonial, idx) => (
-                            <motion.div
-                                key={idx}
-                                variants={scaleUp}
-                                whileHover={{ y: -5 }}
-                                className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-pink-100 relative"
-                            >
-                                <Quote className="absolute top-6 right-6 w-12 h-12 text-pink-100" />
-                                <div className="relative">
-                                    <div className="flex items-center gap-1 mb-4">
-                                        {[...Array(testimonial.rating)].map((_, i) => (
-                                            <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                                        ))}
-                                    </div>
-                                    <p className="text-text-main mb-6 leading-relaxed italic">
-                                        "{testimonial.comment}"
-                                    </p>
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center text-2xl">
-                                            {testimonial.avatar}
+                                    { icon: Shield, label: "품질 보장", desc: "검증된 리뷰어만 매칭" },
+                                    { icon: Clock, label: "24시간 지원", desc: "신속한 응대와 속도감" }
+                                ].map((item, i) => (
+                                    <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">
+                                        <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center">
+                                            <item.icon className="w-6 h-6 text-primary-light" />
                                         </div>
                                         <div>
-                                            <div className="font-bold text-primary">{testimonial.name}</div>
-                                            <div className="text-sm text-text-secondary">{testimonial.company}</div>
+                                            <div className="font-bold">{item.label}</div>
+                                            <div className="text-sm text-slate-400">{item.desc}</div>
                                         </div>
                                     </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* How It Works Section */}
-            <section className="py-20 lg:py-32 bg-gradient-to-br from-pink-50 to-purple-50">
-                <div className="container">
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={fadeIn}
-                        className="text-center mb-16"
-                    >
-                        <h2 className="text-3xl lg:text-5xl font-bold mb-4 text-primary">
-                            이용 방법
-                        </h2>
-                        <p className="text-lg text-text-secondary max-w-2xl mx-auto">
-                            간단한 3단계로 시작하세요
-                        </p>
-                    </motion.div>
-
-                    <motion.div
-                        initial="hidden"
-                        whileInView="visible"
-                        viewport={{ once: true }}
-                        variants={staggerContainer}
-                        className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto"
-                    >
-                        {[
-                            {
-                                step: '01',
-                                title: '회원가입 & 캠페인 선택',
-                                description: '무료 회원가입 후 원하는 캠페인을 선택하세요',
-                                icon: Users,
-                                color: 'bg-pink-500'
-                            },
-                            {
-                                step: '02',
-                                title: '신청 & 선정',
-                                description: '간단한 신청서 작성 후 빠른 선정 결과를 받아보세요',
-                                icon: CheckCircle2,
-                                color: 'bg-purple-500'
-                            },
-                            {
-                                step: '03',
-                                title: '체험 & 리뷰 작성',
-                                description: '제품 체험 후 솔직한 리뷰를 작성하고 포인트를 받으세요',
-                                icon: Sparkles,
-                                color: 'bg-rose-500'
-                            }
-                        ].map((step, idx) => (
-                            <motion.div key={idx} variants={fadeIn} className="relative">
-                                {idx < 2 && (
-                                    <div className="hidden md:block absolute top-1/4 -right-4 w-8 h-0.5 bg-gradient-to-r from-pink-300 to-purple-300 z-0"></div>
-                                )}
-                                <div className="relative bg-white rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-pink-100">
-                                    <div className={`w-12 h-12 ${step.color} rounded-full flex items-center justify-center text-white font-bold text-lg mb-4`}>
-                                        {step.step}
-                                    </div>
-                                    <step.icon className="w-12 h-12 text-primary mb-4" />
-                                    <h3 className="text-xl font-bold mb-3 text-primary">{step.title}</h3>
-                                    <p className="text-text-secondary leading-relaxed">{step.description}</p>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                </div>
-            </section>
-
-            {/* Benefits Section */}
-            <section className="py-20 lg:py-32">
-                <div className="container">
-                    <div className="grid lg:grid-cols-2 gap-12 items-center">
-                        <motion.div
-                            initial="hidden"
-                            whileInView="visible"
-                            viewport={{ once: true }}
-                            variants={slideInLeft}
-                        >
-                            <h2 className="text-3xl lg:text-5xl font-bold mb-6 text-primary">
-                                왜 DAONVIEW를<br />선택해야 할까요?
-                            </h2>
-                            <p className="text-lg text-text-secondary mb-8 leading-relaxed">
-                                다온뷰는 스몰 브랜드를 위한 서비스에 집중합니다.
-                                합리적인 가격에 서비스를 제공하고, 효율적인 솔루션 개발에 투자하여,
-                                스몰 브랜드가 적은 비용으로 경쟁할 수 있도록 돕습니다.
-                            </p>
-
-                            <motion.div variants={staggerContainer} initial="hidden" whileInView="visible" className="space-y-4">
-                                {[
-                                    '합리적인 가격으로 최대의 효과',
-                                    '빈틈없는 관리 서비스',
-                                    '실시간 성과 트래킹',
-                                    '전문 매니저의 1:1 상담',
-                                    '다양한 플랫폼 지원 (블로그, 인스타, 유튜브)',
-                                    '투명한 리뷰 관리 시스템'
-                                ].map((benefit, idx) => (
-                                    <motion.div key={idx} variants={fadeIn} className="flex items-center gap-3 group">
-                                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
-                                            <CheckCircle2 className="w-4 h-4 text-white" />
-                                        </div>
-                                        <span className="text-lg text-text-main">{benefit}</span>
-                                    </motion.div>
                                 ))}
-                            </motion.div>
+                            </div>
                         </motion.div>
 
+                        {/* 우측: 상담 신청 폼 */}
                         <motion.div
                             initial="hidden"
                             whileInView="visible"
                             viewport={{ once: true }}
                             variants={slideInRight}
-                            className="relative"
+                            className="bg-white rounded-[2.5rem] p-8 lg:p-12 shadow-2xl relative"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-br from-pink-200 to-purple-200 rounded-3xl transform rotate-3"></div>
-                            <div className="relative bg-white rounded-3xl p-8 shadow-2xl border border-pink-100">
-                                <div className="space-y-6">
-                                    <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-6">
-                                        <Shield className="w-12 h-12 text-primary mb-4" />
-                                        <h3 className="text-xl font-bold mb-2 text-primary">믿을 수 있는 플랫폼</h3>
-                                        <p className="text-text-secondary">
-                                            철저한 인플루언서 검증 시스템으로 품질 높은 리뷰를 보장합니다
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6">
-                                        <TrendingUp className="w-12 h-12 text-primary mb-4" />
-                                        <h3 className="text-xl font-bold mb-2 text-primary">검증된 성과</h3>
-                                        <p className="text-text-secondary">
-                                            평균 98%의 고객 만족도와 지속적인 재구매율을 자랑합니다
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-gradient-to-br from-pink-50 to-rose-50 rounded-2xl p-6">
-                                        <Clock className="w-12 h-12 text-primary mb-4" />
-                                        <h3 className="text-xl font-bold mb-2 text-primary">빠른 진행</h3>
-                                        <p className="text-text-secondary">
-                                            평균 24시간 내 캠페인 시작으로 빠른 마케팅 효과를 경험하세요
-                                        </p>
-                                    </div>
+                            <form onSubmit={handleSubmit} className="space-y-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="name" className="text-slate-700 font-bold ml-1">성함(회사명) <span className="text-primary text-xs">*</span></Label>
+                                    <Input 
+                                        id="name" 
+                                        placeholder="성함 또는 업체명을 입력해주세요" 
+                                        className="h-14 bg-slate-50 border-slate-200 rounded-xl px-5 focus:ring-primary focus:border-primary text-black"
+                                        required
+                                        value={formData.name}
+                                        onChange={handleInputChange}
+                                    />
                                 </div>
-                            </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="contact" className="text-slate-700 font-bold ml-1">연락처 <span className="text-primary text-xs">*</span></Label>
+                                    <Input 
+                                        id="contact" 
+                                        placeholder="연락받으실 번호를 입력해주세요" 
+                                        className="h-14 bg-slate-50 border-slate-200 rounded-xl px-5 focus:ring-primary focus:border-primary text-black"
+                                        required
+                                        value={formData.contact}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="message" className="text-slate-700 font-bold ml-1">문의내용</Label>
+                                    <Textarea 
+                                        id="message" 
+                                        placeholder="궁금하신 내용을 남겨주시면 자세히 안내해드립니다" 
+                                        className="min-h-[140px] bg-slate-50 border-slate-200 rounded-xl p-5 focus:ring-primary focus:border-primary text-black resize-none"
+                                        value={formData.message}
+                                        onChange={handleInputChange}
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between py-2 border-t border-slate-100 mt-4 pt-6">
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox 
+                                            id="agreed" 
+                                            checked={formData.agreed}
+                                            onCheckedChange={(checked) => setFormData(prev => ({ ...prev, agreed: !!checked }))}
+                                        />
+                                        <label
+                                            htmlFor="agreed"
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-slate-500 cursor-pointer"
+                                        >
+                                            개인정보 처리방침에 동의합니다.
+                                        </label>
+                                    </div>
+
+                                    {/* 약관 드로워 */}
+                                    <Sheet>
+                                        <SheetTrigger asChild>
+                                            <button type="button" className="text-xs text-slate-400 hover:text-primary underline transition-colors">자세히보기</button>
+                                        </SheetTrigger>
+                                        <SheetContent side="right" className="top-[70px] h-[calc(100vh-70px)] w-[400px] sm:w-[540px] border-t border-slate-100 shadow-2xl">
+                                            <SheetHeader className="pb-6 border-b border-slate-50">
+                                                <SheetTitle className="text-2xl font-black text-primary">개인정보 처리방침</SheetTitle>
+                                                <SheetDescription className="text-slate-500 font-medium">
+                                                    다온뷰 상담 신청을 위한 개인정보 수집 및 이용 안내
+                                                </SheetDescription>
+                                            </SheetHeader>
+                                            <ScrollArea className="h-[calc(100vh-200px)] mt-6 pr-4">
+                                                <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+                                                    {`회사 (이하 '다온컴퍼니')는 별도의 회원가입 절차 없이 대부분의 신청관련 컨텐츠에 자유롭게 접근할 수 있습니다. 회사는 서비스 이용을 위하여 아래와 같은 개인정보를 수집하고 있습니다.
+
+1) 수집하는 개인정보의 범위
+■ 필수항목 - 이름, 연락처
+
+2) 개인정보의 수집목적 및 이용목적
+① 회사는 서비스를 제공하기 위하여 다음과 같은 목적으로 개인정보를 수집하고 있습니다. 이름, 연락처는 기본 필수 요소입니다.
+연락처 : 공지사항 전달, 본인 의사 확인, 불만 처리 등 원활한 의사소통 경로의 확보, 새로운 서비스의 안내
+그 외 선택항목 : 개인맞춤 서비스를 제공하기 위한 자료
+② 단, 이용자의 기본적 인권 침해의 우려가 있는 민감한 개인정보는 수집하지 않습니다.
+
+3) 개인정보의 보유기간 및 이용기간
+① 귀하의 개인정보는 다음과 같이 개인정보의 수집목적 또는 제공받은 목적이 달성되면 파기됩니다. 단, 관련법령의 규정에 의하여 다음과 같이 권리 의무 관계의 확인 등을 이유로 일정기간 보유하여야 할 필요가 있을 경우에는 일정기간 보유합니다. 
+기록 : 1년
+② 귀하의 동의를 받아 보유하고 있는 거래정보 등을 귀하께서 열람을 요구하는 경우 은 지체 없이 그 열람, 확인 할 수 있도록 조치합니다.
+
+4) 개인정보 파기절차 및 방법
+이용자의 개인정보는 원칙적으로 개인정보의 수집 및 이용목적이 달성되면 지체 없이 파기합니다. 회사의 개인정보 파기절차 및 방법은 다음과 같습니다. 
+개인정보는 법률에 의한 경우가 아니고서는 보유되는 이외의 다른 목적으로 이용되지 않습니다. 
+종이에 출력된 개인정보는 분쇄기로 분쇄하거나 소각을 통하여 파기합니다. 
+전자적 파일 형태로 저장된 개인정보는 기록을 재생할 수 없는 기술적 방법을 사용하여 삭제합니다.`}
+                                                </div>
+                                            </ScrollArea>
+                                        </SheetContent>
+                                    </Sheet>
+                                </div>
+
+                                <Button 
+                                    className="w-full h-16 bg-primary hover:bg-primary-dark text-white rounded-xl text-xl font-black shadow-xl shadow-primary/20 group transition-all"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? "전송 중..." : (
+                                        <>
+                                            상담 신청하기
+                                            <Send className="w-5 h-5 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                        </>
+                                    )}
+                                </Button>
+                            </form>
                         </motion.div>
                     </div>
                 </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="py-20 lg:py-32 bg-gradient-to-br from-primary via-primary-dark to-pink-900 text-white relative overflow-hidden">
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDE2YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00em0wIDI0YzAtMi4yMSAxLjc5LTQgNC00czQgMS43OSA0IDQtMS43OSA0LTQgNC00LTEuNzktNC00ek0xMiAxNmMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHptMCAyNGMwLTIuMjEgMS43OS00IDQtNHM0IDEuNzkgNCA0LTEuNzkgNC00IDQtNC0xLjc5LTQtNHoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30"></div>
-
-                <motion.div
-                    initial="hidden"
-                    whileInView="visible"
-                    viewport={{ once: true }}
-                    variants={scaleUp}
-                    className="container relative text-center"
-                >
-                    <h2 className="text-3xl lg:text-5xl font-bold mb-6">
-                        지금 바로 시작하세요
-                    </h2>
-                    <p className="text-xl text-pink-100 mb-8 max-w-2xl mx-auto">
-                        본질이 뛰어난 브랜드가 선택받는 환경을 만들겠습니다
-                    </p>
-                    <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-4 justify-center">
-                        <Link
-                            href="/signup"
-                            className="btn bg-white text-primary hover:bg-pink-50 hover:shadow-2xl px-8 py-4 text-lg group transition-all"
-                        >
-                            무료로 시작하기
-                            <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </Link>
-                        <Link
-                            href="/contact"
-                            className="btn border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-8 py-4 text-lg transition-all"
-                        >
-                            문의하기
-                        </Link>
-                    </motion.div>
-                </motion.div>
             </section>
         </div>
     );

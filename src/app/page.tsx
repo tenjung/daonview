@@ -8,6 +8,7 @@ import { mapCampaignToCard } from '@/lib/campaignUtils';
 import { fetchAllBannerData } from '@/lib/bannerUtils';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import CampaignCarousel from '@/components/CampaignCarousel';
+import KakaoBanner from '@/components/KakaoBanner';
 
 export default async function Home() {
     // 1. Latest Campaigns (Limited to 4)
@@ -95,6 +96,9 @@ export default async function Home() {
                     />
                 </div>
             </section>
+
+            {/* KakaoTalk Channel Banner */}
+            <KakaoBanner />
 
             {/* Service Introduction - Updated to match Intro Page */}
             <section className="bg-white py-24 border-y border-gray-100 mt-8">
