@@ -1,7 +1,75 @@
 import Link from 'next/link';
-import { BookOpen, Briefcase, Sparkles } from 'lucide-react';
+import { BookOpen, Briefcase, Sparkles, Crown } from 'lucide-react';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 
-export default function StaticPromoBanners() {
+export default async function StaticPromoBanners() {
+    const cookieStore = await cookies();
+
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        );
+                    } catch {
+                        // The `setAll` method was called from a Server Component.
+                        // This can be ignored if you have middleware refreshing
+                        // user sessions.
+                    }
+                },
+            },
+        }
+    );
+
+    const { data: { user } } = await supabase.auth.getUser();
+    let isAdvertiser = false;
+
+    if (user) {
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single();
+
+        if (profile?.role === 'ADVERTISER') {
+            isAdvertiser = true;
+        }
+    }
+
+    const advertiserBanner = {
+        id: 2,
+        title: '광고주 전용',
+        subtitle: '왜 내 브랜드만 안 보일까?',
+        description: '검색 결과 1면을 장악하는 다온뷰만의 노출 전략',
+        bgColor: 'bg-gradient-to-br from-rose-500 to-rose-600',
+        icon: Briefcase,
+        link: '/intro',
+        accentColor: 'text-rose-100',
+        cta: '서비스 소개서 보기',
+        isSpecial: true
+    };
+
+    const influencerBanner = {
+        id: 2, // Keep same ID for layout consistency if needed, or unique
+        title: '등급별 혜택',
+        subtitle: '레벨업하고 더 큰 보상받기',
+        description: '인플루언서만을 위한 특별한 혜택을 확인하세요',
+        bgColor: 'bg-gradient-to-br from-violet-500 to-violet-600',
+        icon: Crown,
+        link: '/guide',
+        accentColor: 'text-violet-100',
+        cta: '혜택 확인하기',
+        isSpecial: true
+    };
+
     const banners = [
         {
             id: 1,
@@ -12,19 +80,11 @@ export default function StaticPromoBanners() {
             icon: BookOpen,
             link: '/guide',
             accentColor: 'text-blue-100',
-            cta: '자세히 보기'
+            cta: '자세히 보기',
+            isSpecial: false
         },
-        {
-            id: 2,
-            title: '광고주 전용',
-            subtitle: '왜 내 브랜드만 안 보일까?',
-            description: '검색 결과 1면을 장악하는 다온뷰만의 노출 전략',
-            bgColor: 'bg-gradient-to-br from-rose-500 to-rose-600',
-            icon: Briefcase,
-            link: '/intro',
-            accentColor: 'text-rose-100',
-            cta: '서비스 소개서 보기'
-        },
+        // Conditionally swap the second banner
+        isAdvertiser ? advertiserBanner : influencerBanner,
         {
             id: 3,
             title: '새로 나온',
@@ -34,7 +94,8 @@ export default function StaticPromoBanners() {
             icon: Sparkles,
             link: '/campaigns?sort=new',
             accentColor: 'text-orange-100',
-            cta: '자세히 보기'
+            cta: '자세히 보기',
+            isSpecial: false
         }
     ];
 
@@ -43,7 +104,9 @@ export default function StaticPromoBanners() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
-                    const isSpecial = banner.id === 2;
+                    // Using banner.isSpecial flag instead of hardcoded ID check
+                    const isSpecial = banner.isSpecial;
+
                     return (
                         <Link
                             key={banner.id}
