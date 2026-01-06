@@ -15,15 +15,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DAONVIEW | 성공을 돕는 프리미엄 체험단 플랫폼",
-  description: "마케팅 전문가가 검증한 블로그, 인스타그램, 유튜브 체험단. 매출로 이어지는 진짜 마케팅을 경험하세요.",
+  title: "DAONVIEW | 혜택이 다가온 체험단 플랫폼",
+  description: "블로그·인스타·유튜브 체험단 혜택이 다온뷰에서 시작됩니다. 다양한 브랜드와의 협업 기회를 만나보세요.",
   keywords: ["체험단", "블로그체험단", "인스타체험단", "마케팅플랫폼", "다온뷰", "바이럴마케팅"],
   icons: {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "DAONVIEW | 프리미엄 체험단 플랫폼",
-    description: "성공적인 마케팅의 시작, 다온뷰와 함께하세요.",
+    title: "DAONVIEW | 혜택으로 다가온 리뷰",
+    description: "블로그·인스타·유튜브 체험단 혜택, 다온뷰에서 시작하세요",
     url: "https://www.daonview.com",
     siteName: "DAONVIEW",
     images: [
