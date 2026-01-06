@@ -132,7 +132,7 @@ export default function MyCampaignsPage() {
                     { href: '/dashboard/influencer', label: '대시보드' },
                     { href: '/dashboard/influencer/campaigns', label: '나의 캠페인', active: true },
                     { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    { href: '/dashboard/influencer/settings', label: '계정 설정' },
+                    { href: '/profile/edit', label: '계정 설정' },
                     { href: '/contact', label: '1:1 문의' }
                 ]}
             />

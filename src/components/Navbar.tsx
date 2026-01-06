@@ -1,10 +1,19 @@
 'use client';
 
 import Link from 'next/link';
-import { Wand2, Menu, X } from 'lucide-react';
+import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
+import { Avatar } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 export default function Navbar() {
   const router = useRouter();
@@ -18,7 +27,6 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
 
-    // 1. Initial check with getSession (checks local storage first)
     const checkUser = async () => {
       try {
         setLoading(true);
@@ -36,7 +44,6 @@ export default function Navbar() {
     };
     checkUser();
 
-    // 2. Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -55,7 +62,6 @@ export default function Navbar() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setMobileMenuOpen(false);
-    // Use window.location.href to force navigation and refresh
     window.location.href = '/';
   };
 
@@ -63,10 +69,29 @@ export default function Navbar() {
     setMobileMenuOpen(false);
   };
 
-  // Helper function to check if link is active
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
     return pathname.startsWith(path);
+  };
+
+  const getUserDashboardLink = () => {
+    if (!profile) return '/';
+    switch (profile.role) {
+      case 'ADMIN': return '/dashboard/admin';
+      case 'ADVERTISER': return '/dashboard/advertiser';
+      case 'INFLUENCER': return '/dashboard/influencer';
+      default: return '/dashboard/influencer';
+    }
+  };
+
+  const getRoleLabel = () => {
+    if (!profile) return '';
+    switch (profile.role) {
+      case 'ADMIN': return '관리자';
+      case 'ADVERTISER': return '광고주';
+      case 'INFLUENCER': return '인플루언서';
+      default: return '사용자';
+    }
   };
 
   return (
@@ -124,38 +149,65 @@ export default function Navbar() {
         {/* Desktop User Menu */}
         <div className="hidden lg:flex gap-4 items-center">
           {!mounted ? (
-            <div className="w-20 h-8 bg-slate-100 animate-pulse rounded"></div>
+            <div className="w-10 h-10 bg-slate-100 animate-pulse rounded-full"></div>
           ) : user ? (
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                {profile && (
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500">
-                    {profile.role === 'ADMIN' ? '관리자' : profile.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
-                  </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none">
+                <div className="flex items-center gap-3 group">
+                  <div className="flex flex-col items-end">
+                    <span className="text-sm font-bold text-text-main group-hover:text-primary transition-colors">
+                      {profile?.nickname || user.email?.split('@')[0]}님
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-medium">{getRoleLabel()}</span>
+                  </div>
+                  <Avatar 
+                    src={profile?.avatar_url} 
+                    fallback={(profile?.nickname || user.email)?.[0]} 
+                    className="ring-2 ring-transparent group-hover:ring-rose-100 transition-all group-hover:scale-105"
+                  />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-2">
+                <DropdownMenuLabel className="flex flex-col gap-1 py-3 px-4">
+                  <span className="text-xs text-gray-400 font-medium">로그인 정보</span>
+                  <span className="text-sm font-bold truncate text-text-main">{user.email}</span>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem asChild>
+                  <Link href={getUserDashboardLink()} className="flex items-center gap-2">
+                    <LayoutDashboard size={16} />
+                    <span>{profile?.role === 'INFLUENCER' ? '마이페이지' : '관리페이지'}</span>
+                  </Link>
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem asChild>
+                  <Link href="/profile/edit" className="flex items-center gap-2">
+                    <Settings size={16} />
+                    <span>내 정보 수정</span>
+                  </Link>
+                </DropdownMenuItem>
+
+                {profile?.role === 'ADMIN' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-gray-400 py-1">System</DropdownMenuLabel>
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/users" className="flex items-center gap-2 text-violet-600 focus:text-violet-700">
+                        <ShieldCheck size={16} />
+                        <span>회원 관리</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  </>
                 )}
-                <span className="text-sm font-bold text-text-main">{profile?.nickname || user.email?.split('@')[0]}님</span>
-              </div>
 
-              <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-red-500 hover:underline transition-colors">
-                로그아웃
-              </button>
-
-              {profile?.role === 'ADMIN' && (
-                <Link href="/dashboard/admin" className="btn btn-primary py-2 text-xs">
-                  관리페이지
-                </Link>
-              )}
-              {profile?.role === 'ADVERTISER' && (
-                <Link href="/dashboard/advertiser" className="btn btn-primary py-2 text-xs">
-                  관리페이지
-                </Link>
-              )}
-              {profile?.role === 'INFLUENCER' && (
-                <Link href="/dashboard/influencer" className="btn btn-primary py-2 text-xs">
-                  마이페이지
-                </Link>
-              )}
-            </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-600 focus:bg-red-50">
+                  <LogOut size={16} />
+                  <span>로그아웃</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <>
               <Link href="/login" className="btn btn-outline py-2 text-sm">
@@ -204,18 +256,25 @@ export default function Navbar() {
         <div className="flex flex-col h-full">
           {/* User Info Section */}
           {user && (
-            <div className="p-6 border-b border-border bg-rose-50">
-              {profile && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-1 rounded text-xs font-bold bg-white text-primary">
-                    {profile.role === 'ADMIN' ? '관리자' : profile.role === 'ADVERTISER' ? '광고주' : '인플루언서'}
-                  </span>
-                </div>
-              )}
-              <p className="text-sm font-bold text-text-main">
-                {profile?.nickname || user.email?.split('@')[0]}님
-              </p>
-              <p className="text-xs text-gray-500 mt-1">{user.email}</p>
+            <div className="p-6 border-b border-border bg-rose-50 flex items-center gap-4">
+              <Avatar 
+                src={profile?.avatar_url} 
+                fallback={(profile?.nickname || user.email)?.[0]} 
+                className="h-12 w-12 ring-2 ring-white shadow-sm"
+              />
+              <div className="flex-1 min-w-0">
+                {profile && (
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-primary">
+                      {getRoleLabel()}
+                    </span>
+                  </div>
+                )}
+                <p className="text-sm font-bold text-text-main truncate">
+                  {profile?.nickname || user.email?.split('@')[0]}님
+                </p>
+                <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+              </div>
             </div>
           )}
 

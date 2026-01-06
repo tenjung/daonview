@@ -10,20 +10,23 @@ import CampaignSkeleton from '@/components/CampaignSkeleton';
 import CampaignCarousel from '@/components/CampaignCarousel';
 import KakaoBanner from '@/components/KakaoBanner';
 
+export const revalidate = 0;
+
 export default async function Home() {
     // 1. Latest Campaigns (Limited to 4)
     const { data: latestData } = await supabase
         .from('campaigns')
-        .select('*, applications(count)')
+        .select('*')
         .in('status', ['RECRUITING', 'ONGOING'])
         .order('created_at', { ascending: false })
         .limit(4);
-    const latestCampaigns = latestData?.map(c => mapCampaignToCard(c as any)) || [];
+
+    const latestCampaigns = (latestData || []).map(c => mapCampaignToCard(c as any));
 
     // 3. Popular Campaigns (Sorted by application count, top 4)
     const { data: popularRawData } = await supabase
         .from('campaigns')
-        .select('*, applications(count)')
+        .select('*')
         .in('status', ['RECRUITING', 'ONGOING'])
         .limit(20);
 
@@ -33,12 +36,15 @@ export default async function Home() {
         .slice(0, 4);
 
     // Fetch latest notices from database
-    const { data: noticesData } = await supabase
+    const { data: noticesData, error: noticeFetchError } = await supabase
         .from('notices')
         .select('id, type, title, created_at')
-        .order('is_pinned', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(3);
+
+    if (noticeFetchError) {
+        console.error('[Home] Notice Fetch Error:', noticeFetchError);
+    }
 
     const notices = noticesData || [];
 

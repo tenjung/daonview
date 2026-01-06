@@ -112,47 +112,17 @@ function AdminSidebarContent() {
                     )}
                 </div>
 
-                {/* 회원 관리 (접을 수 있는 메뉴) */}
-                <div>
-                    <button
-                        onClick={() => setUserMenuOpen(!userMenuOpen)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.includes('/dashboard/admin/users')
-                            ? 'bg-rose-50 text-primary'
-                            : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                            }`}
-                    >
-                        <span>회원 관리</span>
-                        {userMenuOpen ? (
-                            <ChevronDown className="w-4 h-4" />
-                        ) : (
-                            <ChevronRight className="w-4 h-4" />
-                        )}
-                    </button>
-
-                    {/* 하위 메뉴 */}
-                    {userMenuOpen && (
-                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
-                            <Link
-                                href="/dashboard/admin/users/advertisers"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/users/advertisers')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                광고주 관리
-                            </Link>
-                            <Link
-                                href="/dashboard/admin/users/influencers"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/users/influencers')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                인플루언서 관리
-                            </Link>
-                        </div>
-                    )}
-                </div>
+                {/* 회원 관리 */}
+                <Link
+                    href="/admin/users"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.startsWith('/admin/users') || pathname.includes('/dashboard/admin/users')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <Users className="w-5 h-5" />
+                    <span>회원 관리</span>
+                </Link>
 
                 {/* 배너 관리 */}
                 <Link

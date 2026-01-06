@@ -134,6 +134,19 @@ function AdvertiserSidebarContent() {
                 >
                     결제/포인트
                 </Link>
+
+                <div className="my-4 border-t border-border" />
+
+                {/* 계정 설정 */}
+                <Link
+                    href="/profile/edit"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname === '/profile/edit'
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <span>계정 설정</span>
+                </Link>
             </nav>
         </aside>
     );

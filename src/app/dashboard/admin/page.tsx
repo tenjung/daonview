@@ -62,7 +62,7 @@ export default async function AdminDashboard() {
                 {/* Section A: 최상단 현황판 (Global KPI) */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                     <Link
-                        href="/dashboard/admin/users/advertisers"
+                        href="/admin/users?tab=ADVERTISER"
                         className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
                     >
                         <div className="flex items-center justify-between mb-2">
@@ -78,7 +78,7 @@ export default async function AdminDashboard() {
                     </Link>
 
                     <Link
-                        href="/dashboard/admin/users/influencers"
+                        href="/admin/users?tab=INFLUENCER"
                         className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group"
                     >
                         <div className="flex items-center justify-between mb-2">
