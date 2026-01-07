@@ -116,6 +116,35 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        // 중복 신청 방지
+        if (hasApplied) {
+            toast.error('이미 신청한 캠페인입니다.');
+            return;
+        }
+
+        // 모집 인원 초과 체크
+        const currentAppCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
+        if (currentAppCount >= campaign.recruit_count) {
+            toast.error('모집 인원이 마감되었습니다.');
+            return;
+        }
+
+        // 모집 기간 종료 체크
+        if (campaign.end_date) {
+            const endDate = new Date(campaign.end_date);
+            const now = new Date();
+            if (now > endDate) {
+                toast.error('모집 기간이 종료된 캠페인입니다.');
+                return;
+            }
+        }
+
+        // 캠페인 상태 체크 (RECRUITING 상태만 신청 가능)
+        if (campaign.status !== 'RECRUITING') {
+            toast.error('현재 모집 중인 캠페인이 아닙니다.');
+            return;
+        }
+
         const options = Array.isArray(campaign.product_options) ? campaign.product_options : [];
         if (options.length > 0 && !selectedOption) {
             toast.error('제공 옵션을 선택해주세요.');
@@ -124,7 +153,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         }
 
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('applications')
                 .insert({
                     user_id: user.id,
@@ -132,16 +161,35 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     status: 'pending',
                     selected_option: (typeof selectedOption === 'object' ? (selectedOption as any).optionName : selectedOption) || null,
                     application_message: applicationMessage || null
+                })
+                .select();
+
+            if (error) {
+                console.error('Supabase error details:', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
                 });
+                throw error;
+            }
 
-            if (error) throw error;
-
+            console.log('Application successful:', data);
             toast.success('캠페인 신청이 완료되었습니다!');
             setHasApplied(true);
             fetchCampaign();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error applying:', error);
-            toast.error('신청 중 오류가 발생했습니다.');
+            console.error('Error type:', typeof error);
+            console.error('Error keys:', Object.keys(error || {}));
+
+            // 중복 신청 에러 처리
+            if (error?.code === '23505') {
+                toast.error('이미 신청한 캠페인입니다.');
+                setHasApplied(true);
+            } else {
+                toast.error(error?.message || '신청 중 오류가 발생했습니다.');
+            }
         }
     }
 

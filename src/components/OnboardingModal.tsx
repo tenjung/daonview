@@ -126,17 +126,30 @@ export default function OnboardingModal({ userId, onComplete }: OnboardingModalP
               {[1, 2, 3].map(s => (
                 <div
                   key={s}
-                  className={`w-2 h-2 rounded-full transition-all duration-500 ${
-                    s === step ? 'bg-primary w-6' : s < step ? 'bg-primary' : 'bg-gray-200'
-                  }`}
+                  className={`w-2 h-2 rounded-full transition-all duration-500 ${s === step ? 'bg-primary w-6' : s < step ? 'bg-primary' : 'bg-gray-200'
+                    }`}
                 />
               ))}
             </div>
           </div>
           <p className="text-sm text-gray-500">
             {step === 1 && '활동 플랫폼을 선택해주세요 (중복 가능)'}
-            {step === 2 && '선호하는 지역을 최대 3곳 선택해주세요'}
-            {step === 3 && '관심 분야를 최대 3개 선택해주세요'}
+            {step === 2 && (
+              <span>
+                선호하는 지역을 선택해주세요{' '}
+                <span className="font-bold text-primary">
+                  [{selectedRegions.length}/3]
+                </span>
+              </span>
+            )}
+            {step === 3 && (
+              <span>
+                관심 분야를 선택해주세요{' '}
+                <span className="font-bold text-primary">
+                  [{selectedCategories.length}/3]
+                </span>
+              </span>
+            )}
           </p>
         </div>
 
@@ -149,11 +162,10 @@ export default function OnboardingModal({ userId, onComplete }: OnboardingModalP
                 <button
                   key={platform.id}
                   onClick={() => togglePlatform(platform.id)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${
-                    selectedPlatforms.includes(platform.id)
+                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
                       ? 'border-primary bg-rose-50 shadow-lg scale-102'
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                  }`}
+                    }`}
                 >
                   {selectedPlatforms.includes(platform.id) && (
                     <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
@@ -179,11 +191,10 @@ export default function OnboardingModal({ userId, onComplete }: OnboardingModalP
                     selectedRegions.length >= 3 &&
                     !selectedRegions.includes('nationwide')
                   }
-                  className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${
-                    selectedRegions.includes(region.id)
+                  className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${selectedRegions.includes(region.id)
                       ? 'border-primary bg-rose-50 shadow-sm'
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                  } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
+                    } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
                 >
                   {selectedRegions.includes(region.id) && (
                     <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-200">
@@ -208,11 +219,10 @@ export default function OnboardingModal({ userId, onComplete }: OnboardingModalP
                     !selectedCategories.includes(category.id) &&
                     selectedCategories.length >= 3
                   }
-                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 text-left ${
-                    selectedCategories.includes(category.id)
+                  className={`relative p-5 rounded-2xl border-2 transition-all duration-300 text-left ${selectedCategories.includes(category.id)
                       ? 'border-primary bg-rose-50 shadow-md'
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                  } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
+                    } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
                 >
                   {selectedCategories.includes(category.id) && (
                     <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">

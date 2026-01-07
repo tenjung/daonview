@@ -5,6 +5,7 @@ import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, S
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
+import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -20,7 +21,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
@@ -28,31 +29,25 @@ export default function Navbar() {
   useEffect(() => {
     setMounted(true);
 
-    const checkUser = async () => {
-      try {
-        setLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-          setProfile(data);
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    checkUser();
-
+    // 단일 소스를 통한 인증 관리
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+
+      if (currentUser) {
+        // 프로필 정보 가져오기
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', currentUser.id)
+          .single();
         setProfile(data);
       } else {
         setProfile(null);
       }
+
+      // 데이터 확인 완료 후 로딩 해제
+      setLoading(false);
     });
 
     return () => {
@@ -61,9 +56,40 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setMobileMenuOpen(false);
-    window.location.href = '/';
+    try {
+      // 로그아웃 시작 알림
+      toast.loading('로그아웃 중...', { id: 'logout' });
+
+      // Supabase 로그아웃 실행
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        throw error;
+      }
+
+      // 로컬 상태 명시적 초기화
+      setUser(null);
+      setProfile(null);
+      setMobileMenuOpen(false);
+
+      // 성공 메시지
+      toast.success('로그아웃되었습니다', {
+        id: 'logout',
+        description: '안전하게 로그아웃되었습니다.',
+      });
+
+      // 약간의 딜레이 후 홈으로 리다이렉트
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+
+    } catch (error: any) {
+      console.error('Logout Error:', error);
+      toast.error('로그아웃 실패', {
+        id: 'logout',
+        description: error.message || '다시 시도해주세요.',
+      });
+    }
   };
 
   const closeMobileMenu = () => {
@@ -151,8 +177,11 @@ export default function Navbar() {
 
         {/* Desktop User Menu */}
         <div className="hidden lg:flex gap-4 items-center">
-          {!mounted ? (
-            <div className="w-10 h-10 bg-slate-100 animate-pulse rounded-full"></div>
+          {(!mounted || loading) ? (
+            <div className="flex gap-2 items-center">
+              <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>
+              <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>
+            </div>
           ) : user ? (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none">
@@ -163,9 +192,9 @@ export default function Navbar() {
                     </span>
                     <span className="text-[10px] text-gray-400 font-medium">{getRoleLabel()}</span>
                   </div>
-                  <Avatar 
-                    src={profile?.avatar_url} 
-                    fallback={(profile?.nickname || user.email)?.[0]} 
+                  <Avatar
+                    src={profile?.avatar_url}
+                    fallback={(profile?.nickname || user.email)?.[0]}
                     className="ring-2 ring-transparent group-hover:ring-rose-100 transition-all group-hover:scale-105"
                   />
                 </div>
@@ -176,14 +205,14 @@ export default function Navbar() {
                   <span className="text-sm font-bold truncate text-text-main">{user.email}</span>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                
+
                 <DropdownMenuItem asChild>
                   <Link href={getUserDashboardLink()} className="flex items-center gap-2">
                     <LayoutDashboard size={16} />
                     <span>{profile?.role === 'INFLUENCER' ? '마이페이지' : '관리페이지'}</span>
                   </Link>
                 </DropdownMenuItem>
-                
+
                 <DropdownMenuItem asChild>
                   <Link href="/profile/edit" className="flex items-center gap-2">
                     <Settings size={16} />
@@ -260,9 +289,9 @@ export default function Navbar() {
           {/* User Info Section */}
           {user && (
             <div className="p-6 border-b border-border bg-rose-50 flex items-center gap-4">
-              <Avatar 
-                src={profile?.avatar_url} 
-                fallback={(profile?.nickname || user.email)?.[0]} 
+              <Avatar
+                src={profile?.avatar_url}
+                fallback={(profile?.nickname || user.email)?.[0]}
                 className="h-12 w-12 ring-2 ring-white shadow-sm"
               />
               <div className="flex-1 min-w-0">
