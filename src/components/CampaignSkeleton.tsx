@@ -4,7 +4,7 @@ const CampaignSkeleton = () => (
     <div className="border border-gray-100 rounded-xl overflow-hidden bg-white h-full shadow-sm">
         <div className="aspect-[4/3] bg-rose-50 animate-pulse relative">
             <div className="absolute inset-0 flex items-center justify-center text-rose-200">
-                <span className="text-4xl opacity-20 font-black">Coming Soon</span>
+                <span className="text-4xl opacity-20 font-black text-center">Coming Soon</span>
             </div>
         </div>
         <div className="p-5 space-y-3">

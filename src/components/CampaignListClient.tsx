@@ -115,125 +115,74 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
     };
 
     return (
-        <div className="max-w-[1600px] mx-auto px-4 md:px-10 py-12">
-            {/* Filter Bar */}
-            <div className={`bg-white border border-slate-100 shadow-xl mb-12 sticky top-24 z-30 px-6 md:px-10 ${isFilterOpen ? 'rounded-[2.5rem] py-8' : 'rounded-full py-3 md:py-4'}`}>
-                <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                    {/* Tabs (Left) */}
-                    <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-hide">
-                        {['ALL', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setActiveTab(tab as any)}
-                                className={`px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                {tab === 'ALL' ? '전체보기' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* Search (Center) */}
-                    <div className="relative flex-1 w-full">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                        <input
-                            type="text"
-                            placeholder="캠페인 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-bold transition-all outline-none"
-                        />
-                    </div>
-
-                    {/* Actions (Right) */}
-                    <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
-                        <button
-                            onClick={() => setIsFilterOpen(!isFilterOpen)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm transition-all ${isFilterOpen ? 'bg-slate-900 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
-                        >
-                            <Filter className="w-4 h-4" />
-                            <span className="hidden lg:inline">상세설정</span>
-                            {isFilterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                        </button>
-
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsSortOpen(!isSortOpen)}
-                                className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
-                            >
-                                <span className="text-sm font-black text-slate-700">
-                                    {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : '마감임박순'}
-                                </span>
-                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {isSortOpen && (
-                                <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                    {[
-                                        { label: '최신순', value: 'new' },
-                                        { label: '인기순', value: 'popular' },
-                                        { label: '마감임박순', value: 'deadline' }
-                                    ].map((opt) => (
-                                        <button
-                                            key={opt.value}
-                                            onClick={() => {
-                                                setSortBy(opt.value);
-                                                setIsSortOpen(false);
-                                            }}
-                                            className={`w-full text-left px-4 py-2 rounded-xl text-xs font-bold transition-all ${sortBy === opt.value ? 'bg-rose-50 text-rose-500' : 'text-slate-500 hover:bg-slate-50'}`}
-                                        >
-                                            {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+        <>
+            {/* Filter Bar - 헤더 바로 밑에 붙어서 전체 가로 차지 */}
+            <div className={`sticky top-[70px] z-40 w-full bg-white border-b border-slate-100 shadow-md transition-all ${isFilterOpen ? 'py-6 md:py-8' : 'py-3 md:py-4'}`}>
+                <div className="max-w-[1600px] mx-auto px-4 md:px-10">
+                    <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
+                        {/* Tabs (Left) */}
+                        <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-hide">
+                            {['ALL', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setActiveTab(tab as any)}
+                                    className={`px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    {tab === 'ALL' ? '전체보기' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
+                                </button>
+                            ))}
                         </div>
-                    </div>
-                </div>
 
-                {isFilterOpen && (
-                    <div className="mt-8 pt-8 border-t border-slate-50">
-                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-10">
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Channels</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {PLATFORMS.map(p => (
-                                        <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="md:col-span-2">
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Regions</p>
-                                <div className="flex flex-wrap gap-2 mb-4">
-                                    {REGION_HIERARCHY.map(r => (
-                                        <button
-                                            key={r.name}
-                                            onClick={() => {
-                                                if (r.value === "") {
-                                                    setSelectedRegions([]);
-                                                    setSelectedMajorRegion("");
-                                                } else {
-                                                    setSelectedMajorRegion(r.value);
-                                                    if (!r.children) {
-                                                        toggleFilter(r.value, selectedRegions, setSelectedRegions);
-                                                    }
-                                                }
-                                            }}
-                                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedMajorRegion === r.value || (r.value === "" && selectedRegions.length === 0) ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
-                                        >
-                                            {r.name}
-                                        </button>
-                                    ))}
-                                </div>
+                        {/* Search (Center) */}
+                        <div className="relative flex-1 w-full">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                            <input
+                                type="text"
+                                placeholder="캠페인 검색..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-bold transition-all outline-none"
+                            />
+                        </div>
 
-                                {selectedMajorRegion && REGION_HIERARCHY.find(r => r.value === selectedMajorRegion)?.children && (
-                                    <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl">
-                                        {REGION_HIERARCHY.find(r => r.value === selectedMajorRegion)?.children?.map(c => (
+                        {/* Actions (Right) */}
+                        <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
+                            <button
+                                onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm transition-all ${isFilterOpen ? 'bg-slate-900 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
+                            >
+                                <Filter className="w-4 h-4" />
+                                <span className="hidden lg:inline">상세설정</span>
+                                {isFilterOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                            </button>
+
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsSortOpen(!isSortOpen)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
+                                >
+                                    <span className="text-sm font-black text-slate-700">
+                                        {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : '마감임박순'}
+                                    </span>
+                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isSortOpen && (
+                                    <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                        {[
+                                            { label: '최신순', value: 'new' },
+                                            { label: '인기순', value: 'popular' },
+                                            { label: '마감임박순', value: 'deadline' }
+                                        ].map((opt) => (
                                             <button
-                                                key={c.value}
-                                                onClick={() => toggleFilter(c.value, selectedRegions, setSelectedRegions)}
-                                                className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedRegions.includes(c.value) ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
+                                                key={opt.value}
+                                                onClick={() => {
+                                                    setSortBy(opt.value);
+                                                    setIsSortOpen(false);
+                                                }}
+                                                className={`w-full text-left px-4 py-2 rounded-xl text-xs font-bold transition-all ${sortBy === opt.value ? 'bg-rose-50 text-rose-500' : 'text-slate-500 hover:bg-slate-50'}`}
                                             >
-                                                {c.name}
+                                                {opt.label}
                                             </button>
                                         ))}
                                     </div>
@@ -241,33 +190,89 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                             </div>
                         </div>
                     </div>
+
+                    {isFilterOpen && (
+                        <div className="mt-8 pt-8 border-t border-slate-50">
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-10">
+                                <div>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Channels</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {PLATFORMS.map(p => (
+                                            <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="md:col-span-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Regions</p>
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        {REGION_HIERARCHY.map(r => (
+                                            <button
+                                                key={r.name}
+                                                onClick={() => {
+                                                    if (r.value === "") {
+                                                        setSelectedRegions([]);
+                                                        setSelectedMajorRegion("");
+                                                    } else {
+                                                        setSelectedMajorRegion(r.value);
+                                                        if (!r.children) {
+                                                            toggleFilter(r.value, selectedRegions, setSelectedRegions);
+                                                        }
+                                                    }
+                                                }}
+                                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedMajorRegion === r.value || (r.value === "" && selectedRegions.length === 0) ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                            >
+                                                {r.name}
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {selectedMajorRegion && REGION_HIERARCHY.find(r => r.value === selectedMajorRegion)?.children && (
+                                        <div className="flex flex-wrap gap-2 p-4 bg-slate-50 rounded-2xl">
+                                            {REGION_HIERARCHY.find(r => r.value === selectedMajorRegion)?.children?.map(c => (
+                                                <button
+                                                    key={c.value}
+                                                    onClick={() => toggleFilter(c.value, selectedRegions, setSelectedRegions)}
+                                                    className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedRegions.includes(c.value) ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
+                                                >
+                                                    {c.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Campaign Grid Container */}
+            <div className="max-w-[1600px] mx-auto px-3 md:px-10 py-12">
+                {/* Grid Header */}
+                <div className="flex items-center gap-3 mb-8">
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">캠페인 목록</h2>
+                    <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-black">{filteredData.length}</span>
+                </div>
+
+                {filteredData.length > 0 ? (
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+                        {filteredData.map(item => (
+                            <CampaignCard key={item.id} {...item} />
+                        ))}
+
+                        {/* Ensure at least 3 rows (15 items) are visible or complete the current row */}
+                        {[...Array(Math.max(15 - filteredData.length, (5 - (filteredData.length % 5)) % 5))].map((_, i) => (
+                            <CampaignSkeleton key={`skel-fill-${i}`} />
+                        ))}
+                    </div>
+                ) : (
+                    <div className="py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                        <p className="text-4xl mb-4">🔍</p>
+                        <p className="text-xl font-black text-slate-900">찾으시는 캠페인이 없어요</p>
+                        <p className="text-slate-500 mt-2">필터를 초기화하거나 다른 검색어를 입력해보세요.</p>
+                    </div>
                 )}
             </div>
-
-            {/* Grid */}
-            <div className="flex items-center gap-3 mb-8">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight">캠페인 목록</h2>
-                <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-black">{filteredData.length}</span>
-            </div>
-
-            {filteredData.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                    {filteredData.map(item => (
-                        <CampaignCard key={item.id} {...item} />
-                    ))}
-
-                    {/* Ensure at least 3 rows (15 items) are visible or complete the current row */}
-                    {[...Array(Math.max(15 - filteredData.length, (5 - (filteredData.length % 5)) % 5))].map((_, i) => (
-                        <CampaignSkeleton key={`skel-fill-${i}`} />
-                    ))}
-                </div>
-            ) : (
-                <div className="py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
-                    <p className="text-4xl mb-4">🔍</p>
-                    <p className="text-xl font-black text-slate-900">찾으시는 캠페인이 없어요</p>
-                    <p className="text-slate-500 mt-2">필터를 초기화하거나 다른 검색어를 입력해보세요.</p>
-                </div>
-            )}
-        </div>
+        </>
     );
 }

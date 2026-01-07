@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag } from 'lucide-react';
+import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, ChevronUp, ChevronDown } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, usePathname } from 'next/navigation';
@@ -23,6 +23,7 @@ export default function Navbar() {
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -122,15 +123,17 @@ export default function Navbar() {
           >
             리뷰
           </Link>
-          <Link
-            href="/brand"
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/brand')
-              ? 'text-primary border-primary'
-              : 'text-text-secondary border-transparent hover:text-primary'
-              }`}
-          >
-            브랜드존
-          </Link>
+          {profile?.role === 'INFLUENCER' && (
+            <Link
+              href="/recommended"
+              className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/recommended')
+                ? 'text-primary border-primary'
+                : 'text-text-secondary border-transparent hover:text-primary'
+                }`}
+            >
+              맞춤 캠페인
+            </Link>
+          )}
           <Link
             href="/community"
             className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/community')
@@ -278,9 +281,9 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* Navigation Links */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex flex-col gap-2">
+          {/* Navigation Links - Scrollable Area */}
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 flex flex-col gap-2">
               <Link
                 href="/campaigns"
                 onClick={closeMobileMenu}
@@ -301,16 +304,18 @@ export default function Navbar() {
               >
                 리뷰
               </Link>
-              <Link
-                href="/brand"
-                onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/brand')
-                  ? 'bg-rose-50 text-primary border-primary'
-                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                  }`}
-              >
-                브랜드존
-              </Link>
+              {profile?.role === 'INFLUENCER' && (
+                <Link
+                  href="/recommended"
+                  onClick={closeMobileMenu}
+                  className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/recommended')
+                    ? 'bg-rose-50 text-primary border-primary'
+                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                    }`}
+                >
+                  맞춤 캠페인
+                </Link>
+              )}
               <Link
                 href="/community"
                 onClick={closeMobileMenu}
@@ -329,86 +334,86 @@ export default function Navbar() {
                 <Wand2 size={18} />
                 <span>부가서비스</span>
               </Link>
-            </div>
 
-            {/* Dashboard Links */}
-            {user && (
+              {/* Dashboard Links */}
+              {user && (
+                <div className="mt-6 pt-6 border-t border-border">
+                  {profile?.role === 'ADMIN' && (
+                    <Link
+                      href="/dashboard/admin"
+                      onClick={closeMobileMenu}
+                      className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    >
+                      관리페이지
+                    </Link>
+                  )}
+                  {profile?.role === 'ADVERTISER' && (
+                    <Link
+                      href="/dashboard/advertiser"
+                      onClick={closeMobileMenu}
+                      className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    >
+                      관리페이지
+                    </Link>
+                  )}
+                  {profile?.role === 'INFLUENCER' && (
+                    <Link
+                      href="/dashboard/influencer"
+                      onClick={closeMobileMenu}
+                      className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    >
+                      마이페이지
+                    </Link>
+                  )}
+                </div>
+              )}
+
+              {/* Footer Links Section in Mobile Menu */}
               <div className="mt-6 pt-6 border-t border-border">
-                {profile?.role === 'ADMIN' && (
+                <h4 className="px-4 text-xs font-bold text-text-main mb-3 uppercase tracking-wider">바로가기</h4>
+                <div className="flex flex-col gap-1">
                   <Link
-                    href="/dashboard/admin"
+                    href="/community/notice"
                     onClick={closeMobileMenu}
-                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
                   >
-                    관리페이지
+                    공지사항
                   </Link>
-                )}
-                {profile?.role === 'ADVERTISER' && (
                   <Link
-                    href="/dashboard/advertiser"
+                    href="/community/faq"
                     onClick={closeMobileMenu}
-                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
                   >
-                    관리페이지
+                    자주묻는질문
                   </Link>
-                )}
-                {profile?.role === 'INFLUENCER' && (
                   <Link
-                    href="/dashboard/influencer"
+                    href="/contact"
                     onClick={closeMobileMenu}
-                    className="block px-4 py-3 rounded-lg font-medium bg-primary text-white text-center hover:bg-primary-dark transition-colors"
+                    className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
                   >
-                    마이페이지
+                    문의하기
                   </Link>
-                )}
-              </div>
-            )}
-
-            {/* Footer Links Section in Mobile Menu */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <h4 className="px-4 text-xs font-bold text-text-main mb-3 uppercase tracking-wider">바로가기</h4>
-              <div className="flex flex-col gap-1">
-                <Link
-                  href="/notice"
-                  onClick={closeMobileMenu}
-                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
-                >
-                  공지사항
-                </Link>
-                <Link
-                  href="/faq"
-                  onClick={closeMobileMenu}
-                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
-                >
-                  자주묻는질문
-                </Link>
-                <Link
-                  href="/contact"
-                  onClick={closeMobileMenu}
-                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
-                >
-                  문의하기
-                </Link>
-                <Link
-                  href="/terms"
-                  onClick={closeMobileMenu}
-                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
-                >
-                  운영정책
-                </Link>
-                <Link
-                  href="/privacy"
-                  onClick={closeMobileMenu}
-                  className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
-                >
-                  개인정보처리방침
-                </Link>
+                  <Link
+                    href="/terms"
+                    onClick={closeMobileMenu}
+                    className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                  >
+                    운영정책
+                  </Link>
+                  <Link
+                    href="/privacy"
+                    onClick={closeMobileMenu}
+                    className="px-4 py-2 text-sm text-text-secondary hover:bg-rose-50 hover:text-primary transition-colors"
+                  >
+                    개인정보처리방침
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-border">
+          {/* Bottom Actions - Fixed at Bottom */}
+          <div className="p-4 border-t border-border bg-white">
             {user ? (
               <button
                 onClick={handleLogout}
@@ -432,6 +437,32 @@ export default function Navbar() {
                 >
                   회원가입
                 </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Company Info Section - Accordion */}
+          <div className="border-t border-border bg-slate-50">
+            <button
+              onClick={() => setCompanyInfoOpen(!companyInfoOpen)}
+              className="w-full px-4 py-3 flex items-center justify-between text-xs font-bold text-text-main uppercase tracking-wider hover:bg-slate-100 transition-colors"
+            >
+              <span>사업자 정보</span>
+              {companyInfoOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+            {companyInfoOpen && (
+              <div className="px-4 pb-4">
+                <div className="space-y-1.5 text-[11px] text-text-secondary">
+                  <p><strong className="text-text-main">상호명:</strong> 다온컴퍼니</p>
+                  <p><strong className="text-text-main">사업자등록번호:</strong> 657-33-01007</p>
+                  <p><strong className="text-text-main">대표자:</strong> 신지호</p>
+                  <p><strong className="text-text-main">전화:</strong> 050-71395-0204</p>
+                  <p><strong className="text-text-main">이메일:</strong> master@daonview.com</p>
+                  <p className="pt-1"><strong className="text-text-main">주소:</strong> 경기도 부천시 소사구 양지로 229 골든IT타워 824호</p>
+                </div>
+                <div className="text-center text-[10px] text-text-secondary mt-3 pt-3 border-t border-border">
+                  © 2024 DAONVIEW. All rights reserved.
+                </div>
               </div>
             )}
           </div>

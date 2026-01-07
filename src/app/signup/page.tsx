@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
+import OnboardingModal from '@/components/OnboardingModal';
 
 type UserType = 'INFLUENCER' | 'ADVERTISER';
 
@@ -13,14 +14,13 @@ function SignupForm() {
     const searchParams = useSearchParams();
     const [userType, setUserType] = useState<UserType>('INFLUENCER');
     const [loading, setLoading] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [newUserId, setNewUserId] = useState<string | null>(null);
 
     // Form State
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
-    const [name, setName] = useState(''); // Handles 'name' or 'manager'
-    const [companyName, setCompanyName] = useState('');
-    const [phone, setPhone] = useState('');
 
     // Validation States
     const [emailChecking, setEmailChecking] = useState(false);
@@ -38,69 +38,47 @@ function SignupForm() {
         }
     }, [searchParams]);
 
-    // Email validation and availability check
-    useEffect(() => {
-        let isCancelled = false;
-        
-        const checkEmail = async () => {
-            if (!email) {
-                setEmailAvailable(null);
-                setEmailError('');
-                return;
-            }
-
-            // Basic email format validation
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailRegex.test(email)) {
-                setEmailError('올바른 이메일 형식이 아닙니다.');
-                setEmailAvailable(null);
-                return;
-            }
-
+    const handleEmailBlur = async () => {
+        const trimmedEmail = email.trim();
+        if (!trimmedEmail) {
+            setEmailAvailable(null);
             setEmailError('');
-            setEmailChecking(true);
+            return;
+        }
 
-            try {
-                // Using RPC for secure and faster check
-                // This checks both Auth Users (if configured) or just Profiles table via secure function
-                const { data: isAvailable, error } = await supabase
-                    .rpc('check_email_available', { email_to_check: email });
+        // Basic email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(trimmedEmail)) {
+            setEmailError('올바른 이메일 형식이 아닙니다.');
+            setEmailAvailable(null);
+            return;
+        }
 
-                if (isCancelled) return;
+        setEmailError('');
+        setEmailChecking(true);
 
-                if (error) {
-                    console.error('Email check error:', error);
-                    // Fallback or just show error, but don't hang
-                    setEmailError('이메일 확인 중 오류가 발생했습니다.');
-                    setEmailAvailable(null);
-                } else {
-                    if (isAvailable) {
-                        setEmailAvailable(true);
-                        setEmailError('');
-                    } else {
-                        setEmailAvailable(false);
-                        setEmailError('이미 사용 중인 이메일입니다.');
-                    }
-                }
-            } catch (error) {
-                if (isCancelled) return;
-                console.error('Email check exception:', error);
-                setEmailError('이메일 확인에 실패했습니다.');
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('email')
+                .ilike('email', trimmedEmail)
+                .maybeSingle();
+            
+            if (error) {
+                console.error('Email check failed:', error);
                 setEmailAvailable(null);
-            } finally {
-                if (!isCancelled) {
-                    setEmailChecking(false);
-                }
+            } else {
+                const available = !data;
+                setEmailAvailable(available);
+                setEmailError(available ? '' : '이미 가입된 메일입니다.');
             }
-        };
-
-        const debounceTimer = setTimeout(checkEmail, 500);
-        
-        return () => {
-            isCancelled = true;
-            clearTimeout(debounceTimer);
-        };
-    }, [email]);
+        } catch (error) {
+            console.error('Email check exception:', error);
+            setEmailAvailable(null);
+        } finally {
+            setEmailChecking(false);
+        }
+    };
 
     // Password strength validation
     useEffect(() => {
@@ -125,7 +103,7 @@ function SignupForm() {
 
         if (strength <= 1) {
             setPasswordStrength('weak');
-            setPasswordError('비밀번호가 너무 약합니다. 영문, 숫자, 특수문자를 조합해주세요.');
+            setPasswordError('비밀번호가 너무 약합니다.');
         } else if (strength === 2) {
             setPasswordStrength('medium');
             setPasswordError('');
@@ -160,15 +138,16 @@ function SignupForm() {
         }
 
         try {
+            // Generate nickname from email
+            const nickname = email.split('@')[0];
+
             const { data: authData, error: authError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
                     data: {
-                        full_name: name,
+                        full_name: nickname,
                         role: userType,
-                        company_name: companyName,
-                        phone: phone,
                     }
                 }
             });
@@ -198,14 +177,17 @@ function SignupForm() {
                                 id: loginData.user.id,
                                 email: email,
                                 role: userType,
-                                nickname: name,
-                                company_name: userType === 'ADVERTISER' ? companyName : null,
-                                phone_number: phone,
+                                nickname: nickname,
                                 point: 0
                             }]);
                         }
 
-                        router.push('/');
+                        if (userType === 'INFLUENCER') {
+                            setNewUserId(loginData.user.id);
+                            setShowOnboarding(true);
+                        } else {
+                            router.push('/');
+                        }
                         return;
                     } else {
                         toast.error('이미 사용 중인 이메일입니다.', {
@@ -239,9 +221,7 @@ function SignupForm() {
                         id: authData.user.id,
                         email: email,
                         role: userType,
-                        nickname: name,
-                        company_name: userType === 'ADVERTISER' ? companyName : null,
-                        phone_number: phone,
+                        nickname: nickname,
                         point: 0
                     }
                 ]);
@@ -252,7 +232,12 @@ function SignupForm() {
                     toast.success('회원가입이 완료되었습니다!', {
                         description: '다온뷰에 오신 것을 환영합니다.',
                     });
-                    router.push('/');
+                    if (userType === 'INFLUENCER') {
+                        setNewUserId(authData.user.id);
+                        setShowOnboarding(true);
+                    } else {
+                        router.push('/');
+                    }
                     return;
                 }
 
@@ -267,7 +252,12 @@ function SignupForm() {
             toast.success('회원가입이 완료되었습니다!', {
                 description: '다온뷰에 오신 것을 환영합니다.',
             });
-            router.push('/');
+            if (userType === 'INFLUENCER') {
+                setNewUserId(authData.user.id);
+                setShowOnboarding(true);
+            } else {
+                router.push('/');
+            }
 
         } catch (error: any) {
             console.error('Signup Error:', error);
@@ -319,7 +309,12 @@ function SignupForm() {
                                     }`}
                                 placeholder="example@email.com"
                                 value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                onChange={(e) => {
+                                    setEmail(e.target.value);
+                                    if (emailAvailable !== null) setEmailAvailable(null); // Reset on type
+                                    if (emailError) setEmailError('');
+                                }}
+                                onBlur={handleEmailBlur}
                                 required
                             />
                             {emailChecking && (
@@ -348,14 +343,6 @@ function SignupForm() {
                                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                                 </svg>
                                 {emailError}
-                            </p>
-                        )}
-                        {!emailError && emailAvailable === true && (
-                            <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
-                                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                                </svg>
-                                사용 가능한 이메일입니다.
                             </p>
                         )}
                     </div>
@@ -462,75 +449,11 @@ function SignupForm() {
                         )}
                     </div>
 
-                    {userType === 'ADVERTISER' ? (
-                        <>
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="company">회사명 (브랜드명)</label>
-                                <input
-                                    type="text"
-                                    id="company"
-                                    className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                                    placeholder="사업자등록증 상의 상호명"
-                                    value={companyName}
-                                    onChange={(e) => setCompanyName(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="mb-6">
-                                <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="manager">담당자 이름</label>
-                                <input
-                                    type="text"
-                                    id="manager"
-                                    className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                                    placeholder="담당자 성함을 입력해주세요"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="mb-6">
-                            <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="name">이름</label>
-                            <input
-                                type="text"
-                                id="name"
-                                className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                                placeholder="실명을 입력해주세요"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                required
-                            />
-                        </div>
-                    )}
-
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-text-main mb-2" htmlFor="phone">휴대폰 번호</label>
-                        <input
-                            type="tel"
-                            id="phone"
-                            className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                            placeholder="010-0000-0000"
-                            value={phone}
-                            onChange={(e) => {
-                                const raw = e.target.value.replace(/[^0-9]/g, '');
-                                let formatted = raw;
-                                if (raw.length < 4) {
-                                    formatted = raw;
-                                } else if (raw.length < 8) {
-                                    formatted = `${raw.slice(0, 3)}-${raw.slice(3)}`;
-                                } else {
-                                    formatted = `${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}`;
-                                }
-                                if (formatted.length > 13) formatted = formatted.slice(0, 13);
-                                setPhone(formatted);
-                            }}
-                            pattern="010-[0-9]{4}-[0-9]{4}"
-                            required
-                        />
-                    </div>
-
-                    <button type="submit" disabled={loading} className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50">
+                    <button 
+                        type="submit" 
+                        disabled={loading || emailAvailable === false || !!passwordError || !!passwordMatchError || !email || !password} 
+                        className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50"
+                    >
                         {loading ? '가입 처리중...' : (userType === 'INFLUENCER' ? '인플루언서로 시작하기' : '광고주로 시작하기')}
                     </button>
                 </form>
@@ -561,6 +484,13 @@ function SignupForm() {
                     </Link>
                 </div>
             </div>
+
+            {showOnboarding && newUserId && (
+                <OnboardingModal 
+                    userId={newUserId} 
+                    onComplete={() => router.push('/')} 
+                />
+            )}
         </div>
     );
 }

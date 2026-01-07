@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import CompanyInfo from '@/components/CompanyInfo';
 
 export default function PrivacyPage() {
     return (
@@ -296,10 +297,7 @@ export default function PrivacyPage() {
                                 개인정보 보호와 관련하여 문의사항이 있으시면 아래로 연락 주시기 바랍니다.
                             </p>
                             <div className="space-y-1 text-sm text-text-secondary">
-                                <p><strong>회사명:</strong> 다온컴퍼니</p>
-                                <p><strong>개인정보 보호책임자:</strong> 신지호</p>
-                                <p><strong>전화:</strong> 050-71395-0204</p>
-                                <p><strong>주소:</strong> 경기도 부천시 소사구 양지로 229 골든IT타워 824호</p>
+                                <CompanyInfo variant="minimal" />
                             </div>
                         </div>
                     </div>

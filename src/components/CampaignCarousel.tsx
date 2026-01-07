@@ -79,7 +79,7 @@ export default function CampaignCarousel({
                         {campaigns.map((cam) => (
                             <div
                                 key={cam.id}
-                                className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_70%]"
+                                className="flex-[0_0_50%] min-w-0 sm:flex-[0_0_48%]"
                             >
                                 <CampaignCard {...cam} />
                             </div>
@@ -87,7 +87,7 @@ export default function CampaignCarousel({
                         {[...Array(skeletonCount)].map((_, i) => (
                             <div
                                 key={`skel-${i}`}
-                                className="flex-[0_0_85%] min-w-0 sm:flex-[0_0_70%]"
+                                className="flex-[0_0_50%] min-w-0 sm:flex-[0_0_48%]"
                             >
                                 <CampaignSkeleton />
                             </div>

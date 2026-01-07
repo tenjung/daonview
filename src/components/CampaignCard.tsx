@@ -114,7 +114,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             </div>
 
             {/* Content Section */}
-            <div className="p-4 flex flex-col flex-1 gap-2">
+            <div className="p-2.5 flex flex-col flex-1 gap-1.5">
                 {/* 1. Tags: Type & Platform & Region */}
                 <div className="flex items-center gap-1.5 flex-wrap">
                     {/* 1. Badge Order: Type -> (Purchase if Delivery) -> Platform -> Region */}
@@ -143,12 +143,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
 
                 {/* 2. Title */}
-                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 mt-1 mb-1 group-hover:text-primary transition-colors h-[40px]">
+                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-primary transition-colors h-[40px]">
                     {title}
                 </h3>
 
                 {/* 3. Provision */}
-                <div className="flex flex-col gap-1.5 text-xs text-gray-500 mb-3 items-start">
+                <div className="flex flex-col gap-1 text-xs text-gray-500 items-start">
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
                         제공내역
                     </span>
@@ -156,9 +156,9 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
 
                 {/* Spacer to push bottom section down */}
-                <div className="mt-auto pt-3 border-t border-gray-50">
+                <div className="mt-auto pt-1.5 border-t border-gray-50">
                     {/* 4. Progress Section */}
-                    <div className="flex items-center justify-between text-xs mb-1.5">
+                    <div className="flex items-center justify-between text-xs mb-1">
                         {/* Percentage Text */}
                         <span className="font-bold text-blue-600">{percentage}%</span>
                         {/* Count Text */}
