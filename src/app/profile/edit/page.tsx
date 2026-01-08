@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
 // 온보딩 모달과 동일한 상수 재사용
 const PLATFORMS = [
@@ -57,6 +58,7 @@ type TabType = 'basic' | 'interests';
 
 export default function ProfileEditPage() {
     const router = useRouter();
+    const { profile: globalProfile, fetchProfile } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -181,7 +183,11 @@ export default function ProfileEditPage() {
             if (error) throw error;
 
             toast.success('기본 정보가 성공적으로 업데이트되었습니다.');
-            window.location.reload();
+            
+            // 전역 스토어 프로필 갱신
+            if (session.user.id) {
+                await fetchProfile(session.user.id);
+            }
         } catch (error) {
             console.error('Error updating profile:', error);
             toast.error('프로필 업데이트에 실패했습니다.');
@@ -226,6 +232,11 @@ export default function ProfileEditPage() {
 
             console.log('Update successful:', data);
             toast.success('관심사 설정이 성공적으로 업데이트되었습니다.');
+
+            // 전역 스토어 프로필 갱신
+            if (session.user.id) {
+                await fetchProfile(session.user.id);
+            }
         } catch (error: any) {
             console.error('Error updating interests:', error);
             console.error('Error type:', typeof error);

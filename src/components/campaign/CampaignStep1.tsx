@@ -1,13 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save } from 'lucide-react';
+import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Step1Data {
-    campaignType: 'delivery' | 'visit' | 'press' | null;
+    campaignType: 'DELIVERY' | 'VISIT' | 'PRESS' | null;
     // 배송체험단용: 구매평, 네이버, 인스타 토글
     includeReview: boolean;
     includeNaver: boolean;
@@ -22,12 +39,14 @@ interface Step1Data {
     shippingCost: string;
     freeShippingCondition: boolean;
     // 방문/기자단용: 플랫폼 선택
-    platform: 'naver' | 'instagram' | null;
+    platform: 'BLOG' | 'INSTAGRAM' | null;
     category?: string;  // 카테고리 (선택)
     region?: string;    // 지역 (방문형용, 선택)
     stores: Store[];
     contactPhone: string;
+    advertiserWillContact: boolean; // 광고주가 직접 연락 (연락처 입력 불필요)
     visitTime: string;
+    visitTimeNegotiable: boolean; // 방문 시간 조율 필요 (체크 시 visitTime 선택사항)
     visitDays: string[];
     visitNotes: string;
     experienceDetails: string;
@@ -39,6 +58,10 @@ interface Step1Data {
     firstSelectionDate: string;
     reviewDeadline: string;
     reviewDeadlineDays: string; // 배송체험단용: 제품 배송 완료 후 며칠 이내
+    optionConfig: {
+        mode: 'SINGLE' | 'RANKED' | 'MULTI';
+        maxSelect: number;
+    };
 }
 
 interface ProductOption {
@@ -60,6 +83,103 @@ interface CampaignStep1Props {
     onChange?: (data: Step1Data) => void;
     onSaveDraft?: () => void;
     initialData?: Partial<Step1Data>;
+}
+
+// Sortable Option Row Component
+interface SortableOptionRowProps {
+    option: ProductOption;
+    index: number;
+    campaignType: 'DELIVERY' | 'VISIT' | 'PRESS' | null;
+    onUpdate: (id: string, field: keyof ProductOption, value: string) => void;
+    onRemove: (id: string) => void;
+}
+
+function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: SortableOptionRowProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: option.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${isDragging ? 'shadow-lg z-10' : ''}`}
+        >
+            {/* Drag Handle */}
+            <div
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing text-gray-400 hover:text-gray-600 flex-shrink-0"
+            >
+                <GripVertical size={18} />
+            </div>
+
+            {/* Option Number */}
+            <div className="w-8 text-center text-xs font-bold text-gray-500 flex-shrink-0">
+                {index + 1}
+            </div>
+
+            {/* Option Name */}
+            <div className="flex-1 min-w-0">
+                <input
+                    type="text"
+                    value={option.optionName}
+                    onChange={(e) => onUpdate(option.id, 'optionName', e.target.value)}
+                    placeholder={campaignType === 'DELIVERY' ? "예: 아이폰 14 Pro 블루 / 256GB" : "예: 기본 서비스 A"}
+                    className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                />
+            </div>
+
+            {/* Option Price */}
+            <div className="w-32 flex-shrink-0">
+                <div className="flex items-center gap-1">
+                    <input
+                        type="text"
+                        value={option.optionPrice}
+                        onChange={(e) => onUpdate(option.id, 'optionPrice', e.target.value)}
+                        placeholder="0"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span className="text-xs text-gray-500">원</span>
+                </div>
+            </div>
+
+            {/* Recruitment Count */}
+            <div className="w-24 flex-shrink-0">
+                <div className="flex items-center gap-1">
+                    <input
+                        type="number"
+                        value={option.recruitmentCount}
+                        onChange={(e) => onUpdate(option.id, 'recruitmentCount', e.target.value)}
+                        placeholder="0"
+                        min="0"
+                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span className="text-xs text-gray-500">명</span>
+                </div>
+            </div>
+
+            {/* Delete Button */}
+            <button
+                onClick={() => onRemove(option.id)}
+                className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                title="옵션 삭제"
+            >
+                <X size={16} />
+            </button>
+        </div>
+    );
 }
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
@@ -97,7 +217,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         region: initialData?.region || '',
         stores: initialData?.stores || [],
         contactPhone: initialData?.contactPhone || '',
+        advertiserWillContact: initialData?.advertiserWillContact || false,
         visitTime: initialData?.visitTime || '',
+        visitTimeNegotiable: initialData?.visitTimeNegotiable || false,
         visitDays: initialData?.visitDays || [],
         visitNotes: initialData?.visitNotes || '',
         experienceDetails: initialData?.experienceDetails || '',
@@ -109,11 +231,16 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         firstSelectionDate: initialData?.firstSelectionDate || getOneWeekLater(getTomorrowDate()), // 스마트 기본값: 1주일 뒤
         reviewDeadline: initialData?.reviewDeadline || '',
         reviewDeadlineDays: initialData?.reviewDeadlineDays || '7', // 스마트 기본값: 7일
+        optionConfig: initialData?.optionConfig || {
+            mode: 'SINGLE',
+            maxSelect: 1
+        },
     });
 
     // 초기 데이터 로드 (임시저장 불러오기 시)
     useEffect(() => {
         if (initialData) {
+            console.log('📥 [CampaignStep1] 수신된 initialData:', initialData);
             setFormData(prev => {
                 // null 값을 제거하여 state의 기본값이 유지되도록 함
                 const sanitizedInitial = { ...initialData };
@@ -123,10 +250,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     }
                 });
 
-                return {
+                const merged = {
                     ...prev,
                     ...sanitizedInitial
                 };
+                console.log('✅ [CampaignStep1] 병합된 formData:', merged);
+                return merged;
             });
         }
     }, [initialData]);
@@ -177,23 +306,76 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }));
     };
 
+    // 주소에서 지역(시/도) 추출 유틸리티
+    const extractRegionFromAddress = (address: string) => {
+        if (!address) return '';
+        const regionMap: Record<string, string> = {
+            '서울': '서울', '경기': '경기', '인천': '인천', '부산': '부산', '대구': '대구',
+            '광주': '광주', '대전': '대전', '울산': '울산', '세종': '세종', '강원': '강원',
+            '충북': '충북', '충청북도': '충북', '충남': '충남', '충청남도': '충남',
+            '전북': '전북', '전라북도': '전북', '전남': '전남', '전라남도': '전남',
+            '경북': '경북', '경상북도': '경북', '경남': '경남', '경상남도': '경남',
+            '제주': '제주'
+        };
+
+        const firstWord = address.split(' ')[0];
+        // 서울특별시 -> 서울, 경기도 -> 경기 등으로 변환
+        for (const [key, value] of Object.entries(regionMap)) {
+            if (firstWord.includes(key)) return value;
+        }
+        return '';
+    };
+
     // 네이버 플레이스 정보 가져오기 (Mock - 실제로는 API 연동 필요)
     const fetchNaverPlaceInfo = async (url: string, storeId: string) => {
         // TODO: 실제 네이버 플레이스 API 연동
-        // 임시로 더미 데이터 사용
+        // 임시로 더미 데이터 사용 (사용자 캡쳐본의 매장 정보 반영)
         const mockData = {
-            storeName: '테스트 매장',
-            address: '서울특별시 강남구 테헤란로 123',
+            storeName: '오쓰헤어L',
+            address: '대구 수성구 달구벌대로 2599 304동 1층 119호',
         };
+
+        const extractedRegion = extractRegionFromAddress(mockData.address);
 
         setFormData(prev => ({
             ...prev,
+            // 주소에서 추출된 지역이 있으면 자동 설정 (수동 선택 전 자동화)
+            region: extractedRegion || prev.region,
             stores: prev.stores.map(store =>
                 store.id === storeId
                     ? { ...store, naverPlaceUrl: url, ...mockData }
                     : store
             ),
         }));
+
+        if (extractedRegion) {
+            toast.success(`지역이 '${extractedRegion}'(으)로 자동 설정되었습니다.`);
+        }
+    };
+
+    // 드래그 앤 드롭 센서 설정
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // 옵션 순서 변경 핸들러
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+
+        if (over && active.id !== over.id) {
+            setFormData(prev => {
+                const oldIndex = prev.productOptions.findIndex(opt => opt.id === active.id);
+                const newIndex = prev.productOptions.findIndex(opt => opt.id === over.id);
+
+                return {
+                    ...prev,
+                    productOptions: arrayMove(prev.productOptions, oldIndex, newIndex),
+                };
+            });
+        }
     };
 
     // 제품 옵션 추가
@@ -201,8 +383,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         const newOption: ProductOption = {
             id: Date.now().toString(),
             optionName: '',
-            optionPrice: '',
-            recruitmentCount: '',
+            optionPrice: '0',
+            recruitmentCount: '0',
         };
         setFormData(prev => ({
             ...prev,
@@ -220,10 +402,15 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
     // 제품 옵션 업데이트
     const updateProductOption = (id: string, field: keyof ProductOption, value: string) => {
+        let finalValue = value;
+        if (field === 'optionPrice') {
+            finalValue = formatPrice(value);
+        }
+        
         setFormData(prev => ({
             ...prev,
             productOptions: prev.productOptions.map(opt =>
-                opt.id === id ? { ...opt, [field]: value } : opt
+                opt.id === id ? { ...opt, [field]: finalValue } : opt
             ),
         }));
     };
@@ -294,32 +481,40 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         setFormData(prev => ({ ...prev, [field]: formatted }));
     };
 
-    // 배송체험단 플랫폼 토글
-    const toggleDeliveryPlatform = (platform: 'review' | 'naver' | 'instagram') => {
-        const { includeReview, includeNaver, includeInstagram } = formData;
+    // 플랫폼 토글 (하이브리드 지원 및 타입별 동기화)
+    const toggleDeliveryPlatform = (plat: 'review' | 'naver' | 'instagram') => {
+        const { includeReview, includeNaver, includeInstagram, campaignType } = formData;
 
-        if (platform === 'review') {
+        if (plat === 'review') {
             setFormData(prev => ({ ...prev, includeReview: !prev.includeReview }));
-        } else if (platform === 'naver') {
-            // 네이버를 추가하려는 경우
+        } else if (plat === 'naver') {
             if (!includeNaver) {
-                // 이미 인스타가 선택되어 있으면 에러
                 if (includeInstagram) {
                     toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n인스타그램을 먼저 해제해주세요.');
                     return;
                 }
             }
-            setFormData(prev => ({ ...prev, includeNaver: !prev.includeNaver }));
-        } else if (platform === 'instagram') {
-            // 인스타를 추가하려는 경우
+            const newValue = !includeNaver;
+            setFormData(prev => ({ 
+                ...prev, 
+                includeNaver: newValue,
+                // 방문형/기자단인 경우 platform 필드 자동 동기화
+                platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'BLOG' : prev.platform
+            }));
+        } else if (plat === 'instagram') {
             if (!includeInstagram) {
-                // 이미 네이버가 선택되어 있으면 에러
                 if (includeNaver) {
                     toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n네이버를 먼저 해제해주세요.');
                     return;
                 }
             }
-            setFormData(prev => ({ ...prev, includeInstagram: !prev.includeInstagram }));
+            const newValue = !includeInstagram;
+            setFormData(prev => ({ 
+                ...prev, 
+                includeInstagram: newValue,
+                // 방문형/기자단인 경우 platform 필드 자동 동기화
+                platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'INSTAGRAM' : prev.platform
+            }));
         }
     };
 
@@ -353,7 +548,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 isValid = value !== '';
                 break;
             case 'contactPhone':
-                isValid = value && value.length >= 12; // 010-1234-5678 형식
+                // 광고주가 직접 연락하는 경우 연락처 필수 아님
+                isValid = formData.advertiserWillContact || (value && value.length >= 12); // 010-1234-5678 형식
                 break;
             case 'productUrl':
                 isValid = value && value.startsWith('http');
@@ -374,7 +570,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         if (!formData.campaignType) return false;
 
         // 배송체험단
-        if (formData.campaignType === 'delivery') {
+        if (formData.campaignType === 'DELIVERY') {
             // 최소 하나는 선택되어야 함
             if (!formData.includeReview && !formData.includeNaver && !formData.includeInstagram) {
                 return false;
@@ -386,10 +582,13 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }
 
         // 방문체험단 또는 기자단
-        if (formData.campaignType === 'visit' || formData.campaignType === 'press') {
+        if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
             if (!formData.platform) return false;
             if (formData.stores.length === 0) return false;
-            if (!formData.contactPhone || !formData.visitTime) return false;
+            // 광고주 직접 연락이 아닌 경우에만 연락처 필수
+            if (!formData.advertiserWillContact && !formData.contactPhone) return false;
+            // 조율 필요가 아닌 경우에만 방문 시간 필수
+            if (!formData.visitTimeNegotiable && !formData.visitTime) return false;
         }
 
         if (!formData.totalRecruitment) return false;
@@ -405,7 +604,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }
 
         // 배송체험단 유효성 검사
-        if (formData.campaignType === 'delivery') {
+        if (formData.campaignType === 'DELIVERY') {
             if (!formData.includeReview && !formData.includeNaver && !formData.includeInstagram) {
                 toast.error('최소 하나의 플랫폼을 선택해주세요.');
                 return;
@@ -425,7 +624,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }
 
         // 방문체험단/기자단 유효성 검사
-        if (formData.campaignType === 'visit' || formData.campaignType === 'press') {
+        if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
             if (!formData.platform) {
                 toast.error('플랫폼을 선택해주세요.');
                 return;
@@ -434,12 +633,14 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 toast.error('최소 1개의 매장을 추가해주세요.');
                 return;
             }
-            if (!formData.contactPhone) {
-                toast.error('연락처를 입력해주세요.');
+            // 광고주가 직접 연락하지 않는 경우에만 연락처 필수
+            if (!formData.advertiserWillContact && !formData.contactPhone) {
+                toast.error('연락처를 입력하거나 "광고주가 선정자에게 직접 연락" 옵션을 선택해주세요.');
                 return;
             }
-            if (!formData.visitTime) {
-                toast.error('방문 가능 시간을 입력해주세요.');
+            // 조율이 필요하지 않은 경우에만 방문 시간 필수
+            if (!formData.visitTimeNegotiable && !formData.visitTime) {
+                toast.error('방문 가능 시간을 입력하거나 "연락하여 조율" 옵션을 선택해주세요.');
                 return;
             }
             if (!formData.experienceDetails) {
@@ -485,6 +686,27 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 </p>
             </section>
 
+            {/* 카테고리 선택 */}
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">카테고리 선택</h2>
+                <div className="flex flex-wrap gap-2">
+                    {['맛집', '뷰티', '숙박', '생활', '서비스', '유아동', '디지털/가전', '기타'].map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
+                            className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${
+                                formData.category === cat
+                                    ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                            }`}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            </section>
+
             {/* 진행 유형 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">진행 유형 선택</h2>
@@ -492,8 +714,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* 배송체험단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'delivery', platform: null }))}
-                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'delivery'
+                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'DELIVERY', platform: null }))}
+                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'DELIVERY'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
                             }`}
@@ -505,8 +727,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                     {/* 방문체험단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'visit', includeReview: false, includeNaver: false, includeInstagram: false }))}
-                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'visit'
+                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'VISIT', includeReview: false, includeNaver: false, includeInstagram: false }))}
+                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'VISIT'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
                             }`}
@@ -518,8 +740,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                     {/* 기자단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'press', includeReview: false, includeNaver: false, includeInstagram: false }))}
-                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'press'
+                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'PRESS', includeReview: false, includeNaver: false, includeInstagram: false }))}
+                        className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'PRESS'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
                             }`}
@@ -531,35 +753,37 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 </div>
             </section>
 
-            {/* 배송체험단 - 플랫폼 토글 선택 */}
-            {formData.campaignType === 'delivery' && (
+            {/* 배송체험단/방문체험단/기자단 - 플랫폼 토글 선택 (하이브리드 지원) */}
+            {formData.campaignType && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">진행 방식 선택</h2>
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">진행 방식 및 플랫폼 선택</h2>
                     <p className="text-sm text-gray-600 mb-4">
-                        원하는 플랫폼을 선택하세요. 구매평 단독, 네이버/인스타 단독, 또는 구매평+네이버/인스타 조합이 가능합니다.
+                        원하는 리뷰 플랫폼을 선택하세요. {formData.campaignType === 'DELIVERY' ? '구매평 단독, 네이버/인스타 단독, 또는 구매평+SNS 조합이 가능합니다.' : '네이버 블로그 또는 인스타그램을 선택할 수 있습니다.'}
                     </p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* 구매평 토글 */}
-                        <button
-                            onClick={() => toggleDeliveryPlatform('review')}
-                            className={`p-4 rounded-lg border-2 transition-all ${formData.includeReview
-                                ? 'border-blue-500 bg-blue-50'
-                                : 'border-gray-200 hover:border-blue-300'
-                                }`}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold">구매평</h3>
-                                {formData.includeReview && (
-                                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
-                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600">쇼핑몰 구매평 작성</p>
-                        </button>
+                        {/* 구매평 토글 (배송형만) */}
+                        {formData.campaignType === 'DELIVERY' && (
+                            <button
+                                onClick={() => toggleDeliveryPlatform('review')}
+                                className={`p-4 rounded-lg border-2 transition-all ${formData.includeReview
+                                    ? 'border-blue-500 bg-blue-50'
+                                    : 'border-gray-200 hover:border-blue-300'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-semibold">구매평</h3>
+                                    {formData.includeReview && (
+                                        <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600">쇼핑몰 구매평 작성</p>
+                            </button>
+                        )}
 
                         {/* 네이버 블로그 토글 */}
                         <button
@@ -639,9 +863,16 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     {/* 진행비용 */}
                                     <div className="text-right ml-4">
                                         <p className="text-2xl font-bold text-blue-600">
-                                            {formData.includeReview && !formData.includeNaver && !formData.includeInstagram && '5,000원'}
-                                            {!formData.includeReview && (formData.includeNaver || formData.includeInstagram) && '5,000원'}
-                                            {formData.includeReview && (formData.includeNaver || formData.includeInstagram) && '9,000원'}
+                                            {(() => {
+                                                if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
+                                                    return '10,000원';
+                                                }
+                                                // 배송체험단 (DELIVERY)
+                                                if (formData.includeReview && !formData.includeNaver && !formData.includeInstagram) return '5,000원';
+                                                if (!formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '5,000원';
+                                                if (formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '9,000원';
+                                                return '0원';
+                                            })()}
                                         </p>
                                     </div>
                                 </div>
@@ -671,7 +902,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             )}
 
             {/* 배송체험단 - 제품 정보 */}
-            {formData.campaignType === 'delivery' && (
+            {formData.campaignType === 'DELIVERY' && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">체험 상품 · 모집 조건</h2>
 
@@ -734,96 +965,134 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         />
                         <p className="mt-1 text-xs text-gray-500">💡 체험 받으실 상품의 정확한 명칭을 입력해주세요.</p>
                     </div>
+                </section>
+            )}
 
-                    {/* 제공할 옵션 정보 */}
+            {/* 제품/서비스 옵션 정보 (전체 타입 공통) */}
+            {formData.campaignType && (
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-xl font-bold text-gray-900">제공 옵션 설정</h2>
+                        <p className="text-xs text-gray-500">드래그하여 순서 변경 가능</p>
+                    </div>
+                    
+                    {/* 옵션 목록 */}
                     <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <label className="block text-sm font-medium text-gray-700">
-                                제공할 옵션 정보를 입력해 주세요
-                            </label>
-                            <button
-                                onClick={addProductOption}
-                                className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                            >
-                                <Plus size={16} />
-                                옵션 추가
-                            </button>
-                        </div>
-
                         {formData.productOptions.length === 0 ? (
-                            <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
-                                <p className="text-sm">옵션이 없는 경우 추가하지 않아도 됩니다.</p>
+                            <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                                <p className="text-sm mb-2">옵션이 없는 경우 추가하지 않아도 됩니다.</p>
+                                <p className="text-xs text-gray-400">(단일 상품/서비스)</p>
                             </div>
                         ) : (
-                            <div className="space-y-3">
-                                {formData.productOptions.map((option, index) => (
-                                    <div key={option.id} className="border border-gray-200 rounded-lg p-4">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h4 className="font-semibold text-gray-900">옵션 {index + 1}</h4>
-                                            <button
-                                                onClick={() => removeProductOption(option.id)}
-                                                className="text-red-500 hover:text-red-700"
-                                            >
-                                                <X size={20} />
-                                            </button>
-                                        </div>
+                            <>
+                                {/* Table Header */}
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-t-lg text-xs font-bold text-gray-600">
+                                    <div className="w-6 flex-shrink-0"></div>
+                                    <div className="w-8 text-center flex-shrink-0">#</div>
+                                    <div className="flex-1">옵션 정보 <span className="text-red-500">*</span></div>
+                                    <div className="w-32 text-center flex-shrink-0">제공 가액</div>
+                                    <div className="w-24 text-center flex-shrink-0">모집 인원</div>
+                                    <div className="w-8 flex-shrink-0"></div>
+                                </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                            {/* 옵션 정보 */}
-                                            <div>
-                                                <label className="block text-xs text-gray-600 mb-1">
-                                                    옵션 정보 <span className="text-red-500">*</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={option.optionName}
-                                                    onChange={(e) => updateProductOption(option.id, 'optionName', e.target.value)}
-                                                    placeholder="예시) 아이폰 14 Pro 블루 / 256GB"
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                                {/* Sortable Options */}
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <SortableContext
+                                        items={formData.productOptions.map(opt => opt.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        <div className="space-y-2 border-x border-b border-gray-200 rounded-b-lg p-2 bg-gray-50/50">
+                                            {formData.productOptions.map((option, index) => (
+                                                <SortableOptionRow
+                                                    key={option.id}
+                                                    option={option}
+                                                    index={index}
+                                                    campaignType={formData.campaignType}
+                                                    onUpdate={updateProductOption}
+                                                    onRemove={removeProductOption}
                                                 />
-                                            </div>
-
-                                            {/* 상품 결제 금액 */}
-                                            <div>
-                                                <label className="block text-xs text-gray-600 mb-1">
-                                                    상품 결제 금액(배송비 포함) <span className="text-red-500">*</span>
-                                                </label>
-                                                <div className="flex items-center gap-1">
-                                                    <input
-                                                        type="text"
-                                                        value={option.optionPrice}
-                                                        onChange={(e) => updateProductOption(option.id, 'optionPrice', e.target.value)}
-                                                        placeholder="0"
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                                                    />
-                                                    <span className="text-sm text-gray-600">원</span>
-                                                </div>
-                                            </div>
-
-                                            {/* 모집 인원 */}
-                                            <div>
-                                                <label className="block text-xs text-gray-600 mb-1">
-                                                    모집 인원 <span className="text-red-500">*</span>
-                                                </label>
-                                                <div className="flex items-center gap-1">
-                                                    <input
-                                                        type="number"
-                                                        value={option.recruitmentCount}
-                                                        onChange={(e) => updateProductOption(option.id, 'recruitmentCount', e.target.value)}
-                                                        placeholder="0"
-                                                        min="1"
-                                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm text-right"
-                                                    />
-                                                    <span className="text-sm text-gray-600">명</span>
-                                                </div>
-                                            </div>
+                                            ))}
                                         </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    </SortableContext>
+                                </DndContext>
+                            </>
                         )}
                     </div>
 
+                    {/* 옵션 추가 버튼 */}
+                    <button
+                        onClick={addProductOption}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border-2 border-dashed border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all"
+                    >
+                        <Plus size={18} />
+                        옵션 추가
+                    </button>
+
+                    {/* 옵션 선택 규칙 설정 */}
+                    <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <Info size={16} className="text-blue-500" />
+                            옵션 선택 규칙 설정
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs text-gray-600 mb-1">선택 모드</label>
+                                <select
+                                    value={formData.optionConfig.mode}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        optionConfig: { 
+                                            ...prev.optionConfig, 
+                                            mode: e.target.value as any,
+                                            // 모드 변경 시 적절한 기본값 설정
+                                            maxSelect: e.target.value === 'SINGLE' ? 1 : prev.optionConfig.maxSelect 
+                                        }
+                                    }))}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                                >
+                                    <option value="SINGLE">단일 선택 (하나만 선택)</option>
+                                    <option value="RANKED">지망 순위 선택 (1지망, 2지망...)</option>
+                                    <option value="MULTI">다중 선택 (여러 개 체험)</option>
+                                </select>
+                            </div>
+                            {formData.optionConfig.mode !== 'SINGLE' && (
+                                <div>
+                                    <label className="block text-xs text-gray-600 mb-1">최대 선택 가능 개수</label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            value={formData.optionConfig.maxSelect}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                optionConfig: { ...prev.optionConfig, maxSelect: parseInt(e.target.value) || 1 }
+                                            }))}
+                                            min="1"
+                                            max={formData.productOptions.length > 0 ? formData.productOptions.length : 10}
+                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+                                        />
+                                        <span className="text-sm text-gray-600 whitespace-nowrap">개까지</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        <p className="mt-3 text-xs text-gray-500 italic">
+                            {formData.optionConfig.mode === 'RANKED' && "💡 인플루언서가 우선순위를 정해서 신청할 수 있습니다."}
+                            {formData.optionConfig.mode === 'MULTI' && "💡 인플루언서가 선택한 모든 옵션에 대해 당첨될 수 있습니다."}
+                            {formData.optionConfig.mode === 'SINGLE' && "💡 가장 일반적인 방식으로, 인플루언서가 하나의 옵션만 선택하여 신청합니다."}
+                        </p>
+                    </div>
+                </section>
+            )}
+
+            {/* 배송체험단 전용 추가 설정 (결제금액/쿠폰) */}
+            {formData.campaignType === 'DELIVERY' && (
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">배송 추가 설정</h2>
+                    
                     {/* 상품 결제 금액 (옵션 없는 경우) */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -888,80 +1157,36 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 </section>
             )}
 
-            {/* 방문체험단/기자단 - 플랫폼 선택 */}
-            {(formData.campaignType === 'visit' || formData.campaignType === 'press') && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">플랫폼 선택</h2>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <button
-                            onClick={() => setFormData(prev => ({ ...prev, platform: 'naver' }))}
-                            className={`p-4 rounded-lg border-2 transition-all ${formData.platform === 'naver'
-                                ? 'border-green-500 bg-green-50'
-                                : 'border-gray-200 hover:border-green-300'
-                                }`}
-                        >
-                            <h3 className="font-semibold mb-1">네이버 블로그</h3>
-                            <p className="text-sm text-gray-600">네이버 블로그에 리뷰 작성</p>
-                        </button>
-
-                        <button
-                            onClick={() => setFormData(prev => ({ ...prev, platform: 'instagram' }))}
-                            className={`p-4 rounded-lg border-2 transition-all ${formData.platform === 'instagram'
-                                ? 'border-pink-500 bg-pink-50'
-                                : 'border-gray-200 hover:border-pink-300'
-                                }`}
-                        >
-                            <h3 className="font-semibold mb-1">인스타그램</h3>
-                            <p className="text-sm text-gray-600">인스타그램에 리뷰 작성</p>
-                        </button>
-                    </div>
-
-                    {/* 선택된 플랫폼 및 진행비용 표시 */}
-                    {formData.platform && (
-                        <div className="mt-4">
-                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                {/* 라벨 행 */}
-                                <div className="flex items-center justify-between mb-2">
-                                    <p className="text-sm text-gray-600">선택된 진행 방식</p>
-                                    <p className="text-sm text-gray-600">진행비용 (1건)</p>
-                                </div>
-
-                                {/* 내용 행 */}
-                                <div className="flex items-center justify-between">
-                                    {/* 플랫폼 태그 */}
-                                    <div className="flex flex-wrap gap-2">
-                                        {formData.platform === 'naver' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                                                📗 네이버 블로그
-                                            </span>
-                                        )}
-                                        {formData.platform === 'instagram' && (
-                                            <span className="inline-flex items-center px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">
-                                                📸 인스타그램
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* 진행비용 */}
-                                    <div className="text-right ml-4">
-                                        <p className="text-2xl font-bold text-blue-600">
-                                            10,000원
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </section>
-            )}
-
             {/* 매장 정보 (방문체험단/기자단만) */}
-            {(formData.campaignType === 'visit' || formData.campaignType === 'press') && (
+            {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">
                         매장 정보 <span className="text-red-500">*</span>
                     </h2>
+
+                    {/* 지역 설정 */}
+                    <div className="mb-6 pb-6 border-b border-gray-100">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">지역 선택 (시/도)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['전국', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'].map((reg) => (
+                                <button
+                                    key={reg}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
+                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                                        formData.region === reg
+                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                            : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                                    }`}
+                                >
+                                    {reg}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-3 text-xs text-gray-400">
+                            💡 매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다.
+                        </p>
+                    </div>
 
                     {/* 네이버 플레이스 주소 입력 */}
                     <div className="mb-6">
@@ -1072,12 +1297,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
 
 
-                {formData.campaignType !== 'delivery' && (
+                {formData.campaignType !== 'DELIVERY' && (
                     <>
                         {/* 담당자 연락처 */}
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                담당자 연락처 <span className="text-red-500">*</span>
+                                담당자 연락처 {!formData.advertiserWillContact && <span className="text-red-500">*</span>}
                                 {fieldValidation.contactPhone === true && (
                                     <span className="ml-2 text-green-500 text-sm">✓</span>
                                 )}
@@ -1085,35 +1310,109 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <span className="ml-2 text-red-500 text-sm">✗</span>
                                 )}
                             </label>
-                            <input
-                                type="tel"
-                                value={formData.contactPhone || ''}
-                                onChange={handlePhoneChange}
-                                onBlur={() => validateField('contactPhone', formData.contactPhone)}
-                                placeholder="010-0000-0000"
-                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
-                                    ? 'border-red-300 bg-red-50'
-                                    : fieldValidation.contactPhone === true
-                                        ? 'border-green-300'
-                                        : 'border-gray-300'
-                                    }`}
-                            />
-                            {fieldValidation.contactPhone === false && (
-                                <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
+
+                            {/* 광고주가 직접 연락 체크박스 */}
+                            <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                <label className="flex items-start gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.advertiserWillContact}
+                                        onChange={(e) => setFormData(prev => ({ 
+                                            ...prev, 
+                                            advertiserWillContact: e.target.checked,
+                                            // 체크 시 연락처 필드 초기화
+                                            contactPhone: e.target.checked ? '' : prev.contactPhone
+                                        }))}
+                                        className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    />
+                                    <div className="flex-1">
+                                        <span className="text-sm font-medium text-blue-900">광고주가 선정자에게 직접 연락</span>
+                                        <p className="text-xs text-blue-700 mt-1">
+                                            담당자가 여러 명이거나 연락처를 공개하고 싶지 않은 경우 체크하세요. 선정 후 광고주가 인플루언서에게 먼저 연락드립니다.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* 연락처 입력 필드 (광고주 직접 연락 체크 시 숨김) */}
+                            {!formData.advertiserWillContact && (
+                                <>
+                                    <input
+                                        type="tel"
+                                        value={formData.contactPhone || ''}
+                                        onChange={handlePhoneChange}
+                                        onBlur={() => validateField('contactPhone', formData.contactPhone)}
+                                        placeholder="010-0000-0000"
+                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
+                                            ? 'border-red-300 bg-red-50'
+                                            : fieldValidation.contactPhone === true
+                                                ? 'border-green-300'
+                                                : 'border-gray-300'
+                                            }`}
+                                    />
+                                    {fieldValidation.contactPhone === false && (
+                                        <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
+                                    )}
+
+                                    {/* 개인정보 보호 안내 */}
+                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div className="flex items-start gap-2">
+                                            <span className="text-green-600 text-lg">🔒</span>
+                                            <div className="flex-1">
+                                                <p className="text-xs text-green-800 font-medium">
+                                                    연락처는 선정된 인플루언서에게만 공개됩니다. 개인정보 보호를 위해 선정 전에는 절대 공개되지 않습니다.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </>
                             )}
                         </div>
                         {/* 방문 가능 시간 */}
                         <div className="mt-4">
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                방문 가능 시간 <span className="text-red-500">*</span>
+                                방문 가능 시간 {!formData.visitTimeNegotiable && <span className="text-red-500">*</span>}
                             </label>
+
+                            {/* 연락하여 조율 체크박스 */}
+                            <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                <label className="flex items-start gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={formData.visitTimeNegotiable}
+                                        onChange={(e) => setFormData(prev => ({ 
+                                            ...prev, 
+                                            visitTimeNegotiable: e.target.checked,
+                                            // 체크 시 방문 시간 필드 초기화
+                                            visitTime: e.target.checked ? '' : prev.visitTime
+                                        }))}
+                                        className="mt-0.5 w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                                    />
+                                    <div className="flex-1">
+                                        <span className="text-sm font-medium text-amber-900">연락하여 조율</span>
+                                        <p className="text-xs text-amber-700 mt-1">
+                                            예약제 운영이나 시간 조율이 필요한 경우 체크하세요. 방문 시간을 입력하지 않아도 됩니다.
+                                        </p>
+                                    </div>
+                                </label>
+                            </div>
+
+                            {/* 방문 시간 입력 필드 (조율 체크 시 선택사항) */}
                             <input
                                 type="text"
                                 value={formData.visitTime || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
-                                placeholder="예: 평일 11:00 - 21:00"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder={formData.visitTimeNegotiable ? "예: 평일 11:00 - 21:00 (선택사항)" : "예: 평일 11:00 - 21:00"}
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                                    formData.visitTimeNegotiable ? 'border-gray-200 bg-gray-50' : 'border-gray-300'
+                                }`}
+                                disabled={formData.visitTimeNegotiable}
                             />
+                            {formData.visitTimeNegotiable && (
+                                <p className="mt-1 text-xs text-gray-500">
+                                    💡 조율 체크 시 방문 시간은 선택사항입니다. 선정 후 개별 연락을 통해 시간을 조정하세요.
+                                </p>
+                            )}
                         </div>
 
                         {/* 방문 가능 요일 */}
@@ -1438,7 +1737,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         리뷰 제출 마감일
                                     </label>
-                                    {formData.campaignType === 'delivery' ? (
+                                    {formData.campaignType === 'DELIVERY' ? (
                                         <select
                                             value={formData.reviewDeadlineDays || '7'}
                                             onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadlineDays: e.target.value }))}
@@ -1489,6 +1788,6 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     다음 단계로
                 </button>
             </div>
-        </div >
+        </div>
     );
 }

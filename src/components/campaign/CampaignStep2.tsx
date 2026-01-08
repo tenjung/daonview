@@ -7,14 +7,14 @@ import { supabase } from '@/lib/supabaseClient';
 
 // Step1Data 인터페이스 (Step1에서 전달받는 데이터)
 interface Step1Data {
-    campaignType: 'delivery' | 'visit' | 'press' | null;
+    campaignType: 'DELIVERY' | 'VISIT' | 'PRESS' | null;
     includeReview: boolean;
     includeNaver: boolean;
     includeInstagram: boolean;
     productUrl: string;
     productName: string;
     campaignTitle: string; // Step 1에서 추가된 캠페인 제목
-    platform: 'naver' | 'instagram' | null;
+    platform: 'BLOG' | 'INSTAGRAM' | null;
     stores?: { storeName: string; }[];
 }
 
@@ -89,7 +89,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         blogTitleGuide: initialData?.blogTitleGuide || '',
         blogContentGuide: initialData?.blogContentGuide || '',
         // 방문체험단/기자단의 경우 지도 삽입 기본값 true
-        blogMapRequired: initialData?.blogMapRequired ?? (step1Data.campaignType === 'visit' || step1Data.campaignType === 'press'),
+        blogMapRequired: initialData?.blogMapRequired ?? (step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS'),
         blogRequiredLinks: initialData?.blogRequiredLinks || [],
 
         // 인스타그램 가이드
@@ -327,7 +327,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         if (!uploadLater && formData.campaignImages.length === 0) return false;
 
         // 배송체험단인 경우 구매평 필드 검증
-        if (step1Data.campaignType === 'delivery' && step1Data.includeReview) {
+        if (step1Data.campaignType === 'DELIVERY' && step1Data.includeReview) {
             if (!formData.purchaseLink.trim()) return false;
         }
 
@@ -337,7 +337,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         }
 
         // 배송체험단 + 블로그: 쇼핑몰 링크 삽입 필수
-        if (step1Data.campaignType === 'delivery' && step1Data.includeNaver) {
+        if (step1Data.campaignType === 'DELIVERY' && step1Data.includeNaver) {
             if (formData.blogRequiredLinks.length === 0) {
                 return false;
             }
@@ -355,17 +355,17 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
     };
 
     // 배송체험단 여부 확인
-    const isDeliveryCampaign = step1Data.campaignType === 'delivery';
-    const isVisitOrPressCampaign = step1Data.campaignType === 'visit' || step1Data.campaignType === 'press';
+    const isDeliveryCampaign = step1Data.campaignType === 'DELIVERY';
+    const isVisitOrPressCampaign = step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS';
 
     // 구매평 가이드: 배송체험단 + 구매평 선택 시
     const showReviewGuide = isDeliveryCampaign && step1Data.includeReview;
 
-    // 블로그 가이드: 배송체험단(includeNaver) 또는 방문/기자단(platform=naver)
-    const showBlogGuide = step1Data.includeNaver || (isVisitOrPressCampaign && step1Data.platform === 'naver');
+    // 블로그 가이드: 배송체험단(includeNaver) 또는 방문/기자단(platform=BLOG)
+    const showBlogGuide = step1Data.includeNaver || (isVisitOrPressCampaign && step1Data.platform === 'BLOG');
 
-    // 인스타그램 가이드: 배송체험단(includeInstagram) 또는 방문/기자단(platform=instagram)
-    const showInstagramGuide = step1Data.includeInstagram || (isVisitOrPressCampaign && step1Data.platform === 'instagram');
+    // 인스타그램 가이드: 배송체험단(includeInstagram) 또는 방문/기자단(platform=INSTAGRAM)
+    const showInstagramGuide = step1Data.includeInstagram || (isVisitOrPressCampaign && step1Data.platform === 'INSTAGRAM');
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
@@ -857,7 +857,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                     </div>
 
                     {/* 지도 삽입 여부 - 방문체험단/기자단만 표시 */}
-                    {(step1Data.campaignType === 'visit' || step1Data.campaignType === 'press') && (
+                    {(step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS') && (
                         <div className="mb-6">
                             <label className="flex items-center gap-3 cursor-pointer group">
                                 <input
@@ -884,11 +884,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             <LinkIcon size={16} className="inline mr-1" />
                             필수 삽입 링크
-                            {step1Data.campaignType === 'delivery' && (
+                            {step1Data.campaignType === 'DELIVERY' && (
                                 <span className="text-red-500 ml-1">*</span>
                             )}
                         </label>
-                        {step1Data.campaignType === 'delivery' && (
+                        {step1Data.campaignType === 'DELIVERY' && (
                             <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 mb-3">
                                 ℹ️ 배송체험단은 쇼핑몰 링크를 최소 1개 이상 추가해야 합니다.
                             </p>
@@ -899,7 +899,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                                 value={blogLinkInput}
                                 onChange={(e) => setBlogLinkInput(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && addBlogLink()}
-                                placeholder={step1Data.campaignType === 'delivery' ? "쇼핑몰 링크 입력 후 Enter" : "스마트플레이스, 예약 링크 등 입력 후 Enter"}
+                                placeholder={step1Data.campaignType === 'DELIVERY' ? "쇼핑몰 링크 입력 후 Enter" : "스마트플레이스, 예약 링크 등 입력 후 Enter"}
                                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                             <button

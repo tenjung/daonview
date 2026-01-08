@@ -1,5 +1,8 @@
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool } from 'lucide-react';
+import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart } from 'lucide-react';
+import { useCartStore } from '@/store/cartStore';
+import { toast } from 'sonner';
 
 interface CampaignProps {
     id?: number | string;
@@ -79,11 +82,35 @@ export const TypeBadge = ({ type }: { type?: string }) => {
 };
 
 export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region }: CampaignProps) {
+    const [mounted, setMounted] = useState(false);
+    
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const linkHref = id ? `/campaigns/${id}` : '#';
     const isVisit = type?.toUpperCase() === 'VISIT';
 
     // Calculate percentage
     const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
+    
+    const { addItem, removeItem, isInCart } = useCartStore();
+    const isWished = id ? isInCart(id) : false;
+
+    const toggleWish = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (!id) return;
+
+        if (isWished) {
+            removeItem(id);
+            toast.info('관심 캠페인에서 제거되었습니다.');
+        } else {
+            addItem({ id, title, platform, type, imageUrl, provision, applicants, total, dday, region });
+            toast.success('관심 캠페인에 추가되었습니다!');
+        }
+    };
 
     return (
         <Link href={linkHref} className="card group border border-border rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
@@ -100,8 +127,8 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
                 )}
 
-                {/* Top Right: D-Day (Optional but recommended) */}
-                <div className="absolute top-3 right-3 z-10">
+                {/* Top Right: D-Day & Wishlist */}
+                <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
                     <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm ${dday === '상시모집'
                         ? 'bg-indigo-600 text-white'
                         : dday === '종료'
@@ -110,6 +137,16 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                         }`}>
                         {dday}
                     </span>
+                    <button
+                        onClick={toggleWish}
+                        className={`p-2 rounded-full shadow-lg transition-all duration-300 ${
+                            (mounted && isWished) 
+                            ? 'bg-rose-500 text-white' 
+                            : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
+                        }`}
+                    >
+                        <Heart className={`w-4 h-4 ${(mounted && isWished) ? 'fill-current' : ''}`} />
+                    </button>
                 </div>
             </div>
 

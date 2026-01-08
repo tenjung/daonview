@@ -1,10 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, ChevronUp, ChevronDown } from 'lucide-react';
+import * as React from 'react';
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import Link from 'next/link';
+import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
+import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
 import {
@@ -19,66 +21,28 @@ import {
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, profile, isLoading, initialize, signOut: storeSignOut } = useAuthStore();
+  const { items: cartItems } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-
-    // 단일 소스를 통한 인증 관리
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      const currentUser = session?.user ?? null;
-      setUser(currentUser);
-
-      if (currentUser) {
-        // 프로필 정보 가져오기
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', currentUser.id)
-          .single();
-        setProfile(data);
-      } else {
-        setProfile(null);
-      }
-
-      // 데이터 확인 완료 후 로딩 해제
-      setLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    initialize();
+  }, [initialize]);
 
   const handleLogout = async () => {
     try {
-      // 로그아웃 시작 알림
       toast.loading('로그아웃 중...', { id: 'logout' });
-
-      // Supabase 로그아웃 실행
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        throw error;
-      }
-
-      // 로컬 상태 명시적 초기화
-      setUser(null);
-      setProfile(null);
+      await storeSignOut();
       setMobileMenuOpen(false);
 
-      // 성공 메시지
       toast.success('로그아웃되었습니다', {
         id: 'logout',
         description: '안전하게 로그아웃되었습니다.',
       });
 
-      // 약간의 딜레이 후 홈으로 리다이렉트
       setTimeout(() => {
         window.location.href = '/';
       }, 500);
@@ -176,8 +140,27 @@ export default function Navbar() {
         </div>
 
         {/* Desktop User Menu */}
-        <div className="hidden lg:flex gap-4 items-center">
-          {(!mounted || loading) ? (
+        <div className="hidden lg:flex gap-6 items-center">
+          {/* Wishlist Capsule Button - Plan A */}
+          <Link 
+            href="/wishlist" 
+            className="group flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-gray-100 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all duration-300 shadow-sm hover:shadow-md h-10"
+          >
+            <Heart 
+              size={18} 
+              className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-gray-400 group-hover:text-rose-500'}`} 
+            />
+            <span className="text-[13px] font-bold text-gray-600 group-hover:text-rose-600 transition-colors whitespace-nowrap">
+              찜한 캠페인
+            </span>
+            {mounted && cartItems.length > 0 && (
+              <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full shadow-sm ring-1 ring-rose-300 transform transition-transform group-hover:scale-110">
+                {cartItems.length}
+              </span>
+            )}
+          </Link>
+
+          {(!mounted || isLoading) ? (
             <div className="flex gap-2 items-center">
               <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>
               <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>

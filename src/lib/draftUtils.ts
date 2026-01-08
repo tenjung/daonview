@@ -6,7 +6,7 @@ export interface DraftCampaign {
     id: string;
     userId: string;
     title: string;
-    campaignType: 'delivery' | 'visit' | 'press';
+    campaignType: 'DELIVERY' | 'VISIT' | 'PRESS';
     step1Data: any;
     step2Data?: any;
     currentStep: number;
@@ -37,7 +37,7 @@ export const getUserDrafts = async (userId: string): Promise<DraftCampaign[]> =>
 export const saveDraft = async (userId: string, campaignData: {
     id?: string;
     title: string;
-    campaignType: 'delivery' | 'visit' | 'press';
+    campaignType: 'DELIVERY' | 'VISIT' | 'PRESS';
     step1Data: any;
     step2Data?: any;
     currentStep: number;
@@ -57,17 +57,17 @@ export const saveDraft = async (userId: string, campaignData: {
         }
 
         // 2. 유형(type) 및 플랫폼(platform) 매핑 (유저 정의 구조 반영)
-        const mappedType = campaignData.campaignType === 'delivery' ? 'DELIVERY' : 'VISIT';
+        const mappedType = campaignData.campaignType === 'DELIVERY' ? 'DELIVERY' : 'VISIT';
 
         let mappedPlatform = 'PURCHASE';
-        if (campaignData.campaignType === 'delivery') {
+        if (campaignData.campaignType === 'DELIVERY') {
             if (campaignData.step1Data?.includeNaver) mappedPlatform = 'BLOG';
             else if (campaignData.step1Data?.includeInstagram) mappedPlatform = 'INSTAGRAM';
             else if (campaignData.step1Data?.includeReview) mappedPlatform = 'PURCHASE';
         } else {
             const step1Platform = campaignData.step1Data?.platform;
-            if (step1Platform === 'naver') mappedPlatform = 'BLOG';
-            else if (step1Platform === 'instagram') mappedPlatform = 'INSTAGRAM';
+            if (step1Platform === 'BLOG') mappedPlatform = 'BLOG';
+            else if (step1Platform === 'INSTAGRAM') mappedPlatform = 'INSTAGRAM';
         }
 
         // 3. 날짜 형식 최적화 (YYYY-MM-DD)
@@ -192,7 +192,7 @@ const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
         id: dbData.id.toString(),
         userId: dbData.created_by,
         title: dbData.title,
-        campaignType: (dbData.campaign_type || dbData.type) as 'delivery' | 'visit' | 'press',
+        campaignType: (dbData.campaign_type || dbData.type || 'VISIT').toUpperCase() as 'DELIVERY' | 'VISIT' | 'PRESS',
         step1Data: options.step1Data || {},
         step2Data: options.step2Data,
         currentStep: options.currentStep || 1,
@@ -202,11 +202,11 @@ const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
 };
 
 // 캠페인 타입 한글 변환
-export const getCampaignTypeLabel = (type: 'delivery' | 'visit' | 'press'): string => {
+export const getCampaignTypeLabel = (type: 'DELIVERY' | 'VISIT' | 'PRESS'): string => {
     const labels = {
-        delivery: '배송체험단',
-        visit: '방문체험단',
-        press: '기자단',
+        DELIVERY: '배송체험단',
+        VISIT: '방문체험단',
+        PRESS: '기자단',
     };
     return labels[type] || type;
 };

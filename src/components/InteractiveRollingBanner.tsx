@@ -158,13 +158,8 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                                 className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
                                                 style={{ transitionDuration: '4000ms' }}
                                             />
-                                            {/* Sophisticated Darkening Overlay - Enhanced for White Backgrounds */}
-                                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-80" />
-                                            <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent opacity-30" />
-                                            <div className="absolute inset-0 bg-black/10" /> {/* Subtle overall darkening for white-on-white edge cases */}
-
-                                            {/* Content Overlay */}
-                                            <div className="absolute inset-0 p-4 md:p-6 flex flex-col justify-between z-10">
+                                            {/* Badges Overlay (Top) */}
+                                            <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-10">
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex gap-2">
                                                         {item.badge && (
@@ -193,28 +188,18 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                                         <div className="h-2 w-2 rounded-full bg-white/50" />
                                                     </div>
                                                 </div>
+                                            </div>
 
-                                                <div className="space-y-2">
-                                                    <div className="space-y-4">
-                                                        <h3 className="text-lg md:text-2xl font-black text-white leading-[1.2] drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)] tracking-tight group-hover:text-rose-50 transition-colors line-clamp-2">
-                                                            {item.title}
-                                                        </h3>
-                                                    </div>
+                                            {/* Premium Glass Bar (Bottom) - Plan A */}
+                                            <div className="absolute inset-x-0 bottom-0 py-1.5 md:py-2 px-4 md:px-6 bg-black/[0.04] backdrop-blur-md border-t border-white/10 z-10 transition-colors group-hover:bg-black/[0.08]">
+                                                <div className="flex items-center justify-between gap-4">
+                                                    <h3 className="text-lg md:text-2xl font-black text-white leading-tight tracking-tight line-clamp-1 flex-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                                        {item.title}
+                                                    </h3>
 
-                                                    {/* Horizontal Separator Line */}
-                                                    <div className="w-full h-[1px] bg-white/20" />
-
-                                                    <div className="flex items-end justify-between gap-4">
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-white/90 text-sm md:text-lg font-medium leading-relaxed line-clamp-1">
-                                                                {item.subtitle}
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Prominent White Circular Button */}
-                                                        <div className="flex-shrink-0 h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-[360deg] active:scale-95">
-                                                            <ArrowRight className="text-rose-500 h-5 w-5" strokeWidth={3} />
-                                                        </div>
+                                                    {/* Prominent White Circular Button */}
+                                                    <div className="flex-shrink-0 h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-[360deg] active:scale-95">
+                                                        <ArrowRight className="text-rose-500 h-5 w-5" strokeWidth={3} />
                                                     </div>
                                                 </div>
                                             </div>
@@ -237,18 +222,12 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                     <CarouselNext className="relative right-0 pointer-events-auto h-12 w-12 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-rose-600 border border-white/20 transition-all rounded-full shadow-lg" />
                 </div>
 
-                {/* Modern Progress Indicators */}
-                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2.5 z-20">
-                    {Array.from({ length: count }).map((_, i) => (
-                        <button
-                            key={i}
-                            onClick={() => api?.scrollTo(i)}
-                            className={`transition-all duration-700 rounded-full ${current === i + 1
-                                ? 'w-10 h-1.5 bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]'
-                                : 'w-2 h-2 bg-white/40 hover:bg-white/60'
-                                }`}
-                        />
-                    ))}
+                {/* Modern Slim Progress Bar - Plan B */}
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[200px] h-[2px] bg-white/20 z-20 rounded-full overflow-hidden">
+                    <div 
+                        className="h-full bg-rose-500 transition-all duration-500 ease-out"
+                        style={{ width: `${(current / count) * 100}%` }}
+                    />
                 </div>
             </Carousel>
         </section>

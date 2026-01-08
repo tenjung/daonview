@@ -154,14 +154,14 @@ export default function CampaignStep3({
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700">캠페인 유형</span>
                         <span className="font-semibold text-gray-900">
-                            {step1Data.campaignType === 'delivery' && '배송체험단'}
-                            {step1Data.campaignType === 'visit' && '방문체험단'}
-                            {step1Data.campaignType === 'press' && '기자단'}
+                            {step1Data.campaignType === 'DELIVERY' && '배송체험단'}
+                            {step1Data.campaignType === 'VISIT' && '방문체험단'}
+                            {step1Data.campaignType === 'PRESS' && '기자단'}
                         </span>
                     </div>
 
                     {/* 선택한 플랫폼 표시 */}
-                    {step1Data.campaignType === 'delivery' && (
+                    {step1Data.campaignType === 'DELIVERY' && (
                         <div className="flex justify-between items-start">
                             <span className="text-gray-700">선택 플랫폼</span>
                             <div className="flex flex-wrap gap-2 justify-end">
@@ -184,12 +184,12 @@ export default function CampaignStep3({
                         </div>
                     )}
 
-                    {step1Data.campaignType === 'visit' && step1Data.platform && (
+                    {step1Data.campaignType === 'VISIT' && step1Data.platform && (
                         <div className="flex justify-between items-center">
                             <span className="text-gray-700">플랫폼</span>
                             <span className="font-semibold text-gray-900">
-                                {step1Data.platform === 'naver' && '네이버 플레이스'}
-                                {step1Data.platform === 'instagram' && '인스타그램'}
+                                {step1Data.platform === 'BLOG' && '네이버 플레이스'}
+                                {step1Data.platform === 'INSTAGRAM' && '인스타그램'}
                             </span>
                         </div>
                     )}

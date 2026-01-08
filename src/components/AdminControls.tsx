@@ -1,33 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 
-export default function AdminControls({ campaignId }: { campaignId: string | number }) {
-    const [isAdmin, setIsAdmin] = useState(false);
+export default function AdminControls({ campaignId, createdBy }: { campaignId: string | number, createdBy?: string }) {
+    const { user, profile, isLoading } = useAuthStore();
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        const check = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            // Check Profile Role
-            const { data } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-
-            if (data?.role === 'ADMIN') {
-                setIsAdmin(true);
-            }
-        };
-        check();
+        setMounted(true);
     }, []);
 
-    if (!isAdmin) return null;
+    // 1. 하이드레이션 완료 전이거나 로딩 중이면 표시하지 않음
+    if (!mounted || isLoading || !profile) return null;
+
+    // 2. 권한 체크 (ADMIN 또는 캠페인 작성자 본인)
+    const isAdmin = profile.role === 'ADMIN';
+    const isOwner = profile.role === 'ADVERTISER' && user?.id === createdBy;
+
+    if (!isAdmin && !isOwner) return null;
 
     return (
         <Link

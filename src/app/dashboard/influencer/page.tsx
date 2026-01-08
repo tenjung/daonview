@@ -55,11 +55,11 @@ export default function InfluencerDashboard() {
 
                 // Calculate stats
                 const total = applicationsData.length;
-                const approved = applicationsData.filter(app => app.status === 'approved').length;
+                const approved = applicationsData.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
                 // 작성해야 할 리뷰 = 승인된 캠페인 중 리뷰 미제출 건수
                 // TODO: applications 테이블에 review_submitted 필드 추가 필요
-                // 임시로 approved 상태를 사용 (실제로는 approved && !review_submitted)
-                const needsReview = applicationsData.filter(app => app.status === 'approved').length;
+                // 임시로 APPROVED 상태를 사용 (실제로는 APPROVED && !review_submitted)
+                const needsReview = applicationsData.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
 
                 setStats({ total, approved, pending: needsReview });
             }
@@ -72,14 +72,15 @@ export default function InfluencerDashboard() {
     }
 
     const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'pending':
+        const s = status?.toUpperCase();
+        switch (s) {
+            case 'PENDING':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-orange-50 text-orange-600">심사중</span>;
-            case 'approved':
+            case 'APPROVED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-600">선정됨</span>;
-            case 'rejected':
+            case 'REJECTED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-red-50 text-red-600">미선정</span>;
-            case 'completed':
+            case 'COMPLETED':
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-600">완료</span>;
             default:
                 return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-gray-50 text-gray-600">{status}</span>;
@@ -87,10 +88,11 @@ export default function InfluencerDashboard() {
     };
 
     const getStatusNote = (status: string) => {
-        switch (status) {
-            case 'approved':
+        const s = status?.toUpperCase();
+        switch (s) {
+            case 'APPROVED':
                 return '가이드 확인 필요';
-            case 'rejected':
+            case 'REJECTED':
                 return '아쉽게도 선정되지 않았습니다.';
             default:
                 return '-';
