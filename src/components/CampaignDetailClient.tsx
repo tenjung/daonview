@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PlatformBadge, TypeBadge } from '@/components/CampaignCard';
 import { useAuthStore } from '@/store/authStore';
+import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
@@ -30,8 +31,8 @@ interface CampaignDetailClientProps {
 
 export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
     const { user } = useAuthStore();
+    const { items: cartItems, addItem, removeItem } = useCartStore();
     const [campaign, setCampaign] = useState(initialCampaign);
-    const [isFavorite, setIsFavorite] = useState(false);
     const [hasApplied, setHasApplied] = useState(false);
     const [selectedOptions, setSelectedOptions] = useState<any[]>([]); // Array for ranked/multi support
     const [applicationMessage, setApplicationMessage] = useState<string>('');
@@ -39,11 +40,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isStatusChecking, setIsStatusChecking] = useState(false); // Only used for button loading state now
 
+    // Check if campaign is in wishlist using Zustand store
+    const isFavorite = cartItems.some(item => item.id === parseInt(id));
+
     useEffect(() => {
         let isMounted = true;
         const init = async () => {
             if (!isMounted || !user) return;
-            
+
             // Check status in background without blocking UI
             try {
                 await checkUserStatus(user);
@@ -67,26 +71,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     async function checkUserStatus(currentUser: any) {
         if (!currentUser || !id) return;
         try {
-            // Check both in parallel for better performance
-            const [favResponse, appResponse] = await Promise.all([
-                supabase
-                    .from('favorites')
-                    .select('id')
-                    .eq('user_id', currentUser.id)
-                    .eq('campaign_id', id)
-                    .maybeSingle(),
-                supabase
-                    .from('applications')
-                    .select('id, selected_option, application_message')
-                    .eq('user_id', currentUser.id)
-                    .eq('campaign_id', id)
-                    .maybeSingle()
-            ]);
+            // Only check application status (favorites handled by Zustand)
+            const appResponse = await supabase
+                .from('applications')
+                .select('id, selected_option, application_message')
+                .eq('user_id', currentUser.id)
+                .eq('campaign_id', id)
+                .maybeSingle();
 
-            const favoriteData = favResponse.data;
             const appData = appResponse.data;
-
-            setIsFavorite(!!favoriteData);
 
             if (appData) {
                 setHasApplied(true);
@@ -109,25 +102,60 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        const campaignId = parseInt(id);
+        const wasInFavorites = isFavorite;
+
         try {
-            if (isFavorite) {
-                await supabase
+            if (wasInFavorites) {
+                // Remove from DB first
+                const { error } = await supabase
                     .from('favorites')
                     .delete()
                     .eq('user_id', user.id)
                     .eq('campaign_id', id);
-                setIsFavorite(false);
+
+                if (error) {
+                    console.error('Delete error:', error);
+                    throw error;
+                }
+
+                // Only update Zustand if DB operation succeeded
+                removeItem(campaignId);
                 toast.success('관심 캠페인에서 제거되었습니다.');
             } else {
-                await supabase
+                // Add to DB first
+                const { error } = await supabase
                     .from('favorites')
                     .insert({ user_id: user.id, campaign_id: id });
-                setIsFavorite(true);
+
+                if (error) {
+                    // Check if it's a duplicate error (already exists)
+                    if (error.code === '23505') {
+                        console.log('Already in favorites, syncing Zustand...');
+                        toast.info('이미 관심 캠페인에 추가되어 있습니다.');
+                        return;
+                    }
+                    console.error('Insert error:', error);
+                    throw error;
+                }
+
+                // Only update Zustand if DB operation succeeded
+                addItem({
+                    id: campaignId,
+                    title: campaign.title,
+                    imageUrl: campaign.thumbnail_url,
+                    type: campaign.type,
+                    platform: campaign.platform,
+                    region: campaign.region,
+                    applicants: campaign.applications?.[0]?.count ?? 0,
+                    total: campaign.recruit_count,
+                    dday: campaign.end_date || ''
+                });
                 toast.success('관심 캠페인에 추가되었습니다.');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error toggling favorite:', error);
-            toast.error('오류가 발생했습니다.');
+            toast.error(error?.message || '오류가 발생했습니다.');
         }
     }
 
@@ -168,7 +196,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
         const currentOptions = getOptions();
         const config = campaign.option_config || { mode: 'SINGLE', maxSelect: 1 };
-        
+
         if (currentOptions.length > 0 && selectedOptions.length === 0) {
             toast.error('제공 옵션을 선택해주세요.');
             document.getElementById('options-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -265,7 +293,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const startDate = campaign.recruitment_start_date ? new Date(campaign.recruitment_start_date).toLocaleDateString() : new Date(campaign.created_at).toLocaleDateString();
     const endDate = campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '미정';
     const images = [campaign.thumbnail_url, campaign.sub_image_1, campaign.sub_image_2].filter(Boolean);
-    
+
     // Robust Option Extraction
     const getOptions = () => {
         // 1. Check product_options
@@ -305,10 +333,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // 캠페인 소개 (Step1에서 입력)
     const campaignIntro = campaign.description || campaign.experience_details || step1Data.experienceDetails || '';
-    
+
     // 상세 가이드 (Step2에서 입력)
     const missionGuide = campaign.mission_guide || step2Data.missionGuide || step2Data.reviewMissionContent || '';
-    
+
     const keywords = Array.isArray(campaign.keywords) ? campaign.keywords :
         Array.isArray(step2Data.keywords) ? step2Data.keywords :
             typeof step2Data.blogMainKeyword === 'string' ? [step2Data.blogMainKeyword, ...(step2Data.blogSubKeywords || [])] : [];
@@ -358,7 +386,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </h1>
 
                         {/* Main Image Slider */}
-                        <div className="w-full bg-white rounded-3xl aspect-[16/10] border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-lg group">
+                        <div className="w-full bg-white rounded-3xl aspect-[4/3] border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-lg group">
                             {images.length > 0 ? (
                                 <>
                                     <img
@@ -419,7 +447,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 </div>
                                 <h2 className="text-2xl font-black text-gray-900">체험 미션</h2>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-5 rounded-2xl border border-orange-200">
                                     <p className="text-xs text-orange-600 font-bold mb-2 uppercase tracking-wider flex items-center gap-1.5">
@@ -473,7 +501,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         <p className="text-sm font-black text-gray-900">{startDate.replace('2025. ', '').replace('2026. ', '')}</p>
                                         <p className="text-[10px] text-gray-500 mt-0.5">~ {endDate.replace('2025. ', '').replace('2026. ', '')}</p>
                                     </div>
-                                    
+
                                     {/* 신청 인원 */}
                                     <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 rounded-2xl border border-blue-200">
                                         <p className="text-[10px] text-blue-600 font-bold mb-1.5 uppercase tracking-wider">👥 신청 인원</p>
@@ -488,159 +516,157 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                 <div className="h-px bg-gray-100 mb-6"></div>
 
-                        <h2 className="text-xl font-black text-gray-900 mb-2">신청 정보</h2>
-                        <p className="text-xs text-gray-400 mb-6 font-medium">원하는 옵션과 메시지를 남겨주세요.</p>
+                                <h2 className="text-xl font-black text-gray-900 mb-2">신청 정보</h2>
+                                <p className="text-xs text-gray-400 mb-6 font-medium">원하는 옵션과 메시지를 남겨주세요.</p>
 
-                        {!hasApplied ? (
-                            <div className="space-y-4">
-                                {options.length > 0 && (
+                                {!hasApplied ? (
                                     <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
-                                                {campaign.option_config?.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
-                                            </p>
-                                            {campaign.option_config?.mode !== 'SINGLE' && (
-                                                <p className="text-[10px] text-rose-500 font-bold">
-                                                    {selectedOptions.length} / {campaign.option_config?.maxSelect || 1} 선택됨
-                                                </p>
-                                            )}
-                                        </div>
+                                        {options.length > 0 && (
+                                            <div className="space-y-4">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                                                        {campaign.option_config?.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
+                                                    </p>
+                                                    {campaign.option_config?.mode !== 'SINGLE' && (
+                                                        <p className="text-[10px] text-rose-500 font-bold">
+                                                            {selectedOptions.length} / {campaign.option_config?.maxSelect || 1} 선택됨
+                                                        </p>
+                                                    )}
+                                                </div>
 
-                                        <div className="flex flex-col gap-2">
-                                            {options.map((opt: any, idx: number) => {
-                                                const label = typeof opt === 'object' ? opt.optionName : opt;
-                                                const config = campaign.option_config || { mode: 'SINGLE', maxSelect: 1 };
-                                                
-                                                // Find if this option is already selected and at what rank
-                                                const selectedIdx = selectedOptions.findIndex(s => (typeof s === 'object' ? s.optionName : s) === label);
-                                                const isSelected = selectedIdx !== -1;
+                                                <div className="flex flex-col gap-2">
+                                                    {options.map((opt: any, idx: number) => {
+                                                        const label = typeof opt === 'object' ? opt.optionName : opt;
+                                                        const config = campaign.option_config || { mode: 'SINGLE', maxSelect: 1 };
 
-                                                const handleOptionClick = () => {
-                                                    if (config.mode === 'SINGLE') {
-                                                        setSelectedOptions([opt]);
-                                                    } else if (config.mode === 'MULTI') {
-                                                        if (isSelected) {
-                                                            setSelectedOptions(selectedOptions.filter((_, i) => i !== selectedIdx));
-                                                        } else {
-                                                            if (selectedOptions.length < (config.maxSelect || 1)) {
-                                                                setSelectedOptions([...selectedOptions, opt]);
-                                                            } else {
-                                                                toast.error(`최대 ${config.maxSelect}개까지 선택 가능합니다.`);
+                                                        // Find if this option is already selected and at what rank
+                                                        const selectedIdx = selectedOptions.findIndex(s => (typeof s === 'object' ? s.optionName : s) === label);
+                                                        const isSelected = selectedIdx !== -1;
+
+                                                        const handleOptionClick = () => {
+                                                            if (config.mode === 'SINGLE') {
+                                                                setSelectedOptions([opt]);
+                                                            } else if (config.mode === 'MULTI') {
+                                                                if (isSelected) {
+                                                                    setSelectedOptions(selectedOptions.filter((_, i) => i !== selectedIdx));
+                                                                } else {
+                                                                    if (selectedOptions.length < (config.maxSelect || 1)) {
+                                                                        setSelectedOptions([...selectedOptions, opt]);
+                                                                    } else {
+                                                                        toast.error(`최대 ${config.maxSelect}개까지 선택 가능합니다.`);
+                                                                    }
+                                                                }
+                                                            } else if (config.mode === 'RANKED') {
+                                                                if (isSelected) {
+                                                                    // Remove from rank
+                                                                    setSelectedOptions(selectedOptions.filter((_, i) => i !== selectedIdx));
+                                                                } else {
+                                                                    if (selectedOptions.length < (config.maxSelect || 1)) {
+                                                                        setSelectedOptions([...selectedOptions, opt]);
+                                                                    } else {
+                                                                        toast.error(`최대 ${config.maxSelect}순위까지 선택 가능합니다.`);
+                                                                    }
+                                                                }
                                                             }
-                                                        }
-                                                    } else if (config.mode === 'RANKED') {
-                                                        if (isSelected) {
-                                                            // Remove from rank
-                                                            setSelectedOptions(selectedOptions.filter((_, i) => i !== selectedIdx));
-                                                        } else {
-                                                            if (selectedOptions.length < (config.maxSelect || 1)) {
-                                                                setSelectedOptions([...selectedOptions, opt]);
-                                                            } else {
-                                                                toast.error(`최대 ${config.maxSelect}순위까지 선택 가능합니다.`);
-                                                            }
-                                                        }
-                                                    }
-                                                };
+                                                        };
 
-                                                return (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={handleOptionClick}
-                                                        className={`group relative w-full px-4 py-2.5 rounded-xl border text-left transition-all overflow-hidden ${
-                                                            isSelected 
-                                                            ? 'border-rose-500 bg-rose-50/50' 
-                                                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
-                                                        }`}
-                                                    >
-                                                        <div className="flex items-center justify-between">
-                                                        <div className="flex flex-col gap-1 flex-1">
-                                                            <p className={`text-xs font-bold ${isSelected ? 'text-rose-600' : 'text-gray-700'}`}>
-                                                                {label}
-                                                            </p>
-                                                            {/* 가액/인원 노출 (0인 경우 숨김) */}
-                                                            {typeof opt === 'object' && (
-                                                                <div className="flex items-center gap-2">
-                                                                    {opt.optionPrice && opt.optionPrice !== '0' && (
-                                                                        <span className="text-[10px] text-gray-400 font-medium">
-                                                                            ({opt.optionPrice.toLocaleString()}원 상당)
+                                                        return (
+                                                            <button
+                                                                key={idx}
+                                                                onClick={handleOptionClick}
+                                                                className={`group relative w-full px-4 py-2.5 rounded-xl border text-left transition-all overflow-hidden ${isSelected
+                                                                    ? 'border-rose-500 bg-rose-50/50'
+                                                                    : 'border-gray-100 bg-gray-50/50 hover:border-gray-200'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex flex-col gap-1 flex-1">
+                                                                        <p className={`text-xs font-bold ${isSelected ? 'text-rose-600' : 'text-gray-700'}`}>
+                                                                            {label}
+                                                                        </p>
+                                                                        {/* 가액/인원 노출 (0인 경우 숨김) */}
+                                                                        {typeof opt === 'object' && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                {opt.optionPrice && opt.optionPrice !== '0' && (
+                                                                                    <span className="text-[10px] text-gray-400 font-medium">
+                                                                                        ({opt.optionPrice.toLocaleString()}원 상당)
+                                                                                    </span>
+                                                                                )}
+                                                                                {opt.recruitmentCount && opt.recruitmentCount !== '0' && (
+                                                                                    <span className="text-[10px] text-blue-500/70 font-bold bg-blue-50 px-1.5 py-0.5 rounded">
+                                                                                        모집 {opt.recruitmentCount}명
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    {isSelected && config.mode === 'RANKED' && (
+                                                                        <span className="px-2 py-0.5 bg-rose-500 text-white rounded-md text-[10px] font-black">
+                                                                            {selectedIdx + 1}지망
                                                                         </span>
                                                                     )}
-                                                                    {opt.recruitmentCount && opt.recruitmentCount !== '0' && (
-                                                                        <span className="text-[10px] text-blue-500/70 font-bold bg-blue-50 px-1.5 py-0.5 rounded">
-                                                                            모집 {opt.recruitmentCount}명
-                                                                        </span>
+                                                                    {isSelected && config.mode === 'MULTI' && (
+                                                                        <div className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center">
+                                                                            <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        </div>
                                                                     )}
                                                                 </div>
-                                                            )}
-                                                        </div>
-                                                            {isSelected && config.mode === 'RANKED' && (
-                                                                <span className="px-2 py-0.5 bg-rose-500 text-white rounded-md text-[10px] font-black">
-                                                                    {selectedIdx + 1}지망
-                                                                </span>
-                                                            )}
-                                                            {isSelected && config.mode === 'MULTI' && (
-                                                                <div className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center">
-                                                                    <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                                                    </svg>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {selectedOptions.length > 0 && campaign.option_config?.mode === 'RANKED' && (
+                                            <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                                <p className="text-[9px] font-black text-slate-400 uppercase mb-2">현재 선택 순위</p>
+                                                <div className="space-y-1">
+                                                    {selectedOptions.map((s, i) => (
+                                                        <p key={i} className="text-[11px] text-gray-600 flex items-center gap-2">
+                                                            <span className="w-3.5 h-3.5 bg-rose-100 text-rose-600 rounded flex items-center justify-center text-[8px] font-black">{i + 1}</span>
+                                                            {typeof s === 'object' ? s.optionName : s}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">전달 메시지</p>
+                                            <textarea
+                                                value={applicationMessage}
+                                                onChange={(e) => setApplicationMessage(e.target.value)}
+                                                placeholder="광고주님이 좋아할 어필 포인트를 적어주세요!"
+                                                className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-rose-300 focus:bg-white outline-none transition-all placeholder:text-gray-300 min-h-[100px] resize-none"
+                                            />
                                         </div>
+
+                                        <button
+                                            onClick={handleApply}
+                                            disabled={isClosed || !user}
+                                            className={`w-full py-4 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${isClosed
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                                                : !user
+                                                    ? 'bg-gray-800 text-white'
+                                                    : 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200'
+                                                }`}
+                                        >
+                                            {isClosed ? closureText : user ? '캠페인 신청하기' : '로그인이 필요합니다'}
+                                            {!isClosed && <ArrowRight size={18} />}
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-4">
+                                        <div className="p-6 bg-emerald-50 rounded-2xl text-emerald-600 mb-6 font-bold text-sm">
+                                            신청 완료된 캠페인입니다 ✨
+                                        </div>
+                                        <button onClick={() => setShowCancelDialog(true)} className="text-gray-400 hover:text-rose-500 text-xs font-bold underline transition-all underline-offset-4">신청 취소하기</button>
                                     </div>
                                 )}
-
-                                {selectedOptions.length > 0 && campaign.option_config?.mode === 'RANKED' && (
-                                    <div className="p-3 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase mb-2">현재 선택 순위</p>
-                                        <div className="space-y-1">
-                                            {selectedOptions.map((s, i) => (
-                                                <p key={i} className="text-[11px] text-gray-600 flex items-center gap-2">
-                                                    <span className="w-3.5 h-3.5 bg-rose-100 text-rose-600 rounded flex items-center justify-center text-[8px] font-black">{i + 1}</span>
-                                                    {typeof s === 'object' ? s.optionName : s}
-                                                </p>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">전달 메시지</p>
-                                    <textarea
-                                        value={applicationMessage}
-                                        onChange={(e) => setApplicationMessage(e.target.value)}
-                                        placeholder="광고주님이 좋아할 어필 포인트를 적어주세요!"
-                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm focus:border-rose-300 focus:bg-white outline-none transition-all placeholder:text-gray-300 min-h-[100px] resize-none"
-                                    />
-                                </div>
-
-                                <button
-                                    onClick={handleApply}
-                                    disabled={isClosed || !user}
-                                    className={`w-full py-4 rounded-xl text-base font-black flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] ${
-                                        isClosed 
-                                        ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' 
-                                        : !user 
-                                            ? 'bg-gray-800 text-white' 
-                                            : 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200'
-                                    }`}
-                                >
-                                    {isClosed ? closureText : user ? '캠페인 신청하기' : '로그인이 필요합니다'}
-                                    {!isClosed && <ArrowRight size={18} />}
-                                </button>
                             </div>
-                        ) : (
-                            <div className="text-center py-4">
-                                <div className="p-6 bg-emerald-50 rounded-2xl text-emerald-600 mb-6 font-bold text-sm">
-                                    신청 완료된 캠페인입니다 ✨
-                                </div>
-                                <button onClick={() => setShowCancelDialog(true)} className="text-gray-400 hover:text-rose-500 text-xs font-bold underline transition-all underline-offset-4">신청 취소하기</button>
-                            </div>
-                        )}
-                    </div>
                         </div>
                     </div>
                 </div>

@@ -131,7 +131,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
         <section className="relative w-full overflow-hidden py-10 bg-white">
             <Carousel
                 setApi={setApi}
-                className="w-full h-[320px] relative"
+                className="w-full h-[300px] relative"
                 onMouseEnter={() => { isPausedRef.current = true; }}
                 onMouseLeave={() => { isPausedRef.current = false; }}
                 opts={{
@@ -141,11 +141,11 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                     slidesToScroll: 1,
                 }}
             >
-                <CarouselContent className="h-[320px] -ml-4">
+                <CarouselContent className="h-[300px] -ml-4">
                     {displayItems.map((item, index) => (
                         <CarouselItem
                             key={`${item.id}-${index}`}
-                            className="pl-4 basis-[600px] grow-0 shrink-0 transition-all duration-700 ease-in-out"
+                            className="pl-4 basis-[500px] grow-0 shrink-0 transition-all duration-700 ease-in-out"
                         >
                             <div className="h-full py-2">
                                 <Link href={item.link_url} className="block group h-full">
@@ -155,8 +155,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                             <img
                                                 src={item.image_url}
                                                 alt={item.title}
-                                                className="absolute inset-0 w-full h-full object-cover transition-transform group-hover:scale-105"
-                                                style={{ transitionDuration: '4000ms' }}
+                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                             />
                                             {/* Badges Overlay (Top) */}
                                             <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-10">
@@ -191,9 +190,9 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                             </div>
 
                                             {/* Premium Glass Bar (Bottom) - Plan A */}
-                                            <div className="absolute inset-x-0 bottom-0 py-1.5 md:py-2 px-4 md:px-6 bg-black/[0.04] backdrop-blur-md border-t border-white/10 z-10 transition-colors group-hover:bg-black/[0.08]">
+                                            <div className="absolute inset-x-0 bottom-0 py-1.5 md:py-2 px-4 md:px-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 z-10 transition-all duration-500">
                                                 <div className="flex items-center justify-between gap-4">
-                                                    <h3 className="text-lg md:text-2xl font-black text-white leading-tight tracking-tight line-clamp-1 flex-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                                    <h3 className="text-lg md:text-2xl font-bold text-white leading-tight tracking-tight line-clamp-1 flex-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                                                         {item.title}
                                                     </h3>
 
@@ -224,7 +223,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
 
                 {/* Modern Slim Progress Bar - Plan B */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[200px] h-[2px] bg-white/20 z-20 rounded-full overflow-hidden">
-                    <div 
+                    <div
                         className="h-full bg-rose-500 transition-all duration-500 ease-out"
                         style={{ width: `${(current / count) * 100}%` }}
                     />

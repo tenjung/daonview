@@ -44,7 +44,7 @@ export const PlatformBadge = ({ platform }: { platform: string }) => {
     }
 
     return (
-        <div className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
+        <div className={`inline-flex items-center justify-center gap-0.5 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-lg text-[9px] md:text-[11px] font-semibold ${colorClass}`}>
             {icon}
             <span className="leading-none pt-[1px]">{label}</span>
         </div>
@@ -74,7 +74,7 @@ export const TypeBadge = ({ type }: { type?: string }) => {
     }
 
     return (
-        <span className={`inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold ${colorClass}`}>
+        <span className={`inline-flex items-center justify-center gap-0.5 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-lg text-[9px] md:text-[11px] font-semibold ${colorClass}`}>
             {icon}
             <span className="leading-none pt-[1px]">{label}</span>
         </span>
@@ -83,7 +83,7 @@ export const TypeBadge = ({ type }: { type?: string }) => {
 
 export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
-    
+
     useEffect(() => {
         setMounted(true);
     }, []);
@@ -93,14 +93,14 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
     // Calculate percentage
     const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
-    
+
     const { addItem, removeItem, isInCart } = useCartStore();
     const isWished = id ? isInCart(id) : false;
 
     const toggleWish = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (!id) return;
 
         if (isWished) {
@@ -139,11 +139,10 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     </span>
                     <button
                         onClick={toggleWish}
-                        className={`p-2 rounded-full shadow-lg transition-all duration-300 ${
-                            (mounted && isWished) 
-                            ? 'bg-rose-500 text-white' 
-                            : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
-                        }`}
+                        className={`p-2 rounded-full shadow-lg transition-all duration-300 ${(mounted && isWished)
+                                ? 'bg-rose-500 text-white'
+                                : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
+                            }`}
                     >
                         <Heart className={`w-4 h-4 ${(mounted && isWished) ? 'fill-current' : ''}`} />
                     </button>

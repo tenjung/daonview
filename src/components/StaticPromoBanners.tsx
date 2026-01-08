@@ -42,7 +42,7 @@ export default function StaticPromoBanners() {
     ];
 
     return (
-        <section className="container py-8">
+        <section className="container py-4">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
@@ -52,8 +52,8 @@ export default function StaticPromoBanners() {
                             key={banner.id}
                             href={banner.link}
                             className={`${banner.bgColor} rounded-xl p-5 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-row items-center gap-4 ${isSpecial
-                                    ? 'shadow-lg shadow-rose-100 ring-2 ring-rose-400/20 hover:scale-[1.03] hover:shadow-xl'
-                                    : 'hover:shadow-xl hover:scale-[1.02]'
+                                ? 'shadow-lg shadow-rose-100 ring-2 ring-rose-400/20 hover:scale-[1.03] hover:shadow-xl'
+                                : 'hover:shadow-xl hover:scale-[1.02]'
                                 }`}
                         >
                             {/* Background Pattern - Subtle */}

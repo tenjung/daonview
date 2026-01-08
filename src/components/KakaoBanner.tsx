@@ -8,11 +8,11 @@ export default function KakaoBanner() {
     return (
         <section className="w-full bg-[#FEE500] overflow-hidden border-y border-[#E6CF00] relative">
             <div className="max-w-[1200px] mx-auto px-4 md:px-10 min-h-[160px] lg:min-h-[180px] flex flex-col lg:flex-row items-center justify-between relative z-10 gap-6 lg:gap-0 py-8 lg:py-0">
-                
+
                 {/* Left: Brand Identity & Message */}
                 <div className="flex flex-col md:flex-row items-center gap-6 lg:gap-12 w-full lg:w-auto">
                     {/* Brand ID */}
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
@@ -24,12 +24,12 @@ export default function KakaoBanner() {
                             <span className="text-3xl lg:text-5xl font-black text-rose-600">DAONVIEW</span>
                         </div>
                     </motion.div>
-                    
+
                     {/* Divider (Desktop Only) */}
                     <div className="h-14 w-[1px] bg-[#3A1D1D]/10 hidden lg:block"></div>
 
                     {/* Message */}
-                    <motion.p 
+                    <motion.p
                         initial={{ opacity: 0, y: 10 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -50,7 +50,7 @@ export default function KakaoBanner() {
                     className="shrink-0"
                 >
                     <motion.a
-                        href="http://pf.kakao.com/_xbxhDgn/chat" 
+                        href="http://pf.kakao.com/_xbxhDgn/chat"
                         target="_blank"
                         rel="noopener noreferrer"
                         whileHover={{ scale: 1.05 }}
@@ -66,16 +66,16 @@ export default function KakaoBanner() {
 
             {/* Background Decorations (High Fidelity Visuals) */}
             <div className="absolute top-0 right-0 w-1/2 h-full pointer-events-none overflow-hidden select-none">
-                
+
                 {/* Floating Elements - Rose Pink & Brown */}
-                <motion.div 
+                <motion.div
                     animate={{ y: [0, -15, 0], x: [0, 10, 0], rotate: [0, 10, 0] }}
                     transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute top-10 right-[40%] text-3xl blur-[1px] opacity-40"
                 >
                     💖
                 </motion.div>
-                <motion.div 
+                <motion.div
                     animate={{ y: [0, 15, 0], x: [0, -10, 0], rotate: [0, -10, 0] }}
                     transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                     className="absolute bottom-10 right-[45%] text-2xl blur-[0.5px] opacity-30"
@@ -85,12 +85,12 @@ export default function KakaoBanner() {
 
                 {/* Smartphone Mockup Container */}
                 <div className="absolute right-[-20px] lg:right-10 top-1/2 -translate-y-1/2 h-full flex items-center">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0, x: 50, rotate: 15 }}
                         whileInView={{ opacity: 1, x: 0, rotate: -8 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.8 }}
-                        className="relative w-[180px] lg:w-[220px] h-[320px] lg:h-[380px] bg-[#3A1D1D] rounded-[2.5rem] border-[6px] border-[#3A1D1D] shadow-[0_25px_50px_-12px_rgba(58,29,29,0.5)] overflow-hidden transform perspective-1000 origin-bottom"
+                        className="relative w-[90px] lg:w-[220px] h-[160px] lg:h-[380px] bg-[#3A1D1D] rounded-[1.25rem] lg:rounded-[2.5rem] border-[3px] lg:border-[6px] border-[#3A1D1D] shadow-[0_25px_50px_-12px_rgba(58,29,29,0.5)] overflow-hidden transform perspective-1000 origin-bottom"
                     >
                         {/* Status Bar */}
                         <div className="w-full h-6 bg-[#3A1D1D] flex justify-center items-end pb-1 gap-1">
@@ -115,7 +115,7 @@ export default function KakaoBanner() {
 
                             {/* Chat Bubbles */}
                             <div className="space-y-2">
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.5 }}
@@ -126,7 +126,7 @@ export default function KakaoBanner() {
                                     </span>
                                 </motion.div>
 
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     whileInView={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 1.2 }}
@@ -137,7 +137,7 @@ export default function KakaoBanner() {
                                     </span>
                                 </motion.div>
 
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, scale: 0.9 }}
                                     whileInView={{ opacity: 1, scale: 1 }}
                                     transition={{ delay: 1.8 }}
@@ -153,7 +153,7 @@ export default function KakaoBanner() {
                     </motion.div>
 
                     {/* Notification Badge Floating */}
-                    <motion.div 
+                    <motion.div
                         animate={{ scale: [1, 1.1, 1], y: [0, -5, 0] }}
                         transition={{ duration: 2, repeat: Infinity }}
                         className="absolute top-10 right-0 lg:right-10 z-20 w-12 h-12 bg-[#FEE500] rounded-2xl border-2 border-[#3A1D1D] shadow-xl flex items-center justify-center"

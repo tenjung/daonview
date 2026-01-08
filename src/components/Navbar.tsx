@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown } from 'lucide-react';
+import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -97,12 +97,13 @@ export default function Navbar() {
         <div className="hidden lg:flex items-center gap-8 h-full">
           <Link
             href="/campaigns"
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/campaigns')
+            className={`font-medium transition-colors h-full flex items-center gap-1.5 border-b-[3px] ${isActive('/campaigns')
               ? 'text-primary border-primary'
               : 'text-text-secondary border-transparent hover:text-primary'
               }`}
           >
             캠페인
+            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-full animate-pulse">NEW</span>
           </Link>
           <Link
             href="/reviews"
@@ -113,17 +114,7 @@ export default function Navbar() {
           >
             리뷰
           </Link>
-          {profile?.role === 'INFLUENCER' && (
-            <Link
-              href="/recommended"
-              className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/recommended')
-                ? 'text-primary border-primary'
-                : 'text-text-secondary border-transparent hover:text-primary'
-                }`}
-            >
-              맞춤 캠페인
-            </Link>
-          )}
+
           <Link
             href="/community"
             className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${isActive('/community')
@@ -133,32 +124,65 @@ export default function Navbar() {
           >
             커뮤니티
           </Link>
-          <Link href="/ai-service" className="flex items-center gap-1.5 font-bold text-sm bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white px-4 py-2 rounded-full hover:shadow-lg hover:shadow-violet-500/30 transition-all hover:-translate-y-0.5 border-none">
-            <Wand2 size={16} className="text-white" />
+          <Link
+            href="/ai-service"
+            className={`font-medium transition-colors h-full flex items-center gap-1.5 border-b-[3px] ${isActive('/ai-service')
+              ? 'text-primary border-primary'
+              : 'text-text-secondary border-transparent hover:text-primary'
+              }`}
+          >
+            <Wand2 size={16} />
             <span>부가서비스</span>
           </Link>
         </div>
 
         {/* Desktop User Menu */}
         <div className="hidden lg:flex gap-6 items-center">
-          {/* Wishlist Capsule Button - Plan A */}
-          <Link 
-            href="/wishlist" 
-            className="group flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-gray-100 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all duration-300 shadow-sm hover:shadow-md h-10"
-          >
-            <Heart 
-              size={18} 
-              className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-gray-400 group-hover:text-rose-500'}`} 
-            />
-            <span className="text-[13px] font-bold text-gray-600 group-hover:text-rose-600 transition-colors whitespace-nowrap">
-              찜한 캠페인
-            </span>
-            {mounted && cartItems.length > 0 && (
-              <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full shadow-sm ring-1 ring-rose-300 transform transition-transform group-hover:scale-110">
-                {cartItems.length}
+          {/* Personalized Tools Group */}
+          {profile?.role === 'INFLUENCER' ? (
+            <div className="flex items-center p-1 bg-white border border-gray-100 rounded-full shadow-sm h-10">
+              <Link
+                href="/recommended"
+                className="flex items-center gap-1.5 px-3 py-1 pl-4 rounded-l-full hover:bg-violet-50 text-gray-500 hover:text-violet-600 transition-colors group"
+              >
+                <Sparkles size={15} className="group-hover:text-violet-500 transition-colors" />
+                <span className="text-[13px] font-bold">맞춤</span>
+              </Link>
+
+              <div className="w-[1px] h-4 bg-gray-200"></div>
+
+              <Link
+                href="/wishlist"
+                className="flex items-center gap-1.5 px-3 py-1 pr-4 rounded-r-full hover:bg-rose-50 text-gray-500 hover:text-rose-600 transition-colors group relative"
+              >
+                <Heart size={15} className={`group-hover:scale-110 transition-transform ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'group-hover:text-rose-500'}`} />
+                <span className="text-[13px] font-bold">찜</span>
+                {mounted && cartItems.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full shadow-sm ring-2 ring-white">
+                    {cartItems.length}
+                  </span>
+                )}
+              </Link>
+            </div>
+          ) : (
+            <Link
+              href="/wishlist"
+              className="group flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-gray-100 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all duration-300 shadow-sm hover:shadow-md h-10"
+            >
+              <Heart
+                size={18}
+                className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-gray-400 group-hover:text-rose-500'}`}
+              />
+              <span className="text-[13px] font-bold text-gray-600 group-hover:text-rose-600 transition-colors whitespace-nowrap">
+                찜한 캠페인
               </span>
-            )}
-          </Link>
+              {mounted && cartItems.length > 0 && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full shadow-sm ring-1 ring-rose-300 transform transition-transform group-hover:scale-110">
+                  {cartItems.length}
+                </span>
+              )}
+            </Link>
+          )}
 
           {(!mounted || isLoading) ? (
             <div className="flex gap-2 items-center">
@@ -266,7 +290,7 @@ export default function Navbar() {
       )}
 
       {/* Mobile Menu Drawer */}
-      <div className={`fixed top-[70px] right-0 h-[calc(100vh-70px)] w-[280px] bg-white shadow-2xl z-[95] transform transition-transform duration-300 ease-in-out lg:hidden ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+      <div className={`fixed top-0 right-0 h-screen w-[280px] bg-white shadow-2xl z-[95] transform transition-transform duration-300 ease-in-out lg:hidden ${mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}>
         <div className="flex flex-col h-full">
           {/* User Info Section */}
@@ -299,12 +323,13 @@ export default function Navbar() {
               <Link
                 href="/campaigns"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/campaigns')
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 flex items-center justify-between ${isActive('/campaigns')
                   ? 'bg-rose-50 text-primary border-primary'
                   : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
                   }`}
               >
-                캠페인
+                <span>캠페인</span>
+                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-full">NEW</span>
               </Link>
               <Link
                 href="/reviews"
@@ -316,18 +341,6 @@ export default function Navbar() {
               >
                 리뷰
               </Link>
-              {profile?.role === 'INFLUENCER' && (
-                <Link
-                  href="/recommended"
-                  onClick={closeMobileMenu}
-                  className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${isActive('/recommended')
-                    ? 'bg-rose-50 text-primary border-primary'
-                    : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
-                    }`}
-                >
-                  맞춤 캠페인
-                </Link>
-              )}
               <Link
                 href="/community"
                 onClick={closeMobileMenu}
@@ -341,11 +354,47 @@ export default function Navbar() {
               <Link
                 href="/ai-service"
                 onClick={closeMobileMenu}
-                className="flex items-center gap-2 px-4 py-3 rounded-lg font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 text-white hover:shadow-lg transition-all mt-2"
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 flex items-center gap-2 ${isActive('/ai-service')
+                  ? 'bg-rose-50 text-primary border-primary'
+                  : 'text-text-secondary border-transparent hover:bg-rose-50 hover:text-primary'
+                  }`}
               >
-                <Wand2 size={18} />
+                <Wand2 size={16} />
                 <span>부가서비스</span>
               </Link>
+
+              {/* Wishlist & Custom Campaign */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                {profile?.role === 'INFLUENCER' && (
+                  <Link
+                    href="/recommended"
+                    onClick={closeMobileMenu}
+                    className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 flex items-center gap-2 ${isActive('/recommended')
+                      ? 'bg-violet-50 text-violet-600 border-violet-600'
+                      : 'text-gray-600 border-transparent hover:bg-violet-50 hover:text-violet-600'
+                      }`}
+                  >
+                    <Sparkles size={16} />
+                    <span>맞춤 캠페인</span>
+                  </Link>
+                )}
+                <Link
+                  href="/wishlist"
+                  onClick={closeMobileMenu}
+                  className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 flex items-center gap-2 ${isActive('/wishlist')
+                    ? 'bg-rose-50 text-rose-600 border-rose-600'
+                    : 'text-gray-600 border-transparent hover:bg-rose-50 hover:text-rose-600'
+                    }`}
+                >
+                  <Heart size={16} className={mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''} />
+                  <span>찜한 캠페인</span>
+                  {mounted && cartItems.length > 0 && (
+                    <span className="ml-auto px-2 py-0.5 bg-rose-500 text-white text-xs font-bold rounded-full">
+                      {cartItems.length}
+                    </span>
+                  )}
+                </Link>
+              </div>
 
               {/* Dashboard Links */}
               {user && (

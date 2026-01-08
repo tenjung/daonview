@@ -60,12 +60,12 @@ export default async function Home() {
             <StaticPromoBanners />
 
             {/* New Campaigns Section (4 items) */}
-            <section className="bg-gradient-to-b from-white to-rose-50 pt-16 pb-8">
+            <section className="bg-gradient-to-b from-white to-rose-50 pt-8 pb-8">
                 <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex justify-between items-end mb-8">
                         <div>
                             <span className="inline-block bg-pink-100 text-primary px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">NEW ARRIVALS</span>
-                            <h2 className="text-3xl font-black text-text-main flex items-center gap-2">
+                            <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
                                 따끈따끈 신규 캠페인 <span className="text-primary">🔥</span>
                             </h2>
                         </div>
@@ -87,7 +87,7 @@ export default async function Home() {
                     <div className="flex justify-between items-end mb-8">
                         <div>
                             <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">HOT & POPULAR</span>
-                            <h2 className="text-3xl font-black text-text-main flex items-center gap-2">
+                            <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
                                 인기 폭발! 베스트 체험단 <span className="text-amber-400">🏆</span>
                             </h2>
                         </div>
