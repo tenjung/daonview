@@ -22,7 +22,10 @@ function AdminSidebarContent() {
         return pathname === path;
     };
 
-    const isInCampaignSection = pathname.includes('/dashboard/admin/campaigns') || pathname.includes('/dashboard/campaign/new');
+    const isInCampaignSection =
+        pathname.includes('/dashboard/admin/campaigns') ||
+        pathname.includes('/dashboard/campaign/new') ||
+        pathname.match(/\/dashboard\/admin\/campaigns\/\d+/);
 
     return (
         <aside className="w-[260px] bg-white border-r border-border p-8 flex flex-col shrink-0">
@@ -90,6 +93,18 @@ function AdminSidebarContent() {
                             >
                                 진행 중
                             </Link>
+
+                            {/* 신청자 관리 - 현재 페이지가 특정 캠페인의 신청자 관리 페이지인 경우 표시 */}
+                            {pathname.match(/\/dashboard\/admin\/campaigns\/(\d+)/) && (
+                                <div className="ml-4 pl-4 border-l-2 border-rose-50">
+                                    <div
+                                        className="block px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white"
+                                    >
+                                        📋 신청자 관리
+                                    </div>
+                                </div>
+                            )}
+
                             <Link
                                 href="/dashboard/admin/campaigns?type=completed"
                                 className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'completed')

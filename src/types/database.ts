@@ -117,3 +117,56 @@ export interface Application {
 
     [key: string]: any;
 }
+
+export interface InfluencerReview {
+    id: number;
+    influencer_id: string;
+    reviewer_id: string;
+    campaign_id?: number;
+    rating_tags: string[];
+    comment?: string;
+    created_at: string;
+    updated_at: string;
+
+    // Joins
+    reviewer?: Profile;
+    campaign?: Campaign;
+
+    [key: string]: any;
+}
+
+export interface InfluencerStats {
+    id: number;
+    user_id: string;
+    platform: string;
+    blog_url: string;
+
+    // 기본 지표
+    visitor_today: number;
+    visitor_yesterday: number;
+    visitor_total: number;
+    neighbor_count: number;
+
+    // 활동 지표
+    avg_likes: number;
+    avg_comments: number;
+    avg_engagement: number;
+
+    // 컨텐츠 분석
+    main_categories: string[];
+    category_stats?: any;
+    recent_posts?: any[];
+
+    // 종합 점수
+    influence_score: number;
+
+    // 메타 정보
+    last_crawled_at?: string;
+    crawl_status: string;
+    crawl_error?: string;
+    created_at: string;
+    updated_at: string;
+
+    [key: string]: any;
+}
+

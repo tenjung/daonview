@@ -136,14 +136,13 @@ export default function ProfileEditPage() {
                         avatar_url: data.avatar_url || ''
                     });
 
-                    // 소셜 링크 데이터 로드 (JSON 또는 개별 필드)
-                    const links = data.social_links || {};
+                    // sns_url을 blog 링크로 매핑
                     setSocialLinks({
-                        blog: links.blog || '',
-                        instagram: links.instagram || '',
-                        youtube: links.youtube || '',
-                        tiktok: links.tiktok || '',
-                        other: links.other || ''
+                        blog: data.sns_url || '',
+                        instagram: '',
+                        youtube: '',
+                        tiktok: '',
+                        other: ''
                     });
 
                     setSelectedPlatforms(data.preferred_platforms || []);
@@ -169,28 +168,48 @@ export default function ProfileEditPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            const { error } = await supabase
+            // 업데이트할 데이터 준비
+            const updateData: any = {
+                nickname: formData.nickname,
+                phone_number: formData.phone_number,
+                company_name: formData.company_name,
+            };
+
+            // social_links를 sns_url로 변환 (블로그 링크만 저장)
+            if (socialLinks.blog) {
+                updateData.sns_url = socialLinks.blog;
+            }
+
+            console.log('Updating profile with data:', updateData);
+
+            const { data, error } = await supabase
                 .from('profiles')
-                .update({
-                    nickname: formData.nickname,
-                    phone_number: formData.phone_number,
-                    company_name: formData.company_name,
-                    avatar_url: formData.avatar_url,
-                    social_links: socialLinks
-                })
-                .eq('id', session.user.id);
+                .update(updateData)
+                .eq('id', session.user.id)
+                .select();
 
-            if (error) throw error;
+            if (error) {
+                console.error('Supabase error details:', {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
+                throw error;
+            }
 
+            console.log('Update successful:', data);
             toast.success('기본 정보가 성공적으로 업데이트되었습니다.');
-            
+
             // 전역 스토어 프로필 갱신
             if (session.user.id) {
                 await fetchProfile(session.user.id);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error updating profile:', error);
-            toast.error('프로필 업데이트에 실패했습니다.');
+            console.error('Error type:', typeof error);
+            console.error('Error keys:', Object.keys(error || {}));
+            toast.error(error?.message || '프로필 업데이트에 실패했습니다.');
         } finally {
             setSaving(false);
         }

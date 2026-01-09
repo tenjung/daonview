@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import { Check, X, Eye, Calendar } from 'lucide-react';
+import { Check, X, Eye, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -243,12 +243,20 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                                 </button>
                                             </>
                                         ) : (
-                                            <Link
-                                                href={`/campaigns/${cam.id}`}
-                                                className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
-                                            >
-                                                <Eye size={14} /> 상세보기
-                                            </Link>
+                                            <>
+                                                <Link
+                                                    href={`/dashboard/admin/campaigns/${cam.id}`}
+                                                    className="flex items-center gap-1 bg-primary text-white px-3 py-1.5 rounded-lg hover:bg-primary/90 transition-colors font-bold text-xs shadow-sm"
+                                                >
+                                                    <Users size={14} /> 신청자 관리
+                                                </Link>
+                                                <Link
+                                                    href={`/campaigns/${cam.id}`}
+                                                    className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
+                                                >
+                                                    <Eye size={14} /> 상세보기
+                                                </Link>
+                                            </>
                                         )}
                                     </div>
                                 </td>
