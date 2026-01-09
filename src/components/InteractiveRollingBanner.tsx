@@ -128,28 +128,28 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
     }
 
     return (
-        <section className="relative w-full overflow-hidden py-10 bg-white">
+        <section className="relative w-full overflow-hidden py-0 md:py-10 bg-white">
             <Carousel
                 setApi={setApi}
-                className="w-full h-[300px] relative"
+                className="w-full relative"
                 onMouseEnter={() => { isPausedRef.current = true; }}
                 onMouseLeave={() => { isPausedRef.current = false; }}
                 opts={{
-                    align: "center",
-                    loop: false, // Disable Loop for Yoyo
+                    align: "start",
+                    loop: false,
                     skipSnaps: false,
                     slidesToScroll: 1,
                 }}
             >
-                <CarouselContent className="h-[300px] -ml-4">
+                <CarouselContent className="h-[250px] md:h-[300px] ml-0 sm:-ml-4">
                     {displayItems.map((item, index) => (
                         <CarouselItem
                             key={`${item.id}-${index}`}
-                            className="pl-4 basis-[500px] grow-0 shrink-0 transition-all duration-700 ease-in-out"
+                            className="pl-0 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-[500px] grow-0 shrink-0 transition-all duration-700 ease-in-out h-full"
                         >
-                            <div className="h-full py-2">
+                            <div className="h-full py-0 sm:py-2">
                                 <Link href={item.link_url} className="block group h-full">
-                                    <Card className="overflow-hidden border-none shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] hover:shadow-[0_40px_80px_-20px_rgba(244,63,94,0.35)] transition-all duration-1000 rounded-2xl h-full relative border border-white/10 group-hover:border-rose-200/50">
+                                    <Card className="overflow-hidden border-none shadow-none sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] hover:shadow-none sm:hover:shadow-[0_40px_80px_-20px_rgba(244,63,94,0.35)] transition-all duration-1000 rounded-none sm:rounded-2xl h-full relative border-none sm:border sm:border-white/10 group-hover:border-rose-200/50">
                                         <CardContent className="p-0 h-full relative">
                                             {/* Background Image with Parallax-like effect */}
                                             <img
@@ -182,10 +182,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                                         )}
                                                     </div>
 
-                                                    {/* Top Right Decorative Icon */}
-                                                    <div className="h-8 w-8 rounded-full border border-white/30 flex items-center justify-center backdrop-blur-sm">
-                                                        <div className="h-2 w-2 rounded-full bg-white/50" />
-                                                    </div>
+
                                                 </div>
                                             </div>
 

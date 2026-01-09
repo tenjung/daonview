@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, Pin, PenSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import BoardList from "@/components/board/BoardList";
 
 interface NoticeBoardClientProps {
     initialPosts: any[];
@@ -56,50 +57,12 @@ export default function NoticeBoardClient({ initialPosts }: NoticeBoardClientPro
             </div>
 
             {/* 목록 */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                <div className="divide-y divide-gray-50">
-                    {posts.length === 0 ? (
-                        <div className="p-20 text-center text-gray-400">
-                            <Bell size={48} className="mx-auto text-gray-100 mb-4" />
-                            등록된 공지사항이 없습니다.
-                        </div>
-                    ) : (
-                        posts.map((post) => (
-                            <Link
-                                key={post.id}
-                                href={`/community/notice/${post.id}`}
-                                className={`block p-6 hover:bg-gray-50 transition-colors group ${post.is_pinned ? 'bg-primary/5' : ''}`}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            {post.is_pinned && (
-                                                <span className="flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                                                    <Pin size={10} />
-                                                    공지
-                                                </span>
-                                            )}
-                                            <span className="text-xs text-gray-400">
-                                                {new Date(post.created_at).toLocaleDateString('ko-KR', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
-                                            </span>
-                                        </div>
-                                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors truncate">
-                                            {post.title}
-                                        </h3>
-                                    </div>
-                                    <div className="text-xs text-gray-400 font-medium">
-                                        조회 {post.view_count || 0}
-                                    </div>
-                                </div>
-                            </Link>
-                        ))
-                    )}
-                </div>
-            </div>
+            <BoardList 
+                items={posts} 
+                title="공지사항" 
+                viewAllHref="/community/notice" 
+                isStandalone={true} 
+            />
         </div>
     );
 }

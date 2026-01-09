@@ -13,32 +13,33 @@ export default function CompanyInfo({
 }: CompanyInfoProps) {
   if (variant === 'footer') {
     return (
-      <div className={`grid grid-cols-2 gap-2 text-xs text-text-secondary ${className}`}>
-        <div className="flex gap-2">
-          <span className="font-medium text-text-main min-w-[70px]">상호명</span>
-          <span><strong>{COMPANY_INFO.name}</strong></span>
-        </div>
-        <div className="flex gap-2">
-          <span className="font-medium text-text-main min-w-[70px]">대표자명</span>
-          <span>{COMPANY_INFO.ceo}</span>
-        </div>
-        <div className="flex gap-2">
-          <span className="font-medium text-text-main min-w-[90px]">사업자등록번호</span>
-          <span>{COMPANY_INFO.businessNumber}</span>
-        </div>
-        <div className="flex gap-2">
-          <span className="font-medium text-text-main min-w-[70px]">전화번호</span>
-          <span>{COMPANY_INFO.phone}</span>
-        </div>
-        {showEmail && (
-          <div className="flex gap-2 col-span-2">
-            <span className="font-medium text-text-main min-w-[70px]">이메일</span>
-            <span>{COMPANY_INFO.email}</span>
+      <div className={`grid grid-cols-2 gap-x-16 text-xs text-text-secondary ${className}`}>
+        {/* 좌측: 상호명, 대표자명, 주소 */}
+        <div className="space-y-1.5">
+          <div className="flex gap-2">
+            <span className="font-medium text-text-main min-w-[70px]">상호명</span>
+            <span><strong>{COMPANY_INFO.name}</strong></span>
           </div>
-        )}
-        <div className="flex gap-2 col-span-2">
-          <span className="font-medium text-text-main min-w-[70px]">주소</span>
-          <span>{COMPANY_INFO.address}</span>
+          <div className="flex gap-2">
+            <span className="font-medium text-text-main min-w-[70px]">대표자명</span>
+            <span>{COMPANY_INFO.ceo}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="font-medium text-text-main min-w-[70px]">주소</span>
+            <span>{COMPANY_INFO.address}</span>
+          </div>
+        </div>
+
+        {/* 우측: 사업자등록번호, 전화번호 */}
+        <div className="space-y-1.5">
+          <div className="flex gap-2">
+            <span className="font-medium text-text-main min-w-[110px]">사업자등록번호</span>
+            <span>{COMPANY_INFO.businessNumber}</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="font-medium text-text-main min-w-[110px]">전화번호</span>
+            <span>{COMPANY_INFO.phone}</span>
+          </div>
         </div>
       </div>
     );

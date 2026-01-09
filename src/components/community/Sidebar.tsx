@@ -47,12 +47,12 @@ const menuItems = [
     },
     {
         title: "자주묻는문의",
-        href: "/faq",
+        href: "/community/faq",
         icon: HelpCircle,
     },
     {
         title: "이용가이드",
-        href: "/guide",
+        href: "/community/guide",
         icon: BookOpen,
     },
 ];

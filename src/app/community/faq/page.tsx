@@ -81,56 +81,54 @@ export default function FAQPage() {
     ];
 
     return (
-        <div className="bg-white min-h-screen pb-20">
-            <div className="bg-slate-50 border-b border-border py-16">
-                <div className="container text-center">
-                    <h1 className="text-4xl font-extrabold text-text-main mb-4">자주 묻는 질문 (FAQ)</h1>
+        <div className="bg-white">
+            <div className="bg-slate-50 border border-border rounded-xl py-12 mb-8">
+                <div className="text-center px-6">
+                    <h1 className="text-3xl font-extrabold text-text-main mb-3">자주 묻는 질문 (FAQ)</h1>
                     <p className="text-text-secondary">다온뷰 이용 중 궁금한 점을 빠르게 해결해 드립니다.</p>
                 </div>
             </div>
 
-            <div className="container max-w-3xl mt-12 px-6">
-                <div className="space-y-4">
-                    {faqData.map((item, idx) => (
-                        <div
-                            key={idx}
-                            className={`border rounded-xl bg-white transition-all duration-300 ${openIndex === idx ? 'border-primary shadow-md' : 'border-border'}`}
+            <div className="space-y-4">
+                {faqData.map((item, idx) => (
+                    <div
+                        key={idx}
+                        className={`border rounded-xl bg-white transition-all duration-300 ${openIndex === idx ? 'border-primary shadow-md' : 'border-border'}`}
+                    >
+                        <button
+                            onClick={() => toggleFAQ(idx)}
+                            className="w-full text-left p-6 font-bold text-lg flex justify-between items-start gap-4 hover:bg-slate-50 transition-colors rounded-t-xl"
                         >
-                            <button
-                                onClick={() => toggleFAQ(idx)}
-                                className="w-full text-left p-6 font-bold text-lg flex justify-between items-start gap-4 hover:bg-slate-50 transition-colors rounded-t-xl"
-                            >
-                                <div className="flex gap-3">
-                                    <span className="text-primary mt-0.5">Q.</span>
-                                    <span className="text-text-main leading-snug">{item.q}</span>
-                                </div>
-                                <span className={`transform transition-transform duration-300 text-slate-400 ${openIndex === idx ? 'rotate-180 text-primary' : ''}`}>
-                                    ▼
-                                </span>
-                            </button>
+                            <div className="flex gap-3">
+                                <span className="text-primary mt-0.5">Q.</span>
+                                <span className="text-text-main leading-snug">{item.q}</span>
+                            </div>
+                            <span className={`transform transition-transform duration-300 text-slate-400 ${openIndex === idx ? 'rotate-180 text-primary' : ''}`}>
+                                ▼
+                            </span>
+                        </button>
 
-                            <div
-                                className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === idx ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
-                            >
-                                <div className="p-6 pt-0 bg-white border-t border-slate-100/50 text-text-secondary leading-relaxed whitespace-pre-wrap">
-                                    <div className="pt-4 flex gap-3">
-                                        <span className="font-bold text-slate-800">A.</span>
-                                        <div>{item.a}</div>
-                                    </div>
+                        <div
+                            className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === idx ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
+                        >
+                            <div className="p-6 pt-0 bg-white border-t border-slate-100/50 text-text-secondary leading-relaxed whitespace-pre-wrap">
+                                <div className="pt-4 flex gap-3">
+                                    <span className="font-bold text-slate-800">A.</span>
+                                    <div>{item.a}</div>
                                 </div>
                             </div>
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
+            </div>
 
-                <div className="mt-16 bg-rose-50 rounded-2xl p-8 text-center border border-rose-100">
-                    <h3 className="text-xl font-bold text-text-main mb-3">원하는 답변을 찾지 못하셨나요?</h3>
-                    <p className="text-text-secondary mb-6">1:1 문의를 남겨주시면 담당자가 빠르고 친절하게 답변해 드립니다.</p>
-                    <a href="/contact" className="btn btn-primary inline-flex items-center gap-2">
-                        1:1 문의하러 가기
-                        <span className="text-xs">→</span>
-                    </a>
-                </div>
+            <div className="mt-16 bg-rose-50 rounded-2xl p-8 text-center border border-rose-100">
+                <h3 className="text-xl font-bold text-text-main mb-3">원하는 답변을 찾지 못하셨나요?</h3>
+                <p className="text-text-secondary mb-6">1:1 문의를 남겨주시면 담당자가 빠르고 친절하게 답변해 드립니다.</p>
+                <a href="/contact" className="btn btn-primary inline-flex items-center gap-2">
+                    1:1 문의하러 가기
+                    <span className="text-xs">→</span>
+                </a>
             </div>
         </div>
     );

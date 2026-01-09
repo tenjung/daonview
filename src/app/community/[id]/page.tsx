@@ -51,27 +51,27 @@ export default async function PostDetailPage({ params }: PageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="container max-w-4xl mx-auto px-4">
+        <div className="min-h-screen bg-gray-50 md:py-12">
+            <div className="container max-w-4xl mx-auto px-0 md:px-4">
                 {/* Back Button */}
                 <Link 
                     href={getBackLink()} 
-                    className="inline-flex items-center gap-2 text-gray-600 hover:text-primary transition-colors mb-8 font-medium"
+                    className="inline-flex items-center gap-2 text-gray-600 hover:text-primary transition-colors py-4 px-6 md:px-0 md:mb-8 font-medium"
                 >
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={18} />
                     목록으로 돌아가기
                 </Link>
 
                 {/* Post Content */}
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="bg-white sm:rounded-2xl sm:border border-gray-100 md:border-gray-200 shadow-sm overflow-hidden">
                     {/* Header */}
-                    <div className="p-8 border-b border-gray-200">
+                    <div className="p-6 md:p-8 border-b border-gray-100 md:border-gray-200">
                         <div className="flex items-center gap-3 mb-4">
                             <span className="px-3 py-1 text-xs rounded-lg font-bold bg-slate-100 text-slate-600">
                                 {getPostTypeLabel()}
                             </span>
                         </div>
-                        <h1 className="text-3xl font-black text-gray-900 mb-6">
+                        <h1 className="text-2xl md:text-3xl font-black text-gray-900 mb-6 leading-tight">
                             {post.title}
                         </h1>
                         <div className="flex items-center gap-6 text-sm text-gray-500">
@@ -97,7 +97,7 @@ export default async function PostDetailPage({ params }: PageProps) {
                     </div>
 
                     {/* Content */}
-                    <div className="p-8">
+                    <div className="p-6 md:p-8 bg-white">
                         <div 
                             className="prose prose-lg max-w-none
                                 prose-headings:font-bold prose-headings:text-gray-900

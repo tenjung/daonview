@@ -42,8 +42,8 @@ export default function StaticPromoBanners() {
     ];
 
     return (
-        <section className="container py-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <section className="w-full max-w-[1200px] mx-auto px-4 py-4">
+            <div className="grid grid-cols-3 lg:grid-cols-3 gap-2 md:gap-4">
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
                     const isSpecial = banner.id === 2;
@@ -51,38 +51,38 @@ export default function StaticPromoBanners() {
                         <Link
                             key={banner.id}
                             href={banner.link}
-                            className={`${banner.bgColor} rounded-xl p-5 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-row items-center gap-4 ${isSpecial
-                                ? 'shadow-lg shadow-rose-100 ring-2 ring-rose-400/20 hover:scale-[1.03] hover:shadow-xl'
+                            className={`${banner.bgColor} rounded-xl md:rounded-2xl p-2.5 md:p-5 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 ${isSpecial
+                                ? 'shadow-lg shadow-rose-100 ring-1 md:ring-2 ring-rose-400/20 hover:scale-[1.03] hover:shadow-xl'
                                 : 'hover:shadow-xl hover:scale-[1.02]'
                                 }`}
                         >
                             {/* Background Pattern - Subtle */}
                             <div className="absolute inset-0 opacity-5">
-                                <div className="absolute top-0 right-0 w-24 h-24 bg-white rounded-full -translate-y-12 translate-x-12"></div>
+                                <div className="absolute top-0 right-0 w-12 h-12 md:w-24 md:h-24 bg-white rounded-full -translate-y-6 translate-x-6 md:-translate-y-12 md:translate-x-12"></div>
                             </div>
 
                             {/* Icon Section */}
                             <div className="shrink-0 relative z-10">
-                                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110">
-                                    <IconComponent className="w-6 h-6 text-white" />
+                                <div className="w-8 h-8 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-lg md:rounded-xl flex items-center justify-center group-hover:bg-white/30 transition-all duration-300 group-hover:scale-110">
+                                    <IconComponent className="w-4 h-4 md:w-6 md:h-6 text-white" />
                                 </div>
                             </div>
 
                             {/* Content Section */}
-                            <div className="flex-1 min-w-0 relative z-10">
-                                <p className={`text-[10px] font-bold ${banner.accentColor} mb-0.5 uppercase tracking-wider opacity-80`}>
+                            <div className="flex-1 min-w-0 relative z-10 text-center md:text-left">
+                                <p className={`text-[8px] md:text-[10px] font-bold ${banner.accentColor} mb-0 md:mb-0.5 uppercase tracking-wider opacity-80 line-clamp-1`}>
                                     {banner.title}
                                 </p>
-                                <h3 className="text-lg font-bold text-white truncate leading-tight mb-0.5">
+                                <h3 className="text-[10px] sm:text-xs md:text-lg font-bold text-white truncate leading-tight mb-0 md:mb-0.5">
                                     {banner.subtitle}
                                 </h3>
-                                <p className="text-white/80 text-xs font-medium truncate">
+                                <p className="hidden md:block text-white/80 text-xs font-medium truncate">
                                     {banner.description}
                                 </p>
                             </div>
 
-                            {/* Arrow */}
-                            <div className="shrink-0 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                            {/* Arrow - Hidden on Mobile */}
+                            <div className="hidden md:block shrink-0 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
                                 <span className="text-white text-xl">→</span>
                             </div>
                         </Link>

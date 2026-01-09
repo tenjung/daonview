@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
+import { supabase } from '@/lib/supabaseClient';
 
 export default function IntroPage() {
     const [formData, setFormData] = useState({
@@ -70,11 +71,28 @@ export default function IntroPage() {
         }
 
         setIsSubmitting(true);
-        // 시뮬레이션
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        toast.success("문의가 성공적으로 전달되었습니다. 빠른 시일 내에 연락드리겠습니다!");
-        setFormData({ name: '', contact: '', message: '', agreed: false });
-        setIsSubmitting(false);
+        
+        try {
+            const { error } = await supabase
+                .from('inquiries')
+                .insert([
+                    {
+                        name: formData.name,
+                        contact: formData.contact,
+                        message: formData.message
+                    }
+                ]);
+
+            if (error) throw error;
+
+            toast.success("문의가 성공적으로 전달되었습니다. 빠른 시일 내에 연락드리겠습니다!");
+            setFormData({ name: '', contact: '', message: '', agreed: false });
+        } catch (error: any) {
+            console.error('[Intro] Inquiry Error:', error);
+            toast.error("전송 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
