@@ -226,6 +226,7 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                                                 src={review.thumbnail_url}
                                                 alt={review.title || '리뷰 썸네일'}
                                                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                referrerPolicy="no-referrer"
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-6xl">

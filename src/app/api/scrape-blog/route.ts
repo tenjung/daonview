@@ -49,77 +49,96 @@ async function scrapeNaverBlog(url: string) {
     const blogId = match[1];
     const postId = match[2];
 
-    // 모바일 페이지에서 정보 가져오기
-    const mobileUrl = `https://m.blog.naver.com/${blogId}/${postId}`;
-    
-    const response = await fetch(mobileUrl, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
-        }
-    });
+    let title = '';
+    let description = '';
+    let thumbnail = '';
+    let authorName = '';
 
-    if (!response.ok) {
-        throw new Error('Failed to fetch blog page');
-    }
+    // 1. 네이버 공식 검색 API 연동 시도 (제목, 작성자명 등 안정적 수집)
+    const clientId = process.env.NAVER_CLIENT_ID;
+    const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
-
-    // Open Graph 메타데이터 추출
-    const ogTitle = $('meta[property="og:title"]').attr('content') || '';
-    const ogDescription = $('meta[property="og:description"]').attr('content') || '';
-    const ogImage = $('meta[property="og:image"]').attr('content') || '';
-    
-    // 닉네임 추출 (여러 방법 시도)
-    let blogName = '';
-    
-    blogName = $('meta[property="naverblog:nickname"]').attr('content') || '';
-    
-    if (!blogName) {
-        blogName = $('meta[name="author"]').attr('content') || '';
-    }
-    
-    if (!blogName) {
-        blogName = $('.blog_author .nick').text().trim() || '';
-    }
-    
-    if (!blogName) {
-        blogName = $('.se_og_box .name').text().trim() || '';
-    }
-
-    // 블로그 홈에서 닉네임 가져오기
-    if (!blogName) {
+    if (clientId && clientSecret) {
         try {
-            const blogHomeUrl = `https://m.blog.naver.com/${blogId}`;
-            const homeResponse = await fetch(blogHomeUrl, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
+            // URL을 쿼리로 사용하여 해당 게시글 검색
+            const searchRes = await fetch(
+                `https://openapi.naver.com/v1/search/blog.json?query=${encodeURIComponent(url)}&display=1`,
+                {
+                    headers: {
+                        'X-Naver-Client-Id': clientId,
+                        'X-Naver-Client-Secret': clientSecret,
+                    }
                 }
-            });
-            
-            if (homeResponse.ok) {
-                const homeHtml = await homeResponse.text();
-                const $home = cheerio.load(homeHtml);
-                blogName = $home('.blog_title').text().trim() || 
-                          $home('.nick_name').text().trim() || 
-                          $home('.user_name').text().trim() || '';
+            );
+
+            if (searchRes.ok) {
+                const searchData = await searchRes.json();
+                if (searchData.items && searchData.items.length > 0) {
+                    const item = searchData.items[0];
+                    // HTML 태그 제거
+                    title = item.title.replace(/<[^>]*>?/gm, '');
+                    description = item.description.replace(/<[^>]*>?/gm, '');
+                    authorName = item.bloggername;
+                }
             }
         } catch (e) {
-            console.log('Failed to fetch blog home:', e);
+            console.error('Naver Search API Error:', e);
         }
     }
 
-    if (!blogName) {
-        blogName = blogId;
+    // 2. 모바일 페이지 크롤링 (공식 API가 주지 않는 썸네일 수집 및 Fallback)
+    try {
+        const mobileUrl = `https://m.blog.naver.com/${blogId}/${postId}`;
+        const response = await fetch(mobileUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
+            }
+        });
+
+        if (response.ok) {
+            const html = await response.text();
+            const $ = cheerio.load(html);
+
+            // 썸네일은 항상 크롤링으로 가져와야 함 (공식 API 미지원)
+            thumbnail = $('meta[property="og:image"]').attr('content') || '';
+            
+            // API 결과가 없을 때만 크롤링 데이터 사용
+            if (!title) title = $('meta[property="og:title"]').attr('content') || '';
+            if (!description) description = $('meta[property="og:description"]').attr('content') || '';
+            
+            if (!authorName) {
+                authorName = $('meta[property="naverblog:nickname"]').attr('content') || 
+                             $('meta[name="author"]').attr('content') || 
+                             $('.blog_author .nick').text().trim() || 
+                             $('.se_og_box .name').text().trim() || '';
+            }
+
+            // 블로그 홈에서 닉네임 추가 확인
+            if (!authorName) {
+                const blogHomeUrl = `https://m.blog.naver.com/${blogId}`;
+                const homeResponse = await fetch(blogHomeUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15' }
+                });
+                if (homeResponse.ok) {
+                    const homeHtml = await homeResponse.text();
+                    const $home = cheerio.load(homeHtml);
+                    authorName = $home('.blog_title').text().trim() || 
+                               $home('.nick_name').text().trim() || 
+                               $home('.user_name').text().trim() || '';
+                }
+            }
+        }
+    } catch (e) {
+        console.error('Cheerio Scraping Error:', e);
     }
 
     return NextResponse.json({
         success: true,
         data: {
-            title: ogTitle,
-            description: ogDescription,
-            thumbnail: ogImage,
-            authorName: blogName,
+            title: title || '제목 없음',
+            description: description,
+            thumbnail: thumbnail,
+            authorName: authorName || blogId,
             blogId,
             postId,
             url

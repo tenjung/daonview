@@ -212,6 +212,7 @@ export default function ManageReviewsPage() {
                                             src={review.thumbnail_url}
                                             alt={review.title || '썸네일'}
                                             className="w-24 h-24 object-cover rounded-xl flex-shrink-0"
+                                            referrerPolicy="no-referrer"
                                         />
                                     )}
 
