@@ -202,7 +202,7 @@ async function crawlRecentPosts(blogId: string, count: number = 10): Promise<Pos
 
         // 각 포스트의 좋아요/댓글 수 크롤링 (병렬 처리)
         const detailedPosts = await Promise.all(
-            posts.map(post => crawlPostDetails(blogId, extractLogNo(post.url)!))
+            posts.map(post => crawlPostDetails(post.url))
         );
 
         return detailedPosts.filter(p => p !== null) as PostStats[];
