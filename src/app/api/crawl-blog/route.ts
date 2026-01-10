@@ -2,29 +2,25 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { crawlNaverBlog, calculateInfluenceScore, calculateAverages } from '@/lib/blogCrawler';
 
-// 환경 변수 검증
-if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL');
-}
+const getSupabaseAdmin = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Missing SUPABASE_SERVICE_ROLE_KEY - using anon key instead');
-}
+    if (!url || !key) {
+        throw new Error('Missing Supabase environment variables');
+    }
 
-// Service Role 클라이언트 (RLS 우회)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+    return createClient(url, key, {
         auth: {
             autoRefreshToken: false,
             persistSession: false
         }
-    }
-);
+    });
+};
 
 export async function POST(request: NextRequest) {
     try {
+        const supabaseAdmin = getSupabaseAdmin();
         const body = await request.json();
         const { userId, blogUrl } = body;
 
@@ -148,6 +144,8 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
         console.error('Crawl error:', error);
 
+        const supabaseAdmin = getSupabaseAdmin();
+
         // 에러 발생 시 DB에 기록
         const { userId, blogUrl } = await request.json().catch(() => ({}));
         if (userId && blogUrl) {
@@ -178,6 +176,7 @@ export async function POST(request: NextRequest) {
 // GET: 통계 조회
 export async function GET(request: NextRequest) {
     try {
+        const supabaseAdmin = getSupabaseAdmin();
         const { searchParams } = new URL(request.url);
         const userId = searchParams.get('userId');
 

@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-);
-
 export async function POST(request: NextRequest) {
     try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!url || !key) {
+            throw new Error('Missing Supabase environment variables');
+        }
+
+        const supabaseAdmin = createClient(url, key, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        });
         const { urls, userId } = await request.json();
 
         if (!urls || !Array.isArray(urls) || urls.length === 0) {
@@ -30,9 +32,9 @@ export async function POST(request: NextRequest) {
             try {
                 // 플랫폼 구분
                 const platform = url.includes('blog.naver.com') ? 'NAVER_BLOG' :
-                                url.includes('instagram.com') ? 'INSTAGRAM' :
-                                url.includes('youtube.com') || url.includes('youtu.be') ? 'YOUTUBE' :
-                                url.includes('tiktok.com') ? 'TIKTOK' : 'OTHER';
+                    url.includes('instagram.com') ? 'INSTAGRAM' :
+                        url.includes('youtube.com') || url.includes('youtu.be') ? 'YOUTUBE' :
+                            url.includes('tiktok.com') ? 'TIKTOK' : 'OTHER';
 
                 // 메타데이터 크롤링
                 let metadata = null;

@@ -2,19 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // 서버 사이드 Supabase 클라이언트 (서비스 롤 키 사용)
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
-    }
-);
-
 export async function POST(request: NextRequest) {
     try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!url || !key) {
+            throw new Error('Missing Supabase environment variables');
+        }
+
+        const supabaseAdmin = createClient(url, key, {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false
+            }
+        });
         const { reviewId, data } = await request.json();
 
         if (!reviewId || !data) {
