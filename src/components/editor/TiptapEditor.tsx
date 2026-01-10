@@ -23,6 +23,7 @@ import * as Popover from '@radix-ui/react-popover';
 
 // Utilities
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
     Bold, Italic, Underline as UnderlineIcon, Strikethrough, Code,
     List, ListOrdered, CheckSquare, Quote, Image as ImageIcon, Link as LinkIcon,
@@ -134,13 +135,16 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
 
     const setLink = () => {
         const previousUrl = editor.getAttributes('link').href;
-        const url = window.prompt('URL', previousUrl);
+        // Prompt를 대체할 UI가 필요하므로 일단 더 세련된 안내로 변경하거나 별도 입력을 구현해야 함
+        // 여기서는 우선 일관성을 위해 추후 Dialog 기반 컴포넌트로 교체를 권장하며, 현재는 toast로 안내하거나 간단한 커스텀 구현
+        const url = window.prompt('연결할 URL 주소를 입력해주세요', previousUrl);
         if (url === null) return;
         if (url === '') {
             editor.chain().focus().extendMarkRange('link').unsetLink().run();
             return;
         }
         editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        toast.success('링크가 성공적으로 적용되었습니다.');
     };
 
     const addImage = () => {
@@ -153,13 +157,13 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
 
         // Check if file is an image
         if (!file.type.startsWith('image/')) {
-            alert('이미지 파일만 업로드 가능합니다.');
+            toast.error('이미지 파일(jpg, png, gif 등)만 업로드 가능합니다.');
             return;
         }
 
-        // Check file size (max 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            alert('이미지 크기는 5MB 이하여야 합니다.');
+        // Check file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            toast.error('이미지 크기는 10MB 이하여야 합니다.');
             return;
         }
 
@@ -176,15 +180,18 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
     };
 
     const addYoutube = () => {
-        const url = window.prompt('Youtube URL');
-        if (url) editor.commands.setYoutubeVideo({ src: url });
+        const url = window.prompt('유튜브 동영상 주소를 입력해주세요 (예: https://youtube.com/watch?v=...)');
+        if (url) {
+            editor.commands.setYoutubeVideo({ src: url });
+            toast.success('동영상이 삽입되었습니다.');
+        }
     };
 
     return (
-        <div className="border border-gray-200 rounded-xl bg-white shadow-sm flex flex-col overflow-hidden w-full">
+        <div className="flex flex-col w-full relative">
             {/* --- Toolbar --- */}
             <Toolbar.Root
-                className="flex items-center p-2 border-b border-gray-200 bg-white sticky top-0 z-10 gap-0.5 overflow-x-auto scrollbar-hide w-full flex-nowrap"
+                className="flex items-center p-2 border-y border-gray-100 bg-white/95 backdrop-blur-md sticky top-[70px] z-[50] gap-0.5 overflow-x-auto scrollbar-hide w-full flex-nowrap"
                 aria-label="Formatting options"
             >
                 {/* 1. History */}
@@ -209,12 +216,14 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
                             <ChevronDown size={14} className="opacity-50 flex-shrink-0 ml-1" />
                         </button>
                     </DropdownMenu.Trigger>
-                    <DropdownMenu.Content className="bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[120px] z-50 animate-in fade-in zoom-in-95 duration-100">
-                        <DropdownMenu.Item onSelect={() => editor.chain().focus().setParagraph().run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none"><Type size={14} className="mr-2" /> 본문</DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-bold"><Heading1 size={14} className="mr-2" /> 제목 1</DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-semibold"><Heading2 size={14} className="mr-2" /> 제목 2</DropdownMenu.Item>
-                        <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-medium"><Heading3 size={14} className="mr-2" /> 제목 3</DropdownMenu.Item>
-                    </DropdownMenu.Content>
+                    <DropdownMenu.Portal>
+                        <DropdownMenu.Content className="bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[120px] z-[100] animate-in fade-in zoom-in-95 duration-100 shadow-xl">
+                            <DropdownMenu.Item onSelect={() => editor.chain().focus().setParagraph().run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none"><Type size={14} className="mr-2" /> 본문</DropdownMenu.Item>
+                            <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-bold"><Heading1 size={14} className="mr-2" /> 제목 1</DropdownMenu.Item>
+                            <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-semibold"><Heading2 size={14} className="mr-2" /> 제목 2</DropdownMenu.Item>
+                            <DropdownMenu.Item onSelect={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className="flex items-center px-2 py-1.5 text-sm rounded hover:bg-gray-100 cursor-pointer outline-none font-medium"><Heading3 size={14} className="mr-2" /> 제목 3</DropdownMenu.Item>
+                        </DropdownMenu.Content>
+                    </DropdownMenu.Portal>
                 </DropdownMenu.Root>
 
                 <ToolbarSeparator />
@@ -243,46 +252,48 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
                             <ChevronDown size={12} className="ml-1 opacity-50" />
                         </button>
                     </Popover.Trigger>
-                    <Popover.Content className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 w-64 z-50 animate-in fade-in zoom-in-95 duration-100" sideOffset={5} align="start">
+                    <Popover.Portal>
+                        <Popover.Content className="bg-white border border-gray-200 rounded-lg shadow-2xl p-3 w-64 z-[100] animate-in fade-in zoom-in-95 duration-100" sideOffset={5} align="start">
 
-                        {/* Text Color Section */}
-                        <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Text Color</div>
-                        <div className="flex flex-wrap gap-1 mb-4">
-                            {THEME_COLORS.map((themeColor) => (
+                            {/* Text Color Section */}
+                            <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">Text Color</div>
+                            <div className="flex flex-wrap gap-1 mb-4">
+                                {THEME_COLORS.map((themeColor) => (
+                                    <button
+                                        key={themeColor.name}
+                                        onClick={() => editor.chain().focus().setColor(themeColor.color).run()}
+                                        className={`w-6 h-6 rounded border border-gray-100 hover:scale-110 transition-transform ${editor.isActive('textStyle', { color: themeColor.color }) ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
+                                        style={{ backgroundColor: themeColor.color }}
+                                        title={themeColor.name}
+                                    />
+                                ))}
                                 <button
-                                    key={themeColor.name}
-                                    onClick={() => editor.chain().focus().setColor(themeColor.color).run()}
-                                    className={`w-6 h-6 rounded border border-gray-100 hover:scale-110 transition-transform ${editor.isActive('textStyle', { color: themeColor.color }) ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
-                                    style={{ backgroundColor: themeColor.color }}
-                                    title={themeColor.name}
-                                />
-                            ))}
-                            <button
-                                onClick={() => editor.chain().focus().unsetColor().run()}
-                                className="w-6 h-6 rounded border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
-                                title="색상 제거"
-                            >
-                                <Trash2 size={12} />
-                            </button>
-                        </div>
-
-                        {/* Highlight Color Section */}
-                        <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider border-t border-gray-100 pt-2">Highlight</div>
-                        <div className="flex flex-wrap gap-1">
-                            {HIGHLIGHT_COLORS.map((highlightColor) => (
-                                <button
-                                    key={highlightColor.name}
-                                    onClick={() => highlightColor.color === 'transparent' ? editor.chain().focus().unsetHighlight().run() : editor.chain().focus().toggleHighlight({ color: highlightColor.color }).run()}
-                                    className={`w-6 h-6 rounded border border-gray-100 hover:scale-110 transition-transform ${editor.isActive('highlight', { color: highlightColor.color }) ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
-                                    style={{ backgroundColor: highlightColor.color === 'transparent' ? '#ffffff' : highlightColor.color }}
-                                    title={highlightColor.name}
+                                    onClick={() => editor.chain().focus().unsetColor().run()}
+                                    className="w-6 h-6 rounded border border-gray-200 hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                                    title="색상 제거"
                                 >
-                                    {highlightColor.color === 'transparent' && <div className="w-full h-[1px] bg-red-400 rotate-45 transform scale-x-125" />}
+                                    <Trash2 size={12} />
                                 </button>
-                            ))}
-                        </div>
+                            </div>
 
-                    </Popover.Content>
+                            {/* Highlight Color Section */}
+                            <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider border-t border-gray-100 pt-2">Highlight</div>
+                            <div className="flex flex-wrap gap-1">
+                                {HIGHLIGHT_COLORS.map((highlightColor) => (
+                                    <button
+                                        key={highlightColor.name}
+                                        onClick={() => highlightColor.color === 'transparent' ? editor.chain().focus().unsetHighlight().run() : editor.chain().focus().toggleHighlight({ color: highlightColor.color }).run()}
+                                        className={`w-6 h-6 rounded border border-gray-100 hover:scale-110 transition-transform ${editor.isActive('highlight', { color: highlightColor.color }) ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
+                                        style={{ backgroundColor: highlightColor.color === 'transparent' ? '#ffffff' : highlightColor.color }}
+                                        title={highlightColor.name}
+                                    >
+                                        {highlightColor.color === 'transparent' && <div className="w-full h-[1px] bg-red-400 rotate-45 transform scale-x-125" />}
+                                    </button>
+                                ))}
+                            </div>
+
+                        </Popover.Content>
+                    </Popover.Portal>
                 </Popover.Root>
 
                 <ToolbarSeparator />

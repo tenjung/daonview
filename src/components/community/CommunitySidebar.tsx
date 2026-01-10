@@ -83,7 +83,7 @@ export default function CommunitySidebar() {
     };
 
     return (
-        <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm h-fit">
+        <aside className="w-full lg:w-64 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm h-fit sticky top-[100px]">
             <h2 className="text-xl font-black text-gray-900 mb-6 flex items-center gap-2">
                 <span className="text-2xl">💬</span>
                 커뮤니티

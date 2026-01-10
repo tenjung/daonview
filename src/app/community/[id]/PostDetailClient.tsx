@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
-import { ArrowLeft, User, Clock, Eye, MessageSquare, Send, Trash2, Edit2, Loader2 } from "lucide-react";
+import { User, MessageSquare, Send, Trash2, Edit2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import PostDetailLayout from "@/components/community/PostDetailLayout";
 
 interface PostDetailClientProps {
     initialPost: any;
@@ -22,7 +23,6 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
 
     useEffect(() => {
         checkUser();
-        // Increment view count on mount (client-side to avoid bot/SSR double counts)
         incrementViewCount();
     }, []);
 
@@ -53,7 +53,6 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                 return;
             }
 
-            // 댓글 작성자들 프로필 따로 가져오기
             const userIds = Array.from(new Set(commentsData.map(c => c.user_id)));
             const { data: profilesData } = await supabase
                 .from('profiles')
@@ -146,78 +145,50 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
 
     const isOwner = user && user.id === initialPost.user_id;
 
+    const getBackLink = () => {
+        switch (initialPost.type) {
+            case 'FREE': return '/community/free';
+            case 'BLOG_INTRO': return '/community/blog-intro';
+            default: return '/community';
+        }
+    };
+
+    const getPostTypeLabel = () => {
+        switch (initialPost.type) {
+            case 'FREE': return '자유게시판';
+            case 'BLOG_INTRO': return '내 블로그 소개';
+            default: return initialPost.type;
+        }
+    };
+
     return (
-        <div className="max-w-6xl pb-20">
-            {/* Header */}
-            <div className="mb-8">
-                <button
-                    onClick={() => router.back()}
-                    className="inline-flex items-center text-gray-500 hover:text-primary mb-6 transition-colors font-medium"
-                >
-                    <ArrowLeft size={20} className="mr-1" />
-                    돌아가기
-                </button>
-
-                <div className="flex flex-wrap items-center gap-2 mb-4">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-bold">
-                        {initialPost.type === 'FREE' ? '자유게시판' : initialPost.type}
-                    </span>
-                    {initialPost.is_pinned && (
-                        <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold">공지</span>
-                    )}
+        <PostDetailLayout
+            backLink={getBackLink()}
+            typeLabel={getPostTypeLabel()}
+            isPinned={initialPost.is_pinned}
+            title={initialPost.title}
+            author={initialPost.profiles?.nickname || initialPost.profiles?.name || '익명'}
+            createdAt={new Date(initialPost.created_at).toLocaleDateString()}
+            viewCount={initialPost.view_count || 0}
+            extraHeader={isOwner && (
+                <div className="flex gap-1 shrink-0">
+                    <Link href={`/community/write?edit=${id}`} className="p-1.5 text-gray-300 hover:text-primary transition-colors">
+                        <Edit2 size={15} />
+                    </Link>
+                    <button onClick={handleDeletePost} className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                        <Trash2 size={15} />
+                    </button>
                 </div>
-
-                <h1 className="text-3xl md:text-4xl font-black text-text-main mb-6 leading-tight">
-                    {initialPost.title}
-                </h1>
-
-                <div className="flex items-center justify-between pb-6 border-b border-gray-100">
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <div className="flex items-center gap-1.5 font-medium text-gray-700">
-                            <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center">
-                                <User size={14} className="text-gray-400" />
-                            </div>
-                            {initialPost.profiles?.nickname || initialPost.profiles?.name || '익명'}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Clock size={14} />
-                            {new Date(initialPost.created_at).toLocaleDateString('ko-KR', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                            })}
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <Eye size={14} />
-                            조회 {initialPost.view_count || 0}
-                        </div>
-                    </div>
-
-                    {isOwner && (
-                        <div className="flex gap-2">
-                            <Link href={`/community/write?edit=${id}`} className="p-2 text-gray-400 hover:text-primary transition-colors">
-                                <Edit2 size={18} />
-                            </Link>
-                            <button onClick={handleDeletePost} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Content */}
-            <div className="bg-white rounded-2xl p-8 mb-12 shadow-sm border border-gray-50">
-                <div
-                    className="prose prose-lg max-w-none prose-indigo prose-img:rounded-2xl"
-                    dangerouslySetInnerHTML={{ __html: initialPost.content }}
-                />
-            </div>
+            )}
+        >
+            {/* Content Body */}
+            <div
+                className="prose prose-xs md:prose-sm max-w-none prose-slate prose-img:rounded-lg leading-relaxed mb-10"
+                dangerouslySetInnerHTML={{ __html: initialPost.content }}
+            />
 
             {/* Comments Section */}
-            <div className="space-y-8">
+            <div className="space-y-8 pt-8 border-t border-gray-50">
                 <div className="flex items-center gap-2">
                     <MessageSquare size={20} className="text-primary" />
                     <h2 className="text-xl font-bold">댓글 <span className="text-primary">{comments.length}</span></h2>
@@ -285,6 +256,6 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                     )}
                 </div>
             </div>
-        </div>
+        </PostDetailLayout>
     );
 }

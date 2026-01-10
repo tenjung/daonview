@@ -128,7 +128,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
     }
 
     return (
-        <section className="relative w-full overflow-hidden py-0 md:py-10 bg-white">
+        <section className="relative w-full overflow-hidden py-0 md:py-10 bg-transparent">
             <Carousel
                 setApi={setApi}
                 className="w-full relative"
@@ -149,7 +149,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                         >
                             <div className="h-full py-0 sm:py-2">
                                 <Link href={item.link_url} className="block group h-full">
-                                    <Card className="overflow-hidden border-none shadow-none sm:shadow-[0_20px_60px_-15px_rgba(0,0,0,0.25)] hover:shadow-none sm:hover:shadow-[0_40px_80px_-20px_rgba(244,63,94,0.35)] transition-all duration-1000 rounded-none sm:rounded-2xl h-full relative border-none sm:border sm:border-white/10 group-hover:border-rose-200/50">
+                                    <Card className="overflow-hidden border-none shadow-none sm:shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-none sm:hover:shadow-[0_25px_50px_-12px_rgba(244,63,94,0.2)] transition-all duration-1000 rounded-none sm:rounded-2xl h-full relative border-none sm:border sm:border-white/10 group-hover:border-rose-200/50">
                                         <CardContent className="p-0 h-full relative">
                                             {/* Background Image with Parallax-like effect */}
                                             <img

@@ -3,17 +3,18 @@
 import { useState, useEffect, Suspense, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Loader2, FileText } from "lucide-react";
+import { ArrowLeft, Save, Loader2, FileText, AlertCircle } from "lucide-react";
 import TiptapEditor from "@/components/editor/TiptapEditor";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 // Type 매핑 정의
 const TYPE_MAPPING: Record<string, string> = {
     // notices 테이블 (한글)
     'NOTICE': '공지',
     'EVENT': '이벤트',
-    
+
     // posts 테이블 (영문)
     'FREE': 'FREE',
     'BLOG_INTRO': 'BLOG_INTRO',
@@ -33,9 +34,9 @@ const REDIRECT_MAP: Record<string, string> = {
 
 // 관리자 전용 타입
 const ADMIN_ONLY_TYPES = [
-    'NOTICE', 
-    'EVENT', 
-    'ACADEMY_ADVERTISER', 
+    'NOTICE',
+    'EVENT',
+    'ACADEMY_ADVERTISER',
     'ACADEMY_INFLUENCER'
 ];
 
@@ -65,7 +66,8 @@ function WritePageContent() {
     const [initialLoading, setInitialLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [isDirty, setIsDirty] = useState(false);
-    
+    const isDirtyRef = useRef(false);
+
     const hasCheckedAuth = useRef(false);
     const isRedirecting = useRef(false);
     const isSubmitting = useRef(false);
@@ -93,21 +95,22 @@ function WritePageContent() {
     useEffect(() => {
         if (title || content) {
             setIsDirty(true);
+            isDirtyRef.current = true;
         }
     }, [title, content]);
 
     // 브라우저 닫기/새로고침 방지
     useEffect(() => {
         const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (isDirty && !isSubmitting.current) {
+            if (isDirtyRef.current && !isSubmitting.current) {
                 e.preventDefault();
                 e.returnValue = '';
             }
         };
-        
+
         window.addEventListener('beforeunload', handleBeforeUnload);
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [isDirty]);
+    }, []);
 
     // 뒤로가기 및 링크 클릭 방지
     const [showExitDialog, setShowExitDialog] = useState(false);
@@ -118,7 +121,7 @@ function WritePageContent() {
             if (isDirty && !isSubmitting.current) {
                 const target = e.target as HTMLElement;
                 const link = target.closest('a');
-                
+
                 if (link && link.href && !link.href.includes('/community/write')) {
                     e.preventDefault();
                     setPendingNavigation(link.href);
@@ -151,8 +154,11 @@ function WritePageContent() {
     }, [isDirty, router]);
 
     const handleConfirmExit = () => {
+        // 즉시 ref를 꺼서 브라우저 beforeunload가 트리거되지 않게 함
+        isDirtyRef.current = false;
         setIsDirty(false);
         setShowExitDialog(false);
+
         if (pendingNavigation === 'back') {
             window.history.back();
         } else if (pendingNavigation) {
@@ -167,7 +173,7 @@ function WritePageContent() {
 
     const checkUserAndPermission = async () => {
         const { data: { user } } = await supabase.auth.getUser();
-        
+
         if (!user) {
             if (!isRedirecting.current) {
                 isRedirecting.current = true;
@@ -184,7 +190,7 @@ function WritePageContent() {
                 .select('role')
                 .eq('id', user.id)
                 .single();
-            
+
             if (profile?.role !== 'ADMIN') {
                 if (!isRedirecting.current) {
                     isRedirecting.current = true;
@@ -203,7 +209,7 @@ function WritePageContent() {
         try {
             const isNoticeTable = NOTICE_TABLE_TYPES.includes(type);
             const tableName = isNoticeTable ? 'notices' : 'posts';
-            
+
             const { data, error } = await supabase
                 .from(tableName)
                 .select('*')
@@ -293,7 +299,7 @@ function WritePageContent() {
                         .select('nickname')
                         .eq('id', user.id)
                         .single();
-                    
+
                     const { error } = await supabase.from('notices').insert({
                         type: dbType,
                         title,
@@ -322,7 +328,8 @@ function WritePageContent() {
             // 임시저장 삭제
             localStorage.removeItem(`draft_${type}`);
             setIsDirty(false);
-            
+            isDirtyRef.current = false;
+
             router.push(REDIRECT_MAP[type] || '/community');
         } catch (error: any) {
             console.error('Error saving post:', error);
@@ -343,7 +350,7 @@ function WritePageContent() {
     }
 
     return (
-        <div className="max-w-6xl space-y-8 min-h-screen pb-20">
+        <div className="max-w-5xl mx-auto space-y-8 min-h-screen pb-20 px-4 md:px-0">
             <div className="mb-4">
                 <Link
                     href={REDIRECT_MAP[type] || '/community'}
@@ -359,28 +366,35 @@ function WritePageContent() {
                 </div>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
-                <input
-                    type="text"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="제목을 입력하세요"
-                    className="w-full text-3xl font-black border-none py-4 px-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-200 transition-colors text-gray-800"
-                />
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-visible">
+                <div className="px-10 pt-10 pb-0">
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => {
+                            setTitle(e.target.value);
+                            setIsDirty(true);
+                            isDirtyRef.current = true;
+                        }}
+                        placeholder="제목을 입력하세요"
+                        className="w-full text-3xl md:text-4xl font-black border-none p-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-200 transition-colors text-gray-900 mb-6"
+                    />
+                </div>
 
-                <div className="min-h-[500px]">
+                <div className="relative">
                     <TiptapEditor initialContent={content} onChange={setContent} />
                 </div>
             </div>
 
             <div className="flex justify-end gap-3 fixed bottom-8 right-8 z-20">
-                <button
+                <Button
+                    variant="outline"
                     onClick={() => router.back()}
-                    className="btn bg-white text-gray-600 border-gray-200 hover:bg-gray-50 shadow-md px-8 h-14 rounded-2xl font-bold"
+                    className="shadow-md px-8 h-12 rounded-xl font-bold border-gray-200"
                     disabled={loading}
                 >
                     취소
-                </button>
+                </Button>
                 <button
                     onClick={saveDraft}
                     disabled={loading || !title.trim()}
@@ -408,30 +422,40 @@ function WritePageContent() {
                 </button>
             </div>
 
-            {/* Exit Confirmation Dialog */}
+            {/* Exit Confirmation Dialog - Shadcn UI Styled */}
             {showExitDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="fixed inset-0 bg-black/50" onClick={handleCancelExit} />
-                    <div className="relative bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-in fade-in zoom-in-95 duration-200">
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">
-                            페이지를 떠나시겠습니까?
-                        </h2>
-                        <p className="text-gray-600 mb-6">
-                            작성 중인 내용이 저장되지 않습니다. 계속하시겠습니까?
+                <div className="fixed inset-0 z-[100] flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCancelExit} />
+                    <div className="relative bg-white rounded-2xl p-6 shadow-2xl max-w-md w-full mx-4 animate-in fade-in zoom-in-95 duration-200 border border-gray-100">
+                        <div className="flex items-center gap-3 mb-4 text-amber-500">
+                            <div className="p-2 bg-amber-50 rounded-full">
+                                <AlertCircle size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                페이지를 떠나시겠습니까?
+                            </h2>
+                        </div>
+
+                        <p className="text-gray-600 mb-8 leading-relaxed">
+                            작성 중인 내용이 저장되지 않을 수 있습니다.<br />
+                            정말로 현재 페이지에서 나가시겠습니까?
                         </p>
-                        <div className="flex gap-3 justify-end">
-                            <button
+
+                        <div className="flex gap-2 justify-end">
+                            <Button
+                                variant="ghost"
                                 onClick={handleCancelExit}
-                                className="px-4 py-2 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                                className="font-bold text-gray-500 hover:bg-gray-50"
                             >
                                 취소
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                                variant="destructive"
                                 onClick={handleConfirmExit}
-                                className="px-4 py-2 rounded-lg font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+                                className="px-6 font-bold"
                             >
                                 나가기
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
