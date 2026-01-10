@@ -65,40 +65,62 @@ export default function InfluencerColumnClient({ initialPosts }: InfluencerColum
                     </div>
                 ) : (
                     <div className="divide-y divide-gray-50">
-                        {posts.map((post) => (
-                            <Link
-                                key={post.id}
-                                href={`/community/${post.id}`}
-                                className="block p-6 hover:bg-gray-50 transition-colors group"
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary transition-colors mb-2 line-clamp-1">
-                                            {post.title}
-                                        </h3>
-                                        <div 
-                                            className="text-gray-500 text-sm line-clamp-2 mb-3"
-                                            dangerouslySetInnerHTML={{ 
-                                                __html: post.content.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...'
-                                            }}
-                                        />
-                                        <div className="flex items-center gap-4 text-xs text-gray-400">
-                                            <span className="flex items-center gap-1">
-                                                <Calendar size={12} />
-                                                {new Date(post.created_at).toLocaleDateString('ko-KR')}
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Eye size={12} />
-                                                {post.view_count || 0}
-                                            </span>
-                                            <span>
-                                                {(post.profiles as any)?.nickname || '관리자'}
-                                            </span>
+                        {posts.map((post) => {
+                            // 본문에서 첫 번째 이미지 추출
+                            const imgMatch = post.content.match(/<img[^>]+src="([^">]+)"/);
+                            const thumbnail = imgMatch ? imgMatch[1] : null;
+
+                            return (
+                                <Link
+                                    key={post.id}
+                                    href={`/community/${post.id}`}
+                                    className="block p-6 hover:bg-gray-50 transition-colors group"
+                                >
+                                    <div className="flex flex-col sm:flex-row items-start gap-6">
+                                        {/* Thumbnail (Desktop & Tablet) */}
+                                        {thumbnail ? (
+                                            <div className="w-full sm:w-48 md:w-56 h-32 md:h-36 flex-shrink-0 rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 shadow-sm relative group-hover:shadow-md transition-shadow">
+                                                <img
+                                                    src={thumbnail}
+                                                    alt={post.title}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-full sm:w-48 md:w-56 h-32 md:h-36 flex-shrink-0 rounded-2xl bg-gray-50 flex flex-col items-center justify-center border border-dashed border-gray-200 text-gray-300">
+                                                <Sparkles size={24} className="mb-2 opacity-50" />
+                                                <span className="text-xs font-medium">DAONVIEW</span>
+                                            </div>
+                                        )}
+
+                                        <div className="flex-1 min-w-0 pt-1">
+                                            <h3 className="text-lg md:text-xl font-semibold text-gray-900 group-hover:text-primary transition-colors mb-2.5 line-clamp-1 leading-snug">
+                                                {post.title}
+                                            </h3>
+                                            <div
+                                                className="text-gray-500 text-sm md:text-base line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed"
+                                                dangerouslySetInnerHTML={{
+                                                    __html: post.content.replace(/<[^>]*>?/gm, '').substring(0, 200) + '...'
+                                                }}
+                                            />
+                                            <div className="flex items-center gap-4 text-xs md:text-sm text-gray-400">
+                                                <span className="flex items-center gap-1.5 font-medium">
+                                                    <Calendar size={14} />
+                                                    {new Date(post.created_at).toLocaleDateString('ko-KR')}
+                                                </span>
+                                                <span className="flex items-center gap-1.5 font-medium">
+                                                    <Eye size={14} />
+                                                    {post.view_count || 0}
+                                                </span>
+                                                <span className="px-2 py-0.5 bg-gray-100 rounded text-gray-500 text-[10px] md:text-xs">
+                                                    {(post.profiles as any)?.nickname || '관리자'}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </Link>
-                        ))}
+                                </Link>
+                            );
+                        })}
                     </div>
                 )}
             </div>

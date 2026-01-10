@@ -50,7 +50,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
 
   // 캠페인 옵션에서 데이터 추출 시도 (임시저장 데이터 대응)
   const options = Array.isArray((campaign as any).campaign_options) ? (campaign as any).campaign_options[0] : (campaign as any).campaign_options;
-  const provision = campaign.provision || options?.step1Data?.experienceDetails || '';
+  const provision = campaign.provision || (campaign as any).experience_details || options?.step1Data?.experienceDetails || '';
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
   const rawPlatform = campaign.platform || 'BLOG';

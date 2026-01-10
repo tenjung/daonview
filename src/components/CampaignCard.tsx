@@ -122,9 +122,15 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                         src={imageUrl}
                         alt={title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                            (e.target as HTMLImageElement).parentElement!.style.backgroundColor = '#f3f4f6';
+                        }}
                     />
                 ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                        <Gift className="w-10 h-10 text-gray-200" />
+                    </div>
                 )}
 
                 {/* Top Right: D-Day & Wishlist */}
@@ -140,8 +146,8 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <button
                         onClick={toggleWish}
                         className={`p-2 rounded-full shadow-lg transition-all duration-300 ${(mounted && isWished)
-                                ? 'bg-rose-500 text-white'
-                                : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
+                            ? 'bg-rose-500 text-white'
+                            : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
                             }`}
                     >
                         <Heart className={`w-4 h-4 ${(mounted && isWished) ? 'fill-current' : ''}`} />

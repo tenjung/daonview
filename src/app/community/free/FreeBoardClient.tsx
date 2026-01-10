@@ -75,6 +75,7 @@ export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) 
                 viewAllHref="/community/free"
                 itemHrefPrefix="/community"
                 isStandalone={true}
+                hideBadge={true}
             />
         </div>
     );
