@@ -1,4 +1,4 @@
-import CommunitySidebar from "@/components/community/Sidebar";
+import CommunitySidebar from "@/components/community/CommunitySidebar";
 
 export default function CommunityLayout({
     children,

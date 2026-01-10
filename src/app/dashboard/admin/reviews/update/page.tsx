@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
+import AdminSidebar from '@/components/AdminSidebar';
 
 export default function UpdateReviewsPage() {
     const [isUpdating, setIsUpdating] = useState(false);
@@ -44,10 +45,10 @@ export default function UpdateReviewsPage() {
             for (let i = 0; i < reviews.length; i++) {
                 const review = reviews[i];
                 setProgress({ current: i + 1, total: reviews.length });
-                
+
                 try {
-                    const platformEmoji = review.platform === 'NAVER_BLOG' ? '📝' : 
-                                        review.platform === 'INSTAGRAM' ? '📷' : '🔗';
+                    const platformEmoji = review.platform === 'NAVER_BLOG' ? '📝' :
+                        review.platform === 'INSTAGRAM' ? '📷' : '🔗';
                     addLog(`${platformEmoji} [${i + 1}/${reviews.length}] ${review.platform} - ${review.review_url} 처리 중...`);
 
                     // 크롤링 API 호출
@@ -74,7 +75,7 @@ export default function UpdateReviewsPage() {
                         } else {
                             addLog(`❌ [${i + 1}/${reviews.length}] 숨김 처리 실패`);
                         }
-                        
+
                         // Rate limiting
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         continue;
@@ -122,74 +123,77 @@ export default function UpdateReviewsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="container max-w-4xl mx-auto px-4">
-                <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 데이터 업데이트</h1>
-                    <p className="text-gray-500 mb-8">
-                        기존 리뷰의 닉네임과 썸네일을 자동으로 업데이트합니다
-                    </p>
+        <div className="flex min-h-screen bg-background text-foreground">
+            <AdminSidebar />
 
-                    {/* 진행 상황 */}
-                    {isUpdating && (
-                        <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-bold text-blue-700">
-                                    진행 중... {progress.current} / {progress.total}
-                                </span>
-                                <span className="text-sm text-blue-600">
-                                    {Math.round((progress.current / progress.total) * 100)}%
-                                </span>
-                            </div>
-                            <div className="w-full bg-blue-100 rounded-full h-2">
-                                <div
-                                    className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                                    style={{ width: `${(progress.current / progress.total) * 100}%` }}
-                                />
-                            </div>
-                        </div>
-                    )}
+            <div className="flex-1 bg-gray-50 py-12">
+                <div className="container max-w-4xl mx-auto px-4">
+                    <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
+                        <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 데이터 업데이트</h1>
+                        <p className="text-gray-500 mb-8">
+                            기존 리뷰의 닉네임과 썸네일을 자동으로 업데이트합니다
+                        </p>
 
-                    {/* 버튼 */}
-                    <Button
-                        onClick={updateAllReviews}
-                        disabled={isUpdating}
-                        className="w-full h-14 bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg mb-6"
-                    >
-                        {isUpdating ? (
-                            <>
-                                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                                업데이트 중...
-                            </>
-                        ) : (
-                            <>
-                                <RefreshCw className="w-5 h-5 mr-2" />
-                                리뷰 업데이트 시작
-                            </>
-                        )}
-                    </Button>
-
-                    {/* 로그 */}
-                    {logs.length > 0 && (
-                        <div className="bg-gray-900 rounded-xl p-4 max-h-96 overflow-y-auto">
-                            <div className="space-y-1 font-mono text-xs">
-                                {logs.map((log, index) => (
+                        {/* 진행 상황 */}
+                        {isUpdating && (
+                            <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-sm font-bold text-blue-700">
+                                        진행 중... {progress.current} / {progress.total}
+                                    </span>
+                                    <span className="text-sm text-blue-600">
+                                        {Math.round((progress.current / progress.total) * 100)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-blue-100 rounded-full h-2">
                                     <div
-                                        key={index}
-                                        className={`${
-                                            log.includes('✅') ? 'text-green-400' :
-                                            log.includes('❌') ? 'text-red-400' :
-                                            log.includes('⚠️') ? 'text-yellow-400' :
-                                            log.includes('🚀') || log.includes('✨') ? 'text-blue-400' :
-                                            'text-gray-300'
-                                        }`}
-                                    >
-                                        {log}
-                                    </div>
-                                ))}
+                                        className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                                        style={{ width: `${(progress.current / progress.total) * 100}%` }}
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        )}
+
+                        {/* 버튼 */}
+                        <Button
+                            onClick={updateAllReviews}
+                            disabled={isUpdating}
+                            className="w-full h-14 bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg mb-6"
+                        >
+                            {isUpdating ? (
+                                <>
+                                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                                    업데이트 중...
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="w-5 h-5 mr-2" />
+                                    리뷰 업데이트 시작
+                                </>
+                            )}
+                        </Button>
+
+                        {/* 로그 */}
+                        {logs.length > 0 && (
+                            <div className="bg-gray-900 rounded-xl p-4 max-h-96 overflow-y-auto">
+                                <div className="space-y-1 font-mono text-xs">
+                                    {logs.map((log, index) => (
+                                        <div
+                                            key={index}
+                                            className={`${log.includes('✅') ? 'text-green-400' :
+                                                log.includes('❌') ? 'text-red-400' :
+                                                    log.includes('⚠️') ? 'text-yellow-400' :
+                                                        log.includes('🚀') || log.includes('✨') ? 'text-blue-400' :
+                                                            'text-gray-300'
+                                                }`}
+                                        >
+                                            {log}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

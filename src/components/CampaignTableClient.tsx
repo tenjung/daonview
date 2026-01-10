@@ -104,15 +104,15 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
 
     return (
         <div className="overflow-x-auto bg-white">
-            <table className="w-full text-left">
+            <table className="w-full text-left table-auto">
                 <thead className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-y border-gray-200">
                     <tr>
-                        <th className="px-6 py-4">등록/시작일</th>
-                        <th className="px-6 py-4">유형</th>
+                        <th className="px-6 py-4 whitespace-nowrap">등록/시작일</th>
+                        <th className="px-6 py-4 whitespace-nowrap">유형</th>
                         <th className="px-6 py-4">캠페인 정보</th>
-                        <th className="px-6 py-4">등록자</th>
-                        <th className="px-6 py-4">모집 현황</th>
-                        <th className="px-6 py-4 text-center">관리</th>
+                        <th className="px-6 py-4 whitespace-nowrap">등록자</th>
+                        <th className="px-6 py-4 whitespace-nowrap">모집 현황</th>
+                        <th className="px-6 py-4 text-center whitespace-nowrap">관리</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -122,7 +122,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
 
                         return (
                             <tr key={cam.id} className="hover:bg-gray-50 transition-colors">
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="text-sm font-medium text-gray-900">{new Date(cam.created_at).toLocaleDateString()}</div>
                                     <div className="text-xs text-gray-400 flex items-center gap-1 mt-1">
                                         <Calendar size={12} /> {new Date(startDate).toLocaleDateString()} 시작
@@ -154,7 +154,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                             }
 
                                             return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium ${colorClass}`}>
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${colorClass}`}>
                                                     {label}
                                                 </span>
                                             );
@@ -178,7 +178,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                             }
 
                                             return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium border ${colorClass}`}>
+                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap ${colorClass}`}>
                                                     {label}
                                                 </span>
                                             );
@@ -186,31 +186,31 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="font-bold text-gray-900 line-clamp-1">{cam.title}</div>
+                                    <div className="font-bold text-gray-900 max-w-md">{cam.title}</div>
                                     <div className="text-xs text-gray-500 mt-1 italic">{cam.category || '카테고리 없음'}</div>
                                 </td>
                                 <td className="px-6 py-4">
                                     {cam.profiles ? (
                                         <div className="flex flex-col gap-1">
                                             {cam.profiles.role === 'ADMIN' ? (
-                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                     관리자
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
                                                     광고주
                                                 </span>
                                             )}
-                                            <div className="text-xs font-semibold text-gray-700">
+                                            <div className="text-xs font-semibold text-gray-700 whitespace-nowrap">
                                                 {cam.profiles.nickname || cam.profiles.company_name || '이름 없음'}
                                             </div>
-                                            <div className="text-[10px] text-gray-400">{cam.profiles.email}</div>
+                                            <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{cam.profiles.email}</div>
                                         </div>
                                     ) : (
                                         <span className="text-xs text-gray-400 italic">정보 없음</span>
                                     )}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4 whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                         {(() => {
                                             const applicants = Array.isArray(cam.applications)
@@ -226,7 +226,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="flex justify-center gap-2">
+                                    <div className="flex justify-center gap-2 whitespace-nowrap">
                                         {type === 'pending' ? (
                                             <>
                                                 <button

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Eye, EyeOff, Search, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import AdminSidebar from '@/components/AdminSidebar';
 
 interface Review {
     id: string;
@@ -124,159 +125,163 @@ export default function ManageReviewsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 py-12">
-            <div className="container max-w-6xl mx-auto px-4">
-                {/* 헤더 */}
-                <div className="mb-8">
-                    <Link
-                        href="/dashboard/admin"
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-                    >
-                        ← 관리자 대시보드
-                    </Link>
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 관리</h1>
-                    <p className="text-gray-500">등록된 리뷰를 관리하고 문제가 있는 리뷰를 숨길 수 있습니다</p>
-                </div>
+        <div className="flex min-h-screen bg-background text-foreground">
+            <AdminSidebar />
 
-                {/* 필터 및 검색 */}
-                <div className="bg-white rounded-2xl border-2 border-gray-100 p-6 mb-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                        {/* 상태 필터 */}
-                        <div className="flex gap-2 flex-wrap">
-                            {['ALL', 'APPROVED', 'HIDDEN', 'PENDING', 'REJECTED'].map((status) => (
-                                <Button
-                                    key={status}
-                                    onClick={() => setFilter(status)}
-                                    variant={filter === status ? 'default' : 'outline'}
-                                    className="h-10"
-                                >
-                                    {status === 'ALL' ? '전체' :
-                                     status === 'APPROVED' ? '승인됨' :
-                                     status === 'HIDDEN' ? '숨김' :
-                                     status === 'PENDING' ? '대기중' : '거부됨'}
-                                </Button>
-                            ))}
-                        </div>
-
-                        {/* 검색 */}
-                        <div className="flex-1 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <Input
-                                placeholder="제목, 작성자, URL 검색..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-
-                        {/* 새로고침 */}
-                        <Button
-                            onClick={fetchReviews}
-                            variant="outline"
-                            className="h-10"
+            <div className="flex-1 bg-gray-50 py-12">
+                <div className="container max-w-6xl mx-auto px-4">
+                    {/* 헤더 */}
+                    <div className="mb-8">
+                        <Link
+                            href="/dashboard/admin"
+                            className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
                         >
-                            <RefreshCw className="w-4 h-4" />
-                        </Button>
+                            ← 관리자 대시보드
+                        </Link>
+                        <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 관리</h1>
+                        <p className="text-gray-500">등록된 리뷰를 관리하고 문제가 있는 리뷰를 숨길 수 있습니다</p>
                     </div>
 
-                    {/* 통계 */}
-                    <div className="mt-4 flex gap-4 text-sm text-gray-600">
-                        <span>전체: <strong>{reviews.length}</strong></span>
-                        <span>승인: <strong>{reviews.filter(r => r.status === 'APPROVED').length}</strong></span>
-                        <span>숨김: <strong>{reviews.filter(r => r.status === 'HIDDEN').length}</strong></span>
-                        <span>검색 결과: <strong>{filteredReviews.length}</strong></span>
-                    </div>
-                </div>
+                    {/* 필터 및 검색 */}
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 p-6 mb-6">
+                        <div className="flex flex-col md:flex-row gap-4">
+                            {/* 상태 필터 */}
+                            <div className="flex gap-2 flex-wrap">
+                                {['ALL', 'APPROVED', 'HIDDEN', 'PENDING', 'REJECTED'].map((status) => (
+                                    <Button
+                                        key={status}
+                                        onClick={() => setFilter(status)}
+                                        variant={filter === status ? 'default' : 'outline'}
+                                        className="h-10"
+                                    >
+                                        {status === 'ALL' ? '전체' :
+                                            status === 'APPROVED' ? '승인됨' :
+                                                status === 'HIDDEN' ? '숨김' :
+                                                    status === 'PENDING' ? '대기중' : '거부됨'}
+                                    </Button>
+                                ))}
+                            </div>
 
-                {/* 리뷰 목록 */}
-                {isLoading ? (
-                    <div className="text-center py-20">
-                        <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
-                        <p className="mt-4 text-gray-500">로딩 중...</p>
-                    </div>
-                ) : filteredReviews.length === 0 ? (
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 p-12 text-center">
-                        <p className="text-gray-500">리뷰가 없습니다</p>
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {filteredReviews.map((review) => (
-                            <div
-                                key={review.id}
-                                className="bg-white rounded-2xl border-2 border-gray-100 p-6 hover:border-rose-200 transition-colors"
+                            {/* 검색 */}
+                            <div className="flex-1 relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <Input
+                                    placeholder="제목, 작성자, URL 검색..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10"
+                                />
+                            </div>
+
+                            {/* 새로고침 */}
+                            <Button
+                                onClick={fetchReviews}
+                                variant="outline"
+                                className="h-10"
                             >
-                                <div className="flex gap-4">
-                                    {/* 썸네일 */}
-                                    {review.thumbnail_url && (
-                                        <img
-                                            src={review.thumbnail_url}
-                                            alt={review.title || '썸네일'}
-                                            className="w-24 h-24 object-cover rounded-xl flex-shrink-0"
-                                            referrerPolicy="no-referrer"
-                                        />
-                                    )}
+                                <RefreshCw className="w-4 h-4" />
+                            </Button>
+                        </div>
 
-                                    {/* 정보 */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-4 mb-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-2xl">{getPlatformIcon(review.platform)}</span>
-                                                <span className="text-sm text-gray-500">{review.platform}</span>
-                                                <span className="text-sm text-gray-400">|</span>
-                                                <span className="text-sm font-medium">{review.author_name || '작성자 없음'}</span>
-                                                <span className="text-sm text-gray-400">|</span>
-                                                <span className="text-sm text-gray-500">
-                                                    {new Date(review.created_at).toLocaleDateString('ko-KR')}
-                                                </span>
+                        {/* 통계 */}
+                        <div className="mt-4 flex gap-4 text-sm text-gray-600">
+                            <span>전체: <strong>{reviews.length}</strong></span>
+                            <span>승인: <strong>{reviews.filter(r => r.status === 'APPROVED').length}</strong></span>
+                            <span>숨김: <strong>{reviews.filter(r => r.status === 'HIDDEN').length}</strong></span>
+                            <span>검색 결과: <strong>{filteredReviews.length}</strong></span>
+                        </div>
+                    </div>
+
+                    {/* 리뷰 목록 */}
+                    {isLoading ? (
+                        <div className="text-center py-20">
+                            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500"></div>
+                            <p className="mt-4 text-gray-500">로딩 중...</p>
+                        </div>
+                    ) : filteredReviews.length === 0 ? (
+                        <div className="bg-white rounded-2xl border-2 border-gray-100 p-12 text-center">
+                            <p className="text-gray-500">리뷰가 없습니다</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {filteredReviews.map((review) => (
+                                <div
+                                    key={review.id}
+                                    className="bg-white rounded-2xl border-2 border-gray-100 p-6 hover:border-rose-200 transition-colors"
+                                >
+                                    <div className="flex gap-4">
+                                        {/* 썸네일 */}
+                                        {review.thumbnail_url && (
+                                            <img
+                                                src={review.thumbnail_url}
+                                                alt={review.title || '썸네일'}
+                                                className="w-24 h-24 object-cover rounded-xl flex-shrink-0"
+                                                referrerPolicy="no-referrer"
+                                            />
+                                        )}
+
+                                        {/* 정보 */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-4 mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-2xl">{getPlatformIcon(review.platform)}</span>
+                                                    <span className="text-sm text-gray-500">{review.platform}</span>
+                                                    <span className="text-sm text-gray-400">|</span>
+                                                    <span className="text-sm font-medium">{review.author_name || '작성자 없음'}</span>
+                                                    <span className="text-sm text-gray-400">|</span>
+                                                    <span className="text-sm text-gray-500">
+                                                        {new Date(review.created_at).toLocaleDateString('ko-KR')}
+                                                    </span>
+                                                </div>
+                                                {getStatusBadge(review.status)}
                                             </div>
-                                            {getStatusBadge(review.status)}
-                                        </div>
 
-                                        <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">
-                                            {review.title || '제목 없음'}
-                                        </h3>
+                                            <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">
+                                                {review.title || '제목 없음'}
+                                            </h3>
 
-                                        <a
-                                            href={review.review_url}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-4"
-                                        >
-                                            <ExternalLink className="w-4 h-4" />
-                                            {review.review_url}
-                                        </a>
+                                            <a
+                                                href={review.review_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-4"
+                                            >
+                                                <ExternalLink className="w-4 h-4" />
+                                                {review.review_url}
+                                            </a>
 
-                                        {/* 액션 버튼 */}
-                                        <div className="flex gap-2">
-                                            {review.status === 'APPROVED' && (
-                                                <Button
-                                                    onClick={() => handleStatusChange(review.id, 'HIDDEN')}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-gray-700 hover:bg-gray-100"
-                                                >
-                                                    <EyeOff className="w-4 h-4 mr-2" />
-                                                    숨기기
-                                                </Button>
-                                            )}
-                                            {review.status === 'HIDDEN' && (
-                                                <Button
-                                                    onClick={() => handleStatusChange(review.id, 'APPROVED')}
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="text-green-700 hover:bg-green-50"
-                                                >
-                                                    <Eye className="w-4 h-4 mr-2" />
-                                                    복원하기
-                                                </Button>
-                                            )}
+                                            {/* 액션 버튼 */}
+                                            <div className="flex gap-2">
+                                                {review.status === 'APPROVED' && (
+                                                    <Button
+                                                        onClick={() => handleStatusChange(review.id, 'HIDDEN')}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-gray-700 hover:bg-gray-100"
+                                                    >
+                                                        <EyeOff className="w-4 h-4 mr-2" />
+                                                        숨기기
+                                                    </Button>
+                                                )}
+                                                {review.status === 'HIDDEN' && (
+                                                    <Button
+                                                        onClick={() => handleStatusChange(review.id, 'APPROVED')}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-700 hover:bg-green-50"
+                                                    >
+                                                        <Eye className="w-4 h-4 mr-2" />
+                                                        복원하기
+                                                    </Button>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );

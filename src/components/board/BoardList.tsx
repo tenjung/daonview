@@ -22,9 +22,10 @@ interface BoardListProps {
     items: BoardItem[];
     viewAllHref: string;
     isStandalone?: boolean;
+    itemHrefPrefix?: string;
 }
 
-export default function BoardList({ title, icon, items, viewAllHref, isStandalone = false }: BoardListProps) {
+export default function BoardList({ title, icon, items, viewAllHref, isStandalone = false, itemHrefPrefix }: BoardListProps) {
     const formatDate = (dateStr: string) => {
         return new Date(dateStr)
             .toLocaleDateString('ko-KR')
@@ -32,8 +33,8 @@ export default function BoardList({ title, icon, items, viewAllHref, isStandalon
             .replace(/\.$/, '');
     };
 
-    const containerStyles = isStandalone 
-        ? "py-0 bg-transparent" 
+    const containerStyles = isStandalone
+        ? "py-0 bg-transparent"
         : "py-10 md:py-20 bg-gradient-to-b from-white to-rose-50/30";
 
     return (
@@ -46,8 +47,8 @@ export default function BoardList({ title, icon, items, viewAllHref, isStandalon
                             <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2">
                                 {title} {icon && <span className="text-primary">{icon}</span>}
                             </h2>
-                            <Link 
-                                href={viewAllHref} 
+                            <Link
+                                href={viewAllHref}
                                 className="text-sm font-bold text-gray-400 hover:text-primary transition-colors flex items-center"
                             >
                                 전체보기 <ChevronRight className="w-4 h-4" />
@@ -63,12 +64,21 @@ export default function BoardList({ title, icon, items, viewAllHref, isStandalon
                     ) : (
                         <ul className="divide-y divide-gray-50">
                             {items.map((item) => (
-                                <Link key={item.id} href={`${viewAllHref}/${item.id}`}>
+                                <Link key={item.id} href={`${itemHrefPrefix || viewAllHref}/${item.id}`}>
                                     <li className="flex items-center gap-3 sm:gap-4 py-4 px-4 sm:px-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group">
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center gap-2 mb-1.5 overflow-hidden">
-                                                <div className={`px-2 py-0.5 text-[10px] sm:text-xs rounded-lg font-bold flex-shrink-0 ${item.type === '이벤트' ? 'bg-orange-100 text-orange-600' : 'bg-slate-100 text-slate-500'}`}>
-                                                    {item.type === 'NOTICE' ? '공지' : item.type === 'EVENT' ? '이벤트' : item.type === 'FREE' ? '자유' : '정보'}
+                                                <div className={`px-2 py-0.5 text-[10px] sm:text-xs rounded-lg font-bold flex-shrink-0 ${(item.type === 'EVENT' || item.type === '이벤트')
+                                                    ? 'bg-orange-100 text-orange-600'
+                                                    : (item.type === 'NOTICE' || item.type === '공지' || item.type === '업데이트')
+                                                        ? 'bg-blue-100 text-blue-600'
+                                                        : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    {item.type === 'NOTICE' || item.type === '공지' ? '공지' :
+                                                        item.type === 'EVENT' || item.type === '이벤트' ? '이벤트' :
+                                                            item.type === 'FREE' ? '자유' :
+                                                                item.type === '업데이트' ? '소식' :
+                                                                    item.type?.includes('ACADEMY') ? '정보' : '정보'}
                                                 </div>
                                                 <div className="flex items-center gap-1.5 text-xs text-slate-400 whitespace-nowrap">
                                                     <span>{formatDate(item.created_at)}</span>

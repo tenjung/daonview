@@ -196,6 +196,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                             initialApplications={applicationsList}
                             campaignId={id}
                             campaignTitle={campaign.title}
+                            campaignCategory={campaign.category}
                             recruitCount={campaign.recruit_count}
                         />
                     </div>

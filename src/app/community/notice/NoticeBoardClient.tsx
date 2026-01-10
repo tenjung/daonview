@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Bell, Pin, PenSquare } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { useState, useEffect } from "react";
+import { Search } from "lucide-react";
 import BoardList from "@/components/board/BoardList";
 
 interface NoticeBoardClientProps {
@@ -12,56 +10,43 @@ interface NoticeBoardClientProps {
 
 export default function NoticeBoardClient({ initialPosts }: NoticeBoardClientProps) {
     const [posts, setPosts] = useState(initialPosts);
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
-    // initialPosts가 변경될 때마다 posts 상태 업데이트
     useEffect(() => {
         setPosts(initialPosts);
     }, [initialPosts]);
 
-    useEffect(() => {
-        checkAdmin();
-    }, []);
-
-    const checkAdmin = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-            setIsAdmin(profile?.role === 'ADMIN');
-        }
-    };
+    const filteredPosts = posts.filter(post =>
+        post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (post.profiles?.nickname || post.profiles?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <Bell className="text-primary" size={24} />
-                        공지사항
-                    </h1>
-                    <p className="text-gray-500 mt-1">다온뷰의 새로운 소식과 안내를 확인하세요.</p>
-                </div>
-                {isAdmin && (
-                    <Link
-                        href="/community/write?type=NOTICE"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
-                    >
-                        <PenSquare size={18} />
-                        공지 작성
-                    </Link>
-                )}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">공지사항</h2>
+                <p className="text-gray-500 mt-1 text-sm">다온뷰의 중요한 소식을 전해드립니다</p>
             </div>
 
-            {/* 목록 */}
-            <BoardList 
-                items={posts} 
-                title="공지사항" 
-                viewAllHref="/community/notice" 
-                isStandalone={true} 
+            <div className="mb-6">
+                <div className="relative max-w-md">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                        type="text"
+                        placeholder="제목으로 검색"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-sm"
+                    />
+                </div>
+            </div>
+
+            <BoardList
+                items={filteredPosts}
+                title="공지사항"
+                viewAllHref="/community/notice"
+                itemHrefPrefix="/community/notice"
+                isStandalone={true}
             />
         </div>
     );

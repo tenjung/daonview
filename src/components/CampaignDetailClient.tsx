@@ -23,6 +23,7 @@ import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
+import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
 
 interface CampaignDetailClientProps {
     campaign: any;
@@ -240,6 +241,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             toast.success('캠페인 신청이 완료되었습니다!');
             setHasApplied(true);
             fetchCampaign();
+
+            // 백그라운드에서 인플루언서 통계 업데이트 (하루 1회 제한)
+            // await 없이 실행하여 사용자 경험에 영향 없음
+            updateInfluencerStats(user.id).catch(err => {
+                console.error('Stats update failed (non-blocking):', err);
+            });
         } catch (error: any) {
             console.error('Error applying:', error);
             console.error('Error type:', typeof error);

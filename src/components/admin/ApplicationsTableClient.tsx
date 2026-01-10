@@ -18,6 +18,7 @@ interface ApplicationsTableClientProps {
     initialApplications: Application[];
     campaignId: string;
     campaignTitle: string;
+    campaignCategory?: string;
     recruitCount: number;
 }
 
@@ -27,6 +28,7 @@ export default function ApplicationsTableClient({
     initialApplications,
     campaignId,
     campaignTitle,
+    campaignCategory,
     recruitCount
 }: ApplicationsTableClientProps) {
     const [applications, setApplications] = useState<Application[]>(initialApplications);
@@ -529,6 +531,8 @@ export default function ApplicationsTableClient({
                                             stats={userStats || null}
                                             loading={isLoadingStats}
                                             onRefresh={user?.sns_url ? () => crawlBlog(app.user_id, user.sns_url!) : undefined}
+                                            campaignTitle={campaignTitle}
+                                            campaignCategory={campaignCategory}
                                         />
                                     </td>
                                     <td className="px-6 py-4">
