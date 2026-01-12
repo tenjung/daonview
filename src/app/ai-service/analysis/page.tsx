@@ -1,28 +1,93 @@
+'use client';
+
+import { useState } from 'react';
+import { toast } from 'sonner';
+import AnalysisForm from '@/components/ai-service/AnalysisForm';
+import StatsCard from '@/components/ai-service/StatsCard';
+import KeywordSection from '@/components/ai-service/KeywordSection';
+import ExposureChart from '@/components/ai-service/ExposureChart';
+import { BlogAnalysisResult, AnalysisStatus } from '@/types/analysis';
+
 export default function AnalysisPage() {
-    return (
-        <div className="container py-16">
-            <div className="max-w-4xl mx-auto">
-                <h1 className="text-3xl font-bold mb-8">내 포스팅 분석</h1>
-                <div className="bg-white p-12 rounded-xl border border-border text-center">
-                    <div className="text-6xl mb-4">📊</div>
-                    <h2 className="text-xl font-bold mb-2">포스팅 URL을 입력해주세요</h2>
-                    <p className="text-gray-500 mb-8">AI가 포스팅을 정밀하게 분석하여 결과를 알려드립니다.</p>
+  const [status, setStatus] = useState<AnalysisStatus>('IDLE');
+  const [result, setResult] = useState<BlogAnalysisResult | null>(null);
 
-                    <div className="flex gap-2 max-w-lg mx-auto mb-8">
-                        <input type="text" placeholder="https://blog.naver.com/..." className="flex-1 border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary" />
-                        <button className="btn btn-primary whitespace-nowrap">분석하기</button>
-                    </div>
+  const handleAnalyze = async (url: string) => {
+    setStatus('ANALYZING');
+    setResult(null);
 
-                    <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-500 text-left">
-                        <p className="mb-1 font-bold">💡 분석 항목</p>
-                        <ul className="list-disc list-inside space-y-1">
-                            <li>검색 노출 가능성 및 누락 여부</li>
-                            <li>키워드 반복 횟수 및 적절성</li>
-                            <li>이미지 및 글자수 분석</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+    try {
+      const response = await fetch('/api/ai-service/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || '분석 중 오류가 발생했습니다.');
+      }
+
+      setResult(data);
+      setStatus('SUCCESS');
+      toast.success('분석이 완료되었습니다!');
+    } catch (error) {
+      setStatus('ERROR');
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      toast.error(errorMessage);
+      console.error('분석 오류:', error);
+    }
+  };
+
+  return (
+    <div className="container py-16">
+      <div className="max-w-6xl mx-auto">
+        {/* 헤더 */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-bold mb-4">내 포스팅 분석</h1>
+          <p className="text-lg text-gray-600">
+            AI가 블로그 포스팅을 분석하여 키워드와 검색 노출도를 알려드립니다
+          </p>
         </div>
-    );
+
+        {/* 분석 폼 */}
+        <div className="mb-8">
+          <AnalysisForm 
+            onAnalyze={handleAnalyze} 
+            isLoading={status === 'ANALYZING'} 
+          />
+        </div>
+
+        {/* 분석 결과 */}
+        {result && status === 'SUCCESS' && (
+          <div className="space-y-8 animate-in fade-in duration-500">
+            {/* 제목 */}
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 rounded-xl p-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                {result.title}
+              </h2>
+              <p className="text-sm text-gray-500">
+                {result.content.substring(0, 200)}...
+              </p>
+            </div>
+
+            {/* 통계 카드 */}
+            <StatsCard result={result} />
+
+            {/* 키워드 섹션 */}
+            <KeywordSection 
+              primary={result.keywords.primary}
+              secondary={result.keywords.secondary}
+            />
+
+            {/* 노출도 차트 */}
+            <ExposureChart data={result.exposure} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
