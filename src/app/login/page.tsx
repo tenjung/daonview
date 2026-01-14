@@ -11,9 +11,19 @@ function LoginForm() {
     const searchParams = useSearchParams();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSocialLoading, setIsSocialLoading] = useState<string | null>(null);
 
-    // Load email from URL query parameter if available
+    // Load email or error from URL query parameter
     useEffect(() => {
+        const error = searchParams.get('error');
+        if (error) {
+            toast.error('인증 실패', {
+                description: error === 'auth_callback_failed' 
+                    ? '카카오 인증 정보를 처리하는 중 오류가 발생했습니다. 개발자 설정(Redirect URI 등)을 확인해주세요.' 
+                    : error,
+            });
+        }
+
         const emailParam = searchParams.get('email');
         if (emailParam) {
             setEmail(emailParam);
@@ -97,6 +107,35 @@ function LoginForm() {
             });
         }
     };
+    
+    const handleSocialLogin = async (provider: 'kakao' | 'google') => {
+        setIsSocialLoading(provider);
+        try {
+            const options: any = {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            };
+
+            if (provider === 'kakao') {
+                options.scopes = 'account_email profile_nickname talk_message';
+                options.queryParams = {
+                    scope: 'account_email profile_nickname talk_message'
+                };
+            }
+
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: options,
+            });
+
+            if (error) throw error;
+        } catch (error: any) {
+            console.error(`${provider} Login Error:`, error);
+            toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 로그인 실패`, {
+                description: error.message || '다시 시도해주세요.',
+            });
+            setIsSocialLoading(null);
+        }
+    };
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center py-8 bg-background">
@@ -140,15 +179,33 @@ function LoginForm() {
                     <span className="px-4">또는 SNS 로그인</span>
                 </div>
 
-                <button className="w-full flex items-center justify-center gap-3 py-3 rounded-lg font-medium transition-all mb-3 border cursor-pointer bg-[#FEE500] text-[#391B1B] border-[#FEE500] hover:bg-[#E6CF00]" type="button">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fillRule="evenodd" clipRule="evenodd" d="M12 3C6.477 3 2 6.358 2 10.5C2 13.213 3.784 15.619 6.559 16.969C6.425 17.437 5.986 18.969 5.867 19.395C5.748 19.822 6.189 20.065 6.536 19.832C8.653 18.423 11.237 16.712 11.954 16.223L12 16.22C12.33 16.233 12.663 16.24 13 16.24C18.523 16.24 23 12.882 23 8.74C23 4.602 18.523 3 12 3Z" fill="currentColor" />
-                    </svg>
+                <button
+                    className={`w-full flex items-center justify-center gap-3 py-3 rounded-lg font-medium transition-all mb-3 border cursor-pointer bg-[#FEE500] text-[#391B1B] border-[#FEE500] hover:bg-[#E6CF00] ${isSocialLoading === 'kakao' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    type="button"
+                    onClick={() => handleSocialLogin('kakao')}
+                    disabled={!!isSocialLoading}
+                >
+                    {isSocialLoading === 'kakao' ? (
+                        <div className="w-5 h-5 border-2 border-[#391B1B] border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" clipRule="evenodd" d="M12 3C6.477 3 2 6.358 2 10.5C2 13.213 3.784 15.619 6.559 16.969C6.425 17.437 5.986 18.969 5.867 19.395C5.748 19.822 6.189 20.065 6.536 19.832C8.653 18.423 11.237 16.712 11.954 16.223L12 16.22C12.33 16.233 12.663 16.24 13 16.24C18.523 16.24 23 12.882 23 8.74C23 4.602 18.523 3 12 3Z" fill="currentColor" />
+                        </svg>
+                    )}
                     카카오로 로그인
                 </button>
 
-                <button className="w-full flex items-center justify-center gap-3 py-3 rounded-lg font-medium transition-all mb-3 border cursor-pointer bg-white border-border text-text-main hover:bg-slate-50" type="button">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.8055 10.0415H21V10H12V14H17.6515C16.827 16.3285 14.6115 18 12 18C8.6865 18 6 15.3135 6 12C6 8.6865 8.6865 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C6.4775 2 2 6.4775 2 12C2 17.5225 6.4775 22 12 22C17.5225 22 22 17.5225 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z" fill="#FFC107" /><path d="M3.15295 7.3455L6.4385 9.755C7.2275 7.5615 9.413 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C8.159 2 4.828 4.1685 3.15295 7.3455Z" fill="#FF3D00" /><path d="M12 22C14.6605 22 17.0715 20.9505 18.8585 19.255L15.6555 16.711C14.63 17.4395 13.376 17.917 12 18C9.378 18 7.154 16.3215 6.328 13.9845L3.0645 16.481C4.7865 19.824 8.163 22 12 22Z" fill="#4CAF50" /><path d="M21.8055 10.0415H21V10H12V14H17.6515C17.257 15.108 16.546 16.0755 15.6555 16.711L18.8585 19.255C20.7725 17.498 21.9215 14.9475 21.9965 12.086C21.999 11.401 21.9335 10.7185 21.8055 10.0415Z" fill="#1976D2" /></svg>
+                <button
+                    className={`w-full flex items-center justify-center gap-3 py-3 rounded-lg font-medium transition-all mb-3 border cursor-pointer bg-white border-border text-text-main hover:bg-slate-50 ${isSocialLoading === 'google' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    type="button"
+                    onClick={() => handleSocialLogin('google')}
+                    disabled={!!isSocialLoading}
+                >
+                    {isSocialLoading === 'google' ? (
+                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.8055 10.0415H21V10H12V14H17.6515C16.827 16.3285 14.6115 18 12 18C8.6865 18 6 15.3135 6 12C6 8.6865 8.6865 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C6.4775 2 2 6.4775 2 12C2 17.5225 6.4775 22 12 22C17.5225 22 22 17.5225 22 12C22 11.3295 21.931 10.675 21.8055 10.0415Z" fill="#FFC107" /><path d="M3.15295 7.3455L6.4385 9.755C7.2275 7.5615 9.413 6 12 6C13.5295 6 14.921 6.577 15.9805 7.5195L18.809 4.691C17.023 3.0265 14.634 2 12 2C8.159 2 4.828 4.1685 3.15295 7.3455Z" fill="#FF3D00" /><path d="M12 22C14.6605 22 17.0715 20.9505 18.8585 19.255L15.6555 16.711C14.63 17.4395 13.376 17.917 12 18C9.378 18 7.154 16.3215 6.328 13.9845L3.0645 16.481C4.7865 19.824 8.163 22 12 22Z" fill="#4CAF50" /><path d="M21.8055 10.0415H21V10H12V14H17.6515C17.257 15.108 16.546 16.0755 15.6555 16.711L18.8585 19.255C20.7725 17.498 21.9215 14.9475 21.9965 12.086C21.999 11.401 21.9335 10.7185 21.8055 10.0415Z" fill="#1976D2" /></svg>
+                    )}
                     Google로 로그인
                 </button>
 

@@ -9,7 +9,8 @@ interface AuthState {
   setUser: (user: any | null) => void;
   setProfile: (profile: any | null) => void;
   setIsLoading: (isLoading: boolean) => void;
-  fetchProfile: (userId: string) => Promise<void>;
+  fetchProfile: (userId: string) => Promise<any | null>; // Return profile or null
+  syncProfile: (user: any) => Promise<void>;
   initialize: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -34,54 +35,102 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // Profile not found - might be a new user or deleted
           console.warn('Profile not found for user:', userId);
+          return null;
         } else {
           throw error;
         }
       }
       set({ profile: data || null });
+      return data;
     } catch (error) {
       console.error('Error fetching profile:', error);
       set({ profile: null });
+      return null;
+    }
+  },
+
+  syncProfile: async (user: any) => {
+    if (!user) return;
+
+    try {
+      // 1. Try to fetch existing profile
+      const profile = await get().fetchProfile(user.id);
+
+      // 2. If no profile, create a default one
+      if (!profile) {
+        console.log('Profile missing, creating default profile for user:', user.email);
+        
+        // 1. Detect role from URL if present (useful for social signup)
+        let initialRole = 'INFLUENCER';
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const roleParam = params.get('role');
+          if (roleParam === 'ADVERTISER' || roleParam === 'ADMIN' || roleParam === 'INFLUENCER') {
+            initialRole = roleParam;
+          }
+        }
+
+        // 2. Extract default nickname from email or metadata
+        const defaultNickname = user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'Member';
+        
+        const { data: newProfile, error: insertError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: user.id,
+            email: user.email,
+            role: initialRole,
+            nickname: defaultNickname,
+            point: 0
+          }])
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating profile:', insertError);
+        } else {
+          console.log('Profile created successfully');
+          set({ profile: newProfile });
+        }
+      }
+    } catch (error) {
+      console.error('Error in syncProfile:', error);
     }
   },
 
   initialize: async () => {
-    // 이미 초기화 작업이 진행 중이거나 완료되었다면 중단
     if (get().isInitialized) return;
 
     try {
-      // 1. 초기 세션 확인
       const { data: { session } } = await supabase.auth.getSession();
       const user = session?.user ?? null;
       set({ user });
 
       if (user) {
-        await get().fetchProfile(user.id);
+        await get().syncProfile(user);
       }
     } catch (error) {
       console.error('Auth Initialization Error:', error);
     } finally {
-      // 로딩 종료 및 초기화 완료 표시 (오류가 나더라도 로딩은 풀어줘야 함)
       set({ isLoading: false, isInitialized: true });
     }
 
-    // 2. 인증 상태 변경 리스너 설정 (한 번만 설정됨)
     supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
-      
-      // 상태가 실제로 변했을 때만 처리 (불필요한 리렌더링 방지)
       const prevUser = get().user;
+
       if (currentUser?.id !== prevUser?.id) {
-        set({ user: currentUser, isLoading: true }); // 프로필 가져오는 동안 다시 로딩 표시 가능 (선택 사항)
+        set({ user: currentUser, isLoading: true });
         
         if (currentUser) {
-          await get().fetchProfile(currentUser.id);
+          await get().syncProfile(currentUser);
         } else {
           set({ profile: null });
         }
         set({ isLoading: false });
+      } else if (event === 'SIGNED_IN' && currentUser) {
+        // Handle cases where the ID is the same but we just signed in (e.g., re-login)
+        await get().syncProfile(currentUser);
       }
     });
   },
