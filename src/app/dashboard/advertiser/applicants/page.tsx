@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
 import { toast } from 'sonner';
 
@@ -24,17 +25,22 @@ interface Applicant {
 }
 
 export default function AdvertiserApplicantsPage() {
+    const { user, isInitialized } = useAuthStore();
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchApplicants();
-    }, []);
+        if (isInitialized && user) {
+            fetchApplicants();
+        } else if (isInitialized && !user) {
+            setLoading(false);
+        }
+    }, [isInitialized, user]);
 
     const fetchApplicants = async () => {
+        if (!user) return;
+        setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
 
             // 1. 내가 만든 캠페인 ID들을 먼저 가져옴
             const { data: myCampaigns } = await supabase

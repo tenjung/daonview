@@ -17,7 +17,7 @@ import {
     ArrowRight,
     Youtube
 } from 'lucide-react';
-import { PlatformBadge, TypeBadge } from '@/components/CampaignCard';
+import { PlatformBadge, TypeBadge, RegionBadge } from '@/components/CampaignCard';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
@@ -371,29 +371,26 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </Link>
                 </div>
 
+                {/* Campaign Header Section: Badges & Title (Above Grid to align sidebar with image) */}
+                <div className="mb-10 mt-2 space-y-5">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <TypeBadge type={campaign.type} />
+                        <PlatformBadge platform={campaign.platform} />
+                        {campaign.type === 'VISIT' && <RegionBadge region={campaign.region} />}
+                        <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
+                    </div>
+
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight truncate">
+                        {displayTitle}
+                    </h1>
+                </div>
+
                 {/* Main Layout: Left Content + Right Sticky Panel */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Left Content Area (Scrollable) */}
                     <div className="lg:col-span-8 space-y-8">
-                        {/* Campaign Type Header */}
-                        <div className="flex flex-wrap items-center gap-3">
-                            <TypeBadge type={campaign.type} />
-                            <PlatformBadge platform={campaign.platform} />
-                            {campaign.type === 'VISIT' && (
-                                <div className="px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold">
-                                    📍 {campaign.region || '전국'}
-                                </div>
-                            )}
-                            <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
-                        </div>
-
-                        {/* Campaign Title */}
-                        <h1 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight tracking-tight">
-                            {displayTitle}
-                        </h1>
-
                         {/* Main Image Slider */}
-                        <div className="w-full bg-white rounded-3xl aspect-[4/3] border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-lg group">
+                        <div className="w-full bg-white rounded-3xl aspect-video border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-lg group">
                             {images.length > 0 ? (
                                 <>
                                     <img

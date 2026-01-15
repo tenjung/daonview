@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import { Profile, Application, Campaign } from '@/types/database';
+import { useAuthStore } from '@/store/authStore';
+import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface ApplicationWithCampaign extends Application {
@@ -10,7 +11,7 @@ interface ApplicationWithCampaign extends Application {
 }
 
 export default function InfluencerDashboard() {
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const { user, profile, isLoading: authLoading, isInitialized } = useAuthStore();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [stats, setStats] = useState({
         total: 0,
@@ -20,28 +21,17 @@ export default function InfluencerDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchDashboardData();
-    }, []);
+        if (isInitialized && user) {
+            fetchDashboardData();
+        } else if (isInitialized && !user) {
+            setLoading(false);
+        }
+    }, [isInitialized, user]);
 
     async function fetchDashboardData() {
+        if (!user) return;
+        
         try {
-            // Get current user
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                setLoading(false);
-                return;
-            }
-
-            // Fetch user profile
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            setProfile(profileData);
-
             // Fetch applications with campaign details
             const { data: applicationsData } = await supabase
                 .from('applications')
@@ -56,9 +46,6 @@ export default function InfluencerDashboard() {
                 // Calculate stats
                 const total = applicationsData.length;
                 const approved = applicationsData.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
-                // 작성해야 할 리뷰 = 승인된 캠페인 중 리뷰 미제출 건수
-                // TODO: applications 테이블에 review_submitted 필드 추가 필요
-                // 임시로 APPROVED 상태를 사용 (실제로는 APPROVED && !review_submitted)
                 const needsReview = applicationsData.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
 
                 setStats({ total, approved, pending: needsReview });
@@ -116,7 +103,14 @@ export default function InfluencerDashboard() {
                     { href: '/dashboard/influencer', label: '대시보드', active: true },
                     { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
                     { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    { href: '/profile/edit', label: '계정 설정' },
+                    { 
+                        href: '/profile/edit', 
+                        label: '계정 설정',
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
+                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
+                        ]
+                    },
                     { href: '/contact', label: '1:1 문의' }
                 ]}
             />

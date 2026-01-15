@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Profile } from '@/types/database';
 import { Avatar } from '@/components/ui/avatar';
@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, Edit2, Lock } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 // 온보딩 모달과 동일한 상수 재사용
 const PLATFORMS = [
@@ -56,13 +57,39 @@ const CATEGORIES = [
 
 type TabType = 'basic' | 'interests';
 
-export default function ProfileEditPage() {
+function ProfileEditContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const activeTab = (searchParams.get('tab') as TabType) || 'basic';
+    
+    // SNS 접두사 상수
+    const BLOG_PREFIX = "blog.naver.com/";
+    const INSTA_PREFIX = "instagram.com/";
+
+    // URL에서 아이디만 추출하는 함수
+    const extractId = (url: string, prefix: string) => {
+        if (!url) return "";
+        let clean = url.replace(/^https?:\/\//, "");
+        if (clean.startsWith(prefix)) {
+            return clean.replace(prefix, "").split('?')[0].split('/')[0];
+        }
+        // prefix 없이 입력된 경우나 다른 형식인 경우 마지막 경로 세그먼트 추출 시도
+        if (clean.includes('/')) {
+            const parts = clean.split('/');
+            return parts[parts.length - 1] || clean;
+        }
+        return clean;
+    };
+
     const { profile: globalProfile, fetchProfile } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [activeTab, setActiveTab] = useState<TabType>('basic');
+    const [providers, setProviders] = useState<string[]>([]);
+    const [isEditingSocial, setIsEditingSocial] = useState({
+        blog: false,
+        instagram: false
+    });
 
     // 기본 정보
     const [formData, setFormData] = useState({
@@ -88,30 +115,20 @@ export default function ProfileEditPage() {
 
     // 전화번호 포맷팅 함수
     const formatPhoneNumber = (value: string) => {
-        // 숫자만 추출
         const numbers = value.replace(/[^\d]/g, '');
-
-        // 길이에 따라 포맷팅
-        if (numbers.length <= 3) {
-            return numbers;
-        } else if (numbers.length <= 7) {
-            return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-        } else if (numbers.length <= 11) {
-            return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
-        }
-
-        // 11자리 초과 시 11자리까지만 사용
+        if (numbers.length <= 3) return numbers;
+        if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+        if (numbers.length <= 11) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
         return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
     };
 
-    // 전화번호 입력 핸들러
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
         setFormData({ ...formData, phone_number: formatted });
     };
 
     useEffect(() => {
-        const fetchProfile = async () => {
+        const loadProfileData = async () => {
             try {
                 const { data: { session } } = await supabase.auth.getSession();
                 if (!session) {
@@ -129,6 +146,7 @@ export default function ProfileEditPage() {
 
                 if (data) {
                     setProfile(data);
+                    setProviders(session.user.app_metadata?.providers || []);
                     setFormData({
                         nickname: data.nickname || '',
                         phone_number: data.phone_number || '',
@@ -136,10 +154,9 @@ export default function ProfileEditPage() {
                         avatar_url: data.avatar_url || ''
                     });
 
-                    // sns_url을 blog 링크로 매핑
                     setSocialLinks({
-                        blog: data.sns_url || '',
-                        instagram: '',
+                        blog: extractId(data.blog_url || data.sns_url || '', BLOG_PREFIX),
+                        instagram: extractId(data.instagram_url || '', INSTA_PREFIX),
                         youtube: '',
                         tiktok: '',
                         other: ''
@@ -157,7 +174,7 @@ export default function ProfileEditPage() {
             }
         };
 
-        fetchProfile();
+        loadProfileData();
     }, [router]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
@@ -168,48 +185,35 @@ export default function ProfileEditPage() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session) return;
 
-            // 업데이트할 데이터 준비
             const updateData: any = {
                 nickname: formData.nickname,
                 phone_number: formData.phone_number,
                 company_name: formData.company_name,
+                avatar_url: formData.avatar_url
             };
 
-            // social_links를 sns_url로 변환 (블로그 링크만 저장)
-            if (socialLinks.blog) {
-                updateData.sns_url = socialLinks.blog;
+            const cleanBlogId = socialLinks.blog.trim().replace(/^https?:\/\/blog\.naver\.com\//, "");
+            const cleanInstaId = socialLinks.instagram.trim().replace(/^https?:\/\/instagram\.com\//, "");
+
+            if (cleanBlogId) {
+                updateData.blog_url = `https://blog.naver.com/${cleanBlogId}`;
+                updateData.sns_url = updateData.blog_url; // 하위 호환성 유지
+            }
+            if (cleanInstaId) {
+                updateData.instagram_url = `https://instagram.com/${cleanInstaId}`;
             }
 
-            console.log('Updating profile with data:', updateData);
-
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('profiles')
                 .update(updateData)
-                .eq('id', session.user.id)
-                .select();
+                .eq('id', session.user.id);
 
-            if (error) {
-                console.error('Supabase error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                throw error;
-            }
+            if (error) throw error;
 
-            console.log('Update successful:', data);
-            toast.success('기본 정보가 성공적으로 업데이트되었습니다.');
-
-            // 전역 스토어 프로필 갱신
-            if (session.user.id) {
-                await fetchProfile(session.user.id);
-            }
+            toast.success('기본 정보가 저장되었습니다.');
+            if (session.user.id) await fetchProfile(session.user.id);
         } catch (error: any) {
-            console.error('Error updating profile:', error);
-            console.error('Error type:', typeof error);
-            console.error('Error keys:', Object.keys(error || {}));
-            toast.error(error?.message || '프로필 업데이트에 실패했습니다.');
+            toast.error(error?.message || '업데이트에 실패했습니다.');
         } finally {
             setSaving(false);
         }
@@ -217,61 +221,32 @@ export default function ProfileEditPage() {
 
     const handleInterestsSubmit = async () => {
         setSaving(true);
-
         try {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                toast.error('로그인 세션이 만료되었습니다.');
-                return;
-            }
+            if (!session) return;
 
-            // 업데이트할 데이터 로깅
-            const updateData = {
-                preferred_platforms: selectedPlatforms,
-                preferred_regions: selectedRegions,
-                interests: selectedCategories
-            };
-            console.log('Updating interests with data:', updateData);
-
-            const { data, error } = await supabase
+            const { error } = await supabase
                 .from('profiles')
-                .update(updateData)
-                .eq('id', session.user.id)
-                .select();
+                .update({
+                    preferred_platforms: selectedPlatforms,
+                    preferred_regions: selectedRegions,
+                    interests: selectedCategories
+                })
+                .eq('id', session.user.id);
 
-            if (error) {
-                console.error('Supabase error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                throw error;
-            }
+            if (error) throw error;
 
-            console.log('Update successful:', data);
-            toast.success('관심사 설정이 성공적으로 업데이트되었습니다.');
-
-            // 전역 스토어 프로필 갱신
-            if (session.user.id) {
-                await fetchProfile(session.user.id);
-            }
+            toast.success('관심사 설정이 저장되었습니다.');
+            if (session.user.id) await fetchProfile(session.user.id);
         } catch (error: any) {
-            console.error('Error updating interests:', error);
-            console.error('Error type:', typeof error);
-            console.error('Error keys:', Object.keys(error));
-            toast.error(error?.message || '관심사 업데이트에 실패했습니다.');
+            toast.error(error?.message || '업데이트에 실패했습니다.');
         } finally {
             setSaving(false);
         }
     };
 
     const togglePlatform = (id: string) => {
-        if (selectedPlatforms.includes(id)) {
-            setSelectedPlatforms(selectedPlatforms.filter(p => p !== id));
-        } else {
-            setSelectedPlatforms([...selectedPlatforms, id]);
-        }
+        setSelectedPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
     };
 
     const toggleRegion = (id: string) => {
@@ -288,11 +263,7 @@ export default function ProfileEditPage() {
     };
 
     const toggleCategory = (id: string) => {
-        if (selectedCategories.includes(id)) {
-            setSelectedCategories(selectedCategories.filter(c => c !== id));
-        } else if (selectedCategories.length < 3) {
-            setSelectedCategories([...selectedCategories, id]);
-        }
+        setSelectedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : prev.length < 3 ? [...prev, id] : prev);
     };
 
     if (loading) {
@@ -307,412 +278,286 @@ export default function ProfileEditPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50/50 py-8">
-            <div className="container max-w-6xl px-4">
-                <div className="mb-6">
+        <div className="flex min-h-screen bg-background">
+            <DashboardSidebar
+                userType="INFLUENCER"
+                userName={profile?.nickname || '사용자'}
+                links={[
+                    { href: '/dashboard/influencer', label: '대시보드' },
+                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
+                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
+                    { 
+                        href: '/profile/edit', 
+                        label: '계정 설정',
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
+                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ]}
+            />
+
+            <main className="flex-1 p-6 md:p-10 overflow-y-auto">
+                <div className="mb-8">
                     <h1 className="text-3xl font-bold text-text-main tracking-tight">설정</h1>
                     <p className="text-gray-500 mt-1">회원님의 소중한 정보를 안전하게 관리하세요.</p>
                 </div>
 
-                <div className="flex flex-col lg:flex-row gap-6">
-                    {/* 사이드바 */}
-                    <aside className="lg:w-64 flex-shrink-0">
-                        <Card className="border-none shadow-lg">
-                            <CardContent className="p-4">
-                                <nav className="space-y-1">
-                                    <button
-                                        onClick={() => setActiveTab('basic')}
-                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'basic'
-                                            ? 'bg-rose-50 text-rose-600'
-                                            : 'text-gray-600 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <User className="w-5 h-5" />
-                                            <span>기본 정보</span>
-                                        </div>
-                                        {activeTab === 'basic' && <ChevronRight className="w-4 h-4" />}
-                                    </button>
-
-                                    <button
-                                        onClick={() => setActiveTab('interests')}
-                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium transition-all ${activeTab === 'interests'
-                                            ? 'bg-rose-50 text-rose-600'
-                                            : 'text-gray-600 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <Heart className="w-5 h-5" />
-                                            <span>관심사 설정</span>
-                                        </div>
-                                        {activeTab === 'interests' && <ChevronRight className="w-4 h-4" />}
-                                    </button>
-                                </nav>
-                            </CardContent>
-                        </Card>
-                    </aside>
-
-                    {/* 메인 컨텐츠 */}
-                    <main className="flex-1">
-                        {activeTab === 'basic' && (
-                            <form onSubmit={handleBasicInfoSubmit} className="space-y-6">
-                                <Card className="border-none shadow-xl shadow-gray-200/50 overflow-hidden">
-                                    <CardHeader className="bg-gradient-to-r from-rose-500 to-rose-600 text-white pb-12">
-                                        <CardTitle className="text-xl">기본 프로필</CardTitle>
-                                        <CardDescription className="text-rose-100">공개되는 프로필 정보를 설정합니다.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="relative pt-0">
-                                        {/* Avatar Section */}
-                                        <div className="flex justify-center -translate-y-12 mb-[-3rem]">
-                                            <div className="relative group">
-                                                <Avatar
-                                                    src={formData.avatar_url}
-                                                    fallback={formData.nickname?.[0] || '?'}
-                                                    className="h-24 w-24 ring-4 ring-white shadow-xl text-2xl"
-                                                />
-                                                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                                    <Camera className="text-white w-6 h-6" />
-                                                </div>
+                <div className="max-w-4xl">
+                    {activeTab === 'basic' ? (
+                        <form onSubmit={handleBasicInfoSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <Card className="border-none shadow-xl shadow-gray-200/50 overflow-hidden rounded-3xl">
+                                <CardHeader className="bg-gradient-to-r from-rose-500 to-rose-600 text-white pb-12">
+                                    <CardTitle className="text-xl">기본 프로필</CardTitle>
+                                    <CardDescription className="text-rose-100">공개되는 프로필 정보를 설정합니다.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="relative pt-0">
+                                    <div className="flex justify-center -translate-y-12 mb-[-3rem]">
+                                        <div className="relative group">
+                                            <Avatar
+                                                src={formData.avatar_url}
+                                                fallback={formData.nickname?.[0] || '?'}
+                                                className="h-24 w-24 ring-4 ring-white shadow-xl text-2xl"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                                                <Camera className="text-white w-6 h-6" />
                                             </div>
                                         </div>
+                                    </div>
 
-                                        <div className="grid gap-6 mt-8">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="avatar_url" className="flex items-center gap-2">
-                                                    <Camera className="w-4 h-4 text-gray-400" />
-                                                    프로필 이미지 URL
-                                                </Label>
-                                                <Input
-                                                    id="avatar_url"
-                                                    placeholder="이미지 주소를 입력하세요"
-                                                    value={formData.avatar_url}
-                                                    onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
+                                    <div className="grid gap-6 mt-8">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="avatar_url" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                <Camera className="w-4 h-4 text-rose-500" />
+                                                프로필 이미지 URL
+                                            </Label>
+                                            <Input
+                                                id="avatar_url"
+                                                placeholder="이미지 주소를 입력하세요"
+                                                value={formData.avatar_url}
+                                                onChange={(e) => setFormData({ ...formData, avatar_url: e.target.value })}
+                                                className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl transition-all"
+                                            />
+                                        </div>
 
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="nickname" className="flex items-center gap-2">
-                                                    <User className="w-4 h-4 text-gray-400" />
-                                                    닉네임 <span className="text-rose-500">*</span>
-                                                </Label>
-                                                <Input
-                                                    id="nickname"
-                                                    placeholder="사용할 닉네임을 입력하세요"
-                                                    value={formData.nickname}
-                                                    onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
-                                                    required
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="nickname" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                <User className="w-4 h-4 text-rose-500" />
+                                                닉네임 <span className="text-rose-500">*</span>
+                                            </Label>
+                                            <Input
+                                                id="nickname"
+                                                placeholder="사용할 닉네임을 입력하세요"
+                                                value={formData.nickname}
+                                                onChange={(e) => setFormData({ ...formData, nickname: e.target.value })}
+                                                required
+                                                className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl transition-all"
+                                            />
+                                        </div>
 
-                                            <div className="grid gap-2">
-                                                <Label className="flex items-center gap-2">
-                                                    <Mail className="w-4 h-4 text-gray-400" />
+                                        <div className="grid gap-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                                <Label className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                    <Mail className="w-4 h-4 text-rose-500" />
                                                     이메일 (계정 정보)
                                                 </Label>
-                                                <Input
-                                                    value={profile?.email || ''}
-                                                    disabled
-                                                    className="bg-gray-100 text-gray-500 cursor-not-allowed border-dashed"
-                                                />
-                                                <p className="text-[10px] text-gray-400">이메일 계정은 변경이 불가능합니다.</p>
+                                                <div className="flex gap-2">
+                                                    {providers.includes('kakao') && (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#FEE500] text-[#3c1e1e] border border-[#FEE500] shadow-sm">
+                                                            카카오 연동됨
+                                                        </span>
+                                                    )}
+                                                    {providers.includes('google') && (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-gray-700 border border-gray-200 shadow-sm">
+                                                            Google 연동됨
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
+                                            <Input
+                                                value={profile?.email || ''}
+                                                disabled
+                                                className="bg-slate-50 text-slate-400 border-none h-12 rounded-xl mt-1 opacity-60"
+                                            />
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl">추가 정보</CardTitle>
-                                        <CardDescription>활동 및 연락을 위한 추가 정보를 입력하세요.</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid gap-6">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="phone_number" className="flex items-center gap-2">
-                                                    <Phone className="w-4 h-4 text-gray-400" />
-                                                    연락처
-                                                </Label>
-                                                <Input
-                                                    id="phone_number"
-                                                    type="tel"
-                                                    placeholder="010-0000-0000"
-                                                    value={formData.phone_number}
-                                                    onChange={handlePhoneChange}
-                                                    maxLength={13}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl h-full">
+                                <CardHeader>
+                                    <CardTitle className="text-xl">추가 정보</CardTitle>
+                                    <CardDescription>활동 및 연락을 위한 기본 정보를 관리합니다.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="phone_number" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                            <Phone className="w-4 h-4 text-rose-500" />
+                                            연락처
+                                        </Label>
+                                        <Input
+                                            id="phone_number"
+                                            type="tel"
+                                            placeholder="010-0000-0000"
+                                            value={formData.phone_number}
+                                            onChange={handlePhoneChange}
+                                            maxLength={13}
+                                            className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                        />
+                                    </div>
 
-                                {/* 활동 소셜 링크 섹션 */}
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl">활동 소셜 링크</CardTitle>
-                                        <CardDescription>활동하는 SNS 플랫폼의 링크를 입력하세요</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid gap-6">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="blog_url" className="flex items-center gap-2">
-                                                    <span className="text-lg">📝</span>
-                                                    블로그
-                                                </Label>
-                                                <Input
-                                                    id="blog_url"
-                                                    placeholder="https://blog.naver.com/..."
-                                                    value={socialLinks.blog}
-                                                    onChange={(e) => setSocialLinks({ ...socialLinks, blog: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="instagram_url" className="flex items-center gap-2">
-                                                    <span className="text-lg">📸</span>
-                                                    인스타그램
-                                                </Label>
-                                                <Input
-                                                    id="instagram_url"
-                                                    placeholder="https://instagram.com/..."
-                                                    value={socialLinks.instagram}
-                                                    onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="youtube_url" className="flex items-center gap-2">
-                                                    <span className="text-lg">🎥</span>
-                                                    유튜브
-                                                </Label>
-                                                <Input
-                                                    id="youtube_url"
-                                                    placeholder="https://youtube.com/@..."
-                                                    value={socialLinks.youtube}
-                                                    onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="tiktok_url" className="flex items-center gap-2">
-                                                    <span className="text-lg">🎵</span>
-                                                    틱톡
-                                                </Label>
-                                                <Input
-                                                    id="tiktok_url"
-                                                    placeholder="https://tiktok.com/@..."
-                                                    value={socialLinks.tiktok}
-                                                    onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="other_url" className="flex items-center gap-2">
-                                                    <Globe className="w-4 h-4 text-gray-400" />
-                                                    기타 SNS
-                                                </Label>
-                                                <Input
-                                                    id="other_url"
-                                                    placeholder="기타 SNS 링크를 입력하세요"
-                                                    value={socialLinks.other}
-                                                    onChange={(e) => setSocialLinks({ ...socialLinks, other: e.target.value })}
-                                                    className="bg-gray-50/50 focus:bg-white transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl">기타 정보</CardTitle>
-                                        <CardDescription>추가 정보를 입력하세요</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid gap-6">
-
-                                            {profile?.role === 'ADVERTISER' && (
-                                                <div className="grid gap-2">
-                                                    <Label htmlFor="company_name" className="flex items-center gap-2">
-                                                        회사명/브랜드명
-                                                    </Label>
-                                                    <Input
-                                                        id="company_name"
-                                                        placeholder="회사 이름을 입력하세요"
-                                                        value={formData.company_name}
-                                                        onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
-                                                        className="bg-gray-50/50 focus:bg-white transition-all"
+                                    <div className="grid gap-4">
+                                        <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                            <Globe className="w-4 h-4 text-rose-500" />
+                                            활동 소셜 링크
+                                        </Label>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between ml-1">
+                                                    <span className="text-[10px] font-black text-emerald-600 uppercase">Naver Blog</span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setIsEditingSocial(prev => ({ ...prev, blog: !prev.blog }))}
+                                                        className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-1"
+                                                    >
+                                                        {isEditingSocial.blog ? <><Lock size={10} /> 잠금</> : <><Edit2 size={10} /> 수정하기</>}
+                                                    </button>
+                                                </div>
+                                                <div className={`flex items-center transition-all duration-300 ${!isEditingSocial.blog ? 'opacity-70 group' : 'ring-2 ring-emerald-500/20 rounded-xl'}`}>
+                                                    <div className={`bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 ${!isEditingSocial.blog ? 'text-slate-300' : 'text-slate-500'}`}>
+                                                        {BLOG_PREFIX}
+                                                    </div>
+                                                    <Input 
+                                                        placeholder="아이디 입력" 
+                                                        value={socialLinks.blog}
+                                                        disabled={!isEditingSocial.blog}
+                                                        onChange={(e) => setSocialLinks({ ...socialLinks, blog: e.target.value })}
+                                                        className={`bg-slate-50 border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-emerald-500 transition-all ${!isEditingSocial.blog ? 'cursor-not-allowed bg-slate-100/50' : 'bg-white'}`}
                                                     />
                                                 </div>
-                                            )}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between ml-1">
+                                                    <span className="text-[10px] font-black text-pink-600 uppercase">Instagram</span>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => setIsEditingSocial(prev => ({ ...prev, instagram: !prev.instagram }))}
+                                                        className="text-[10px] font-bold text-slate-400 hover:text-pink-600 transition-colors flex items-center gap-1"
+                                                    >
+                                                        {isEditingSocial.instagram ? <><Lock size={10} /> 잠금</> : <><Edit2 size={10} /> 수정하기</>}
+                                                    </button>
+                                                </div>
+                                                <div className={`flex items-center transition-all duration-300 ${!isEditingSocial.instagram ? 'opacity-70' : 'ring-2 ring-pink-500/20 rounded-xl'}`}>
+                                                    <div className={`bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 ${!isEditingSocial.instagram ? 'text-slate-300' : 'text-slate-500'}`}>
+                                                        {INSTA_PREFIX}
+                                                    </div>
+                                                    <Input 
+                                                        placeholder="아이디 입력" 
+                                                        value={socialLinks.instagram}
+                                                        disabled={!isEditingSocial.instagram}
+                                                        onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                                                        className={`bg-slate-50 border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-pink-500 transition-all ${!isEditingSocial.instagram ? 'cursor-not-allowed bg-slate-100/50' : 'bg-white'}`}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                                <div className="flex gap-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="flex-1 py-6 text-base font-bold text-gray-500 hover:bg-gray-100 transition-all rounded-xl"
-                                        onClick={() => router.back()}
-                                    >
-                                        취소
-                                    </Button>
-                                    <Button
-                                        type="submit"
-                                        disabled={saving}
-                                        className="flex-[2] py-6 text-base font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-xl shadow-lg shadow-rose-500/20"
-                                    >
-                                        {saving ? '저장 중...' : '변경사항 저장하기'}
-                                    </Button>
-                                </div>
-                            </form>
-                        )}
-
-                        {activeTab === 'interests' && (
-                            <div className="space-y-6">
-                                {/* 활동 플랫폼 */}
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl">활동 플랫폼</CardTitle>
-                                        <CardDescription>주로 활동하는 플랫폼을 선택해주세요 (중복 가능)</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                            {PLATFORMS.map(platform => (
-                                                <button
-                                                    key={platform.id}
-                                                    type="button"
-                                                    onClick={() => togglePlatform(platform.id)}
-                                                    className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
-                                                        ? 'border-primary bg-rose-50 shadow-lg scale-102'
-                                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                                                        }`}
-                                                >
-                                                    {selectedPlatforms.includes(platform.id) && (
-                                                        <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
-                                                            <Check size={14} className="text-white" />
-                                                        </div>
-                                                    )}
-                                                    <div className="text-5xl mb-3">{platform.icon}</div>
-                                                    <div className="text-lg font-bold text-gray-900">{platform.name}</div>
-                                                </button>
-                                            ))}
+                            <Button
+                                type="submit"
+                                disabled={saving}
+                                className="w-full py-8 text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                            >
+                                {saving ? '저장 중...' : '기본 정보 업데이트하기'}
+                            </Button>
+                        </form>
+                    ) : (
+                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
+                                <CardHeader className="bg-slate-900 text-white">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-xl">활동 플랫폼</CardTitle>
+                                            <CardDescription className="text-slate-400">주로 활동하는 채널을 알려주세요.</CardDescription>
                                         </div>
-                                    </CardContent>
-                                </Card>
+                                        <div className="bg-rose-500 px-3 py-1 rounded-full text-xs font-bold">필수</div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                        {PLATFORMS.map(platform => (
+                                            <button
+                                                key={platform.id}
+                                                type="button"
+                                                onClick={() => togglePlatform(platform.id)}
+                                                className={`relative group p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
+                                                    ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.05]'
+                                                    : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
+                                                    }`}
+                                            >
+                                                {selectedPlatforms.includes(platform.id) && (
+                                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                        <Check size={14} className="text-white" />
+                                                    </div>
+                                                )}
+                                                <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{platform.icon}</div>
+                                                <div className="text-sm font-bold text-slate-800">{platform.name}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                                {/* 선호 지역 */}
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl flex items-center gap-2">
-                                            선호 지역
-                                            <span className="text-sm font-bold text-primary">
-                                                [{selectedRegions.length}/3]
-                                            </span>
-                                        </CardTitle>
-                                        <CardDescription>캠페인 참여를 원하는 지역을 최대 3곳 선택해주세요</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                            {REGIONS.map(region => (
-                                                <button
-                                                    key={region.id}
-                                                    type="button"
-                                                    onClick={() => toggleRegion(region.id)}
-                                                    disabled={
-                                                        !selectedRegions.includes(region.id) &&
-                                                        selectedRegions.length >= 3 &&
-                                                        !selectedRegions.includes('nationwide')
-                                                    }
-                                                    className={`relative p-3 rounded-xl border-2 transition-all duration-200 ${selectedRegions.includes(region.id)
-                                                        ? 'border-primary bg-rose-50 shadow-sm'
-                                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                                                        } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
-                                                >
-                                                    {selectedRegions.includes(region.id) && (
-                                                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-200">
-                                                            <Check size={10} className="text-white" />
-                                                        </div>
-                                                    )}
-                                                    <div className="text-xl mb-0.5">{region.emoji}</div>
-                                                    <div className="text-[10px] font-bold text-gray-900 whitespace-nowrap">{region.name}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
+                                <CardHeader>
+                                    <CardTitle className="text-xl flex items-center justify-between">
+                                        <span>선호 지역</span>
+                                        <span className="text-sm font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500">
+                                            {selectedRegions.length} / 3 선택됨
+                                        </span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                                        {REGIONS.map(region => (
+                                            <button
+                                                key={region.id}
+                                                onClick={() => toggleRegion(region.id)}
+                                                className={`p-4 rounded-2xl border-2 transition-all group ${selectedRegions.includes(region.id)
+                                                    ? 'border-rose-500 bg-rose-50 text-rose-500'
+                                                    : 'border-slate-50 hover:bg-slate-50 text-slate-400'
+                                                    }`}
+                                            >
+                                                <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">{region.emoji}</div>
+                                                <div className="text-[11px] font-bold">{region.name}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                                {/* 관심 분야 */}
-                                <Card className="border-none shadow-xl shadow-gray-200/50">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl flex items-center gap-2">
-                                            관심 분야
-                                            <span className="text-sm font-bold text-primary">
-                                                [{selectedCategories.length}/3]
-                                            </span>
-                                        </CardTitle>
-                                        <CardDescription>관심있는 분야를 최대 3개 선택해주세요</CardDescription>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                            {CATEGORIES.map(category => (
-                                                <button
-                                                    key={category.id}
-                                                    type="button"
-                                                    onClick={() => toggleCategory(category.id)}
-                                                    disabled={
-                                                        !selectedCategories.includes(category.id) &&
-                                                        selectedCategories.length >= 3
-                                                    }
-                                                    className={`relative p-5 rounded-2xl border-2 transition-all duration-300 text-left ${selectedCategories.includes(category.id)
-                                                        ? 'border-primary bg-rose-50 shadow-md'
-                                                        : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                                                        } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
-                                                >
-                                                    {selectedCategories.includes(category.id) && (
-                                                        <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
-                                                            <Check size={14} className="text-white" />
-                                                        </div>
-                                                    )}
-                                                    <div className="text-4xl mb-2">{category.icon}</div>
-                                                    <div className="text-base font-bold text-gray-900 mb-1">{category.name}</div>
-                                                    <div className="text-xs text-gray-400 line-clamp-1">{category.desc}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-
-                                <div className="flex gap-4">
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        className="flex-1 py-6 text-base font-bold text-gray-500 hover:bg-gray-100 transition-all rounded-xl"
-                                        onClick={() => router.back()}
-                                    >
-                                        취소
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={handleInterestsSubmit}
-                                        disabled={saving}
-                                        className="flex-[2] py-6 text-base font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-xl shadow-lg shadow-rose-500/20"
-                                    >
-                                        {saving ? '저장 중...' : '관심사 저장하기'}
-                                    </Button>
-                                </div>
-                            </div>
-                        )}
-                    </main>
+                            <Button
+                                onClick={handleInterestsSubmit}
+                                disabled={saving}
+                                className="w-full py-8 text-lg font-bold bg-rose-600 hover:bg-rose-700 transition-all rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98]"
+                            >
+                                {saving ? '관심사 저장 중...' : '매칭 관심 정보 업데이트하기'}
+                            </Button>
+                        </div>
+                    )}
                 </div>
-            </div>
+            </main>
         </div>
+    );
+}
+
+export default function ProfileEditPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+            <ProfileEditContent />
+        </Suspense>
     );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
@@ -20,18 +21,22 @@ interface Campaign {
 }
 
 export default function AdvertiserDashboard() {
+    const { user, isInitialized } = useAuthStore();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchCampaigns();
-    }, []);
+        if (isInitialized && user) {
+            fetchCampaigns();
+        } else if (isInitialized && !user) {
+            setLoading(false);
+        }
+    }, [isInitialized, user]);
 
     async function fetchCampaigns() {
+        if (!user) return;
+        
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
             const { data, error } = await supabase
                 .from('campaigns')
                 .select('*, applications(count)')
@@ -43,7 +48,6 @@ export default function AdvertiserDashboard() {
             setCampaigns(data || []);
         } catch (error) {
             console.error('캠페인 로딩 오류:', error);
-            // toast.error('캠페인 목록을 불러오지 못했습니다.');
         } finally {
             setLoading(false);
         }

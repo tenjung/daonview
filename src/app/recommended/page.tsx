@@ -4,85 +4,125 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
-import { Star, MapPin, Zap, Info, Smartphone, Target } from 'lucide-react';
+import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
 
+const REGION_MAP: Record<string, string> = {
+  seoul: '서울', gyeonggi: '경기', incheon: '인천', busan: '부산',
+  daegu: '대구', gwangju: '광주', daejeon: '대전', ulsan: '울산',
+  sejong: '세종', gangwon: '강원', chungbuk: '충북', chungnam: '충남',
+  jeonbuk: '전북', jeonnam: '전남', gyeongbuk: '경북', gyeongnam: '경남',
+  jeju: '제주', nationwide: '전국'
+};
+
+const DISPLAY_NAME_MAP: Record<string, string> = {
+  NAVER_BLOG: '블로그',
+  INSTAGRAM: '인스타그램',
+  YOUTUBE: '유튜브',
+  TIKTOK: '틱톡'
+};
+
 export default function RecommendedCampaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile, isLoading: authLoading, isInitialized } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
+    // 인증 초기화 대기
+    if (!isInitialized) return;
+
+    // 비로그인 유저 리다이렉트
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // 인플루언서가 아닌 경우 리다이렉트
+    if (profile && profile.role !== 'INFLUENCER') {
+      router.push('/');
+      return;
+    }
+
     async function fetchData() {
       try {
-        // 1. 유저 세션 확인 (매우 빠름)
-        const { data: { user } } = await supabase.auth.getUser();
+        setLoading(true);
+        
+        // 모집 중이거나 진행 중인 캠페인만 조회
+        const { data: campaignData, error: campaignError } = await supabase
+          .from('campaigns')
+          .select('*')
+          .in('status', ['RECRUITING', 'ONGOING'])
+          .order('created_at', { ascending: false });
 
-        if (!user) {
-          router.push('/login');
-          return;
-        }
+        if (campaignError) throw campaignError;
+        if (!campaignData) return;
 
-        // 2. 프로필과 캠페인 데이터를 병렬로 호출 (속도 개선 핵심)
-        const [profileResponse, campaignResponse] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', user.id).single(),
-          supabase.from('campaigns').select('*').neq('status', 'COMPLETED').order('created_at', { ascending: false })
-        ]);
-
-        const profileData = profileResponse.data;
-        const campaignData = campaignResponse.data;
-
-        if (profileResponse.error || !profileData || profileData.role !== 'INFLUENCER') {
-          router.push('/');
-          return;
-        }
-
-        if (campaignResponse.error) {
-          throw campaignResponse.error;
-        }
-
-        setProfile(profileData);
-
-        // 3. 추천 점수 계산 최적화
-        const interests = new Set(profileData.interests || []);
-        const platforms = new Set(profileData.preferred_platforms || []);
-        const regions = profileData.preferred_regions || [];
+        // 추천 점수 계산 최적화
+        const userInterests = new Set(profile?.interests || []);
+        const userPlatforms = new Set(profile?.preferred_platforms || []);
+        const userRegions = profile?.preferred_regions || [];
 
         const filtered = (campaignData || [])
           .map(campaign => {
             let score = 0;
             const reasons: string[] = [];
 
-            // 카테고리 매칭
-            if (interests.has(campaign.category)) {
+            // 1. 플랫폼 매칭
+            const isPlatformMatch = userPlatforms.has(campaign.platform) || 
+                                   (userPlatforms.has('BLOG') && campaign.platform === 'NAVER_BLOG') ||
+                                   (userPlatforms.has('NAVER_BLOG') && campaign.platform === 'BLOG');
+
+            if (userPlatforms.size > 0 && !isPlatformMatch) {
+              return { ...campaign, score: 0, reasons: [] };
+            }
+            score += 30;
+
+            // 2. 카테고리 매칭
+            if (userInterests.has(campaign.category)) {
               score += 40;
-              reasons.push('관심 분야');
+              reasons.push('관심 분야 일치');
             }
 
-            // 플랫폼 매칭
-            if (platforms.has(campaign.platform)) {
-              score += 30;
-              reasons.push('선호 플랫폼');
-            }
+            // 3. 지역 및 유형 매칭
+            if (campaign.type === 'VISIT') {
+              if (campaign.region) {
+                const isMatch = userRegions.some((id: string) => {
+                  const regionName = REGION_MAP[id];
+                  return (regionName && campaign.region.includes(regionName)) || id === 'nationwide';
+                });
 
-            // 지역/유형 매칭
-            if (campaign.type === 'VISIT' && campaign.region) {
-              const isMatch = regions.some((r: string) => campaign.region.includes(r) || r === 'nationwide');
-              if (isMatch) {
-                score += 30;
-                reasons.push('선호 지역');
+                if (isMatch) {
+                  score += 25;
+                  reasons.push('내 활동 지역');
+                } else {
+                  return { ...campaign, score: 0, reasons: [] };
+                }
               }
             } else if (campaign.type === 'DELIVERY') {
+              score = Math.max(score, 40); 
               score += 10;
-              reasons.push('배송형');
+              reasons.push('참여 가능 배송형');
             }
 
-            return { ...campaign, score, reasons };
+            // 4. 가산점 및 확률 보정
+            const endDate = new Date(campaign.end_date);
+            const now = new Date();
+            const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+            if (daysLeft > 0 && daysLeft <= 3) score += 5;
+
+            const applicantsCount = campaign.applicants_count || 0;
+            const recruitmentCount = campaign.recruit_count || 1;
+            const competitionRatio = applicantsCount / recruitmentCount;
+            if (competitionRatio < 0.3) score += 15;
+            else if (competitionRatio < 0.7) score += 5;
+
+            return { ...campaign, score: Math.min(score, 100), reasons };
           })
-          .filter(c => c.score > 0)
+          .filter(c => c.score >= 30)
           .sort((a, b) => b.score - a.score);
 
         setCampaigns(filtered);
@@ -93,8 +133,10 @@ export default function RecommendedCampaigns() {
       }
     }
 
-    fetchData();
-  }, [router]);
+    if (profile) {
+      fetchData();
+    }
+  }, [isInitialized, user, profile, router]);
 
   if (loading) {
     return (
@@ -119,20 +161,32 @@ export default function RecommendedCampaigns() {
           <Zap size={14} className="fill-amber-600" />
           <span>인공지능 맞춤 추천</span>
         </div>
-        <div className="flex flex-col md:flex-row md:items-end gap-3 mb-2">
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-            {profile?.nickname || '회원'}님을 위한 맞춤 캠페인
-          </h1>
-          <Badge variant="secondary" className="bg-amber-500 text-white hover:bg-amber-600 px-3 py-1 rounded-full text-xs font-black self-start md:mb-1 border-none shadow-sm shadow-amber-200">
-            {campaigns.length}
-          </Badge>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="text-center md:text-left">
+            <div className="flex flex-col md:flex-row md:items-end gap-3 mb-2">
+              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+                {profile?.nickname || '회원'}님을 위한 맞춤 캠페인
+              </h1>
+              <Badge variant="secondary" className="bg-amber-500 text-white hover:bg-amber-600 px-3 py-1 rounded-full text-xs font-black self-start md:mb-1 border-none shadow-sm shadow-amber-200">
+                {campaigns.length}
+              </Badge>
+            </div>
+            <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
+              설정하신 활동 플랫폼과 관심 카테고리를 분석하여<br className="hidden md:block" />
+              가장 높은 매칭 점수를 기록한 캠페인부터 정렬했습니다.
+            </p>
+          </div>
+          
+          <button 
+            onClick={() => router.push('/profile/edit')}
+            className="flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 hover:bg-slate-50 hover:border-primary/30 hover:text-primary transition-all shadow-sm group self-center md:self-end"
+          >
+            <Settings size={18} className="group-hover:rotate-45 transition-transform duration-500" />
+            맞춤 설정 변경
+          </button>
         </div>
-        <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
-          설정하신 활동 플랫폼과 관심 카테고리를 분석하여<br className="hidden md:block" />
-          가장 높은 매칭 점수를 기록한 캠페인부터 정렬했습니다.
-        </p>
 
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-5 max-w-5xl">
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
           {/* 나의 활동 플랫폼 */}
           <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between gap-4">
@@ -146,7 +200,7 @@ export default function RecommendedCampaigns() {
                 {profile?.preferred_platforms && profile.preferred_platforms.length > 0 ? (
                   profile.preferred_platforms.map((platform: string, idx: number) => (
                     <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-indigo-50/30 text-indigo-700 border-indigo-100 font-bold text-[11px] hover:bg-indigo-100 transition-colors">
-                      {platform}
+                      {DISPLAY_NAME_MAP[platform] || platform}
                     </Badge>
                   ))
                 ) : (
@@ -170,6 +224,29 @@ export default function RecommendedCampaigns() {
                   profile.interests.map((interest: string, idx: number) => (
                     <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-rose-50/30 text-rose-700 border-rose-100 font-bold text-[11px] hover:bg-rose-100 transition-colors">
                       #{interest}
+                    </Badge>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-300">설정 없음</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 나의 관심 지역 */}
+          <div className="bg-white border border-slate-200/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center transition-colors group-hover:bg-emerald-500 group-hover:text-white">
+                  <MapPin size={20} />
+                </div>
+                <h3 className="text-sm font-black text-slate-800 tracking-tight whitespace-nowrap">나의 관심 지역</h3>
+              </div>
+              <div className="flex flex-wrap gap-1.5 justify-end">
+                {profile?.preferred_regions && profile.preferred_regions.length > 0 ? (
+                  profile.preferred_regions.map((region: string, idx: number) => (
+                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-emerald-50/30 text-emerald-700 border-emerald-100 font-bold text-[11px] hover:bg-emerald-100 transition-colors">
+                      {REGION_MAP[region] || region}
                     </Badge>
                   ))
                 ) : (

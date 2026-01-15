@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Save, Loader2, FileText, AlertCircle } from "lucide-react";
 import TiptapEditor from "@/components/editor/TiptapEditor";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/authStore";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -54,6 +55,7 @@ const TYPE_TITLES: Record<string, string> = {
 };
 
 function WritePageContent() {
+    const { user, profile, isInitialized } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const typeFromQuery = searchParams.get('type') || 'FREE';
@@ -64,7 +66,6 @@ function WritePageContent() {
     const [type] = useState(typeFromQuery);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
-    const [user, setUser] = useState<any>(null);
     const [isDirty, setIsDirty] = useState(false);
     const isDirtyRef = useRef(false);
 
@@ -73,6 +74,7 @@ function WritePageContent() {
     const isSubmitting = useRef(false);
 
     useEffect(() => {
+        if (!isInitialized) return;
         if (hasCheckedAuth.current) return;
         hasCheckedAuth.current = true;
 
@@ -89,7 +91,7 @@ function WritePageContent() {
             }
         };
         init();
-    }, [editId, type]);
+    }, [isInitialized, user, profile, editId, type]);
 
     // 내용 변경 감지
     useEffect(() => {
@@ -172,8 +174,6 @@ function WritePageContent() {
     };
 
     const checkUserAndPermission = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-
         if (!user) {
             if (!isRedirecting.current) {
                 isRedirecting.current = true;
@@ -185,12 +185,6 @@ function WritePageContent() {
 
         // 관리자 전용 타입인 경우 권한 확인
         if (ADMIN_ONLY_TYPES.includes(type)) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-
             if (profile?.role !== 'ADMIN') {
                 if (!isRedirecting.current) {
                     isRedirecting.current = true;
@@ -201,7 +195,6 @@ function WritePageContent() {
             }
         }
 
-        setUser(user);
         return true;
     };
 

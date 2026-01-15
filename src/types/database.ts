@@ -13,6 +13,8 @@ export interface Profile {
     role?: UserRole;
     phone_number?: string;
     sns_url?: string;
+    blog_url?: string;
+    instagram_url?: string;
     point?: number;
     avatar_url?: string;
     [key: string]: any;

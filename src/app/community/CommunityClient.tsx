@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Search, PenSquare } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import BoardList from '@/components/board/BoardList';
 
 interface CommunityClientProps {
@@ -31,11 +32,11 @@ const typeHrefs: Record<string, string> = {
 };
 
 export default function CommunityClient({ initialPosts, initialType }: CommunityClientProps) {
+    const { user } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const [posts, setPosts] = useState(initialPosts);
     const [searchQuery, setSearchQuery] = useState('');
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [currentType, setCurrentType] = useState(initialType);
 
     // Props 동기화
@@ -44,15 +45,7 @@ export default function CommunityClient({ initialPosts, initialType }: Community
         setCurrentType(initialType);
     }, [initialPosts, initialType]);
 
-    // 로그인 상태 체크
-    useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const checkAuth = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsLoggedIn(!!user);
-    };
+    const isLoggedIn = !!user;
 
     const filteredPosts = posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

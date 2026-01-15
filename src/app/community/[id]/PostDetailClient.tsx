@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/authStore";
 import { User, MessageSquare, Send, Trash2, Edit2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import PostDetailLayout from "@/components/community/PostDetailLayout";
@@ -15,21 +16,15 @@ interface PostDetailClientProps {
 }
 
 export default function PostDetailClient({ initialPost, initialComments, id }: PostDetailClientProps) {
+    const { user } = useAuthStore();
     const router = useRouter();
     const [comments, setComments] = useState<any[]>(initialComments);
     const [newComment, setNewComment] = useState("");
     const [commentLoading, setCommentLoading] = useState(false);
-    const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
-        checkUser();
         incrementViewCount();
     }, []);
-
-    const checkUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setUser(user);
-    };
 
     const incrementViewCount = async () => {
         try {

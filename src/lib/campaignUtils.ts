@@ -68,5 +68,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     region: (campaign as any).region || null,
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
+    end_date: campaign.end_date,
+    created_at: campaign.created_at,
   };
 };

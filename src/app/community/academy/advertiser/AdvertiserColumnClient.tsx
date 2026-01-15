@@ -4,36 +4,22 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { BookOpen, PenSquare, Calendar, Eye } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/authStore";
 
 interface AdvertiserColumnClientProps {
     initialPosts: any[];
 }
 
 export default function AdvertiserColumnClient({ initialPosts }: AdvertiserColumnClientProps) {
+    const { user, profile } = useAuthStore();
     const [posts, setPosts] = useState(initialPosts);
-    const [isAdmin, setIsAdmin] = useState(false);
 
     // Props 동기화
     useEffect(() => {
         setPosts(initialPosts);
     }, [initialPosts]);
 
-    // 관리자 권한 체크
-    useEffect(() => {
-        checkAdmin();
-    }, []);
-
-    const checkAdmin = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
-            setIsAdmin(profile?.role === 'ADMIN');
-        }
-    };
+    const isAdmin = profile?.role === 'ADMIN';
 
     return (
         <div className="space-y-6">

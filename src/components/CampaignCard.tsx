@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart } from 'lucide-react';
+import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart, Store } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 
 interface CampaignProps {
@@ -19,34 +21,36 @@ interface CampaignProps {
 }
 
 // Exported Badge Components for reuse
+const badgeBaseClass = "inline-flex items-center justify-center gap-1 px-2 py-1 rounded-xl text-[10px] font-bold leading-none transition-all";
+
 export const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform.toUpperCase();
-    let icon = <PenTool className="w-3 h-3" />;
+    let icon = <PenTool size={11} />;
     let label = "블로그";
-    let colorClass = "bg-emerald-100 text-emerald-700"; // Default Naver
+    let colorClass = "bg-emerald-50 text-emerald-600 border border-emerald-100"; // Default Naver
 
     if (p === 'INSTAGRAM' || p === 'REELS') {
-        icon = <Instagram className="w-3 h-3" />;
+        icon = <Instagram size={11} />;
         label = "인스타그램";
-        colorClass = "bg-pink-100 text-pink-700";
+        colorClass = "bg-pink-50 text-pink-600 border border-pink-100";
     } else if (p === 'YOUTUBE' || p === 'SHORTS') {
-        icon = <Youtube className="w-3 h-3" />;
+        icon = <Youtube size={11} />;
         label = "유튜브";
-        colorClass = "bg-red-100 text-red-700";
+        colorClass = "bg-red-50 text-red-600 border border-red-100";
     } else if (p === 'TIKTOK') {
-        icon = <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
+        icon = <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
         label = "틱톡";
         colorClass = "bg-slate-900 text-white";
     } else if (p === 'PURCHASE' || p === 'OTHER' || p === '기타') {
-        icon = <ShoppingBag className="w-3 h-3" />;
+        icon = <ShoppingBag size={11} />;
         label = "구매평";
-        colorClass = "bg-orange-100 text-orange-700";
+        colorClass = "bg-orange-50 text-orange-600 border border-orange-100";
     }
 
     return (
-        <div className={`inline-flex items-center justify-center gap-0.5 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-lg text-[9px] md:text-[11px] font-semibold ${colorClass}`}>
+        <div className={`${badgeBaseClass} ${colorClass}`}>
             {icon}
-            <span className="leading-none pt-[1px]">{label}</span>
+            <span>{label}</span>
         </div>
     );
 };
@@ -56,27 +60,36 @@ export const TypeBadge = ({ type }: { type?: string }) => {
     const t = type.toUpperCase();
 
     let label = "방문";
-    let colorClass = "bg-blue-100 text-blue-700";
-    let icon = <MapPin className="w-3 h-3" />;
+    let colorClass = "bg-blue-50 text-blue-600 border border-blue-100";
+    let icon = <Store size={11} />;
 
     if (t === 'DELIVERY') {
         label = "배송";
-        icon = <Package className="w-3 h-3" />;
-        colorClass = "bg-indigo-100 text-indigo-700";
+        icon = <Package size={11} />;
+        colorClass = "bg-indigo-50 text-indigo-600 border border-indigo-100";
     } else if (t === 'PURCHASE') {
         label = "구매";
-        icon = <ShoppingBag className="w-3 h-3" />;
-        colorClass = "bg-orange-100 text-orange-700";
+        icon = <ShoppingBag size={11} />;
+        colorClass = "bg-orange-50 text-orange-600 border border-orange-100";
     } else if (t === 'PRESS') {
         label = "기자단";
-        icon = <PenTool className="w-3 h-3" />;
-        colorClass = "bg-purple-100 text-purple-700";
+        icon = <PenTool size={11} />;
+        colorClass = "bg-purple-50 text-purple-600 border border-purple-100";
     }
 
     return (
-        <span className={`inline-flex items-center justify-center gap-0.5 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-lg text-[9px] md:text-[11px] font-semibold ${colorClass}`}>
+        <span className={`${badgeBaseClass} ${colorClass}`}>
             {icon}
-            <span className="leading-none pt-[1px]">{label}</span>
+            <span>{label}</span>
+        </span>
+    );
+};
+
+export const RegionBadge = ({ region }: { region?: string | null }) => {
+    return (
+        <span className={`${badgeBaseClass} bg-slate-50 text-slate-600 border border-slate-200`}>
+            <MapPin size={11} />
+            <span>{region || '전국'}</span>
         </span>
     );
 };
@@ -94,21 +107,53 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     // Calculate percentage
     const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
 
+    const { user } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
     const isWished = id ? isInCart(id) : false;
 
-    const toggleWish = (e: React.MouseEvent) => {
+    const toggleWish = async (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
 
         if (!id) return;
 
-        if (isWished) {
-            removeItem(id);
-            toast.info('관심 캠페인에서 제거되었습니다.');
-        } else {
-            addItem({ id, title, platform, type, imageUrl, provision, applicants, total, dday, region });
-            toast.success('관심 캠페인에 추가되었습니다!');
+        // 1. 로그인 여부 확인
+        if (!user) {
+            toast.error('로그인이 필요한 기능입니다.', {
+                description: '관심 캠페인을 저장하려면 로그인해 주세요.'
+            });
+            return;
+        }
+
+        try {
+            if (isWished) {
+                // DB에서 삭제
+                const { error } = await supabase
+                    .from('favorites')
+                    .delete()
+                    .eq('user_id', user.id)
+                    .eq('campaign_id', id);
+
+                if (error) throw error;
+                
+                removeItem(id);
+                toast.info('관심 캠페인에서 제거되었습니다.');
+            } else {
+                // DB에 추가
+                const { error } = await supabase
+                    .from('favorites')
+                    .insert({ user_id: user.id, campaign_id: id });
+
+                if (error) throw error;
+
+                addItem({ id, title, platform, type, imageUrl, provision, applicants, total, dday, region });
+                toast.success('관심 캠페인에 저장되었습니다!', {
+                    description: '대시보드에서 확인하실 수 있습니다.'
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling favorite:', error);
+            toast.error('오류가 발생했습니다. 다시 시도해 주세요.');
         }
     };
 
@@ -169,32 +214,22 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                     <PlatformBadge platform={platform} />
 
-                    {isVisit && platform !== 'PURCHASE' && (
-                        region ? (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
-                                <MapPin className="w-3 h-3" />
-                                {region}
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] text-gray-500 font-medium border border-gray-100 bg-gray-50">
-                                <MapPin className="w-3 h-3" />
-                                전국
-                            </span>
-                        )
+                    {isVisit && (
+                        <RegionBadge region={region} />
                     )}
                 </div>
 
                 {/* 2. Title */}
-                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-primary transition-colors h-[40px]">
+                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-1 group-hover:text-primary transition-colors">
                     {title}
                 </h3>
 
                 {/* 3. Provision */}
-                <div className="flex flex-col gap-1 text-xs text-gray-500 items-start">
+                <div className="flex flex-col gap-1 text-[11px] text-gray-500 items-start">
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
                         제공내역
                     </span>
-                    <span className="line-clamp-1 text-slate-600 pl-0.5">{provision || '제공내역 없음'}</span>
+                    <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">{provision || '제공내역 정보가 없습니다.'}</span>
                 </div>
 
                 {/* Spacer to push bottom section down */}

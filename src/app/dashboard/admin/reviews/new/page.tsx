@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -23,6 +24,7 @@ interface BulkResult {
 }
 
 export default function BulkReviewPage() {
+    const { user } = useAuthStore();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [urls, setUrls] = useState('');
@@ -53,8 +55,6 @@ export default function BulkReviewPage() {
         setSummary(null);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
             if (!user) {
                 toast.error('로그인이 필요합니다');
                 return;

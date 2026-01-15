@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import CampaignStep1 from '@/components/campaign/CampaignStep1';
 import CampaignStep2 from '@/components/campaign/CampaignStep2';
@@ -15,6 +16,7 @@ import { Save } from 'lucide-react';
 // const AUTOSAVE_KEY = 'campaign_draft'; // Deprecated in favor of user-specific keys
 
 function NewCampaignPageContent() {
+    const { user, profile, isInitialized } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const isEdit = !!searchParams?.get('id');
@@ -27,7 +29,6 @@ function NewCampaignPageContent() {
     const [initialStep2Data, setInitialStep2Data] = useState<any>(null);
 
     const [showRestoreDialog, setShowRestoreDialog] = useState(false);
-    const [userId, setUserId] = useState<string>('');
     const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
 
     // 캠페인 불러오기 - 완료된 캠페인 또는 기존 캠페인 수정
@@ -167,18 +168,14 @@ function NewCampaignPageContent() {
         let isMounted = true;
 
         const loadCampaignData = async () => {
+            if (!isInitialized || !user) return;
+
             try {
                 // URL 파라미터 직접 추출
                 const campaignId = searchParams?.get('id');
                 const draftId = searchParams?.get('draftId');
                 
                 console.log('🔍 [데이터 로딩 시작]', { campaignId, draftId });
-
-                // 사용자 인증 확인
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user || !isMounted) return;
-
-                setUserId(user.id);
 
                 // 1. 기존 캠페인 수정 모드
                 if (campaignId) {
@@ -230,45 +227,17 @@ function NewCampaignPageContent() {
         return () => {
             isMounted = false;
         };
-    }, [searchParams]); // searchParams만 의존
-
-    // 인증 상태 변경 감지 (별도 useEffect)
-    useEffect(() => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (session?.user) {
-                setUserId(session.user.id);
-            } else {
-                setUserId('');
-            }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, []); // 한 번만 실행
+    }, [isInitialized, user, searchParams, handleLoadCompleted]);
 
     const handleSaveDraft = async () => {
         console.log('--- 임시저장 시작 ---');
-        // 1. 최신 세션 확인
-        let currentUserId = userId;
-
-        // userId가 state에 없으면 직접 확인
-        if (!currentUserId) {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                currentUserId = user.id;
-                setUserId(currentUserId);
-            }
-        }
-
-        console.log('userId:', currentUserId);
-
-        if (!currentUserId) {
+        
+        if (!user) {
             toast.error('로그인 세션이 만료되었습니다. 다시 로그인해주세요.');
-            // 선택 사항: 로그인 페이지로 리다이렉트
-            // router.push('/login'); 
             return;
         }
+
+        console.log('userId:', user.id);
 
         // 2. 데이터 확인
         // step1Data가 null이더라도 CampaignStep1에서 올라온 데이터가 있을 수 있으므로 확인
@@ -282,7 +251,7 @@ function NewCampaignPageContent() {
         console.log('currentStep:', currentStep);
 
         try {
-            const draft = await saveDraft(currentUserId, {
+            const draft = await saveDraft(user.id, {
                 id: currentDraftId || undefined,
                 title: step1Data.campaignTitle || step1Data.productName || step2Data?.campaignTitle || '제목 없음',
                 campaignType: step1Data.campaignType,
@@ -328,10 +297,10 @@ function NewCampaignPageContent() {
 
     // 자동 저장된 데이터 복구
     useEffect(() => {
-        if (!userId) return; // 유저 정보가 없으면 실행하지 않음
+        if (!isInitialized || !user) return; // 유저 정보가 없으면 실행하지 않음
 
         const id = searchParams?.get('id');
-        const userSpecificKey = `campaign_draft_${userId}`;
+        const userSpecificKey = `campaign_draft_${user.id}`;
         const savedData = localStorage.getItem(userSpecificKey);
 
         // 레거시 키 확인 (이전 버전 호환성 혹은 잘못된 공유 방지)
@@ -343,16 +312,16 @@ function NewCampaignPageContent() {
         if (savedData && !id) {
             setShowRestoreDialog(true);
         }
-    }, [searchParams, userId]);
+    }, [searchParams, user, isInitialized]);
 
     // 자동 저장
     useEffect(() => {
-        if (!userId) return;
+        if (!isInitialized || !user) return;
 
         // 데이터가 비어있으면 저장하지 않음 (초기 로딩 시 덮어쓰기 방지)
         if (!step1Data && !step2Data) return;
 
-        const userSpecificKey = `campaign_draft_${userId}`;
+        const userSpecificKey = `campaign_draft_${user.id}`;
         const draftData = {
             currentStep,
             step1Data,
@@ -360,12 +329,12 @@ function NewCampaignPageContent() {
             savedAt: new Date().toISOString(),
         };
         localStorage.setItem(userSpecificKey, JSON.stringify(draftData));
-    }, [currentStep, step1Data, step2Data, userId]);
+    }, [currentStep, step1Data, step2Data, user, isInitialized]);
 
     // 임시 저장 데이터 복구
     const handleRestoreDraft = () => {
-        if (!userId) return;
-        const userSpecificKey = `campaign_draft_${userId}`;
+        if (!user) return;
+        const userSpecificKey = `campaign_draft_${user.id}`;
         const savedData = localStorage.getItem(userSpecificKey);
         if (savedData) {
             const draft = JSON.parse(savedData);
@@ -381,8 +350,8 @@ function NewCampaignPageContent() {
 
     // 임시 저장 데이터 삭제
     const handleDiscardDraft = () => {
-        if (!userId) return;
-        const userSpecificKey = `campaign_draft_${userId}`;
+        if (!user) return;
+        const userSpecificKey = `campaign_draft_${user.id}`;
         localStorage.removeItem(userSpecificKey);
         setShowRestoreDialog(false);
     };
@@ -428,27 +397,15 @@ function NewCampaignPageContent() {
     const handleFinalSubmit = async (step3Data: any, latestStep2Data?: any) => {
         const finalStep2Data = latestStep2Data || step2Data;
         console.log('🚀 handleFinalSubmit 시작');
-        console.log('📝 Step1 데이터:', step1Data);
-        console.log('📝 Step2 데이터:', finalStep2Data);
-        console.log('💳 Step3 결제정보:', step3Data);
-
+        
         try {
-            // 현재 로그인한 사용자 가져오기
-            const { data: { user } } = await supabase.auth.getUser();
-            console.log('👤 사용자 확인:', user);
-
             if (!user) {
                 toast.error('로그인이 필요합니다.');
                 router.push('/login');
                 return;
             }
 
-            // 사용자 역할 및 현재 캠페인 상태 확인
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('role')
-                .eq('id', user.id)
-                .single();
+            console.log('👤 사용자 확인:', user);
             const userRole = profile?.role;
 
             const editId = searchParams?.get('id') || currentDraftId;
@@ -661,9 +618,9 @@ function NewCampaignPageContent() {
                     </div>
 
                     {/* 캠페인 불러오기 */}
-                    {userId && (
+                    {isInitialized && user && (
                         <CampaignLoader
-                            userId={userId}
+                            userId={user.id}
                             onLoadDraft={handleLoadDraft}
                             onLoadCompleted={handleLoadCompleted}
                         />

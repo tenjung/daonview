@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Newspaper, PenSquare, Calendar, Eye, User } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/authStore";
 import BoardList from "@/components/board/BoardList";
 
 interface BlogIntroClientProps {
@@ -11,23 +12,15 @@ interface BlogIntroClientProps {
 }
 
 export default function BlogIntroClient({ initialPosts }: BlogIntroClientProps) {
+    const { user } = useAuthStore();
     const [posts, setPosts] = useState(initialPosts);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     // Props 동기화
     useEffect(() => {
         setPosts(initialPosts);
     }, [initialPosts]);
 
-    // 로그인 상태 체크
-    useEffect(() => {
-        checkAuth();
-    }, []);
-
-    const checkAuth = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        setIsLoggedIn(!!user);
-    };
+    const isLoggedIn = !!user;
 
     return (
         <div className="space-y-6">

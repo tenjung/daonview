@@ -116,27 +116,79 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth Event:', event);
       const currentUser = session?.user ?? null;
-      const prevUser = get().user;
-
-      if (currentUser?.id !== prevUser?.id) {
+      
+      if (currentUser) {
         set({ user: currentUser, isLoading: true });
-        
-        if (currentUser) {
-          await get().syncProfile(currentUser);
-        } else {
-          set({ profile: null });
-        }
-        set({ isLoading: false });
-      } else if (event === 'SIGNED_IN' && currentUser) {
-        // Handle cases where the ID is the same but we just signed in (e.g., re-login)
         await get().syncProfile(currentUser);
+        set({ isLoading: false });
+      } else {
+        // Clear user/profile but keep isLoading if we are in the middle of a manual signOut
+        // This prevents the flickering from [Login Button] -> [Skeleton] -> [Login Button]
+        set({ user: null, profile: null });
+        
+        // Ensure browser storage is clean for auth
+        if (typeof window !== 'undefined') {
+          Object.keys(localStorage).forEach(key => {
+            if (key.includes('auth-token') || key.startsWith('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
       }
     });
   },
 
   signOut: async () => {
-    await supabase.auth.signOut();
-    set({ user: null, profile: null, isLoading: false });
+    try {
+      console.log('Starting SignOut process...');
+      // 0. 로딩 상태를 true로 설정하여 UI를 스켈레톤으로 전환 (깜빡임 방지)
+      set({ isLoading: true });
+      
+      // 1. Supabase 로그아웃 호출 (서버 세션 종료)
+      const signOutPromise = supabase.auth.signOut();
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('SignOut Timeout')), 2000)
+      );
+
+      await Promise.race([signOutPromise, timeoutPromise]).catch(e => {
+        console.warn('Supabase signOut notice:', e.message);
+      });
+
+      // 2. 장바구니 초기화 (비동기 임포트)
+      try {
+        const { useCartStore } = await import('@/store/cartStore');
+        if (useCartStore) {
+          useCartStore.getState().clearCart();
+        }
+      } catch (cartError) {
+        console.warn('Logout: Failed to clear cart', cartError);
+      }
+
+    } catch (error) {
+      console.error('Error during sign out:', error);
+    } finally {
+      // 3. 브라우저 스토리지 강제 초기화 (Supabase 관련 모든 키)
+      if (typeof window !== 'undefined') {
+        Object.keys(localStorage).forEach(key => {
+          if (key.includes('auth-token') || key.startsWith('sb-')) {
+            localStorage.removeItem(key);
+          }
+        });
+        // 세션 스토리지도 클리어
+        sessionStorage.clear();
+      }
+
+      // 4. 로컬 상태 즉시 및 최종 초기화
+      // isLoading은 true로 유지하여 페이지 리로드 전까지 스켈레톤이 보이게 함
+      set({ 
+        user: null, 
+        profile: null, 
+        isInitialized: true 
+      });
+      
+      console.log('SignOut process completed (Loading maintained for redirect).');
+    }
   },
 }));

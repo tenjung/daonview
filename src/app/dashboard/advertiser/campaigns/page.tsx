@@ -1,14 +1,15 @@
 'use client';
 
-// ... imports
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import Link from 'next/link';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
 import AdvertiserCampaignTable from '@/components/AdvertiserCampaignTable';
 
 function AdvertiserCampaignsContent() {
+    const { user, isInitialized } = useAuthStore();
     const searchParams = useSearchParams();
     const status = searchParams?.get('status');
 
@@ -34,22 +35,16 @@ function AdvertiserCampaignsContent() {
     };
 
     useEffect(() => {
-        fetchCampaigns();
-    }, [status]);
+        if (isInitialized && user) {
+            fetchCampaigns();
+        } else if (isInitialized && !user) {
+            setLoading(false);
+        }
+    }, [isInitialized, user, status]);
 
     const fetchCampaigns = async () => {
+        if (!user) return;
         setLoading(true);
-        console.log('Fetching campaigns... Status:', status);
-
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-            console.error('User not logged in');
-            setLoading(false);
-            return;
-        }
-
-        console.log('User ID:', user.id);
 
         let query = supabase
             .from('campaigns')
@@ -58,14 +53,11 @@ function AdvertiserCampaignsContent() {
             .order('created_at', { ascending: false });
 
         if (status === 'RECRUITING') {
-            // [수정 사항 적용]: PENDING도 여기서 같이 보여줌
             query = query.in('status', ['PENDING', 'RECRUITING', 'ONGOING']);
         } else if (status === 'COMPLETED') {
             query = query.eq('status', 'COMPLETED');
         } else if (status === 'DRAFT') {
             query = query.eq('status', 'DRAFT');
-        } else {
-            // 전체 보기: 필터 없음 (모든 상태 조회)
         }
 
         const { data, error } = await query;
@@ -73,7 +65,6 @@ function AdvertiserCampaignsContent() {
         if (error) {
             console.error('Error fetching campaigns:', error);
         } else {
-            console.log('Campaigns fetched:', data);
             setCampaigns(data || []);
         }
         setLoading(false);

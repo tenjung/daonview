@@ -102,11 +102,18 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
         }).sort((a, b) => {
             if (sortBy === 'popular') return b.applicants - a.applicants;
             if (sortBy === 'deadline') {
+                // 상시모집은 가장 뒤로
+                if (a.dday === '상시모집') return 1;
+                if (b.dday === '상시모집') return -1;
+                
                 const dateA = new Date(a.end_date).getTime();
                 const dateB = new Date(b.end_date).getTime();
                 return dateA - dateB;
             }
-            return b.id - a.id;
+            // 기본: 최신순 (created_at)
+            const timeA = new Date(a.created_at).getTime();
+            const timeB = new Date(b.created_at).getTime();
+            return timeB - timeA;
         });
     }, [activeTab, campaigns, searchQuery, selectedPlatforms, selectedRegions, selectedMajorRegion, sortBy]);
 

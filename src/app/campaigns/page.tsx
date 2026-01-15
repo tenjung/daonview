@@ -10,7 +10,7 @@ export default async function CampaignsPage() {
     // Fetch all campaigns on the server
     const { data: rawCampaigns } = await supabase
         .from('campaigns')
-        .select('*')
+        .select('*, applications(count)')
         .in('status', ['RECRUITING', 'ONGOING'])
         .order('created_at', { ascending: false });
 

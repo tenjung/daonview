@@ -2,10 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
-import { Profile } from '@/types/database';
+import { useAuthStore } from '@/store/authStore';
 
 export default function SettingsPage() {
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const { user, profile, isInitialized } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
@@ -17,50 +17,26 @@ export default function SettingsPage() {
     });
 
     useEffect(() => {
-        fetchProfile();
-    }, []);
-
-    async function fetchProfile() {
-        try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) {
-                setLoading(false);
-                return;
-            }
-
-            const { data: profileData } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
-
-            if (profileData) {
-                setProfile(profileData);
+        if (isInitialized) {
+            if (profile) {
                 setFormData({
-                    nickname: profileData.nickname || '',
-                    phone_number: profileData.phone_number || '',
-                    sns_url: profileData.sns_url || ''
+                    nickname: profile.nickname || '',
+                    phone_number: profile.phone_number || '',
+                    sns_url: profile.sns_url || ''
                 });
             }
-
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching profile:', error);
             setLoading(false);
         }
-    }
+    }, [isInitialized, profile]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        if (!user) return;
+
         setSaving(true);
         setMessage('');
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (!user) return;
-
             const { error } = await supabase
                 .from('profiles')
                 .update({
@@ -73,7 +49,9 @@ export default function SettingsPage() {
             if (error) throw error;
 
             setMessage('프로필이 성공적으로 업데이트되었습니다.');
-            fetchProfile();
+            // 전역 상태 동기화 요청 (필요한 경우 authStore에 추가 로직 필요)
+            // 현재는 fetchProfile이 fetch만 하고 set하므로 이를 호출하거나 
+            // 직접 setProfile을 노출하여 호출 가능
         } catch (error) {
             console.error('Error updating profile:', error);
             setMessage('프로필 업데이트에 실패했습니다.');

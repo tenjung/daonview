@@ -3,36 +3,35 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuthStore } from '@/store/authStore';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
 import { toast } from 'sonner';
 import AdminSidebar from '@/components/AdminSidebar';
 import { Edit, Trash2, Calendar, ChevronRight } from 'lucide-react';
 
 export default function DraftCampaignsPage() {
+    const { user, isInitialized } = useAuthStore();
     const router = useRouter();
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
-    const [userId, setUserId] = useState<string>('');
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        loadUserAndDrafts();
-    }, []);
+        if (isInitialized && user) {
+            loadDrafts();
+        } else if (isInitialized && !user) {
+            router.push('/login');
+        }
+    }, [isInitialized, user]);
 
-    const loadUserAndDrafts = async () => {
+    const loadDrafts = async () => {
+        if (!user) return;
+        setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                router.push('/login');
-                return;
-            }
-
-            setUserId(user.id);
-            setUserId(user.id);
             const userDrafts = await getUserDrafts(user.id);
             setDrafts(userDrafts);
         } catch (error) {
-            console.error('사용자 정보 불러오기 실패:', error);
-            toast.error('사용자 정보를 불러오는데 실패했습니다.');
+            console.error('임시저장 목록 불러오기 실패:', error);
+            toast.error('임시저장 목록을 불러오는데 실패했습니다.');
         } finally {
             setLoading(false);
         }
@@ -44,10 +43,11 @@ export default function DraftCampaignsPage() {
     };
 
     const handleDelete = async (draftId: string) => {
+        if (!user) return;
         if (confirm('이 임시저장을 삭제하시겠습니까?')) {
             try {
-                await deleteDraft(userId, draftId);
-                await loadUserAndDrafts();
+                await deleteDraft(user.id, draftId);
+                await loadDrafts();
                 toast.success('임시저장이 삭제되었습니다.');
             } catch (error) {
                 toast.error('삭제에 실패했습니다.');

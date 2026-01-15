@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Search, PenSquare } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuthStore } from "@/store/authStore";
 import BoardList from "@/components/board/BoardList";
 
 interface AcademyBoardClientProps {
@@ -11,21 +12,15 @@ interface AcademyBoardClientProps {
 }
 
 export default function AcademyBoardClient({ initialPosts }: AcademyBoardClientProps) {
+    const { user } = useAuthStore();
     const [posts, setPosts] = useState(initialPosts);
     const [searchQuery, setSearchQuery] = useState("");
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
     useEffect(() => {
         setPosts(initialPosts);
     }, [initialPosts]);
 
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setIsLoggedIn(!!user);
-        };
-        checkAuth();
-    }, []);
+    const isLoggedIn = !!user;
 
     const filteredPosts = posts.filter(post =>
         post.title.toLowerCase().includes(searchQuery.toLowerCase())

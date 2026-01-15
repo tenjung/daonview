@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase } from '@/lib/supabaseClient';
+import { mapCampaignToCard } from '@/lib/campaignUtils';
 
 interface CartItem {
   id: string | number;
@@ -20,6 +22,7 @@ interface CartState {
   removeItem: (id: string | number) => void;
   clearCart: () => void;
   isInCart: (id: string | number) => boolean;
+  fetchItems: (userId: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -44,6 +47,24 @@ export const useCartStore = create<CartState>()(
       isInCart: (id) => {
         const { items } = get();
         return !!items.find((i) => String(i.id) === String(id));
+      },
+
+      fetchItems: async (userId) => {
+        try {
+          const { data, error } = await supabase
+            .from('favorites')
+            .select('*, campaigns(*, applications(count))')
+            .eq('user_id', userId);
+
+          if (error) throw error;
+
+          if (data) {
+            const formattedItems = data.map((fav: any) => mapCampaignToCard(fav.campaigns));
+            set({ items: formattedItems });
+          }
+        } catch (error) {
+          console.error('Error fetching favorites for cartStore:', error);
+        }
       },
     }),
     {

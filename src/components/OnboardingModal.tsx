@@ -5,7 +5,7 @@ import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 
 const PLATFORMS = [
-  { id: 'BLOG', name: '블로거', icon: '📝', color: 'bg-emerald-500' },
+  { id: 'NAVER_BLOG', name: '블로거', icon: '📝', color: 'bg-emerald-500' },
   { id: 'YOUTUBE', name: '유튜버', icon: '🎥', color: 'bg-red-500' },
   { id: 'INSTAGRAM', name: '인스타그래머', icon: '📸', color: 'bg-pink-500' },
   { id: 'TIKTOK', name: '틱톡커', icon: '🎵', color: 'bg-slate-900' },
@@ -33,15 +33,14 @@ const REGIONS = [
 ];
 
 const CATEGORIES = [
-  { id: 'food', name: '식품/음료', icon: '🍽️', desc: '건강식품, 간편식, 음료' },
-  { id: 'beauty', name: '뷰티/화장품', icon: '💄', desc: '스킨케어, 메이크업, 헤어' },
-  { id: 'baby', name: '육아/유아용품', icon: '👶', desc: '기저귀, 장난감, 유아식' },
-  { id: 'living', name: '생활/주방', icon: '🏠', desc: '주방용품, 생활용품' },
-  { id: 'pet', name: '반려동물', icon: '🐕', desc: '사료, 간식, 용품' },
-  { id: 'digital', name: '디지털/가전', icon: '📱', desc: '스마트폰, 가전제품' },
-  { id: 'fashion', name: '패션/잡화', icon: '👕', desc: '의류, 신발, 가방' },
-  { id: 'sports', name: '스포츠/레저', icon: '🏃', desc: '운동용품, 아웃도어' },
-  { id: 'health', name: '건강/의료', icon: '💊', desc: '건강식품, 의료기기' },
+  { id: '맛집', name: '식품/음료', icon: '🍽️', desc: '건강식품, 간편식, 음료' },
+  { id: '뷰티', name: '뷰티/화장품', icon: '💄', desc: '스킨케어, 메이크업, 헤어' },
+  { id: '생활', name: '생활/주방', icon: '🏠', desc: '주방용품, 생활용품' },
+  { id: '반려동물', name: '반려동물', icon: '🐕', desc: '사료, 간식, 용품' },
+  { id: 'IT/가전', name: '디지털/가전', icon: '📱', desc: '스마트폰, 가전제품' },
+  { id: '패션', name: '패션/잡화', icon: '👕', desc: '의류, 신발, 가방' },
+  { id: '여행', name: '여행/숙박', icon: '✈️', desc: '국내외 여행, 숙박, 액티비티' },
+  { id: '기타', name: '취미/기타', icon: '✨', desc: '그 외 다양한 체험' },
 ];
 
 interface OnboardingModalProps {

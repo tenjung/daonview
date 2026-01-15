@@ -92,11 +92,9 @@ function LoginForm() {
             setTimeout(() => {
                 if (profileData?.role === 'ADMIN') {
                     window.location.href = '/dashboard/admin';
-                } else if (profileData?.role === 'ADVERTISER') {
-                    window.location.href = '/dashboard/advertiser';
                 } else {
-                    // INFLUENCER goes to campaigns page
-                    window.location.href = '/campaigns';
+                    // All other roles go to home page
+                    window.location.href = '/';
                 }
             }, 1000);
 

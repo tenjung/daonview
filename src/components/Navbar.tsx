@@ -22,7 +22,7 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { user, profile, isLoading, initialize, signOut: storeSignOut } = useAuthStore();
-  const { items: cartItems } = useCartStore();
+  const { items: cartItems, fetchItems, clearCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
@@ -31,6 +31,17 @@ export default function Navbar() {
     setMounted(true);
     initialize();
   }, [initialize]);
+
+  // 유저 로그인 시 관심 캠페인(찜) 동기화
+  useEffect(() => {
+    if (!isLoading) {
+      if (user) {
+        fetchItems(user.id);
+      } else {
+        clearCart();
+      }
+    }
+  }, [user, isLoading, fetchItems, clearCart]);
 
   const handleLogout = async () => {
     try {
@@ -43,16 +54,20 @@ export default function Navbar() {
         description: '안전하게 로그아웃되었습니다.',
       });
 
+      // 즉각적인 상태 반영 및 모든 클라이언트 캐시 초기화를 위해 페이지 강제 리로드
       setTimeout(() => {
         window.location.href = '/';
       }, 500);
 
     } catch (error: any) {
       console.error('Logout Error:', error);
-      toast.error('로그아웃 실패', {
+      toast.error('로그아웃 알림', {
         id: 'logout',
-        description: error.message || '다시 시도해주세요.',
+        description: '로그아웃 처리 중 알림이 발생했으나 세션은 종료되었습니다.',
       });
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     }
   };
 
@@ -312,7 +327,7 @@ export default function Navbar() {
                 <p className="text-sm font-bold text-text-main truncate">
                   {profile?.nickname || user.email?.split('@')[0]}님
                 </p>
-                <p className="text-[10px] text-gray-500 truncate">{user.email}</p>
+                <p className="text-[10px] text-gray-400 truncate tracking-tight">{user.email}</p>
               </div>
             </div>
           )}
@@ -532,4 +547,3 @@ export default function Navbar() {
     </nav>
   );
 }
-

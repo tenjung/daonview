@@ -271,8 +271,11 @@ function SignupForm() {
     const handleSocialLogin = async (provider: 'kakao' | 'google') => {
         setIsSocialLoading(provider);
         try {
+            // Store role in localStorage to persist through OAuth redirect
+            localStorage.setItem('pending_role', userType);
+            
             const options: any = {
-                redirectTo: `${window.location.origin}/auth/callback?role=${userType}`,
+                redirectTo: `${window.location.origin}/auth/callback`,
             };
 
             if (provider === 'kakao') {
@@ -536,7 +539,7 @@ function SignupForm() {
             {showOnboarding && newUserId && (
                 <OnboardingModal 
                     userId={newUserId} 
-                    onComplete={() => router.push('/')} 
+                    onComplete={() => window.location.href = '/'} 
                 />
             )}
         </div>
