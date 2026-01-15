@@ -10,18 +10,18 @@ import AdminSidebar from '@/components/AdminSidebar';
 import { Edit, Trash2, Calendar, ChevronRight } from 'lucide-react';
 
 export default function DraftCampaignsPage() {
-    const { user, isInitialized } = useAuthStore();
+    const { user, isLoading } = useAuthStore();
     const router = useRouter();
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             loadDrafts();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             router.push('/login');
         }
-    }, [isInitialized, user]);
+    }, [isLoading, user]);
 
     const loadDrafts = async () => {
         if (!user) return;

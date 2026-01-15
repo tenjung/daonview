@@ -21,17 +21,17 @@ interface Campaign {
 }
 
 export default function AdvertiserDashboard() {
-    const { user, isInitialized } = useAuthStore();
+    const { user, isLoading } = useAuthStore();
     const [campaigns, setCampaigns] = useState<Campaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             fetchCampaigns();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user]);
+    }, [isLoading, user]);
 
     async function fetchCampaigns() {
         if (!user) return;

@@ -27,13 +27,13 @@ const DISPLAY_NAME_MAP: Record<string, string> = {
 
 export default function RecommendedCampaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
-  const { user, profile, isLoading: authLoading, isInitialized } = useAuthStore();
+  const { user, profile, isLoading: authLoading } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     // 인증 초기화 대기
-    if (!isInitialized) return;
+    if (authLoading) return;
 
     // 비로그인 유저 리다이렉트
     if (!user) {
@@ -136,7 +136,7 @@ export default function RecommendedCampaigns() {
     if (profile) {
       fetchData();
     }
-  }, [isInitialized, user, profile, router]);
+  }, [authLoading, user, profile, router]);
 
   if (loading) {
     return (

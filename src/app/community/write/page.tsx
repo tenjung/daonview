@@ -55,7 +55,7 @@ const TYPE_TITLES: Record<string, string> = {
 };
 
 function WritePageContent() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const typeFromQuery = searchParams.get('type') || 'FREE';
@@ -74,7 +74,7 @@ function WritePageContent() {
     const isSubmitting = useRef(false);
 
     useEffect(() => {
-        if (!isInitialized) return;
+        if (isLoading) return;
         if (hasCheckedAuth.current) return;
         hasCheckedAuth.current = true;
 
@@ -91,7 +91,7 @@ function WritePageContent() {
             }
         };
         init();
-    }, [isInitialized, user, profile, editId, type]);
+    }, [isLoading, user, profile, editId, type]);
 
     // 내용 변경 감지
     useEffect(() => {

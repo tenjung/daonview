@@ -17,17 +17,17 @@ interface FavoriteCampaign {
 }
 
 export default function FavoritesPage() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const [favorites, setFavorites] = useState<FavoriteCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             fetchData();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user]);
+    }, [isLoading, user]);
 
     async function fetchData() {
         if (!user) return;

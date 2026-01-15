@@ -9,7 +9,7 @@ import AdvertiserSidebar from '@/components/AdvertiserSidebar';
 import AdvertiserCampaignTable from '@/components/AdvertiserCampaignTable';
 
 function AdvertiserCampaignsContent() {
-    const { user, isInitialized } = useAuthStore();
+    const { user, isLoading } = useAuthStore();
     const searchParams = useSearchParams();
     const status = searchParams?.get('status');
 
@@ -35,12 +35,12 @@ function AdvertiserCampaignsContent() {
     };
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             fetchCampaigns();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user, status]);
+    }, [isLoading, user, status]);
 
     const fetchCampaigns = async () => {
         if (!user) return;

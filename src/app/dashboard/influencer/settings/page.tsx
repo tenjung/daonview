@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 
 export default function SettingsPage() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
@@ -17,7 +17,7 @@ export default function SettingsPage() {
     });
 
     useEffect(() => {
-        if (isInitialized) {
+        if (!isLoading) {
             if (profile) {
                 setFormData({
                     nickname: profile.nickname || '',
@@ -27,7 +27,7 @@ export default function SettingsPage() {
             }
             setLoading(false);
         }
-    }, [isInitialized, profile]);
+    }, [isLoading, profile]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();

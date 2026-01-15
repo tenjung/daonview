@@ -25,17 +25,17 @@ interface Applicant {
 }
 
 export default function AdvertiserApplicantsPage() {
-    const { user, isInitialized } = useAuthStore();
+    const { user, isLoading } = useAuthStore();
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             fetchApplicants();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user]);
+    }, [isLoading, user]);
 
     const fetchApplicants = async () => {
         if (!user) return;

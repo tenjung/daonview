@@ -16,7 +16,7 @@ import { Save } from 'lucide-react';
 // const AUTOSAVE_KEY = 'campaign_draft'; // Deprecated in favor of user-specific keys
 
 function NewCampaignPageContent() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const isEdit = !!searchParams?.get('id');
@@ -168,7 +168,7 @@ function NewCampaignPageContent() {
         let isMounted = true;
 
         const loadCampaignData = async () => {
-            if (!isInitialized || !user) return;
+            if (isLoading || !user) return;
 
             try {
                 // URL 파라미터 직접 추출
@@ -227,7 +227,7 @@ function NewCampaignPageContent() {
         return () => {
             isMounted = false;
         };
-    }, [isInitialized, user, searchParams, handleLoadCompleted]);
+    }, [isLoading, user, searchParams, handleLoadCompleted]);
 
     const handleSaveDraft = async () => {
         console.log('--- 임시저장 시작 ---');
@@ -297,7 +297,7 @@ function NewCampaignPageContent() {
 
     // 자동 저장된 데이터 복구
     useEffect(() => {
-        if (!isInitialized || !user) return; // 유저 정보가 없으면 실행하지 않음
+        if (isLoading || !user) return; // 유저 정보가 없으면 실행하지 않음
 
         const id = searchParams?.get('id');
         const userSpecificKey = `campaign_draft_${user.id}`;
@@ -312,11 +312,11 @@ function NewCampaignPageContent() {
         if (savedData && !id) {
             setShowRestoreDialog(true);
         }
-    }, [searchParams, user, isInitialized]);
+    }, [searchParams, user, isLoading]);
 
     // 자동 저장
     useEffect(() => {
-        if (!isInitialized || !user) return;
+        if (isLoading || !user) return;
 
         // 데이터가 비어있으면 저장하지 않음 (초기 로딩 시 덮어쓰기 방지)
         if (!step1Data && !step2Data) return;
@@ -329,7 +329,7 @@ function NewCampaignPageContent() {
             savedAt: new Date().toISOString(),
         };
         localStorage.setItem(userSpecificKey, JSON.stringify(draftData));
-    }, [currentStep, step1Data, step2Data, user, isInitialized]);
+    }, [currentStep, step1Data, step2Data, user, isLoading]);
 
     // 임시 저장 데이터 복구
     const handleRestoreDraft = () => {
@@ -618,7 +618,7 @@ function NewCampaignPageContent() {
                     </div>
 
                     {/* 캠페인 불러오기 */}
-                    {isInitialized && user && (
+                    {!isLoading && user && (
                         <CampaignLoader
                             userId={user.id}
                             onLoadDraft={handleLoadDraft}

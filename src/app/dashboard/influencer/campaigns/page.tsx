@@ -29,7 +29,7 @@ interface ApplicationWithCampaign extends Application {
 }
 
 export default function MyCampaignsPage() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [filter, setFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED'>('all');
     const [loading, setLoading] = useState(true);
@@ -48,12 +48,12 @@ export default function MyCampaignsPage() {
     });
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!isLoading && user) {
             fetchData();
-        } else if (isInitialized && !user) {
+        } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user, filter]);
+    }, [isLoading, user, filter]);
 
     async function fetchData() {
         if (!user) return;

@@ -11,7 +11,7 @@ interface ApplicationWithCampaign extends Application {
 }
 
 export default function InfluencerDashboard() {
-    const { user, profile, isLoading: authLoading, isInitialized } = useAuthStore();
+    const { user, profile, isLoading: authLoading } = useAuthStore();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [stats, setStats] = useState({
         total: 0,
@@ -21,12 +21,12 @@ export default function InfluencerDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (isInitialized && user) {
+        if (!authLoading && user) {
             fetchDashboardData();
-        } else if (isInitialized && !user) {
+        } else if (!authLoading && !user) {
             setLoading(false);
         }
-    }, [isInitialized, user]);
+    }, [authLoading, user]);
 
     async function fetchDashboardData() {
         if (!user) return;
