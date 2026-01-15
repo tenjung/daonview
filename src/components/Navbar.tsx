@@ -141,13 +141,14 @@ export default function Navbar() {
           </Link>
           <Link
             href="/ai-service"
-            className={`font-medium transition-colors h-full flex items-center gap-1.5 border-b-[3px] ${isActive('/ai-service')
-              ? 'text-primary border-primary'
-              : 'text-text-secondary border-transparent hover:text-primary'
+            className={`font-medium transition-all h-full flex items-center border-b-[3px] group ${isActive('/ai-service')
+              ? 'border-primary'
+              : 'border-transparent'
               }`}
           >
-            <Wand2 size={16} />
-            <span>부가서비스</span>
+            <span className={`bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent ${!isActive('/ai-service') && 'opacity-80 group-hover:opacity-100 transition-opacity'}`}>
+              AI 인텔리전스
+            </span>
           </Link>
         </div>
 
