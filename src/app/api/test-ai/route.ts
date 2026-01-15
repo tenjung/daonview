@@ -12,29 +12,31 @@ export async function POST(request: NextRequest) {
       memo, 
       campaignGuide, 
       guideImages,
-      selectedTopic,
-      selectedTone,
-      selectedCategories,
-      editableKeywords,
+      selectedTopic,      // 추가
+      selectedTone,       // 추가
+      selectedCategories,  // 추가
+      editableKeywords,   // 추가
       title,
       verifiedInfo,
       imageCount
     } = body;
 
+    // 1. 분석 및 추천 생성 (STEP 1 -> 2)
     if (action === 'analyze') {
       const prompt = generateAnalyticPrompt(storeName, menuItems, memo, selectedTopic, campaignGuide);
       const aiResponse = await generateWithGemini(prompt, true, guideImages || []);
       
       return NextResponse.json({
         ...aiResponse,
-        verifiedInfo: verifiedInfo || {
+        verifiedInfo: {
           name: storeName,
-          address: "정보 없음",
+          address: "정보를 불러오는 중...",
           isVerified: false
         }
       });
     }
 
+    // 2. 전체 글 생성 (STEP 2 -> 3)
     if (action === 'generate') {
       const prompt = generateFullPostPrompt(
         storeName, 

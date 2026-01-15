@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   Wand2, PenTool, Sparkles, CheckCircle2, 
   Copy, RefreshCw, Search, MapPin, Clock, 
@@ -11,21 +11,74 @@ import {
 import { toast } from "sonner";
 import { ToneType, VerifiedInfo, RecommendedKeyword, RecommendedTitle } from "@/types/writing-assistant";
 
-import { WritingAssistantResult } from "@/types/writing-assistant";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { AuthGuardDialog } from "@/components/auth/AuthGuardDialog";
+import { WritingAssistantResult, TopicType, ContentCategory } from "@/types/writing-assistant";
 import { calculateSEOScore } from "@/lib/utils/seoCalculator";
 import ImageUploader from "@/components/ai-service/ImageUploader";
 
+// 주제 선택 옵션 (STEP-1)
+const TOPIC_OPTIONS: { value: TopicType; label: string; icon: string }[] = [
+  { value: "VISIT_REVIEW", label: "배경공 (방문 후기)", icon: "🏪" },
+  { value: "PRODUCT_REVIEW", label: "제품공 (제품 리뷰)", icon: "📦" },
+  { value: "TRAVEL", label: "여행", icon: "✈️" },
+  { value: "DAILY_LIFE", label: "일상", icon: "☕" },
+  { value: "TUTORIAL", label: "튜토리얼", icon: "📚" },
+  { value: "INFORMATION", label: "정보성", icon: "💡" },
+];
+
+// 글의 카테고리/의도 옵션 (STEP-2)
+const CONTENT_CATEGORIES: ContentCategory[] = [
+  "정보성", "방문후기/체험기", "제품 리뷰/분석", "튜토리얼",
+  "비교/리뷰", "문제 해결 가이드", "교육/설명", "보행/여행기",
+  "일상/스토리", "실용/라이프", "공급/홍보", "스타일/패션",
+  "인터뷰/대담", "엔터테인먼트/비디오", "IT/컴퓨터", 
+  "교육/학습", "라이프/실용"
+];
+
+// 톤앤매너 옵션 (STEP-2)
+const TONE_OPTIONS = [
+  { value: "FRIENDLY_GUIDE" as const, label: "친절한 안내자", description: "독자에게 친절하게 설명하는 톤" },
+  { value: "EXPERT_CONCISE" as const, label: "전문가의 간결체", description: "전문적이고 간결한 톤" },
+  { value: "CONVERSATIONAL" as const, label: "대화체 친근감", description: "친구와 대화하듯 편안한 톤" },
+  { value: "HUMOROUS" as const, label: "유머러스/재치", description: "재치있고 유머러스한 톤" },
+  { value: "EMOTIONAL_STORY" as const, label: "감성/스토리", description: "감성적이고 스토리텔링하는 톤" },
+];
+
 export default function WritingAssistantPage() {
+  const router = useRouter();
+  const { user, isLoading } = useAuthStore();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
+  // 1. 로그인 체크 로직
+  useEffect(() => {
+    if (!isLoading && !user) {
+      setIsAuthModalOpen(true);
+    }
+  }, [user, isLoading]);
+
+  const handleAuthModalClose = () => {
+    setIsAuthModalOpen(false);
+    router.push('/ai-service');
+  };
+
   // Stage: 0=Input, 1=Analyzing, 2=Review(Keywords/Title), 3=Generating, 4=Result
   const [stage, setStage] = useState(0);
 
-  // Inputs
+  // STEP-1 Inputs
+  const [selectedTopic, setSelectedTopic] = useState<TopicType>("VISIT_REVIEW");
   const [storeName, setStoreName] = useState("");
   const [menuItems, setMenuItems] = useState("");
   const [memo, setMemo] = useState("");
   const [campaignGuide, setCampaignGuide] = useState("");
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [guideImages, setGuideImages] = useState<File[]>([]);
+
+  // STEP-2 Inputs
+  const [editableKeywords, setEditableKeywords] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<ContentCategory[]>([]);
+  const [selectedTone, setSelectedTone] = useState<ToneType>("FRIENDLY_GUIDE");
 
   // AI Analysis Results
 
@@ -51,6 +104,20 @@ export default function WritingAssistantPage() {
     });
   };
 
+  // 이탈 방지 경고 (STEP-3 완성 후)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (stage === 4 && generatedContent) {
+        e.preventDefault();
+        e.returnValue = '첨부한 사진과 작성 컨텐츠는 회원 이탈시 초기화 됩니다.';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [stage, generatedContent]);
+
   // Handler: Analyze Input
   const handleAnalyze = async () => {
     if (!storeName || !menuItems) {
@@ -71,6 +138,7 @@ export default function WritingAssistantPage() {
         method: "POST",
         body: JSON.stringify({ 
           action: "analyze", 
+          selectedTopic, // NEW: 주제 선택 전달
           storeName, 
           menuItems, 
           memo,
@@ -87,11 +155,21 @@ export default function WritingAssistantPage() {
       setKeywords(data.keywords);
       setTitles(data.titles);
       setVerifiedInfo(data.verifiedInfo);
+      
+      // NEW: AI가 추천한 키워드를 editable 상태로 초기화
+      setEditableKeywords(data.keywords.map((k: RecommendedKeyword) => k.keyword));
+      
       setStage(2);
       toast.success("상세 분석이 완료되었습니다!");
     } catch (error: any) {
+      console.error('Analysis Error:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
       setStage(0);
-      toast.error(error.message || "분석 중 오류가 발생했습니다.");
+      toast.error(error.message || "분석 중 오류가 발생했습니다. 콘솔을 확인해주세요.");
     }
   };
 
@@ -115,6 +193,7 @@ export default function WritingAssistantPage() {
         method: "POST",
         body: JSON.stringify({
           action: "generate",
+          selectedTopic, // NEW
           storeName,
           menuItems,
           memo,
@@ -122,7 +201,11 @@ export default function WritingAssistantPage() {
           guideImages: guideImagesB64,
           selectedTitle, // 이 값이 수정된 제목
           verifiedInfo,  // 이 값은 수정된 업체 정보
-          imageCount: imageFiles.length
+          imageCount: imageFiles.length,
+          // NEW: STEP-2 선택 사항
+          selectedCategories,
+          selectedTone,
+          editableKeywords,
         }),
       });
       const data = await res.json();
@@ -133,7 +216,7 @@ export default function WritingAssistantPage() {
       setMetaDescription(data.meta_description);
       
       // SEO 점수 계산
-      const report = calculateSEOScore(data.content, selectedTitle, keywords.map(k => k.keyword));
+      const report = calculateSEOScore(data.content, selectedTitle, editableKeywords);
       setSeoReport(report);
       
       setStage(4);
@@ -207,9 +290,32 @@ export default function WritingAssistantPage() {
               </div>
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-5">
+              {/* Topic Selection (NEW) */}
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">어떤 내용의 블로그 글을 작성하고 싶으신가요? <span className="text-primary">*</span></label>
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {TOPIC_OPTIONS.map((topic) => (
+                    <button
+                      key={topic.value}
+                      type="button"
+                      onClick={() => setSelectedTopic(topic.value)}
+                      disabled={stage > 0}
+                      className={`px-2 py-2 rounded-xl border-2 transition-all text-center ${
+                        selectedTopic === topic.value
+                          ? 'border-primary bg-primary/5 shadow-md'
+                          : 'border-gray-200 hover:border-primary/40 bg-white'
+                      } ${stage > 0 ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                    >
+                      <div className="text-xl mb-1">{topic.icon}</div>
+                      <div className="text-[10px] font-bold text-text-main leading-tight">{topic.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 1. Posting Guide Section (TOP) */}
-              <div className="bg-gray-50/50 rounded-3xl p-6 border border-gray-100 space-y-4">
+              <div className="bg-gray-50/50 rounded-2xl p-4 border border-gray-100 space-y-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                     <BarChart3 size={16} className="text-primary" /> 포스팅 가이드
@@ -219,7 +325,7 @@ export default function WritingAssistantPage() {
                   </span>
                 </div>
                 <textarea
-                  className="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary focus:ring-4 focus:ring-primary/5 min-h-[120px] outline-none text-sm transition-all"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/5 min-h-[80px] outline-none text-sm transition-all"
                   placeholder="업체에서 원하는 가이드 문구를 복사해서 붙여넣으세요. (키워드, 강조점 등)"
                   value={campaignGuide}
                   onChange={(e) => setCampaignGuide(e.target.value)}
@@ -241,13 +347,13 @@ export default function WritingAssistantPage() {
               </div>
 
               {/* 2. Store & Product Info Section */}
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-5">
                   <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">매장명 / 제품명 <span className="text-primary">*</span></label>
+                    <label className="block text-xs font-bold text-gray-700 mb-1.5">매장명 / 제품명 <span className="text-primary">*</span></label>
                     <input
                       type="text"
-                      className="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/5 transition-all outline-none text-sm"
                       placeholder="예: 다온뷰 카페, 프리미엄 알부민"
                       value={storeName}
                       onChange={(e) => setStoreName(e.target.value)}
@@ -257,10 +363,10 @@ export default function WritingAssistantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">핵심 경험 (메뉴/제품명) <span className="text-primary">*</span></label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">핵심 경험 (메뉴/제품명) <span className="text-primary">*</span></label>
                   <input
                     type="text"
-                    className="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/5 transition-all outline-none text-sm"
                     placeholder="아이스 라떼, 영양제 등"
                     value={menuItems}
                     onChange={(e) => setMenuItems(e.target.value)}
@@ -269,9 +375,9 @@ export default function WritingAssistantPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">메모 (선택사항)</label>
+                  <label className="block text-xs font-bold text-gray-700 mb-1.5">메모 (선택사항)</label>
                   <textarea
-                    className="w-full px-5 py-4 rounded-2xl border border-gray-200 focus:border-primary min-h-[100px] outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-primary min-h-[60px] outline-none text-sm"
                     placeholder="강조하고 싶은 점이나 특이사항을 적어주세요."
                     value={memo}
                     onChange={(e) => setMemo(e.target.value)}
@@ -321,26 +427,97 @@ export default function WritingAssistantPage() {
               </div>
 
               <div className="space-y-8">
-                {/* Keywords */}
+                {/* Editable Keywords */}
                 <div>
-                  <h3 className="text-sm font-bold text-text-main mb-4 flex items-center gap-2">
-                    <BarChart3 size={16} className="text-primary" /> 추천 SEO 키워드
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-sm font-bold text-text-main flex items-center gap-2">
+                      <BarChart3 size={16} className="text-primary" /> SEO 키워드 / 해시태그
+                    </h3>
+                    <button
+                      onClick={() => {
+                        const newKeyword = prompt('추가할 키워드를 입력하세요:');
+                        if (newKeyword && newKeyword.trim()) {
+                          setEditableKeywords([...editableKeywords, newKeyword.trim()]);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-colors"
+                    >
+                      + 추가
+                    </button>
+                  </div>
                   <div className="flex flex-wrap gap-2">
-                    {keywords.map((k, i) => (
-                      <span key={i} className={`px-4 py-2 rounded-xl text-[12px] font-bold border transition-all ${
-                        k.searchVolume === 'HIGH' 
-                          ? 'bg-primary/5 border-primary/20 text-primary' 
-                          : 'bg-indigo-50/50 border-indigo-100 text-indigo-500'
-                      }`}>
-                        # {k.keyword}
-                        <span className="ml-1.5 text-[9px] opacity-60 uppercase">
-                          {k.searchVolume === 'HIGH' ? '메인' : '세부'}
-                        </span>
-                      </span>
+                    {editableKeywords.map((keyword, i) => (
+                      <div
+                        key={i}
+                        className="group relative px-4 py-2 rounded-xl text-[12px] font-bold border bg-primary/5 border-primary/20 text-primary flex items-center gap-2"
+                      >
+                        # {keyword}
+                        <button
+                          onClick={() => setEditableKeywords(editableKeywords.filter((_, idx) => idx !== i))}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700"
+                        >
+                          ×
+                        </button>
+                      </div>
                     ))}
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-2">* 메인 대형 키워드와 방문 목적이 담긴 세부 키워드를 모두 포함했습니다.</p>
+                  <p className="text-[10px] text-gray-400 mt-2">* 키워드를 클릭하면 수정할 수 있습니다. '+ 추가' 버튼으로 새 키워드를 입력하세요.</p>
+                </div>
+
+                {/* Content Category Selection */}
+                <div>
+                  <h3 className="text-sm font-bold text-text-main mb-4">글의 의도가 무엇인지 카테고리 복수선택가능</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {CONTENT_CATEGORIES.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          if (selectedCategories.includes(cat)) {
+                            setSelectedCategories(selectedCategories.filter(c => c !== cat));
+                          } else {
+                            setSelectedCategories([...selectedCategories, cat]);
+                          }
+                        }}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          selectedCategories.includes(cat)
+                            ? 'bg-primary text-white shadow-md'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tone Selection */}
+                <div>
+                  <h3 className="text-sm font-bold text-text-main mb-4">톤앤매너 설정</h3>
+                  <div className="space-y-2">
+                    {TONE_OPTIONS.map((tone) => (
+                      <button
+                        key={tone.value}
+                        type="button"
+                        onClick={() => setSelectedTone(tone.value)}
+                        className={`w-full p-4 rounded-xl border-2 transition-all text-left ${
+                          selectedTone === tone.value
+                            ? 'border-primary bg-primary/5 shadow-md'
+                            : 'border-gray-200 hover:border-primary/40 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-sm text-text-main mb-1">{tone.label}</div>
+                            <div className="text-xs text-gray-500">{tone.description}</div>
+                          </div>
+                          {selectedTone === tone.value && (
+                            <CheckCircle2 size={20} className="text-primary" />
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Title Selection & Editing */}
@@ -615,6 +792,10 @@ export default function WritingAssistantPage() {
           </div>
         </div>
       </div>
+      <AuthGuardDialog 
+        isOpen={isAuthModalOpen} 
+        onClose={handleAuthModalClose} 
+      />
     </div>
   );
 }
