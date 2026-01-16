@@ -103,9 +103,9 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
             if (sortBy === 'popular') return b.applicants - a.applicants;
             if (sortBy === 'deadline') {
                 // 상시모집은 가장 뒤로
-                if (a.dday === '상시모집') return 1;
-                if (b.dday === '상시모집') return -1;
-                
+                if (a.dday === '상시') return 1;
+                if (b.dday === '상시') return -1;
+
                 const dateA = new Date(a.end_date).getTime();
                 const dateB = new Date(b.end_date).getTime();
                 return dateA - dateB;

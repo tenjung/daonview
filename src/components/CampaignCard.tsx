@@ -55,6 +55,19 @@ export const PlatformBadge = ({ platform }: { platform: string }) => {
     );
 };
 
+export const DDayBadge = ({ dday }: { dday: string }) => {
+    return (
+        <span className={`px-2 py-1 rounded-lg text-[10px] font-semibold shadow-lg shadow-black/10 transition-all ${dday === '상시'
+            ? 'bg-gradient-to-br from-orange-500 to-rose-500 text-white'
+            : dday === '종료'
+                ? 'bg-gray-800 text-white'
+                : 'bg-rose-500 text-white'
+            }`}>
+            {dday}
+        </span>
+    );
+};
+
 export const TypeBadge = ({ type }: { type?: string }) => {
     if (!type) return null;
     const t = type.toUpperCase();
@@ -135,7 +148,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     .eq('campaign_id', id);
 
                 if (error) throw error;
-                
+
                 removeItem(id);
                 toast.info('관심 캠페인에서 제거되었습니다.');
             } else {
@@ -178,24 +191,20 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     </div>
                 )}
 
-                {/* Top Right: D-Day & Wishlist */}
-                <div className="absolute top-3 right-3 z-10 flex flex-col items-end gap-2">
-                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shadow-sm ${dday === '상시모집'
-                        ? 'bg-indigo-600 text-white'
-                        : dday === '종료'
-                            ? 'bg-gray-800 text-white'
-                            : 'bg-rose-500 text-white'
-                        }`}>
-                        {dday}
-                    </span>
+                {/* Overlay Elements: D-Day (Left) & Wishlist (Right) */}
+                <div className="absolute top-3 left-3 z-10">
+                    <DDayBadge dday={dday} />
+                </div>
+
+                <div className="absolute top-3 right-3 z-10">
                     <button
                         onClick={toggleWish}
-                        className={`p-2 rounded-full shadow-lg transition-all duration-300 ${(mounted && isWished)
+                        className={`p-1.5 rounded-full shadow-xl transition-all duration-300 transform active:scale-75 ${(mounted && isWished)
                             ? 'bg-rose-500 text-white'
-                            : 'bg-white/80 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
+                            : 'bg-white/90 backdrop-blur-sm text-gray-400 hover:text-rose-500 hover:bg-white'
                             }`}
                     >
-                        <Heart className={`w-4 h-4 ${(mounted && isWished) ? 'fill-current' : ''}`} />
+                        <Heart className={`w-3.5 h-3.5 ${(mounted && isWished) ? 'fill-current' : ''}`} />
                     </button>
                 </div>
             </div>

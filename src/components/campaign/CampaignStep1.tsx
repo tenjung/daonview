@@ -331,7 +331,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         // TODO: 실제 네이버 플레이스 API 연동
         // 임시로 더미 데이터 사용 (사용자 캡쳐본의 매장 정보 반영)
         const mockData = {
-            storeName: '오쓰헤어L',
+            storeName: '오쓰헤어',
             address: '대구 수성구 달구벌대로 2599 304동 1층 119호',
         };
 
@@ -406,7 +406,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         if (field === 'optionPrice') {
             finalValue = formatPrice(value);
         }
-        
+
         setFormData(prev => ({
             ...prev,
             productOptions: prev.productOptions.map(opt =>
@@ -495,8 +495,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 }
             }
             const newValue = !includeNaver;
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 includeNaver: newValue,
                 // 방문형/기자단인 경우 platform 필드 자동 동기화
                 platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'BLOG' : prev.platform
@@ -509,8 +509,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 }
             }
             const newValue = !includeInstagram;
-            setFormData(prev => ({ 
-                ...prev, 
+            setFormData(prev => ({
+                ...prev,
                 includeInstagram: newValue,
                 // 방문형/기자단인 경우 platform 필드 자동 동기화
                 platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'INSTAGRAM' : prev.platform
@@ -716,11 +716,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             key={cat}
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
-                            className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${
-                                formData.category === cat
+                            className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${formData.category === cat
                                     ? 'border-blue-500 bg-blue-50 text-blue-600'
                                     : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                            }`}
+                                }`}
                         >
                             {cat}
                         </button>
@@ -1005,11 +1004,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     key={reg}
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                                        formData.region === reg
+                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${formData.region === reg
                                             ? 'border-blue-500 bg-blue-50 text-blue-600'
                                             : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                                    }`}
+                                        }`}
                                 >
                                     {reg}
                                 </button>
@@ -1085,8 +1083,14 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                     <input
                                                         type="text"
                                                         value={store.storeName}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                                        onChange={(e) => {
+                                                            const newValue = e.target.value;
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                stores: prev.stores.map(s => s.id === store.id ? { ...s, storeName: newValue } : s)
+                                                            }));
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                                     />
                                                 </div>
 
@@ -1097,8 +1101,14 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                     <input
                                                         type="text"
                                                         value={store.address}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                                        onChange={(e) => {
+                                                            const newValue = e.target.value;
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                stores: prev.stores.map(s => s.id === store.id ? { ...s, address: newValue } : s)
+                                                            }));
+                                                        }}
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                                     />
                                                 </div>
 
@@ -1130,7 +1140,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         <h2 className="text-xl font-bold text-gray-900">제공 옵션 설정</h2>
                         <p className="text-xs text-gray-500">드래그하여 순서 변경 가능</p>
                     </div>
-                    
+
                     {/* 옵션 목록 */}
                     <div className="mb-4">
                         {formData.productOptions.length === 0 ? (
@@ -1200,11 +1210,11 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     value={formData.optionConfig.mode}
                                     onChange={(e) => setFormData(prev => ({
                                         ...prev,
-                                        optionConfig: { 
-                                            ...prev.optionConfig, 
+                                        optionConfig: {
+                                            ...prev.optionConfig,
                                             mode: e.target.value as any,
                                             // 모드 변경 시 적절한 기본값 설정
-                                            maxSelect: e.target.value === 'SINGLE' ? 1 : prev.optionConfig.maxSelect 
+                                            maxSelect: e.target.value === 'SINGLE' ? 1 : prev.optionConfig.maxSelect
                                         }
                                     }))}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
@@ -1247,7 +1257,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             {formData.campaignType === 'DELIVERY' && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4">배송 추가 설정</h2>
-                    
+
                     {/* 상품 결제 금액 (옵션 없는 경우) */}
                     <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1341,8 +1351,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <input
                                         type="checkbox"
                                         checked={formData.advertiserWillContact}
-                                        onChange={(e) => setFormData(prev => ({ 
-                                            ...prev, 
+                                        onChange={(e) => setFormData(prev => ({
+                                            ...prev,
                                             advertiserWillContact: e.target.checked,
                                             // 체크 시 연락처 필드 초기화
                                             contactPhone: e.target.checked ? '' : prev.contactPhone
@@ -1404,8 +1414,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <input
                                         type="checkbox"
                                         checked={formData.visitTimeNegotiable}
-                                        onChange={(e) => setFormData(prev => ({ 
-                                            ...prev, 
+                                        onChange={(e) => setFormData(prev => ({
+                                            ...prev,
                                             visitTimeNegotiable: e.target.checked,
                                             // 체크 시 방문 시간 필드 초기화
                                             visitTime: e.target.checked ? '' : prev.visitTime
@@ -1427,9 +1437,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 value={formData.visitTime || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
                                 placeholder={formData.visitTimeNegotiable ? "예: 평일 11:00 - 21:00 (선택사항)" : "예: 평일 11:00 - 21:00"}
-                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                                    formData.visitTimeNegotiable ? 'border-gray-200 bg-gray-50' : 'border-gray-300'
-                                }`}
+                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.visitTimeNegotiable ? 'border-gray-200 bg-gray-50' : 'border-gray-300'
+                                    }`}
                                 disabled={formData.visitTimeNegotiable}
                             />
                             {formData.visitTimeNegotiable && (

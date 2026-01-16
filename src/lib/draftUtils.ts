@@ -90,10 +90,10 @@ export const saveDraft = async (userId: string, campaignData: {
             title: campaignData.title || campaignData.step1Data?.productName || '제목 없음',
             platform: mappedPlatform,
             type: mappedType,
-            end_date: endDate,
+            end_date: campaignData.step1Data?.scheduleType === 'always' ? '9999-12-31' : endDate,
             campaign_options: campaignOptions, // jsonb 배열
             recruit_count: 0, // 기본값
-            is_always: false
+            is_always: campaignData.step1Data?.scheduleType === 'always'
         };
 
         // 5. ID 처리 및 DB 쿼리 실행

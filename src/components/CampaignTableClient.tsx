@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import { Check, X, Eye, Calendar, Users } from 'lucide-react';
+import { Check, X, Edit, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmDialog from '@/components/ConfirmDialog';
 
@@ -186,7 +186,12 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="font-bold text-gray-900 max-w-md">{cam.title}</div>
+                                    <Link
+                                        href={`/campaigns/${cam.id}`}
+                                        className="font-bold text-gray-900 max-w-md block hover:text-primary cursor-pointer transition-colors"
+                                    >
+                                        {cam.title}
+                                    </Link>
                                     <div className="text-xs text-gray-500 mt-1 italic">{cam.category || '카테고리 없음'}</div>
                                 </td>
                                 <td className="px-6 py-4">
@@ -251,10 +256,10 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                                     <Users size={14} /> 신청자 관리
                                                 </Link>
                                                 <Link
-                                                    href={`/campaigns/${cam.id}`}
+                                                    href={`/dashboard/campaign/new?id=${cam.id}`}
                                                     className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
                                                 >
-                                                    <Eye size={14} /> 상세보기
+                                                    <Edit size={14} /> 캠페인 수정
                                                 </Link>
                                             </>
                                         )}

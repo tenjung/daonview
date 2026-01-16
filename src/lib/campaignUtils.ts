@@ -5,7 +5,7 @@ export const formatDDay = (endDate: string) => {
   const now = new Date();
 
   // Handle 'Always' date (e.g. year 9999)
-  if (end.getFullYear() > 2100) return "상시모집";
+  if (end.getFullYear() > 2100) return "상시";
 
   const diffTime = end.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -63,7 +63,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     type: typeMap[rawType] || (typeof rawType === 'string' ? rawType.toUpperCase() : 'VISIT'),
     applicants: applicants,
     total: campaign.recruit_count || 0,
-    dday: campaign.is_always ? "상시모집" : formatDDay(campaign.end_date),
+    dday: campaign.is_always ? "상시" : formatDDay(campaign.end_date),
     category: campaign.category,
     region: (campaign as any).region || null,
     imageUrl: campaign.thumbnail_url || '',
