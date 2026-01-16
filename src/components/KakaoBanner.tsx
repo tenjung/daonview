@@ -21,7 +21,7 @@ export default function KakaoBanner() {
                         <span className="text-[10px] font-black text-[#3A1D1D]/40 uppercase tracking-[0.2em] mb-1">Brand Identity</span>
                         <div className="flex flex-col leading-none">
                             <span className="text-2xl lg:text-3xl font-black text-[#3A1D1D]">GROW WITH</span>
-                            <span className="text-3xl lg:text-5xl font-black text-rose-600">DAONVIEW</span>
+                            <span className="text-3xl lg:text-5xl font-black brand-text-gradient">DAONVIEW</span>
                         </div>
                     </motion.div>
 

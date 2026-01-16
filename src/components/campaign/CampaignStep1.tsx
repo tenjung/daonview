@@ -53,7 +53,7 @@ interface Step1Data {
     officialPrice: string;
     totalRecruitment: string;
     rewardPerPerson: number;
-    scheduleType: 'recommended' | 'custom';
+    scheduleType: 'recommended' | 'custom' | 'always';
     recruitmentStartDate: string;
     firstSelectionDate: string;
     reviewDeadline: string;
@@ -664,6 +664,27 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }
     };
 
+    // Schedule type change handler
+    const handleScheduleTypeChange = (type: 'recommended' | 'custom' | 'always') => {
+        if (type === 'always') {
+            setFormData(prev => ({
+                ...prev,
+                scheduleType: 'always',
+                firstSelectionDate: '', // Clear dates for 'always'
+                reviewDeadline: ''
+            }));
+        } else {
+            const startDate = formData.recruitmentStartDate || getTomorrowDate();
+            setFormData(prev => ({
+                ...prev,
+                scheduleType: type,
+                recruitmentStartDate: startDate,
+                firstSelectionDate: getOneWeekLater(startDate),
+                reviewDeadline: getOneWeekLater(getOneWeekLater(startDate))
+            }));
+        }
+    };
+
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
 
@@ -968,6 +989,140 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 </section>
             )}
 
+            {/* 매장 정보 (방문체험단/기자단만) */}
+            {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                        매장 정보 <span className="text-red-500">*</span>
+                    </h2>
+
+                    {/* 지역 설정 */}
+                    <div className="mb-6 pb-6 border-b border-gray-100">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">지역 선택 (시/도)</label>
+                        <div className="flex flex-wrap gap-2">
+                            {['전국', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'].map((reg) => (
+                                <button
+                                    key={reg}
+                                    type="button"
+                                    onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
+                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                                        formData.region === reg
+                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                            : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                                    }`}
+                                >
+                                    {reg}
+                                </button>
+                            ))}
+                        </div>
+                        <p className="mt-3 text-xs text-gray-400">
+                            💡 매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다.
+                        </p>
+                    </div>
+
+                    {/* 네이버 플레이스 주소 입력 */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            네이버 플레이스 주소
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={tempNaverUrl}
+                                onChange={(e) => setTempNaverUrl(e.target.value)}
+                                placeholder="https://map.naver.com/..."
+                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={() => {
+                                    if (tempNaverUrl.trim()) {
+                                        const newStore = {
+                                            id: Date.now().toString(),
+                                            naverPlaceUrl: tempNaverUrl,
+                                            storeName: '',
+                                            address: '',
+                                        };
+                                        setFormData(prev => ({
+                                            ...prev,
+                                            stores: [...prev.stores, newStore],
+                                        }));
+                                        fetchNaverPlaceInfo(tempNaverUrl, newStore.id);
+                                        setTempNaverUrl('');
+                                    }
+                                }}
+                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                            >
+                                불러오기
+                            </button>
+                        </div>
+                        <p className="mt-2 text-xs text-gray-500">
+                            네이버 지도에서 매장을 검색한 후 URL을 복사하여 붙여넣으세요.
+                        </p>
+                    </div>
+
+                    {/* 불러온 매장 목록 */}
+                    {formData.stores.length > 0 && (
+                        <div className="space-y-4">
+                            {formData.stores.map((store, index) => (
+                                <div key={store.id} className="border border-gray-200 rounded-lg p-4">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <h3 className="font-semibold text-gray-900">매장 {index + 1}</h3>
+                                        <button
+                                            onClick={() => removeStore(store.id)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <X size={20} />
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        {store.storeName && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        상호명
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={store.storeName}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        주소
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={store.address}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                        네이버 플레이스 URL
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={store.naverPlaceUrl}
+                                                        readOnly
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
+
             {/* 제품/서비스 옵션 정보 (전체 타입 공통) */}
             {formData.campaignType && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1158,138 +1313,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             )}
 
             {/* 매장 정보 (방문체험단/기자단만) */}
-            {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">
-                        매장 정보 <span className="text-red-500">*</span>
-                    </h2>
 
-                    {/* 지역 설정 */}
-                    <div className="mb-6 pb-6 border-b border-gray-100">
-                        <label className="block text-sm font-medium text-gray-700 mb-3">지역 선택 (시/도)</label>
-                        <div className="flex flex-wrap gap-2">
-                            {['전국', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'].map((reg) => (
-                                <button
-                                    key={reg}
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
-                                        formData.region === reg
-                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
-                                            : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                                    }`}
-                                >
-                                    {reg}
-                                </button>
-                            ))}
-                        </div>
-                        <p className="mt-3 text-xs text-gray-400">
-                            💡 매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다.
-                        </p>
-                    </div>
-
-                    {/* 네이버 플레이스 주소 입력 */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            네이버 플레이스 주소
-                        </label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={tempNaverUrl}
-                                onChange={(e) => setTempNaverUrl(e.target.value)}
-                                placeholder="https://map.naver.com/..."
-                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            />
-                            <button
-                                onClick={() => {
-                                    if (tempNaverUrl.trim()) {
-                                        const newStore = {
-                                            id: Date.now().toString(),
-                                            naverPlaceUrl: tempNaverUrl,
-                                            storeName: '',
-                                            address: '',
-                                        };
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            stores: [...prev.stores, newStore],
-                                        }));
-                                        fetchNaverPlaceInfo(tempNaverUrl, newStore.id);
-                                        setTempNaverUrl('');
-                                    }
-                                }}
-                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
-                            >
-                                불러오기
-                            </button>
-                        </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            네이버 지도에서 매장을 검색한 후 URL을 복사하여 붙여넣으세요.
-                        </p>
-                    </div>
-
-                    {/* 불러온 매장 목록 */}
-                    {formData.stores.length > 0 && (
-                        <div className="space-y-4">
-                            {formData.stores.map((store, index) => (
-                                <div key={store.id} className="border border-gray-200 rounded-lg p-4">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <h3 className="font-semibold text-gray-900">매장 {index + 1}</h3>
-                                        <button
-                                            onClick={() => removeStore(store.id)}
-                                            className="text-red-500 hover:text-red-700"
-                                        >
-                                            <X size={20} />
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        {store.storeName && (
-                                            <>
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        상호명
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={store.storeName}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        주소
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={store.address}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                                        네이버 플레이스 URL
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={store.naverPlaceUrl}
-                                                        readOnly
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
-                                                    />
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </section>
-            )}
 
             {/* 상세 정보 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -1644,57 +1668,125 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                         {/* 일정 타입 선택 */}
                         <div className="space-y-3">
-                            <div className="flex gap-4">
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        checked={formData.scheduleType === 'recommended'}
-                                        onChange={() => setFormData(prev => ({ ...prev, scheduleType: 'recommended' }))}
-                                        className="w-4 h-4 text-blue-500"
-                                    />
-                                    <span className="font-medium">추천 일정</span>
+                            <div className="flex flex-wrap items-center gap-6">
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="radio"
+                                            name="scheduleType"
+                                            checked={formData.scheduleType === 'recommended'}
+                                            onChange={() => handleScheduleTypeChange('recommended')}
+                                            className="sr-only"
+                                        />
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'recommended' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                        </div>
+                                    </div>
+                                    <span className={`text-sm font-bold ${formData.scheduleType === 'recommended' ? 'text-gray-900' : 'text-gray-500'}`}>추천 일정</span>
                                 </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        checked={formData.scheduleType === 'custom'}
-                                        onChange={() => setFormData(prev => ({ ...prev, scheduleType: 'custom' }))}
-                                        className="w-4 h-4 text-blue-500"
-                                    />
-                                    <span className="font-medium">맞춤 설정</span>
+
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="radio"
+                                            name="scheduleType"
+                                            checked={formData.scheduleType === 'custom'}
+                                            onChange={() => handleScheduleTypeChange('custom')}
+                                            className="sr-only"
+                                        />
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'custom' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                        </div>
+                                    </div>
+                                    <span className={`text-sm font-bold ${formData.scheduleType === 'custom' ? 'text-gray-900' : 'text-gray-500'}`}>맞춤 설정</span>
+                                </label>
+
+                                <label className="flex items-center gap-2 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="radio"
+                                            name="scheduleType"
+                                            checked={formData.scheduleType === 'always'}
+                                            onChange={() => handleScheduleTypeChange('always')}
+                                            className="sr-only"
+                                        />
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'always' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
+                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                                        </div>
+                                    </div>
+                                    <span className={`text-sm font-bold ${formData.scheduleType === 'always' ? 'text-gray-900' : 'text-gray-500'}`}>상시 모집</span>
                                 </label>
                             </div>
 
-                            {/* 추천 일정 설명 */}
-                            {formData.scheduleType === 'recommended' && (
-                                <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 flex items-start gap-2">
-                                    <Info size={16} className="text-amber-600 mt-0.5 flex-shrink-0" />
-                                    <p className="text-sm text-amber-800">
-                                        <strong>추천 일정:</strong> 최대한 빠르게 모집하여 선정되는 대로 즉시 투입하는 최적화된 모집 방식입니다.
-                                    </p>
-                                </div>
-                            )}
+                            {/* 알림 메시지 */}
+                            <div className={`p-4 rounded-xl border flex gap-3 transition-colors ${formData.scheduleType === 'always' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
+                                <Info size={18} className="flex-shrink-0 mt-0.5" />
+                                <p className="text-xs leading-relaxed font-bold">
+                                    {formData.scheduleType === 'recommended' && "추천 일정: 최대한 빠르게 모집하여 선정되는 대로 즉시 투입하는 최적화된 모집 방식입니다."}
+                                    {formData.scheduleType === 'custom' && "맞춤 설정: 캠페인 성격에 맞춰 모집, 선정, 리뷰 마감일을 수동으로 설정합니다."}
+                                    {formData.scheduleType === 'always' && "상시 모집: 별도의 종료일 없이 캠페인을 중지하기 전까지 무기한으로 인원을 모집합니다."}
+                                </p>
+                            </div>
                         </div>
 
-                        {/* 모집 시작일 */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                모집 시작일 <span className="text-red-500">*</span>
-                                {fieldValidation.recruitmentStartDate === true && (
-                                    <span className="ml-2 text-green-500 text-sm">✓</span>
-                                )}
-                            </label>
-                            <input
-                                type="date"
-                                value={formData.recruitmentStartDate || ''}
-                                onChange={(e) => {
-                                    setFormData(prev => ({ ...prev, recruitmentStartDate: e.target.value }));
-                                    validateField('recruitmentStartDate', e.target.value);
-                                }}
-                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.recruitmentStartDate === true ? 'border-green-300' : 'border-gray-300'
-                                    }`}
-                            />
-                            <p className="mt-1 text-xs text-gray-500">기본값: 내일 날짜</p>
+                        {/* 날짜 입력 섹션 */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                    모집 시작일 <span className="text-rose-500">*</span>
+                                    {formData.recruitmentStartDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                </label>
+                                <div className="relative group">
+                                    <input
+                                        type="date"
+                                        value={formData.recruitmentStartDate || ''}
+                                        onChange={(e) => {
+                                            setFormData(prev => ({ ...prev, recruitmentStartDate: e.target.value }));
+                                            validateField('recruitmentStartDate', e.target.value);
+                                        }}
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
+                                    />
+                                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
+                                </div>
+                                <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 내일 날짜</p>
+                            </div>
+
+                            {formData.scheduleType !== 'always' && (
+                                <>
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                            선정 발표일 <span className="text-rose-500">*</span>
+                                            {formData.firstSelectionDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                        </label>
+                                        <div className="relative group">
+                                            <input
+                                                type="date"
+                                                value={formData.firstSelectionDate || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, firstSelectionDate: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
+                                            />
+                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 md:col-span-2 text-blue-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                        <label className="text-sm font-black flex items-center gap-1.5">
+                                            리뷰 마감일 <span className="text-rose-500">*</span>
+                                            {formData.reviewDeadline && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                        </label>
+                                        <div className="relative group mt-2">
+                                            <input
+                                                type="date"
+                                                value={formData.reviewDeadline || ''}
+                                                onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
+                                            />
+                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 group-hover:text-blue-600 transition-colors pointer-events-none" size={18} />
+                                        </div>
+                                        <p className="text-[10px] text-blue-400 font-bold pl-1 mt-1 flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
+                                    </div>
+                                </>
+                            )}
                         </div>
 
                         {formData.scheduleType === 'custom' && (

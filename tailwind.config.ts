@@ -58,11 +58,27 @@ const config: Config = {
                     main: "#4a044e",
                     secondary: "#831843",
                 },
+                brand: {
+                    daon: {
+                        start: "#ff385c",
+                        end: "hsl(var(--primary))",
+                    },
+                    view: {
+                        blue: "#2563eb",
+                        violet: "#7c3aed",
+                        indigo: "#4f46e5",
+                    }
+                }
             },
             borderRadius: {
                 lg: "var(--radius)",
                 md: "calc(var(--radius) - 2px)",
                 sm: "calc(var(--radius) - 4px)",
+            },
+            animation: {
+                "accordion-down": "accordion-down 0.2s ease-out",
+                "accordion-up": "accordion-up 0.2s ease-out",
+                "gradient": "gradient 8s linear infinite",
             },
             keyframes: {
                 "accordion-down": {
@@ -73,10 +89,10 @@ const config: Config = {
                     from: { height: "var(--radix-accordion-content-height)" },
                     to: { height: "0" },
                 },
-            },
-            animation: {
-                "accordion-down": "accordion-down 0.2s ease-out",
-                "accordion-up": "accordion-up 0.2s ease-out",
+                "gradient": {
+                    "0%, 100%": { backgroundPosition: "0% 50%" },
+                    "50%": { backgroundPosition: "100% 50%" },
+                },
             },
         },
     },

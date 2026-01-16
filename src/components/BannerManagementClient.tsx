@@ -13,6 +13,7 @@ interface Banner {
     link_url: string;
     display_order: number;
     is_active: boolean;
+    show_content: boolean;
 }
 
 interface BannerConfig {
@@ -45,7 +46,8 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
         subtitle: '',
         image_url: '',
         link_url: '',
-        is_active: true
+        is_active: true,
+        show_content: true
     });
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -204,7 +206,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
             } else {
                 toast.success('배너가 추가되었습니다.', { id: 'submit-status' });
                 setBanners([...banners, data[0]]);
-                setNewBanner({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true });
+                setNewBanner({ title: '', subtitle: '', image_url: '', link_url: '', is_active: true, show_content: true });
             }
         } catch (error: any) {
             toast.error('오류 발생: ' + error.message, { id: 'submit-status' });
@@ -233,7 +235,8 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                 subtitle: editForm.subtitle,
                 image_url: editForm.image_url,
                 link_url: editForm.link_url,
-                is_active: editForm.is_active
+                is_active: editForm.is_active,
+                show_content: editForm.show_content
             })
             .eq('id', editingId);
 
@@ -376,12 +379,41 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 onChange={e => setNewBanner({ ...newBanner, subtitle: e.target.value })}
                             />
                         </div>
+                        <div className="space-y-2 pt-2">
+                            <button
+                                onClick={() => setNewBanner({ ...newBanner, show_content: !newBanner.show_content })}
+                                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all border shadow-sm ${newBanner.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
+                            >
+                                <div className={`w-3.5 h-3.5 rounded-full flex items-center justify-center ${newBanner.show_content ? 'bg-primary text-white' : 'bg-gray-300 text-white'}`}>
+                                    {newBanner.show_content ? <Check size={10} /> : <X size={10} />}
+                                </div>
+                                메인 슬라이드 제목 노출: {newBanner.show_content ? 'ON' : 'OFF'}
+                            </button>
+                            <p className="text-[10px] text-gray-400 leading-relaxed font-medium">
+                                * 제목 노출 안함(OFF)으로 설정하면 메인 페이지 슬라이드에서 글자 없이 이미지만 꽉 차게 나옵니다.
+                            </p>
+                        </div>
                     </div>
                     <div className="space-y-6">
                         <div>
                             <label className="block text-xs font-bold text-gray-700 mb-2 tracking-wider">
                                 이미지 설정 <span className="text-red-500">*</span>
                             </label>
+                            <div className="mb-3 w-full aspect-[21/9] rounded-xl overflow-hidden border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center relative group">
+                                {newBanner.image_url ? (
+                                    <>
+                                        <img src={newBanner.image_url} alt="Preview" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm py-1.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <p className="text-[10px] text-white font-bold truncate">{newBanner.image_url.split('/').pop()}</p>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-gray-300">
+                                        <ImageIcon size={32} />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">이미지를 등록해주세요</span>
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex gap-2">
                                 <input
                                     type="text"
@@ -465,10 +497,21 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                         <div className="space-y-2">
                                             <input className="w-full px-3 py-2 bg-gray-50 border rounded-lg text-sm font-bold" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
                                             <input className="w-full px-3 py-2 bg-gray-50 border rounded-lg text-xs" value={editForm.subtitle} onChange={e => setEditForm({ ...editForm, subtitle: e.target.value })} />
+                                            <div className="pt-1">
+                                                <button
+                                                    onClick={() => setEditForm({ ...editForm, show_content: !editForm.show_content })}
+                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${editForm.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-100 text-gray-400 border-gray-200'}`}
+                                                >
+                                                    메인 슬라이드 제목 노출: {editForm.show_content ? 'ON' : 'OFF'}
+                                                </button>
+                                            </div>
                                         </div>
                                     ) : (
                                         <>
-                                            <h3 className="font-black text-gray-900 truncate text-sm">{banner.title}</h3>
+                                            <h3 className="font-black text-gray-900 truncate text-sm flex items-center gap-2">
+                                                {banner.title}
+                                                {banner.show_content === false && <span className="text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded uppercase leading-none">Title Hidden</span>}
+                                            </h3>
                                             <p className="text-xs text-gray-500 truncate">{banner.subtitle}</p>
                                         </>
                                     )}

@@ -24,6 +24,21 @@ import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselNext,
+    CarouselPrevious,
+    type CarouselApi,
+} from "@/components/ui/carousel";
 
 interface CampaignDetailClientProps {
     campaign: any;
@@ -40,6 +55,22 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isStatusChecking, setIsStatusChecking] = useState(false); // Only used for button loading state now
+    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
+    const [modalApi, setModalApi] = useState<CarouselApi>();
+
+    // Sync modal carousel when it opens or external index changes
+    useEffect(() => {
+        if (!modalApi) return;
+        modalApi.scrollTo(currentImageIndex);
+    }, [modalApi, currentImageIndex, isImageModalOpen]);
+
+    // Update current index when modal carousel scrolls
+    useEffect(() => {
+        if (!modalApi) return;
+        modalApi.on("select", () => {
+            setCurrentImageIndex(modalApi.selectedScrollSnap());
+        });
+    }, [modalApi]);
 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
@@ -297,43 +328,67 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // UI Helpers (derived from campaign data)
     const appCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
+    const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+    const step1Data = campaignOptions?.step1Data || {};
+    const step2Data = campaignOptions?.step2Data || {};
+
+    const isAlwaysRecruiting = step1Data.scheduleType === 'always' || !campaign.end_date;
     const startDate = campaign.recruitment_start_date ? new Date(campaign.recruitment_start_date).toLocaleDateString() : new Date(campaign.created_at).toLocaleDateString();
-    const endDate = campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '미정';
-    const images = [campaign.thumbnail_url, campaign.sub_image_1, campaign.sub_image_2].filter(Boolean);
+    const endDateLabel = isAlwaysRecruiting ? '상시 모집' : (campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '미정');
+    // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
+    const getCampaignImages = () => {
+        const imageSet = new Set<string>();
+        
+        // 1. thumbnail_url (대표 이미지)
+        if (campaign.thumbnail_url) imageSet.add(campaign.thumbnail_url);
+        
+        // 2. sub_image 컬럼들 (Legacy 대응)
+        if (campaign.sub_image_1) imageSet.add(campaign.sub_image_1);
+        if (campaign.sub_image_2) imageSet.add(campaign.sub_image_2);
+        
+        // 3. campaign_images (JSONB 배열)
+        if (Array.isArray(campaign.campaign_images)) {
+            campaign.campaign_images.forEach((img: any) => {
+                if (img) imageSet.add(img);
+            });
+        }
+        
+        // 4. step2Data 내부 이미지 (Admin에서 등록한 경우)
+        if (Array.isArray(step2Data.campaignImages)) {
+            step2Data.campaignImages.forEach((img: any) => {
+                if (img) imageSet.add(img);
+            });
+        }
+        
+        return Array.from(imageSet);
+    };
+    const images = getCampaignImages();
 
     // Robust Option Extraction
     const getOptions = () => {
-        // 1. Check product_options
+        // 1. Check direct product_options (DB column)
         if (Array.isArray(campaign.product_options) && campaign.product_options.length > 0) {
             return campaign.product_options;
         }
 
-        // 2. Check campaign_options
-        if (Array.isArray(campaign.campaign_options) && campaign.campaign_options.length > 0) {
-            // Case A: Array of strings directly (e.g., Campaign #22)
-            if (typeof campaign.campaign_options[0] === 'string') {
-                return campaign.campaign_options;
-            }
-            // Case B: Array of objects with step1Data (Admin format)
-            const step1Options = campaign.campaign_options[0]?.step1Data?.options;
-            if (Array.isArray(step1Options) && step1Options.length > 0) {
-                return step1Options;
-            }
-        }
+        // 2. Check campaign_options (JSONB)
+        const rootOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+        if (rootOptions) {
+            // Case A: Directly under root
+            if (Array.isArray(rootOptions.options) && rootOptions.options.length > 0) return rootOptions.options;
+            if (Array.isArray(rootOptions.productOptions) && rootOptions.productOptions.length > 0) return rootOptions.productOptions;
 
-        // 3. Singular object fallback
-        if (campaign.campaign_options?.step1Data?.options) {
-            return campaign.campaign_options.step1Data.options;
+            // Case B: Under step1Data
+            const step1 = rootOptions.step1Data;
+            if (step1) {
+                if (Array.isArray(step1.options) && step1.options.length > 0) return step1.options;
+                if (Array.isArray(step1.productOptions) && step1.productOptions.length > 0) return step1.productOptions;
+            }
         }
 
         return [];
     };
     const options = getOptions();
-
-    // JSON options fallback (for data in step1Data/step2Data)
-    const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
-    const step1Data = campaignOptions?.step1Data || {};
-    const step2Data = campaignOptions?.step2Data || {};
 
     // Title fallback
     const displayTitle = step2Data.campaignTitle || campaign.title;
@@ -350,8 +405,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const photoCount = campaign.photo_count || step2Data.photoCount || '';
     const videoRequired = campaign.video_required || step2Data.videoRequired || 'no';
 
+    // 추가 상세 정보 추출
+    const category = campaign.category || step1Data.category || '';
+    const region = campaign.region || step1Data.region || '';
+    const contactPhone = campaign.contact_phone || step1Data.contactPhone || '';
+    const advertiserWillContact = campaign.advertiser_will_contact || step1Data.advertiserWillContact || false;
+    const visitTime = campaign.visit_time || step1Data.visitTime || '';
+    const visitTimeNegotiable = campaign.visit_time_negotiable || step1Data.visitTimeNegotiable || false;
+    const visitDays = Array.isArray(campaign.visit_days) ? campaign.visit_days : (step1Data.visitDays || []);
+    const visitNotes = campaign.visit_notes || step1Data.visitNotes || '';
+    const stores = Array.isArray(campaign.stores) ? campaign.stores : (step1Data.stores || []);
+
     // Recruitment Closure Logic
-    const isPastDeadline = campaign.end_date ? new Date() > new Date(campaign.end_date) : false;
+    const nowStr = new Date().toISOString().split('T')[0];
+    const isPastDeadline = (campaign.end_date && !isAlwaysRecruiting) ? nowStr > campaign.end_date : false;
     const isFull = appCount >= campaign.recruit_count && campaign.recruit_count > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
@@ -364,57 +431,112 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     return (
         <div className="min-h-screen bg-gray-50/30 pb-24">
             <div className="container py-6 md:py-12 max-w-[1400px] w-full px-4 mx-auto">
-                {/* Breadcrumb */}
-                <div className="flex items-center gap-2 mb-6 text-sm font-medium text-gray-400">
+                {/* Breadcrumb - Reduced bottom margin */}
+                <div className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-400">
                     <Link href="/campaigns" className="hover:text-rose-500 transition-colors flex items-center gap-1">
                         <ChevronLeft className="w-4 h-4" /> 캠페인 목록
                     </Link>
                 </div>
 
-                {/* Campaign Header Section: Badges & Title (Above Grid to align sidebar with image) */}
-                <div className="mb-10 mt-2 space-y-5">
-                    <div className="flex flex-wrap items-center gap-3">
+                {/* Campaign Header Section: Badges & Title - Compressed spacing */}
+                <div className="mb-6 mt-1 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
                         <TypeBadge type={campaign.type} />
                         <PlatformBadge platform={campaign.platform} />
                         {campaign.type === 'VISIT' && <RegionBadge region={campaign.region} />}
                         <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
                     </div>
 
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight truncate">
+                    <h1 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight tracking-tight truncate">
                         {displayTitle}
                     </h1>
                 </div>
 
                 {/* Main Layout: Left Content + Right Sticky Panel */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Content Area (Scrollable) */}
-                    <div className="lg:col-span-8 space-y-8">
-                        {/* Main Image Slider */}
-                        <div className="w-full bg-white rounded-3xl aspect-video border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-lg group">
+                    {/* Left Content Area (Scrollable) - Compressed vertical spacing */}
+                    <div className="lg:col-span-7 space-y-5">
+                        {/* Main Image Slider - Slightly reduced aspect for compactness */}
+                        <div className="w-full bg-white rounded-2xl aspect-[4/3] border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-md group">
                             {images.length > 0 ? (
                                 <>
-                                    <img
-                                        src={images[currentImageIndex]}
-                                        alt={displayTitle}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                    />
+                                    <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                                        <DialogTrigger asChild>
+                                            <img
+                                                src={images[currentImageIndex]}
+                                                alt={displayTitle}
+                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
+                                            />
+                                        </DialogTrigger>
+                                        <DialogContent className="max-w-[85vw] w-full h-[90vh] p-0 overflow-hidden border border-white/20 bg-white/5 backdrop-blur-2xl shadow-none flex flex-col items-center justify-center rounded-3xl outline-none">
+                                            <style dangerouslySetInnerHTML={{ __html: `
+                                                [data-radix-portal] > div { background-color: rgba(0, 0, 0, 0.4) !important; }
+                                            `}} />
+                                            <DialogHeader className="sr-only">
+                                                <DialogTitle>{displayTitle} 이미지 갤러리</DialogTitle>
+                                            </DialogHeader>
+                                            
+                                            <div className="w-full flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
+                                                <Carousel setApi={setModalApi} className="w-full h-full flex items-center justify-center">
+                                                    <CarouselContent className="h-full items-center">
+                                                        {images.map((img, idx) => (
+                                                            <CarouselItem key={idx} className="flex items-center justify-center h-full">
+                                                                <div className="w-full h-full flex items-center justify-center p-2">
+                                                                    <img
+                                                                        src={img}
+                                                                        alt={`${displayTitle} - ${idx + 1}`}
+                                                                        className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
+                                                                    />
+                                                                </div>
+                                                            </CarouselItem>
+                                                        ))}
+                                                    </CarouselContent>
+                                                    {images.length > 1 && (
+                                                        <>
+                                                            <CarouselPrevious className="left-4 w-12 h-12 bg-white/10 hover:bg-rose-500 border-none text-white transition-all scale-110 active:scale-95" />
+                                                            <CarouselNext className="right-4 w-12 h-12 bg-white/10 hover:bg-rose-500 border-none text-white transition-all scale-110 active:scale-95" />
+                                                        </>
+                                                    )}
+                                                </Carousel>
+                                            </div>
+
+                                            {/* Thumbnail Strip for UX */}
+                                            {images.length > 1 && (
+                                                <div className="w-full bg-white/5 backdrop-blur-xl p-6 flex justify-center gap-4 border-t border-white/10 mt-auto">
+                                                    {images.map((img, idx) => (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => modalApi?.scrollTo(idx)}
+                                                            className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-500 hover:scale-105 ${
+                                                                idx === currentImageIndex 
+                                                                ? 'ring-4 ring-rose-500 ring-offset-4 ring-offset-black scale-110 shadow-2xl shadow-rose-500/40' 
+                                                                : 'opacity-30 hover:opacity-100 grayscale hover:grayscale-0'
+                                                            }`}
+                                                        >
+                                                            <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </DialogContent>
+                                    </Dialog>
                                     {images.length > 1 && (
-                                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)} className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-lg"><ChevronLeft size={24} /></button>
-                                            <button onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)} className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-lg"><ChevronRight size={24} /></button>
+                                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"><ChevronLeft size={20} /></button>
+                                            <button onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"><ChevronRight size={20} /></button>
                                         </div>
                                     )}
                                     <Button
                                         size="icon"
                                         variant="ghost"
                                         onClick={toggleFavorite}
-                                        className="absolute top-6 right-6 z-10 w-12 h-12 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-lg transition-all hover:scale-110"
+                                        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-md transition-all hover:scale-110"
                                     >
-                                        <Heart className={`w-6 h-6 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
+                                        <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
                                     </Button>
-                                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
                                         {images.map((_, i) => (
-                                            <div key={i} className={`h-2 rounded-full transition-all ${i === currentImageIndex ? 'w-8 bg-white' : 'w-2 bg-white/50'}`} />
+                                            <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
                                         ))}
                                     </div>
                                 </>
@@ -423,58 +545,72 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             )}
                         </div>
 
-                        {/* 제공 내역 Section */}
-                        <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-3xl shadow-lg shadow-rose-200">
+                        {/* 제공 내역 Section - Compacted */}
+                        <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center text-xl shadow-md shadow-rose-200">
                                     📦
                                 </div>
-                                <h2 className="text-2xl font-black text-gray-900">제공 내역</h2>
+                                <h2 className="text-lg font-black text-gray-900">제공 내역</h2>
                             </div>
-                            <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl p-6 border border-rose-100">
-                                <p className="text-lg font-bold text-gray-900 leading-relaxed whitespace-pre-line">
+
+                            <div className="flex flex-wrap gap-1.5 mb-3">
+                                {category && (
+                                    <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold">
+                                        #{category}
+                                    </span>
+                                )}
+                                {region && (
+                                    <span className="px-2.5 py-0.5 bg-gray-100 text-gray-600 rounded-full text-[10px] font-bold">
+                                        #{region}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl p-5 border border-rose-100">
+                                <p className="text-base font-bold text-gray-900 leading-relaxed whitespace-pre-line">
                                     {campaignIntro || '제공 내역 정보가 없습니다.'}
                                 </p>
                                 {campaign.official_price && (
-                                    <div className="mt-4 pt-4 border-t border-rose-200">
-                                        <p className="text-sm text-gray-600">정가: <span className="text-lg font-black text-rose-600">{parseInt(campaign.official_price).toLocaleString()}원</span></p>
+                                    <div className="mt-3 pt-3 border-t border-rose-200">
+                                        <p className="text-xs text-gray-600">정가: <span className="text-base font-black text-rose-600">{parseInt(campaign.official_price).toLocaleString()}원</span></p>
                                     </div>
                                 )}
                             </div>
                         </section>
 
-                        {/* 체험 미션 Section */}
-                        <section className="bg-white rounded-3xl p-8 border border-gray-100 shadow-sm">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-3xl shadow-lg shadow-blue-200">
+                        {/* 체험 미션 Section - Compacted */}
+                        <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <div className="flex items-center gap-2.5 mb-4">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-xl shadow-md shadow-blue-200">
                                     💰
                                 </div>
-                                <h2 className="text-2xl font-black text-gray-900">체험 미션</h2>
+                                <h2 className="text-lg font-black text-gray-900">체험 미션</h2>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-6">
-                                <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-5 rounded-2xl border border-orange-200">
-                                    <p className="text-xs text-orange-600 font-bold mb-2 uppercase tracking-wider flex items-center gap-1.5">
-                                        📸 사진 촬영
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-4 rounded-xl border border-orange-200">
+                                    <p className="text-[10px] text-orange-600 font-bold mb-1 uppercase tracking-wider flex items-center gap-1">
+                                        📸 사진
                                     </p>
-                                    <p className="font-black text-gray-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
+                                    <p className="font-black text-gray-900 text-sm">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
                                 </div>
-                                <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-5 rounded-2xl border border-purple-200">
-                                    <p className="text-xs text-purple-600 font-bold mb-2 uppercase tracking-wider flex items-center gap-1.5">
-                                        🎥 동영상 촬영
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 p-4 rounded-xl border border-purple-200">
+                                    <p className="text-[10px] text-purple-600 font-bold mb-1 uppercase tracking-wider flex items-center gap-1">
+                                        🎥 영상
                                     </p>
-                                    <p className="font-black text-gray-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
+                                    <p className="font-black text-gray-900 text-sm">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
                                 </div>
                             </div>
 
                             {keywords.length > 0 && (
-                                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 border border-blue-200">
-                                    <p className="text-sm font-black text-blue-700 mb-3 uppercase tracking-widest flex items-center gap-2">
+                                <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-200">
+                                    <p className="text-[10px] font-black text-blue-700 mb-2 uppercase tracking-widest flex items-center gap-1.5">
                                         🏷️ 필수 키워드
                                     </p>
-                                    <div className="flex flex-wrap gap-2">
+                                    <div className="flex flex-wrap gap-1.5">
                                         {keywords.map((kw: string, i: number) => (
-                                            <span key={i} className="px-4 py-2 bg-white text-blue-700 rounded-xl text-sm font-bold border border-blue-300 shadow-sm">
+                                            <span key={i} className="px-2.5 py-1 bg-white text-blue-700 rounded-lg text-xs font-bold border border-blue-300 shadow-xs">
                                                 #{kw}
                                             </span>
                                         ))}
@@ -483,18 +619,108 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             )}
 
                             {missionGuide && (
-                                <div className="mt-6 p-6 bg-gradient-to-br from-slate-50 to-gray-50 rounded-2xl border border-slate-200">
-                                    <p className="text-sm font-black text-gray-900 mb-3">📝 상세 미션 가이드</p>
-                                    <div className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                                <div className="mt-4 p-4 bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl border border-slate-200">
+                                    <p className="text-[10px] font-black text-gray-900 mb-2 uppercase">📝 상세 미션 가이드</p>
+                                    <div className="text-xs text-gray-700 leading-relaxed whitespace-pre-line">
                                         {missionGuide}
                                     </div>
                                 </div>
                             )}
+
+                            {(step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
+                                <div className="mt-3 p-3 bg-red-50 rounded-xl border border-red-100">
+                                    <p className="text-[10px] font-black text-red-700 mb-1.5 flex items-center gap-1.5">
+                                        🚫 주의 사항 (금지어)
+                                    </p>
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {(campaign.prohibited_words || step2Data.prohibitedWords).map((word: string, i: number) => (
+                                            <span key={i} className="text-[10px] text-red-600 font-medium">#{word}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </section>
+
+                        {/* 방문 및 예약 안내 (방문형일 때만 노출) - Compacted */}
+                        {campaign.type === 'VISIT' && (
+                            <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-2.5 mb-4">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-xl shadow-md shadow-emerald-200">
+                                        📅
+                                    </div>
+                                    <h2 className="text-lg font-black text-gray-900">방문 및 예약</h2>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <p className="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">🗓️ 요일</p>
+                                            <p className="font-black text-gray-900 text-sm">{visitDays.length > 0 ? visitDays.join(', ') : '무관'}</p>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <p className="text-[10px] text-gray-500 font-bold mb-1 uppercase tracking-wider">⏰ 시간</p>
+                                            <p className="font-black text-gray-900 text-sm">
+                                                {visitTimeNegotiable ? '조율 가능' : (visitTime || '무관')}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {visitNotes && (
+                                        <div className="p-4 bg-amber-50 rounded-xl border border-amber-100">
+                                            <p className="text-[10px] text-amber-700 font-bold mb-1">💡 참고사항</p>
+                                            <p className="text-xs text-gray-700 whitespace-pre-line">{visitNotes}</p>
+                                        </div>
+                                    )}
+
+                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+                                        <p className="text-[10px] text-blue-700 font-bold mb-1">📞 예약 연락처</p>
+                                        <p className="font-black text-gray-900 text-sm">
+                                            {advertiserWillContact ? '선정 후 광고주 직접 연락' : (contactPhone || '정보 없음')}
+                                        </p>
+                                    </div>
+                                </div>
+                            </section>
+                        )}
+
+                        {/* 매장 정보 (방문형일 때만 노출) - Compacted */}
+                        {campaign.type === 'VISIT' && stores.length > 0 && (
+                            <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-2.5 mb-4">
+                                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-xl shadow-md shadow-indigo-200">
+                                        📍
+                                    </div>
+                                    <h2 className="text-lg font-black text-gray-900">매장 정보</h2>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {stores.map((store: any, i: number) => (
+                                        <div key={i} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="flex justify-between items-center mb-1.5">
+                                                <h3 className="text-sm font-black text-gray-900">{store.storeName}</h3>
+                                                {store.naverPlaceUrl && (
+                                                    <a
+                                                        href={store.naverPlaceUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-[10px] font-bold text-blue-600 hover:text-blue-800"
+                                                    >
+                                                        지도 ↗
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <p className="text-xs text-gray-600 flex items-center gap-1.5">
+                                                <MapPin size={12} className="text-gray-400" />
+                                                {store.address || '주소 정보 없음'}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
 
-                    {/* Right Sticky Panel */}
-                    <div className="lg:col-span-4">
+                    {/* Right Sticky Panel (Desktop Only) - Expanded for balance */}
+                    <div className="lg:col-span-5 relative">
                         <div className="lg:sticky lg:top-24">
                             <div id="options-section" className="bg-white rounded-3xl p-6 md:p-8 border-2 border-rose-100 shadow-xl min-h-[500px] flex flex-col">
                                 {/* Campaign Info Cards */}
@@ -502,8 +728,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     {/* 체험 기간 */}
                                     <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-4 rounded-2xl border border-orange-200">
                                         <p className="text-[10px] text-orange-600 font-bold mb-1.5 uppercase tracking-wider">📅 체험 기간</p>
-                                        <p className="text-sm font-black text-gray-900">{startDate.replace('2025. ', '').replace('2026. ', '')}</p>
-                                        <p className="text-[10px] text-gray-500 mt-0.5">~ {endDate.replace('2025. ', '').replace('2026. ', '')}</p>
+                                        <p className="text-sm font-black text-gray-900">{isAlwaysRecruiting ? '상시 모집' : startDate.replace('2025. ', '').replace('2026. ', '')}</p>
+                                        <p className="text-[10px] text-gray-500 mt-0.5">
+                                            {isAlwaysRecruiting ? '중지 시까지 무제한' : `~ ${endDateLabel.replace('2025. ', '').replace('2026. ', '')}`}
+                                        </p>
                                     </div>
 
                                     {/* 신청 인원 */}

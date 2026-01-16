@@ -75,11 +75,11 @@ export default function FeaturesCarousel() {
                 }}
                 className="w-full overflow-visible"
             >
-                <CarouselContent className="-ml-4 md:ml-0 md:grid md:grid-cols-2 lg:grid-cols-4 gap-0 md:gap-8 py-10">
+                <CarouselContent className="-ml-4 py-10">
                     {features.map((feature, idx) => (
                         <CarouselItem 
                             key={idx} 
-                            className="pl-4 basis-[85%] sm:basis-1/2 md:basis-auto grow-0 shrink-0 md:grow md:shrink py-4"
+                            className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4 grow-0 shrink-0 py-4"
                         >
                             <div
                                 className={`h-full text-left group bg-white/70 backdrop-blur-xl rounded-[3rem] p-8 lg:p-10 transition-all duration-700 transform hover:-translate-y-5 border-2 ${feature.borderColor} relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)] ${feature.glowColor} ${feature.highlight ? 'bg-white/80' : ''}`}

@@ -39,7 +39,8 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
             image_url: b.image_url,
             link_url: b.link_url || '#',
             badge: 'SPECIAL',
-            label: '다온 PICK'
+            label: '다온 PICK',
+            show_content: b.show_content
         }));
 
         // 4. Process Latest Campaigns

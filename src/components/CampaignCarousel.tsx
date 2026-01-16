@@ -69,70 +69,57 @@ export default function CampaignCarousel({
         );
     }
 
-    // 클라이언트 마운트 후: 반응형 분기 적용
+    // 클라이언트 마운트 후: 통합 캐러셀 적용
     return (
-        <div className="relative">
-            {/* 모바일: 캐러셀 */}
-            <div className="md:hidden">
-                <div className="overflow-hidden" ref={emblaRef}>
-                    <div className="flex gap-4">
-                        {campaigns.map((cam) => (
-                            <div
-                                key={cam.id}
-                                className="flex-[0_0_50%] min-w-0 sm:flex-[0_0_48%]"
-                            >
-                                <CampaignCard {...cam} />
-                            </div>
-                        ))}
-                        {[...Array(skeletonCount)].map((_, i) => (
-                            <div
-                                key={`skel-${i}`}
-                                className="flex-[0_0_50%] min-w-0 sm:flex-[0_0_48%]"
-                            >
-                                <CampaignSkeleton />
-                            </div>
-                        ))}
-                    </div>
+        <div className="relative group/carousel">
+            <div className="overflow-hidden" ref={emblaRef}>
+                <div className="flex -ml-4">
+                    {campaigns.map((cam) => (
+                        <div
+                            key={cam.id}
+                            className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4 min-w-0 shrink-0 grow-0"
+                        >
+                            <CampaignCard {...cam} />
+                        </div>
+                    ))}
+                    {[...Array(skeletonCount)].map((_, i) => (
+                        <div
+                            key={`skel-${i}`}
+                            className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4 min-w-0 shrink-0 grow-0"
+                        >
+                            <CampaignSkeleton />
+                        </div>
+                    ))}
                 </div>
-
-                {/* 모바일 네비게이션 버튼 (선택적) */}
-                {showNavigation && campaigns.length > 1 && (
-                    <>
-                        <button
-                            onClick={scrollPrev}
-                            disabled={!canScrollPrev}
-                            className={`absolute left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition-all ${canScrollPrev
-                                ? 'opacity-100 hover:bg-white hover:scale-110'
-                                : 'opacity-0 pointer-events-none'
-                                }`}
-                            aria-label="이전 캠페인"
-                        >
-                            <ChevronLeft className="w-5 h-5 text-gray-700" />
-                        </button>
-                        <button
-                            onClick={scrollNext}
-                            disabled={!canScrollNext}
-                            className={`absolute right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg flex items-center justify-center transition-all ${canScrollNext
-                                ? 'opacity-100 hover:bg-white hover:scale-110'
-                                : 'opacity-0 pointer-events-none'
-                                }`}
-                            aria-label="다음 캠페인"
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-700" />
-                        </button>
-                    </>
-                )}
             </div>
 
-            {/* 태블릿/데스크톱: 그리드 */}
-            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {campaigns.map((cam) => (
-                    <CampaignCard key={cam.id} {...cam} />
-                ))}
-                {[...Array(skeletonCount)].map((_, i) => (
-                    <CampaignSkeleton key={`skel-grid-${i}`} />
-                ))}
-            </div>
+            {/* Navigation Buttons - visible on hover or if forced */}
+            {(showNavigation || campaigns.length > 2) && (
+                <>
+                    <button
+                        onClick={scrollPrev}
+                        disabled={!canScrollPrev}
+                        className={`absolute -left-2 md:-left-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg border border-gray-100 flex items-center justify-center transition-all ${canScrollPrev
+                            ? 'opacity-0 group-hover/carousel:opacity-100 hover:bg-white hover:scale-110'
+                            : 'opacity-0 pointer-events-none'
+                            }`}
+                        aria-label="이전 캠페인"
+                    >
+                        <ChevronLeft className="w-5 h-5 text-gray-700" />
+                    </button>
+                    <button
+                        onClick={scrollNext}
+                        disabled={!canScrollNext}
+                        className={`absolute -right-2 md:-right-5 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/90 shadow-lg border border-gray-100 flex items-center justify-center transition-all ${canScrollNext
+                            ? 'opacity-0 group-hover/carousel:opacity-100 hover:bg-white hover:scale-110'
+                            : 'opacity-0 pointer-events-none'
+                            }`}
+                        aria-label="다음 캠페인"
+                    >
+                        <ChevronRight className="w-5 h-5 text-gray-700" />
+                    </button>
+                </>
+            )}
         </div>
     );
 }

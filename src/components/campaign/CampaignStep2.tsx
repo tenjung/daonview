@@ -13,9 +13,11 @@ interface Step1Data {
     includeInstagram: boolean;
     productUrl: string;
     productName: string;
-    campaignTitle: string; // Step 1에서 추가된 캠페인 제목
+    campaignTitle: string; 
     platform: 'BLOG' | 'INSTAGRAM' | null;
-    stores?: { storeName: string; }[];
+    stores?: { storeName: string; address?: string; naverPlaceUrl?: string; }[];
+    region?: string;
+    category?: string;
 }
 
 interface Step2Data {
@@ -57,12 +59,13 @@ interface CampaignStep2Props {
     onNext: (data: Step2Data) => void;
     onPrev: () => void;
     onSaveDraft?: () => void;
+    onChange?: (data: Step2Data) => void;
     initialData?: Partial<Step2Data>;
     step1Data: Step1Data; // Step 1 데이터 추가
     isEdit?: boolean;
 }
 
-export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData, step1Data, isEdit }: CampaignStep2Props) {
+export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, initialData, step1Data, isEdit }: CampaignStep2Props) {
     const [formData, setFormData] = useState<Step2Data>({
         campaignTitle: initialData?.campaignTitle || step1Data.campaignTitle || '',
         campaignImages: initialData?.campaignImages || [],
@@ -121,6 +124,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
         }
     }, [initialData, step1Data.campaignTitle]);
 
+    // 실시간 데이터 변경 알림 (임시저장 연동용)
+    useEffect(() => {
+        if (onChange) {
+            onChange(formData);
+        }
+    }, [formData, onChange]);
+
     const [keywordInput, setKeywordInput] = useState('');
     const [prohibitedInput, setProhibitedInput] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
@@ -132,6 +142,48 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
 
     // 인스타그램 관련 입력 상태
     const [instagramHashtagInput, setInstagramHashtagInput] = useState('');
+
+    // AI 추천 키워드 생성 로직
+    const [recommendedKeywords, setRecommendedKeywords] = useState<string[]>([]);
+    const [recommendedSubKeywords, setRecommendedSubKeywords] = useState<string[]>([]);
+    const [recommendedInstagramHashtags, setRecommendedInstagramHashtags] = useState<string[]>([]);
+    const [recommendedGeneralKeywords, setRecommendedGeneralKeywords] = useState<string[]>([]);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    useEffect(() => {
+        const fetchAIKeywords = async () => {
+            if (!step1Data.productName && !step1Data.stores?.[0]?.storeName) return;
+            
+            setIsAnalyzing(true);
+            try {
+                const response = await fetch('/api/campaign/ai-keywords', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        region: step1Data.region,
+                        storeName: step1Data.stores?.[0]?.storeName,
+                        productName: step1Data.productName,
+                        campaignType: step1Data.campaignType,
+                        category: step1Data.category
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setRecommendedKeywords(data.mainKeywords || []);
+                    setRecommendedSubKeywords(data.subKeywords || []);
+                    setRecommendedInstagramHashtags(data.hashtags || []);
+                    setRecommendedGeneralKeywords([...(data.mainKeywords || []), ...(data.subKeywords || [])].slice(0, 10));
+                }
+            } catch (error) {
+                console.error('Failed to fetch AI keywords:', error);
+            } finally {
+                setIsAnalyzing(false);
+            }
+        };
+
+        fetchAIKeywords();
+    }, [step1Data.productName, step1Data.region, step1Data.campaignType]);
 
     // 이미지 업로드 핸들러
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,105 +469,43 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-2 gap-4 mb-4">
-                            {/* 대표 이미지 */}
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                                    대표 이미지 <span className="text-red-500">*</span>
-                                </h3>
+                        <div className="grid grid-cols-4 gap-3 mb-4">
+                            {/* 대표 이미지 (Slot 0) */}
+                            <div className="space-y-1.5">
+                                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-tight text-center">대표 이미지</h3>
                                 {formData.campaignImages[0] ? (
-                                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-blue-500 group">
-                                        <img
-                                            src={formData.campaignImages[0]}
-                                            alt="대표 이미지"
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute top-2 left-2 px-2 py-1 bg-blue-500 text-white text-xs font-semibold rounded">
-                                            대표
-                                        </div>
-                                        <button
-                                            onClick={() => removeImage(0)}
-                                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X size={16} />
-                                        </button>
+                                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-blue-500 group shadow-sm">
+                                        <img src={formData.campaignImages[0]} alt="대표" className="w-full h-full object-cover" />
+                                        <button onClick={() => removeImage(0)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
                                     </div>
                                 ) : (
-                                    <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors bg-gray-50">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="hidden"
-                                        />
-                                        <Upload className="text-gray-400" size={32} />
-                                        <span className="text-sm font-medium text-gray-600">대표 이미지</span>
+                                    <label className="aspect-square rounded-lg border-2 border-dashed border-gray-200 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors bg-gray-50/50">
+                                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                        <Upload className="text-gray-300" size={20} />
+                                        <span className="text-[10px] font-bold text-gray-400">대표</span>
                                     </label>
                                 )}
                             </div>
 
-                            {/* 상세 이미지 1 */}
-                            <div>
-                                <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                                    상세 이미지
-                                </h3>
-                                {formData.campaignImages[1] ? (
-                                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group">
-                                        <img
-                                            src={formData.campaignImages[1]}
-                                            alt="상세 이미지 1"
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <button
-                                            onClick={() => removeImage(1)}
-                                            className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <label className="aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-2 transition-colors">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={handleImageUpload}
-                                            className="hidden"
-                                            disabled={!formData.campaignImages[0]}
-                                        />
-                                        <Upload className="text-gray-400" size={32} />
-                                        <span className="text-sm text-gray-500">추가</span>
-                                    </label>
-                                )}
-                            </div>
+                            {/* 상세 이미지 슬롯 1, 2, 3 */}
+                            {[1, 2, 3].map((idx) => (
+                                <div key={idx} className="space-y-1.5">
+                                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-tight text-center">이미지 {idx}</h3>
+                                    {formData.campaignImages[idx] ? (
+                                        <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group shadow-sm">
+                                            <img src={formData.campaignImages[idx]} alt={`상세${idx}`} className="w-full h-full object-cover" />
+                                            <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
+                                        </div>
+                                    ) : (
+                                        <label className={`aspect-square rounded-lg border-2 border-dashed border-gray-100 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors ${!formData.campaignImages[0] ? 'opacity-30 cursor-not-allowed' : ''}`}>
+                                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={!formData.campaignImages[0]} />
+                                            <Upload className="text-gray-200" size={18} />
+                                            <span className="text-[10px] font-medium text-gray-300">추가</span>
+                                        </label>
+                                    )}
+                                </div>
+                            ))}
                         </div>
-
-                        {/* 추가 상세 이미지 */}
-                        {formData.campaignImages.length > 2 && (
-                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                {[2, 3].map((index) => (
-                                    formData.campaignImages[index] && (
-                                        <div key={index}>
-                                            <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                                                상세 이미지 {index}
-                                            </h3>
-                                            <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 group">
-                                                <img
-                                                    src={formData.campaignImages[index]}
-                                                    alt={`상세 이미지 ${index}`}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                                <button
-                                                    onClick={() => removeImage(index)}
-                                                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X size={16} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )
-                                ))}
-                            </div>
-                        )}
 
                         {/* 상세 이미지 추가 버튼 */}
                         {formData.campaignImages.length > 0 && formData.campaignImages.length < 4 && (
@@ -781,7 +771,43 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                             placeholder="예: 강남 맛집"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
-                        <p className="mt-1 text-xs text-gray-500">
+                        
+                        {/* AI 추천 메인 키워드 */}
+                        {isAnalyzing ? (
+                            <div className="mt-3 animate-pulse">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                                    <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-8 w-20 bg-gray-100 rounded-lg"></div>
+                                    <div className="h-8 w-24 bg-gray-100 rounded-lg"></div>
+                                </div>
+                            </div>
+                        ) : recommendedKeywords.length > 0 && (
+                            <div className="mt-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] text-white font-bold">AI</div>
+                                    <span className="text-xs font-bold text-indigo-600">다온 AI 추천 메인 키워드</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {recommendedKeywords.map((kw, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => setFormData(prev => ({ ...prev, blogMainKeyword: kw }))}
+                                            className="group relative px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 shadow-sm overflow-hidden"
+                                        >
+                                            <span className="relative z-10 flex items-center gap-1">
+                                                <span className="text-indigo-400 group-hover:text-indigo-600 transition-colors">+</span> {kw}
+                                            </span>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-100/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <p className="mt-2 text-xs text-gray-500">
                             상위 노출을 목표로 하는 키워드를 입력하세요.
                         </p>
                     </div>
@@ -798,15 +824,57 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                                 onChange={(e) => setBlogSubKeywordInput(e.target.value)}
                                 onKeyPress={(e) => e.key === 'Enter' && addBlogSubKeyword()}
                                 placeholder="본문에 포함할 단어 입력 후 Enter"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                             />
                             <button
                                 onClick={addBlogSubKeyword}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
+                                className="px-6 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
                             >
                                 추가
                             </button>
                         </div>
+
+                        {/* AI 추천 서브 키워드 */}
+                        {isAnalyzing ? (
+                             <div className="mb-4 animate-pulse">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                                    <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-8 w-20 bg-gray-100 rounded-lg"></div>
+                                    <div className="h-8 w-24 bg-gray-100 rounded-lg"></div>
+                                </div>
+                            </div>
+                        ) : recommendedSubKeywords.length > 0 && (
+                            <div className="mb-3">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[10px] text-white font-bold">AI</div>
+                                    <span className="text-xs font-bold text-emerald-600">다온 AI 추천 서브 키워드</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {recommendedSubKeywords.map((kw, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                if (!formData.blogSubKeywords.includes(kw)) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        blogSubKeywords: [...prev.blogSubKeywords, kw]
+                                                    }));
+                                                }
+                                            }}
+                                            className="group relative px-3 py-1.5 bg-white text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold hover:border-emerald-400 hover:bg-emerald-50 transition-all duration-200 shadow-sm overflow-hidden"
+                                        >
+                                            <span className="relative z-10 flex items-center gap-1">
+                                                <span className="text-emerald-400 group-hover:text-emerald-600 transition-colors">+</span> {kw}
+                                            </span>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-100/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                         <div className="flex flex-wrap gap-2">
                             {formData.blogSubKeywords.map((keyword, index) => (
                                 <span
@@ -961,6 +1029,49 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                                 추가
                             </button>
                         </div>
+
+                        {/* AI 추천 인스타그램 해시태그 */}
+                        {isAnalyzing ? (
+                            <div className="mb-4 animate-pulse">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                                    <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                                </div>
+                                <div className="flex gap-2">
+                                    <div className="h-8 w-20 bg-gray-100 rounded-lg"></div>
+                                    <div className="h-8 w-24 bg-gray-100 rounded-lg"></div>
+                                </div>
+                            </div>
+                        ) : recommendedInstagramHashtags.length > 0 && (
+                            <div className="mb-4">
+                                <div className="flex items-center gap-1.5 mb-2">
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 text-[10px] text-white font-bold">AI</div>
+                                    <span className="text-xs font-bold text-pink-600">다온 AI 추천 인기 해시태그</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {recommendedInstagramHashtags.map((ht, idx) => (
+                                        <button
+                                            key={idx}
+                                            onClick={() => {
+                                                if (!formData.instagramHashtags.includes(ht)) {
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        instagramHashtags: [...prev.instagramHashtags, ht]
+                                                    }));
+                                                }
+                                            }}
+                                            className="group relative px-3 py-1.5 bg-white text-pink-700 border border-pink-200 rounded-lg text-xs font-semibold hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 shadow-sm overflow-hidden"
+                                        >
+                                            <span className="relative z-10 flex items-center gap-1">
+                                                <span className="text-pink-400 group-hover:text-pink-600 transition-colors">+</span> {ht}
+                                            </span>
+                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <div className="flex flex-wrap gap-2">
                             {formData.instagramHashtags.map((hashtag, index) => (
                                 <span
@@ -1054,6 +1165,48 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, initialData
                         추가
                     </button>
                 </div>
+
+                {/* AI 추천 일반 키워드 */}
+                {isAnalyzing ? (
+                    <div className="mb-4 animate-pulse">
+                        <div className="flex items-center gap-2 mb-2">
+                            <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
+                            <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                        </div>
+                        <div className="flex gap-2">
+                            <div className="h-8 w-20 bg-gray-100 rounded-lg"></div>
+                            <div className="h-8 w-24 bg-gray-100 rounded-lg"></div>
+                        </div>
+                    </div>
+                ) : recommendedGeneralKeywords.length > 0 && (
+                    <div className="mb-4">
+                        <div className="flex items-center gap-1.5 mb-2">
+                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[10px] text-white font-bold">AI</div>
+                            <span className="text-xs font-bold text-blue-600">다온 AI 추천 필수 키워드</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {recommendedGeneralKeywords.map((kw, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        if (!formData.keywords.includes(kw)) {
+                                            setFormData(prev => ({
+                                                ...prev,
+                                                keywords: [...prev.keywords, kw]
+                                            }));
+                                        }
+                                    }}
+                                    className="group relative px-3 py-1.5 bg-white text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 shadow-sm overflow-hidden"
+                                >
+                                    <span className="relative z-10 flex items-center gap-1">
+                                        <span className="text-blue-400 group-hover:text-blue-600 transition-colors">+</span> {kw}
+                                    </span>
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 <div className="flex flex-wrap gap-2">
                     {formData.keywords.map((keyword, index) => (

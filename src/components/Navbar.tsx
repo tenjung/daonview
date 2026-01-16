@@ -9,6 +9,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
+import BrandLogo from '@/components/BrandLogo';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +19,29 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export default function Navbar() {
+interface NavbarProps {
+  initialUser?: any | null;
+  initialProfile?: any | null;
+}
+
+export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, profile, isLoading, initialize, signOut: storeSignOut } = useAuthStore();
+  const { 
+    user: storeUser, 
+    profile: storeProfile, 
+    isLoading, 
+    initialize, 
+    signOut: storeSignOut 
+  } = useAuthStore();
+
+  // SSR 및 초기 하이드레이션 지연을 방지하기 위해 props 또는 store 상태 사용
+  const user = storeUser || initialUser;
+  const profile = storeProfile || initialProfile;
+
+  // 서버에서 세션 체크가 완료되었거나(initialUser가 null이라도 존재), 
+  // 클라이언트에서 이미 정보를 불러왔다면 스켈레톤을 보여주지 않음
+  const showSkeleton = isLoading && initialUser === undefined && storeUser === null;
   const { items: cartItems, fetchItems, clearCart } = useCartStore();
   const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -104,9 +124,7 @@ export default function Navbar() {
     <nav className="h-[70px] bg-surface border-b border-border sticky top-0 z-[100] flex items-center">
       <div className="flex items-center justify-between w-[90%] max-w-[1200px] mx-auto h-full">
         {/* Logo */}
-        <Link href="/" className="text-xl md:text-2xl font-bold text-primary tracking-tighter">
-          DAONVIEW
-        </Link>
+        <BrandLogo size="lg" />
 
         {/* Desktop Navigation */}
         <div className="hidden lg:flex items-center gap-8 h-full">
@@ -200,7 +218,7 @@ export default function Navbar() {
             </Link>
           )}
 
-          {(!mounted || isLoading) ? (
+          {showSkeleton ? (
             <div className="flex gap-2 items-center">
               <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>
               <div className="w-16 h-8 bg-slate-100 animate-pulse rounded-lg"></div>
@@ -278,7 +296,7 @@ export default function Navbar() {
         {/* Mobile: User Info + Hamburger */}
         <div className="flex lg:hidden items-center gap-3">
           {/* Mobile User Info */}
-          {mounted && user && (
+          {user && (
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-text-main truncate max-w-[80px]">
                 {profile?.nickname || user.email?.split('@')[0]}님

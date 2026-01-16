@@ -1,17 +1,24 @@
 import { supabase } from '@/lib/supabaseClient';
 import AdminSidebar from '@/components/AdminSidebar';
 import AdvertiserListClient from '@/components/AdvertiserListClient';
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function AdminAdvertisersPage() {
-    // 1. 광고주 프로필 및 캠페인 데이터 가져오기 (Join 사용)
-    const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select(`
-            *,
-            campaigns:campaigns(status)
-        `)
-        .eq('role', 'ADVERTISER')
-        .order('created_at', { ascending: false });
+    // 1. 광고주 프로필, 캠페인 데이터, 사이드바 카운트 병렬 가져오기
+    const [profilesRes, sidebarCounts] = await Promise.all([
+        supabase
+            .from('profiles')
+            .select(`
+                *,
+                campaigns:campaigns(status)
+            `)
+            .eq('role', 'ADVERTISER')
+            .order('created_at', { ascending: false }),
+        fetchAdminCampaignCounts(supabase)
+    ]);
+
+    const profiles = profilesRes.data || [];
+    const error = profilesRes.error;
 
     if (error) {
         console.error('Error fetching advertisers:', error);
@@ -41,7 +48,7 @@ export default async function AdminAdvertisersPage() {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
             <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center mb-8">
                     <div>

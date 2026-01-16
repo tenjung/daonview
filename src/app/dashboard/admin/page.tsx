@@ -2,6 +2,7 @@ import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import { supabase } from '@/lib/supabaseClient';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function AdminDashboard() {
     const today = new Date();
@@ -13,7 +14,8 @@ export default async function AdminDashboard() {
         influencerRes,
         todayCampaignRes,
         pendingCampaignRes,
-        campaignsRes
+        campaignsRes,
+        sidebarCounts
     ] = await Promise.all([
         // 1. 광고주 수
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'ADVERTISER'),
@@ -34,7 +36,10 @@ export default async function AdminDashboard() {
             profiles:created_by(id, email, name, company_name, role)
         `)
             .in('status', ['RECRUITING', 'ONGOING'])
-            .order('end_date', { ascending: true })
+            .order('end_date', { ascending: true }),
+        
+        // 6. 사이드바 카운트 (SSR용)
+        fetchAdminCampaignCounts(supabase)
     ]);
 
     const stats = {
@@ -48,7 +53,7 @@ export default async function AdminDashboard() {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
 
             <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center mb-8">

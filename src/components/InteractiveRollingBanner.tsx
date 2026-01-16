@@ -26,6 +26,7 @@ export interface BannerItem {
     extra_badge?: string; // For VISIT/DELIVERY
     label?: string;
     isBest?: boolean;
+    show_content?: boolean;
 }
 
 interface BannerProps {
@@ -187,18 +188,20 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                             </div>
 
                                             {/* Premium Glass Bar (Bottom) - Plan A */}
-                                            <div className="absolute inset-x-0 bottom-0 py-1.5 md:py-2 px-4 md:px-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 z-10 transition-all duration-500">
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <h3 className="text-lg md:text-2xl font-bold text-white leading-tight tracking-tight line-clamp-1 flex-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                                                        {item.title}
-                                                    </h3>
+                                            {item.show_content !== false && (
+                                                <div className="absolute inset-x-0 bottom-0 py-1.5 md:py-2 px-4 md:px-6 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-12 z-10 transition-all duration-500">
+                                                    <div className="flex items-center justify-between gap-4">
+                                                        <h3 className="text-lg md:text-2xl font-bold text-white leading-tight tracking-tight line-clamp-1 flex-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                                                            {item.title}
+                                                        </h3>
 
-                                                    {/* Prominent White Circular Button */}
-                                                    <div className="flex-shrink-0 h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-[360deg] active:scale-95">
-                                                        <ArrowRight className="text-rose-500 h-5 w-5" strokeWidth={3} />
+                                                        {/* Prominent White Circular Button */}
+                                                        <div className="flex-shrink-0 h-10 w-10 bg-white rounded-full flex items-center justify-center shadow-2xl transition-all duration-500 transform group-hover:scale-110 group-hover:rotate-[360deg] active:scale-95">
+                                                            <ArrowRight className="text-rose-500 h-5 w-5" strokeWidth={3} />
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            )}
 
                                             {/* Subtle Watermark */}
                                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none select-none">

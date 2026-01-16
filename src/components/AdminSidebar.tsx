@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard } from 'lucide-react';
+import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image } from 'lucide-react';
 import { useState, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -14,12 +14,16 @@ interface CampaignCounts {
     draft: number;
 }
 
-function AdminSidebarContent() {
+interface AdminSidebarProps {
+    initialCounts?: CampaignCounts;
+}
+
+function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(true);
-    const [counts, setCounts] = useState<CampaignCounts>({
+    const [counts, setCounts] = useState<CampaignCounts>(initialCounts || {
         pending: 0,
         upcoming: 0,
         active: 0,
@@ -126,7 +130,8 @@ function AdminSidebarContent() {
                         : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
                         }`}
                 >
-                    대시보드
+                    <LayoutDashboard className="w-5 h-5" />
+                    <span>대시보드</span>
                 </Link>
 
                 {/* 캠페인 승인/관리 (접을 수 있는 메뉴) */}
@@ -138,7 +143,10 @@ function AdminSidebarContent() {
                             : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
                             }`}
                     >
-                        <span>캠페인 관리</span>
+                        <div className="flex items-center gap-3">
+                            <Megaphone className="w-5 h-5" />
+                            <span>캠페인 관리</span>
+                        </div>
                         {campaignMenuOpen ? (
                             <ChevronDown className="w-4 h-4" />
                         ) : (
@@ -260,22 +268,36 @@ function AdminSidebarContent() {
                         : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
                         }`}
                 >
-                    배너 관리
+                    <Image className="w-5 h-5" />
+                    <span>배너 관리</span>
+                </Link>
+
+                {/* 사이트 관리 */}
+                <Link
+                    href="/dashboard/admin/settings/brand"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.includes('/dashboard/admin/settings')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <Globe className="w-5 h-5" />
+                    <span>사이트 관리</span>
                 </Link>
 
                 {/* 결제 관리 */}
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">
-                    결제 관리
+                    <CreditCard className="w-5 h-5" />
+                    <span>결제 관리</span>
                 </div>
             </nav>
         </aside>
     );
 }
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ initialCounts }: AdminSidebarProps) {
     return (
         <Suspense fallback={<aside className="w-[260px] bg-white border-r border-border shrink-0" />}>
-            <AdminSidebarContent />
+            <AdminSidebarContent initialCounts={initialCounts} />
         </Suspense>
     );
 }

@@ -108,7 +108,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                 <thead className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-y border-gray-200">
                     <tr>
                         <th className="px-6 py-4 whitespace-nowrap">등록/시작일</th>
-                        <th className="px-6 py-4 whitespace-nowrap">유형</th>
+                        <th className="px-6 py-4">유형</th>
                         <th className="px-6 py-4">캠페인 정보</th>
                         <th className="px-6 py-4 whitespace-nowrap">등록자</th>
                         <th className="px-6 py-4 whitespace-nowrap">모집 현황</th>
@@ -222,7 +222,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                         <span className="text-sm text-gray-600">{cam.recruit_count}명</span>
                                     </div>
                                     <div className="text-[10px] text-gray-400 mt-1">
-                                        ~ {new Date(cam.end_date).toLocaleDateString()} 마감
+                                        {cam.end_date ? `~ ${new Date(cam.end_date).toLocaleDateString()} 마감` : '상시 모집'}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">

@@ -1,24 +1,31 @@
 import { supabase } from '@/lib/supabaseClient';
 import AdminSidebar from '@/components/AdminSidebar';
 import InfluencerListClient from '@/components/InfluencerListClient';
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function AdminInfluencersPage() {
-    // 1. 인플루언서 프로필 및 신청 데이터 가져오기 (Join 사용)
-    const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select(`
-            *,
-            applications:applications(status)
-        `)
-        .eq('role', 'INFLUENCER')
-        .order('created_at', { ascending: false });
+    // 1. 인플루언서 프로필, 신청 데이터, 사이드바 카운트 병렬 가져오기
+    const [profilesRes, sidebarCounts] = await Promise.all([
+        supabase
+            .from('profiles')
+            .select(`
+                *,
+                applications:applications(status)
+            `)
+            .eq('role', 'INFLUENCER')
+            .order('created_at', { ascending: false }),
+        fetchAdminCampaignCounts(supabase)
+    ]);
+
+    const profiles = profilesRes.data || [];
+    const error = profilesRes.error;
 
     if (error) {
         console.error('Error fetching influencers:', error);
     }
 
-    const influencersWithStats = (profiles || []).map((profile) => {
-        const apps = profile.applications || [];
+    const influencersWithStats = profiles.map((profile) => {
+        const apps = (profile as any).applications || [];
 
         const total = apps.length;
         const selected = apps.filter((a: any) => ['SELECTED', 'COMPLETED'].includes(a.status)).length;
@@ -37,7 +44,7 @@ export default async function AdminInfluencersPage() {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
             <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
                 <div className="flex justify-between items-center mb-8">
                     <div>

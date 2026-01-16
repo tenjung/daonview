@@ -5,6 +5,8 @@ import ApplicationsTableClient from '@/components/admin/ApplicationsTableClient'
 import { ArrowLeft, Calendar, Users, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Link from 'next/link';
 
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
+
 // Next.js 캐싱 비활성화 (매번 최신 데이터 가져오기)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -16,43 +18,43 @@ interface PageProps {
 export default async function CampaignApplicationsPage({ params }: PageProps) {
     const { id } = await params;
 
-    // 캠페인 기본 정보 조회
-    const { data: campaign, error: campaignError } = await supabase
-        .from('campaigns')
-        .select(`
-            *,
-            profiles:created_by (
-                id,
-                nickname,
-                email,
-                company_name
-            )
-        `)
-        .eq('id', id)
-        .single();
+    // 캠페인 정보, 신청자 목록, 사이드바 카운트 병렬 조회
+    const [campaignRes, applicationsRes, sidebarCounts] = await Promise.all([
+        supabase
+            .from('campaigns')
+            .select(`
+                *,
+                profiles:created_by (
+                    id,
+                    nickname,
+                    email,
+                    company_name
+                )
+            `)
+            .eq('id', id)
+            .single(),
+        supabase
+            .from('applications')
+            .select(`
+                *,
+                user:profiles!applications_user_id_fkey (
+                    id,
+                    nickname,
+                    email,
+                    phone_number,
+                    sns_url
+                )
+            `)
+            .eq('campaign_id', id)
+            .order('created_at', { ascending: false }),
+        fetchAdminCampaignCounts(supabase)
+    ]);
 
-    if (campaignError || !campaign) {
+    const campaign = campaignRes.data;
+    const applications = applicationsRes.data || [];
+
+    if (campaignRes.error || !campaign) {
         notFound();
-    }
-
-    // 신청자 목록 조회 (인플루언서 정보 포함)
-    const { data: applications, error: applicationsError } = await supabase
-        .from('applications')
-        .select(`
-            *,
-            user:profiles!applications_user_id_fkey (
-                id,
-                nickname,
-                email,
-                phone_number,
-                sns_url
-            )
-        `)
-        .eq('campaign_id', id)
-        .order('created_at', { ascending: false });
-
-    if (applicationsError) {
-        console.error('Error fetching applications:', applicationsError);
     }
 
     const applicationsList = applications || [];
@@ -67,7 +69,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-7xl mx-auto">

@@ -89,7 +89,7 @@ const DUMMY_DATA = [
 ];
 
 async function seed() {
-    console.log("🌱 Seeding campaign data to bjdxqauljfoncouewubd...");
+    console.log("🌱 Seeding campaign data to whpyftpktolpaspeuocg...");
 
     // Using the advertiser account ID found in profiles
     const ADVERTISER_ID = '017fed9f-aebc-4179-af38-c4748a3ce7de'; // doriclan

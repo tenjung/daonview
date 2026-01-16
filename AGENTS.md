@@ -20,7 +20,7 @@ Deployment: Vercel
 3. 💾 데이터 무결성 규칙 (Data Integrity)
 DB 표준: 모든 상태/타입 값은 UPPERCASE_STRING (대문자+언더바)으로 저장한다.
 스파베이스 아이디이고
-https://supabase.com/dashboard/project/bjdxqauljfoncouewubd
+https://supabase.com/dashboard/project/whpyftpktolpaspeuocg
 MCP서버 연결되었으니 무결성 항상 확인하고
 중복되거나 비슷한데 2개가 쓰이는건 나에게 꼭 알려줘서 수정해야할지 고민을해줘
 

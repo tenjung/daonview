@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { createServerClient } from '@supabase/ssr';
 import AdminSidebar from '@/components/AdminSidebar';
 import BannerManagementClient from '@/components/BannerManagementClient';
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function BannerManagementPage() {
     const cookieStore = await cookies();
@@ -27,10 +28,11 @@ export default async function BannerManagementPage() {
         }
     );
 
-    // Fetch Banners & Config in parallel on the server
-    const [bannersRes, configRes] = await Promise.all([
+    // Fetch Banners, Config, and Sidebar counts in parallel on the server
+    const [bannersRes, configRes, sidebarCounts] = await Promise.all([
         supabase.from('banners').select('*').order('display_order', { ascending: true }),
-        supabase.from('site_settings').select('value').eq('key', 'banner_config').single()
+        supabase.from('site_settings').select('value').eq('key', 'banner_config').single(),
+        fetchAdminCampaignCounts(supabase)
     ]);
 
     const banners = bannersRes.data || [];
@@ -38,7 +40,7 @@ export default async function BannerManagementPage() {
 
     return (
         <div className="flex min-h-screen bg-gray-50 text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
             <main className="flex-1 p-8">
                 <div className="max-w-5xl mx-auto">
                     <header className="mb-8 flex justify-between items-center">

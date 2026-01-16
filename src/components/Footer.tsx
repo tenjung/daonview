@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import CompanyInfo from '@/components/CompanyInfo';
+import BrandLogo from '@/components/BrandLogo';
 
 export default function Footer() {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -53,7 +54,7 @@ export default function Footer() {
                         </div>
 
                         {/* Right: Logo */}
-                        <div className="font-bold text-base text-primary">DAONVIEW</div>
+                        <BrandLogo size="md" />
                     </div>
 
                     {/* Expandable Business Info */}
@@ -72,8 +73,8 @@ export default function Footer() {
             </div>
 
             {/* Mobile Footer - Minimal */}
-            <div className="lg:hidden py-3 text-center">
-                <div className="font-bold text-base text-primary mb-1">DAONVIEW</div>
+            <div className="lg:hidden py-3 text-center flex flex-col items-center">
+                <BrandLogo size="md" className="mb-1" />
                 <div className="text-xs text-text-secondary">
                     © 2024 DAONVIEW. All rights reserved.
                 </div>

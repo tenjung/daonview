@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabaseClient';
 import Link from 'next/link';
 import AdminSidebar from '@/components/AdminSidebar';
 import CampaignTableClient from '@/components/CampaignTableClient';
+import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 // Next.js 캐싱 비활성화 (매번 최신 데이터 가져오기)
 export const dynamic = 'force-dynamic';
@@ -25,8 +26,8 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
         }
     };
 
-    // Fetch campaigns on the server
-    let query = supabase
+    // DB 쿼리 준비
+    let campaignQuery = supabase
         .from('campaigns')
         .select(`
             *,
@@ -43,26 +44,23 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
 
     // Apply filters based on type
     if (type === 'pending') {
-        // 요청중: 승인 대기
-        query = query.eq('status', 'PENDING');
+        campaignQuery = campaignQuery.eq('status', 'PENDING');
     } else if (type === 'upcoming') {
-        // 진행전: RECRUITING 상태만 (날짜 필터는 아래에서)
-        query = query.eq('status', 'RECRUITING');
+        campaignQuery = campaignQuery.eq('status', 'RECRUITING');
     } else if (type === 'active') {
-        // 진행중: RECRUITING 또는 ONGOING (날짜 필터는 아래에서)
-        query = query.in('status', ['RECRUITING', 'ONGOING']);
+        campaignQuery = campaignQuery.in('status', ['RECRUITING', 'ONGOING']);
     } else if (type === 'completed') {
-        // 완료: 모든 작업 완료
-        query = query.eq('status', 'COMPLETED');
+        campaignQuery = campaignQuery.eq('status', 'COMPLETED');
     }
 
-    const { data, error } = await query;
+    // 병렬로 데이터 가져오기 (캠페인 목록 + 사이드바 카운트)
+    const [campaignsRes, sidebarCounts] = await Promise.all([
+        campaignQuery,
+        fetchAdminCampaignCounts(supabase)
+    ]);
 
-    if (error) {
-        console.error('Error fetching campaigns:', error);
-    }
-
-    let campaigns = data || [];
+    const data = campaignsRes.data || [];
+    let campaigns = data;
 
     // 오늘 날짜를 YYYY-MM-DD 형식으로 (타임존 문제 해결)
     const today = new Date().toISOString().split('T')[0];
@@ -70,7 +68,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
     // DB 필드 기반 날짜 필터링 (RECRUITING 상태 분리)
     if (type === 'upcoming') {
         // 진행전: RECRUITING 상태 + 시작일이 미래
-        campaigns = campaigns.filter(cam => {
+        campaigns = campaigns.filter((cam: any) => {
             // recruitment_start_date가 없으면 created_at 사용
             const startDateStr = cam.recruitment_start_date || cam.created_at;
             // YYYY-MM-DD 형식으로 변환
@@ -80,7 +78,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
         });
     } else if (type === 'active') {
         // 진행중: (RECRUITING + 시작일 과거/오늘) 또는 ONGOING
-        campaigns = campaigns.filter(cam => {
+        campaigns = campaigns.filter((cam: any) => {
             // ONGOING 상태는 무조건 포함
             if (cam.status === 'ONGOING') return true;
 
@@ -99,7 +97,7 @@ export default async function AdminCampaignsPage({ searchParams }: PageProps) {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
+            <AdminSidebar initialCounts={sidebarCounts} />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-6xl mx-auto">

@@ -1,401 +1,110 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
-import { Profile } from '@/types/database';
-import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import {
-    Search,
-    Filter,
-    User,
-    Building2,
-    ShieldCheck,
-    MoreHorizontal,
-    Mail,
-    Phone,
-    Calendar,
-    ArrowUpDown,
-    Globe
-} from 'lucide-react';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { toast } from 'sonner';
-import SocialIconBadges from '@/components/SocialIconBadges';
+import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
+import { redirect } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar';
+import UserManagementClient from '@/components/admin/UserManagementClient';
+import { Profile } from '@/types/database';
 
-type TabType = 'all' | 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
+export default async function AdminUsersPage() {
+    const cookieStore = await cookies();
 
-import { Suspense } from 'react';
+    const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                getAll() {
+                    return cookieStore.getAll();
+                },
+                setAll(cookiesToSet) {
+                    try {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            cookieStore.set(name, value, options)
+                        );
+                    } catch {
+                        // Server Component에서 setAll은 불가능할 수 있음
+                    }
+                },
+            },
+        }
+    );
 
-function AdminUsersContent() {
-    const router = useRouter();
-    const searchParams = useSearchParams();
-    const [users, setUsers] = useState<Profile[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
-    const [currentTab, setCurrentTab] = useState<TabType>('all');
-    const [stats, setStats] = useState({
-        total: 0,
-        influencer: 0,
-        advertiser: 0,
-        admin: 0
+    // 1. 세션 확인
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+        redirect('/login');
+    }
+
+    // 2. 관리자 권한 확인
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+    if (!profile || profile.role !== 'ADMIN') {
+        redirect('/');
+    }
+
+    // 3. 회원 목록, 통계, 캠페인 카운트 데이터 fetch (병렬 처리)
+    const today = new Date().toISOString().split('T')[0];
+
+    const [usersRes, pendingRes, recruitingRes, completedRes, draftRes] = await Promise.all([
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+        supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
+        supabase.from('campaigns').select('id, recruitment_start_date, created_at, status').in('status', ['RECRUITING', 'ONGOING']),
+        supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
+        supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'DRAFT')
+    ]);
+
+    const users = usersRes.data || [];
+    const userData = users as Profile[];
+
+    // RECRUITING 데이터를 날짜 기준으로 분리
+    const recruitingCampaigns = recruitingRes.data || [];
+    let upcomingCount = 0;
+    let activeCount = 0;
+
+    recruitingCampaigns.forEach(cam => {
+        if (cam.status === 'ONGOING') {
+            activeCount++;
+            return;
+        }
+        if (cam.status === 'RECRUITING') {
+            const startDateStr = cam.recruitment_start_date || cam.created_at;
+            const startDate = startDateStr.split('T')[0];
+            if (startDate > today) upcomingCount++;
+            else activeCount++;
+        }
     });
 
-    useEffect(() => {
-        const tab = searchParams.get('tab') as TabType;
-        if (tab && ['all', 'INFLUENCER', 'ADVERTISER', 'ADMIN'].includes(tab)) {
-            setCurrentTab(tab);
-        }
-    }, [searchParams]);
-
-    const fetchUsers = async () => {
-        console.log('Fetching users started...');
-        setLoading(true);
-        try {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error('Supabase Error fetching users:', error);
-                throw error;
-            }
-
-            console.log('Fetched users count:', data?.length);
-
-            if (data) {
-                setUsers(data);
-                const counts = data.reduce((acc, user) => {
-                    acc.total++;
-                    if (user.role === 'INFLUENCER') acc.influencer++;
-                    else if (user.role === 'ADVERTISER') acc.advertiser++;
-                    else if (user.role === 'ADMIN') acc.admin++;
-                    return acc;
-                }, { total: 0, influencer: 0, advertiser: 0, admin: 0 });
-                setStats(counts);
-            }
-        } catch (error) {
-            console.error('Unexpected Error in fetchUsers:', error);
-            toast.error('회원 목록을 불러오는 데 실패했습니다.');
-        } finally {
-            setLoading(false);
-        }
+    const initialSidebarCounts = {
+        pending: pendingRes.count || 0,
+        upcoming: upcomingCount,
+        active: activeCount,
+        completed: completedRes.count || 0,
+        draft: draftRes.count || 0
     };
 
-    useEffect(() => {
-        const checkAdmin = async () => {
-            console.log('Checking admin authorization...');
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                console.log('Session user ID:', session?.user?.id);
-
-                if (!session) {
-                    console.warn('No active session found, redirecting to login...');
-                    router.push('/login');
-                    return;
-                }
-
-                const { data: profile, error: profileError } = await supabase
-                    .from('profiles')
-                    .select('role')
-                    .eq('id', session.user.id)
-                    .single();
-
-                if (profileError) {
-                    console.error('Error fetching admin profile:', profileError);
-                    toast.error('권한 확인 중 오류가 발생했습니다.');
-                    return;
-                }
-
-                console.log('Admin check profile role:', profile?.role);
-
-                if (profile?.role !== 'ADMIN') {
-                    console.warn('User is not ADMIN, redirecting...');
-                    toast.error('관리자 권한이 필요합니다.');
-                    router.push('/');
-                    return;
-                }
-
-                await fetchUsers();
-            } catch (authError) {
-                console.error('Auth verification flow error:', authError);
-                toast.error('인증 처리 중 오류가 발생했습니다.');
-            }
-        };
-
-        checkAdmin();
-    }, [router]);
-
-    const handleRoleChange = async (userId: string, newRole: string) => {
-        try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ role: newRole })
-                .eq('id', userId);
-
-            if (error) throw error;
-
-            toast.success('회원 등급이 변경되었습니다.');
-            fetchUsers();
-        } catch (error) {
-            console.error('Error changing role:', error);
-            toast.error('등급 변경에 실패했습니다.');
-        }
-    };
-
-    const filteredUsers = users.filter(user => {
-        const matchesSearch =
-            user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.nickname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.company_name?.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesTab = currentTab === 'all' || user.role === currentTab;
-
-        return matchesSearch && matchesTab;
-    });
-
-    const getRoleBadge = (role: string) => {
-        switch (role) {
-            case 'ADMIN':
-                return <span className="bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-violet-200">관리자</span>;
-            case 'ADVERTISER':
-                return <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200">광고주</span>;
-            case 'INFLUENCER':
-                return <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-rose-200">인플루언서</span>;
-            default:
-                return <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-gray-200">{role}</span>;
-        }
-    };
+    // 회원 통계 계산
+    const stats = userData.reduce((acc, user) => {
+        acc.total++;
+        if (user.role === 'INFLUENCER') acc.influencer++;
+        else if (user.role === 'ADVERTISER') acc.advertiser++;
+        else if (user.role === 'ADMIN') acc.admin++;
+        return acc;
+    }, { total: 0, influencer: 0, advertiser: 0, admin: 0 });
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
-
+            <AdminSidebar initialCounts={initialSidebarCounts} />
             <div className="flex-1 bg-gray-50/50 flex flex-col">
-                <header className="bg-white border-b border-border py-8">
-                    <div className="container px-4">
-                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                            <div>
-                                <h1 className="text-3xl font-bold text-text-main tracking-tight flex items-center gap-3">
-                                    <ShieldCheck className="text-primary w-8 h-8" />
-                                    회원 통합 관리
-                                </h1>
-                                <p className="text-gray-500 mt-1">플랫폼의 모든 회원을 관리하고 등급을 조정할 수 있습니다.</p>
-                            </div>
-                            <div className="flex gap-2 bg-gray-100 p-1 rounded-xl">
-                                <button
-                                    onClick={() => setCurrentTab('all')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentTab === 'all' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    전체 {stats.total}
-                                </button>
-                                <button
-                                    onClick={() => setCurrentTab('INFLUENCER')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentTab === 'INFLUENCER' ? 'bg-white shadow-sm text-rose-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    인플루언서 {stats.influencer}
-                                </button>
-                                <button
-                                    onClick={() => setCurrentTab('ADVERTISER')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentTab === 'ADVERTISER' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    광고주 {stats.advertiser}
-                                </button>
-                                <button
-                                    onClick={() => setCurrentTab('ADMIN')}
-                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${currentTab === 'ADMIN' ? 'bg-white shadow-sm text-violet-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                >
-                                    관리자 {stats.admin}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </header>
-
-                <main className="container px-4 py-8 flex-1">
-                    {/* Search & Stats Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="lg:col-span-3">
-                            <div className="relative group">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-primary transition-colors" />
-                                <Input
-                                    placeholder="이메일, 닉네임, 업체명으로 검색하세요..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-12 py-7 rounded-2xl border-none shadow-sm shadow-gray-200/50 bg-white focus:ring-2 focus:ring-primary/20 text-lg"
-                                />
-                            </div>
-                        </div>
-                        <div className="bg-white p-4 rounded-2xl shadow-sm border border-border flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="text-gray-400 text-xs font-bold uppercase tracking-wider">검색 결과</span>
-                                <span className="text-2xl font-bold text-text-main">{filteredUsers.length}명</span>
-                            </div>
-                            <div className="w-10 h-10 rounded-full bg-rose-50 flex items-center justify-center">
-                                <Filter className="w-5 h-5 text-primary" />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Users Table */}
-                    <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 border border-border overflow-hidden">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-gray-50/50 border-b border-border">
-                                    <tr>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">회원 정보</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">역할/등급</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">연락처</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">활동채널</th>
-                                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">가입일</th>
-                                        <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">액션</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {loading ? (
-                                        Array(5).fill(0).map((_, i) => (
-                                            <tr key={i} className="animate-pulse">
-                                                <td colSpan={6} className="px-6 py-8">
-                                                    <div className="flex gap-4 items-center">
-                                                        <div className="w-12 h-12 bg-gray-100 rounded-full"></div>
-                                                        <div className="space-y-2">
-                                                            <div className="w-48 h-4 bg-gray-100 rounded"></div>
-                                                            <div className="w-32 h-3 bg-gray-50 rounded"></div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : filteredUsers.length > 0 ? (
-                                        filteredUsers.map((user) => (
-                                            <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                                                <td className="px-6 py-4">
-                                                    <div className="flex items-center gap-4">
-                                                        <Avatar
-                                                            src={user.avatar_url}
-                                                            fallback={user.nickname?.[0] || user.email?.[0]}
-                                                            className="h-12 w-12 border border-border shadow-sm group-hover:scale-105 transition-transform"
-                                                        />
-                                                        <div className="flex flex-col min-w-0">
-                                                            <span className="font-bold text-text-main truncate group-hover:text-primary transition-colors">
-                                                                {user.nickname || '닉네임 없음'}
-                                                            </span>
-                                                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                                <Mail size={12} />
-                                                                {user.email}
-                                                            </span>
-                                                            {user.role === 'ADVERTISER' && user.company_name && (
-                                                                <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded mt-1 font-bold flex items-center gap-1 w-fit">
-                                                                    <Building2 size={10} />
-                                                                    {user.company_name}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {getRoleBadge(user.role || 'INFLUENCER')}
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="text-sm font-medium text-gray-600 flex items-center gap-1.5">
-                                                        <Phone size={14} className="text-gray-400" />
-                                                        {user.phone_number || '미등록'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <SocialIconBadges snsUrl={user.sns_url} />
-                                                </td>
-                                                <td className="px-6 py-4 text-sm text-gray-500">
-                                                    <div className="flex items-center gap-2">
-                                                        <Calendar size={14} />
-                                                        {new Date(user.created_at || '').toLocaleDateString('ko-KR', {
-                                                            year: 'numeric',
-                                                            month: '2-digit',
-                                                            day: '2-digit'
-                                                        })}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex justify-center">
-                                                        <DropdownMenu>
-                                                            <DropdownMenuTrigger asChild>
-                                                                <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-gray-100 rounded-full">
-                                                                    <MoreHorizontal size={18} className="text-gray-400" />
-                                                                </Button>
-                                                            </DropdownMenuTrigger>
-                                                            <DropdownMenuContent align="end" className="w-48">
-                                                                <DropdownMenuLabel>등급 변경</DropdownMenuLabel>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem
-                                                                    onClick={() => handleRoleChange(user.id, 'INFLUENCER')}
-                                                                    className="flex items-center gap-2"
-                                                                >
-                                                                    <div className="w-2 h-2 rounded-full bg-rose-500"></div>
-                                                                    인플루언서로 변경
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    onClick={() => handleRoleChange(user.id, 'ADVERTISER')}
-                                                                    className="flex items-center gap-2"
-                                                                >
-                                                                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                                                                    광고주로 변경
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuItem
-                                                                    onClick={() => handleRoleChange(user.id, 'ADMIN')}
-                                                                    className="flex items-center gap-2"
-                                                                >
-                                                                    <div className="w-2 h-2 rounded-full bg-violet-500"></div>
-                                                                    관리자로 변경
-                                                                </DropdownMenuItem>
-                                                                <DropdownMenuSeparator />
-                                                                <DropdownMenuItem className="text-red-500 focus:text-red-600 focus:bg-red-50">
-                                                                    회원 탈퇴 처리
-                                                                </DropdownMenuItem>
-                                                            </DropdownMenuContent>
-                                                        </DropdownMenu>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        <tr>
-                                            <td colSpan={6} className="px-6 py-20 text-center text-gray-400">
-                                                검색 조건에 맞는 회원이 없습니다.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </main>
+                <UserManagementClient 
+                    initialUsers={userData} 
+                    initialStats={stats} 
+                />
             </div>
         </div>
     );
 }
-
-export default function AdminUsersPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex min-h-screen items-center justify-center bg-gray-50/50">
-                <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-gray-500">페이지를 준비 중입니다...</p>
-                </div>
-            </div>
-        }>
-            <AdminUsersContent />
-        </Suspense>
-    );
-}
-
