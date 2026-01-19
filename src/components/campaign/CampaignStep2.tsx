@@ -621,6 +621,46 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         />
                     </div>
 
+                    {/* 필수 키워드 (구매평 전용) */}
+                    <div className="mb-6">
+                        <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
+                            <Check size={16} className="text-blue-600" />
+                            리뷰 필수 포함 키워드
+                        </label>
+                        <div className="flex gap-2 mb-3">
+                            <input
+                                type="text"
+                                value={keywordInput}
+                                onChange={(e) => setKeywordInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
+                                placeholder="키워드 입력 후 Enter"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <button
+                                onClick={addKeyword}
+                                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                추가
+                            </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {formData.keywords.map((keyword, index) => (
+                                <span
+                                    key={index}
+                                    className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                                >
+                                    #{keyword}
+                                    <button
+                                        onClick={() => removeKeyword(keyword)}
+                                        className="hover:text-blue-900"
+                                    >
+                                        <X size={14} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* 구분선 */}
                     <div className="h-px bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 my-8"></div>
 
@@ -761,15 +801,16 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
 
                     {/* 메인 키워드 */}
                     <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            메인 키워드 <span className="text-red-500">*</span>
+                        <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-1.5">
+                            <Check size={16} className="text-green-600" />
+                            메인 필수 키워드 <span className="text-red-500">*</span>
                         </label>
                         <input
                             type="text"
                             value={formData.blogMainKeyword || ''}
                             onChange={(e) => setFormData(prev => ({ ...prev, blogMainKeyword: e.target.value }))}
-                            placeholder="예: 강남 맛집"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            placeholder="예: 강남 맛집, 역삼동 카페"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-bold text-green-700"
                         />
                         
                         {/* AI 추천 메인 키워드 */}
@@ -814,8 +855,9 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
 
                     {/* 서브 키워드 */}
                     <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            서브 키워드
+                        <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-1.5">
+                            <Check size={16} className="text-green-600" />
+                            서브 필수 키워드
                         </label>
                         <div className="flex gap-2 mb-3">
                             <input
@@ -1145,92 +1187,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                 </section>
             )}
 
-            {/* 필수 키워드 */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">필수 키워드</h2>
 
-                <div className="flex gap-2 mb-3">
-                    <input
-                        type="text"
-                        value={keywordInput}
-                        onChange={(e) => setKeywordInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && addKeyword()}
-                        placeholder="키워드 입력 후 Enter"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                    <button
-                        onClick={addKeyword}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                        추가
-                    </button>
-                </div>
-
-                {/* AI 추천 일반 키워드 */}
-                {isAnalyzing ? (
-                    <div className="mb-4 animate-pulse">
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-5 h-5 bg-gray-200 rounded-full"></div>
-                            <div className="h-3 w-32 bg-gray-200 rounded"></div>
-                        </div>
-                        <div className="flex gap-2">
-                            <div className="h-8 w-20 bg-gray-100 rounded-lg"></div>
-                            <div className="h-8 w-24 bg-gray-100 rounded-lg"></div>
-                        </div>
-                    </div>
-                ) : recommendedGeneralKeywords.length > 0 && (
-                    <div className="mb-4">
-                        <div className="flex items-center gap-1.5 mb-2">
-                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-[10px] text-white font-bold">AI</div>
-                            <span className="text-xs font-bold text-blue-600">다온 AI 추천 필수 키워드</span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                            {recommendedGeneralKeywords.map((kw, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => {
-                                        if (!formData.keywords.includes(kw)) {
-                                            setFormData(prev => ({
-                                                ...prev,
-                                                keywords: [...prev.keywords, kw]
-                                            }));
-                                        }
-                                    }}
-                                    className="group relative px-3 py-1.5 bg-white text-blue-700 border border-blue-200 rounded-lg text-xs font-semibold hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 shadow-sm overflow-hidden"
-                                >
-                                    <span className="relative z-10 flex items-center gap-1">
-                                        <span className="text-blue-400 group-hover:text-blue-600 transition-colors">+</span> {kw}
-                                    </span>
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-100/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
-
-                <div className="flex flex-wrap gap-2">
-                    {formData.keywords.map((keyword, index) => (
-                        <span
-                            key={index}
-                            className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm"
-                        >
-                            #{keyword}
-                            <button
-                                onClick={() => removeKeyword(keyword)}
-                                className="hover:text-blue-900"
-                            >
-                                <X size={14} />
-                            </button>
-                        </span>
-                    ))}
-                </div>
-
-                {formData.keywords.length === 0 && (
-                    <p className="text-sm text-gray-500 mt-2">
-                        리뷰에 반드시 포함되어야 할 키워드를 추가해주세요.
-                    </p>
-                )}
-            </section>
 
             {/* 금지 키워드 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

@@ -135,6 +135,17 @@ function AdvertiserSidebarContent() {
                     결제/포인트
                 </Link>
 
+                {/* 브랜드 관리 */}
+                <Link
+                    href="/dashboard/advertiser/brands"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isActive('/dashboard/advertiser/brands')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    브랜드 관리
+                </Link>
+
                 <div className="my-4 border-t border-border" />
 
                 {/* 계정 설정 */}

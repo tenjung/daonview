@@ -1,32 +1,10 @@
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import AdminSidebar from '@/components/AdminSidebar';
 import BannerManagementClient from '@/components/BannerManagementClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function BannerManagementPage() {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
-                    } catch {
-                        // Server Component
-                    }
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     // Fetch Banners, Config, and Sidebar counts in parallel on the server
     const [bannersRes, configRes, sidebarCounts] = await Promise.all([

@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import AdvertiserColumnClient from "./AdvertiserColumnClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdvertiserColumnPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // Fetch advertiser columns from posts table with profiles join
     const { data: posts, error } = await supabase

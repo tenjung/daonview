@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import AcademyBoardClient from "@/app/community/academy/AcademyBoardClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AcademyPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // posts 테이블에서 아카데미 관련 게시글 조회
     const { data: posts, error } = await supabase

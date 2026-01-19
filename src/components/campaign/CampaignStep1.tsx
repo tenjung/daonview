@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical } from 'lucide-react';
+import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import BrandSelect from './BrandSelect';
+import { useAuthStore } from '@/store/authStore';
 import {
     DndContext,
     closestCenter,
@@ -34,6 +36,8 @@ interface Step1Data {
     productUrlPrivate: boolean; // 링크 비공개 설정
     productName: string;
     campaignTitle: string; // 캠페인 제목 동기화용 추가
+    brandName: string;     // 브랜드명 (레거시 및 표시용)
+    brandId: string | null; // 선택된 브랜드 ID
     productOptions: ProductOption[];
     productPrice: string;
     shippingCost: string;
@@ -185,6 +189,7 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
 export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialData }: CampaignStep1Props) {
+    const { user } = useAuthStore();
     // 스마트 기본값: 내일 날짜
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -208,6 +213,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         productUrlPrivate: initialData?.productUrlPrivate || false,
         productName: initialData?.productName || '',
         campaignTitle: initialData?.campaignTitle || '',
+        brandName: initialData?.brandName || '',
+        brandId: initialData?.brandId || null,
         productOptions: initialData?.productOptions || [],
         productPrice: initialData?.productPrice || '',
         shippingCost: initialData?.shippingCost || '',
@@ -687,6 +694,32 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
     return (
         <div className="max-w-4xl mx-auto p-6 space-y-8">
+
+            {/* 브랜드명 / 업체명 */}
+            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                        <Building2 className="text-primary" size={24} />
+                        <h2 className="text-xl font-bold text-gray-900">브랜드 선택</h2>
+                    </div>
+                </div>
+                
+                {user ? (
+                    <BrandSelect 
+                        userId={user.id}
+                        value={formData.brandId}
+                        onChange={(id, name) => setFormData(prev => ({ ...prev, brandId: id, brandName: name }))}
+                    />
+                ) : (
+                    <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
+                        브랜드 정보를 불러오려면 로그인이 필요합니다.
+                    </div>
+                )}
+                
+                <p className="mt-4 text-xs text-gray-400">
+                    💡 이 캠페인을 진행할 브랜드를 선택하거나 새로 등록해주세요. 대행사의 경우 여러 클라이언트를 브랜드별로 나누어 관리할 수 있습니다.
+                </p>
+            </section>
 
             {/* 캠페인 제목 (모집글 제목) */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">

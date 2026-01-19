@@ -1,33 +1,11 @@
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar';
 import UserManagementClient from '@/components/admin/UserManagementClient';
 import { Profile } from '@/types/database';
 
 export default async function AdminUsersPage() {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
-                    } catch {
-                        // Server Component에서 setAll은 불가능할 수 있음
-                    }
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     // 1. 세션 확인
     const { data: { session } } = await supabase.auth.getSession();

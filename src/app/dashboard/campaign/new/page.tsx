@@ -96,6 +96,8 @@ function NewCampaignPageContent() {
             productPrice: campaign.product_price || '',
             productOptions: productOptions,
             campaignTitle: campaign.title || '',
+            brandName: campaign.brand_name || '',
+            brandId: campaign.brand_id || null,
             // 배송형 플랫폼 상세 플래그 (하이브리드 지원)
             includeReview: campaign.include_review === true || campaign.platform === 'PURCHASE',
             includeNaver: campaign.include_naver === true || campaign.platform === 'BLOG',
@@ -460,6 +462,8 @@ function NewCampaignPageContent() {
             // 캠페인 데이터 구성 (실제 DB 스키마에 존재하는 컬럼만 포함)
             const campaignData: any = {
                 title: finalTitle,
+                brand_name: step1Data.brandName || null,
+                brand_id: step1Data.brandId || null,
                 description: step2Data.missionGuide || '',
 
                 // 분류 정보

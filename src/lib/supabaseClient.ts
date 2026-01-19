@@ -1,26 +1,6 @@
-import { createBrowserClient } from '@supabase/ssr'
-import { createClient } from '@supabase/supabase-js'
+import { createClient as createBrowser } from './supabase/client'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+// Browser client (singleton) - 클라이언트 컴포넌트 전용
+export const supabase = createBrowser()
 
-// Client-side Supabase (Next.js App Router 최적화)
-export const supabase = createBrowserClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-        auth: {
-            flowType: 'pkce',
-        }
-    }
-)
-
-// Server-side 전용 (일반 관리용이 필요한 경우 사용)
-export function createServerClient() {
-    return createClient(supabaseUrl, supabaseAnonKey, {
-        auth: {
-            persistSession: false,
-            autoRefreshToken: false,
-        }
-    })
-}
+// NOTE: 서버 클라이언트는 여기서 가져오지 말고 @/lib/supabase/server를 직접 사용하세요.

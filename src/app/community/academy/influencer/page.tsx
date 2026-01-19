@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import InfluencerColumnClient from "./InfluencerColumnClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function InfluencerColumnPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // Fetch influencer columns from posts table with profiles join
     const { data: posts, error } = await supabase

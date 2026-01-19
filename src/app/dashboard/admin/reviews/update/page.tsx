@@ -1,5 +1,4 @@
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import AdminSidebar from '@/components/AdminSidebar';
 import ReviewUpdateClient from '@/components/admin/ReviewUpdateClient';
@@ -9,18 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function UpdateReviewsPage() {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     const { data: { session } } = await supabase.auth.getSession();
 

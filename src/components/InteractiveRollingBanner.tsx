@@ -217,9 +217,10 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
 
                 {/* Refined Navigation Buttons */}
                 <div className="absolute top-1/2 inset-x-6 -translate-y-1/2 flex justify-between pointer-events-none z-20">
-                    <CarouselPrevious className="relative left-0 pointer-events-auto h-12 w-12 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-rose-600 border border-white/20 transition-all rounded-full shadow-lg" />
-                    <CarouselNext className="relative right-0 pointer-events-auto h-12 w-12 bg-white/10 backdrop-blur-md hover:bg-white text-white hover:text-rose-600 border border-white/20 transition-all rounded-full shadow-lg" />
+                    <CarouselPrevious className="relative left-0 pointer-events-auto h-12 w-12 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-gray-100 transition-all rounded-full shadow-xl" />
+                    <CarouselNext className="relative right-0 pointer-events-auto h-12 w-12 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-gray-100 transition-all rounded-full shadow-xl" />
                 </div>
+
 
                 {/* Modern Slim Progress Bar - Plan B */}
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-[200px] h-[2px] bg-white/20 z-20 rounded-full overflow-hidden">

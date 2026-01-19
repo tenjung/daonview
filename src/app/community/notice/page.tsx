@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import NoticeBoardClient from "@/app/community/notice/NoticeBoardClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function NoticePage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // notices 테이블 사용 및 타입 '공지' 조회
     const { data: posts, error } = await supabase

@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import BlogIntroClient from "./BlogIntroClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function BlogIntroPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
     
     // Fetch blog intro posts
     const { data: posts, error } = await supabase

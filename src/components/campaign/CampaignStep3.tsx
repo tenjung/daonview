@@ -152,6 +152,11 @@ export default function CampaignStep3({
                     </div>
 
                     <div className="flex justify-between items-center">
+                        <span className="text-gray-700">브랜드명</span>
+                        <span className="font-semibold text-gray-900">{step1Data.brandName || '미입력'}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
                         <span className="text-gray-700">캠페인 유형</span>
                         <span className="font-semibold text-gray-900">
                             {step1Data.campaignType === 'DELIVERY' && '배송체험단'}

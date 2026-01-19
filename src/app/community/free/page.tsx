@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import FreeBoardClient from "@/app/community/free/FreeBoardClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function FreeBoardPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     const { data: posts, error } = await supabase
         .from('posts')

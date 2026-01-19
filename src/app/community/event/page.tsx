@@ -1,10 +1,10 @@
-import { createServerClient } from "@/lib/supabaseClient";
+import { createClient as createServerClient } from "@/lib/supabase/server";
 import EventBoardClient from "@/app/community/event/EventBoardClient";
 
 export const dynamic = 'force-dynamic';
 
 export default async function EventPage() {
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // notices 테이블 사용 및 타입 '이벤트' 조회
     const { data: posts, error } = await supabase

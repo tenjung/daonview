@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google"; // Keep fonts if they exist, or remove if not needed. I'll keep them.
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import { Toaster } from 'sonner';
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -19,18 +18,7 @@ const geistMono = Geist_Mono({
 
 // 동적 메타데이터 생성을 위한 함수
 export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   // 브랜드 설정 가져오기
   const { data: settings } = await supabase
@@ -79,28 +67,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const cookieStore = await cookies();
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Server Component
-          }
-        },
-      },
-    }
-  );
+  const supabase = await createClient();
 
   // 서버 사이드에서 세션 및 프로필 미리 가져오기
   const { data: { session } } = await supabase.auth.getSession();

@@ -1,32 +1,10 @@
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
+import { createClient } from '@/lib/supabase/server';
 import AdminSidebar from '@/components/AdminSidebar';
 import ReviewManagementClient from '@/components/admin/ReviewManagementClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function ManageReviewsPage() {
-    const cookieStore = await cookies();
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() {
-                    return cookieStore.getAll();
-                },
-                setAll(cookiesToSet) {
-                    try {
-                        cookiesToSet.forEach(({ name, value, options }) =>
-                            cookieStore.set(name, value, options)
-                        );
-                    } catch {
-                        // Server Component
-                    }
-                },
-            },
-        }
-    );
+    const supabase = await createClient();
 
     // 병렬로 리뷰 목록과 사이드바 카운트 가져오기
     const [reviewsRes, sidebarCounts] = await Promise.all([

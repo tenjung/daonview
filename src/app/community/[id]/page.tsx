@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabaseClient';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
 
@@ -8,7 +8,7 @@ interface PageProps {
 
 export default async function PostDetailPage({ params }: PageProps) {
     const { id } = await params;
-    const supabase = createServerClient();
+    const supabase = await createServerClient();
 
     // Fetch post data
     const { data: post, error } = await supabase
