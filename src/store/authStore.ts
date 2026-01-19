@@ -5,7 +5,7 @@ interface AuthState {
   user: any | null;
   profile: any | null;
   isLoading: boolean;
-  
+
   initialize: () => void;
   signOut: () => Promise<void>;
   fetchProfile: (userId: string) => Promise<void>;
@@ -54,32 +54,38 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     (get() as any).__initialized = true;
 
     try {
-      // 1. 현재 세션 즉시 확인 (초기 로딩 지연 방지)
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user ?? null;
+      // 1. 현재 사용자 서버에서 즉시 검증 (getUser는 getSession보다 안전함)
+      const { data: { user }, error } = await supabase.auth.getUser();
 
-      if (user) {
+      if (user && !error) {
         set({ user, isLoading: true });
         await get().fetchProfile(user.id);
       } else {
         set({ user: null, profile: null });
       }
     } catch (err) {
-      console.error('[Auth] Initial Session Check Error:', err);
+      console.error('[Auth] Initial User Check Error:', err);
     } finally {
-      // 세션 확인이 끝나면 어떤 경우든 로딩 종료
+      // 확인이 끝나면 어떤 경우든 로딩 종료
       set({ isLoading: false });
     }
 
-    // 2. 인증 상태 변화 감지 리스너 (로그인/로그아웃/세션 만료 등)
+    // 2. 인증 상태 변화 감지 리스너
     supabase.auth.onAuthStateChange(async (event, session) => {
-      const user = session?.user ?? null;
-      console.log(`[Auth] Listener Event: ${event}, User: ${user?.email ?? 'None'}`);
+      // 세션 기반 유저 정보
+      const sessionUser = session?.user ?? null;
+      console.log(`[Auth] Listener Event: ${event}, User: ${sessionUser?.email ?? 'None'}`);
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        set({ user, isLoading: true });
-        await get().fetchProfile(user?.id ?? '');
-        set({ isLoading: false });
+        // 보안 강화를 위해 서버에서 다시 한번 검증된 유저 정보 획득
+        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
+        const finalUser = verifiedUser || sessionUser;
+
+        if (finalUser) {
+          set({ user: finalUser, isLoading: true });
+          await get().fetchProfile(finalUser.id);
+          set({ isLoading: false });
+        }
       } else if (event === 'SIGNED_OUT') {
         set({ user: null, profile: null, isLoading: false });
       }
@@ -91,12 +97,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       await supabase.auth.signOut();
-      
+
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
         // 전체 상태 초기화를 위해 안전하게 홈으로 리다이렉트 (window.location.href는 가장 근본적인 리셋 방법)
-        window.location.href = '/'; 
+        window.location.href = '/';
       }
     } catch (error) {
       console.error('SignOut Error:', error);
@@ -105,10 +111,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   hydrate: (user, profile) => {
-    set({ 
-      user, 
-      profile: get().normalizeProfile(profile), 
-      isLoading: false 
+    set({
+      user,
+      profile: get().normalizeProfile(profile),
+      isLoading: false
     });
     (get() as any).__initialized = true; // 서버에서 하이드레이션했다면 중복 초기화 방지
   }

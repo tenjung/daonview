@@ -17,20 +17,22 @@ export const WRITING_CONSTRAINTS = `
 2. 절대 허위사실을 작성하지 마세요. (예: 가보지 않은 층의 설명, 없는 주차 정보 등)
 3. 불확실한 정보는 반드시 추측 표현('~인 것 같아요', '방문 당시 기준')을 사용하세요.
 4. 문장은 짧고 리듬감 있게 구성하며, 문단당 이모지는 1개 이하로 제한합니다.
+5. 최소 1,600자 이상의 풍부한 분량으로 작성하세요. (SEO 점수 확보를 위해 필수)
+6. 반드시 마크다운 소제목(##)을 최소 3개 이상 사용하여 내용을 논리적으로 구분하세요.
 `;
 
 export function generateAnalyticPrompt(
-  storeName: string, 
-  menuItems: string, 
-  memo: string, 
+  storeName: string,
+  menuItems: string,
+  memo: string,
   selectedTopic: string = "VISIT_REVIEW",
   campaignGuide: string = ""
 ) {
-  const topicLabel = 
+  const topicLabel =
     selectedTopic === "VISIT_REVIEW" ? "방문 후기 (오프라인 매장 방문)" :
-    selectedTopic === "PRODUCT_REVIEW" ? "제품 리뷰 (택배/사용 후기)" :
-    selectedTopic === "TRAVEL" ? "여행/투어" :
-    selectedTopic === "DAILY_LIFE" ? "일상/생각" : "일반 포스팅";
+      selectedTopic === "PRODUCT_REVIEW" ? "제품 리뷰 (택배/사용 후기)" :
+        selectedTopic === "TRAVEL" ? "여행/투어" :
+          selectedTopic === "DAILY_LIFE" ? "일상/생각" : "일반 포스팅";
 
   return `
 [분석 대상 데이터]
@@ -81,7 +83,8 @@ export function generateFullPostPrompt(
   selectedTone: string = "FRIENDLY_GUIDE",
   selectedCategories: string[] = [],
   editableKeywords: string[] = [],
-  imageCount: number = 0,
+  imageFilesCount: number = 0,
+  guideImagesCount: number = 0,
   campaignGuide: string = ""
 ) {
   const verifiedFacts = verifiedInfo ? JSON.stringify(verifiedInfo) : "상세 정보 없음";
@@ -104,24 +107,32 @@ ${BLOGGER_PERSONA}
 - 사용자 요청: ${memo}
 - 업체 진행 가이드: ${campaignGuide}
 - 검증된 팩트: ${verifiedFacts}
-- 가용한 이미지 수: ${imageCount}장
+- 가용한 포스팅 이미지 수: ${imageFilesCount}장
+- (참조용) 가이드 이미지 수: ${guideImagesCount}장
 
 ${WRITING_CONSTRAINTS}
 
-[가이드 준수] ⚠️ 중요
-- 선택된 '핵심 강조 키워드'를 본문에 자연스럽게 3회 이상 녹여내세요.
-- 업체 진행 가이드가 있다면 해당 요구사항을 최우선으로 반영하세요.
+[이미지 분석 및 배치 가이드] ⚠️ 중요
+1. 당신에게는 총 ${guideImagesCount + imageFilesCount}장의 이미지가 제공되었습니다.
+2. 앞선 ${guideImagesCount}장은 '참조용 가이드'이며 절대 본문에 배치하지 마세요.
+3. 그 뒤의 ${imageFilesCount}장이 실제 블로그용 '포스팅 이미지'입니다. 이 순서대로 1번, 2번... ${imageFilesCount}번 이미지로 인식하세요.
+4. 본문 중간에 이미지를 배치할 때는 반드시 \`[사진N: 상세설명]\` (예: \`[사진1: 매장의 정갈한 입구 모습]\`) 형식을 사용하세요.
+   - N은 포스팅 이미지의 순서(1부터 시작)입니다. 
+   - '상세설명'은 AI가 실제 사진 속 내용을 분석하여 구체적으로 작성해야 합니다.
+5. 포스팅 이미지 ${imageFilesCount}장을 모두 적절한 위치에 순서대로 혹은 맥락에 맞게 배치하세요.
 
-[글 구조]
-1. 도입: 방문 계기와 기대감 형성 (150자)
-2. 환경: 매장 분위기, 위치, 특이사항 (300자)
-3. 상세리뷰: 맛, 비주얼, 구체적인 경험 설명 (700~800자)
-4. 마무리: 총평, 방문 팁, 추천 대상 (200자)
+[글 구조 및 분량 가이드]
+1. 도입: 방문/사용 계기와 기대감 형성 (200자 내외)
+2. 환경/위치: 매장 분위기, 가는 길, 외관 및 인테리어 (300자 내외)
+3. 상세 후기 1: 본 제품/메뉴의 첫인상과 비주얼 (400자 내외)
+4. 상세 후기 2: 구체적인 맛/기능 체험 결과 및 실사용 느낌 (600자 내외)
+5. 마무리: 총평, 방문 팁, 가성비 분석 및 추천 대상 (200자 내외)
+* 전체 글자 수는 공백 포함 1,700자 이상을 목표로 합니다.
 
 [출력 형식]
 JSON으로 응답하세요:
 {
-  "content": "마크다운 형식이 가미된 블로그 본문. 글 중간 중간에 이미지 삽입 위치를 [사진: 설명] 형태로 ${imageCount}개 이내에서 적절히 배치하세요.",
+  "content": "마크다운 형식이 가미된 블로그 본문. 모든 포스팅 이미지를 [사진N: 상세설명] 형태로 본문에 배치하세요.",
   "meta_description": "150자 이내의 검색 엔진 결과용 요약",
   "seo_keywords_used": ["실제 사용된 키워드 목록"]
 }
