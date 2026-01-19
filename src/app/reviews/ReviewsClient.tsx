@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 
 interface Review {
     id: string;
-    review_url: string;
+    post_url: string;
     platform: string;
     title: string | null;
     description: string | null;
@@ -209,12 +209,12 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                             {displayedReviews.map((review) => {
                                 const config = platformConfig[review.platform as keyof typeof platformConfig];
-                                const blogInfo = review.platform === 'NAVER_BLOG' ? extractNaverBlogInfo(review.review_url) : null;
+                                const blogInfo = review.platform === 'NAVER_BLOG' ? extractNaverBlogInfo(review.post_url) : null;
                                 
                                 return (
                                     <a
                                         key={review.id}
-                                        href={review.review_url}
+                                        href={review.post_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="group bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-rose-200 transition-all duration-300 transform hover:-translate-y-2"

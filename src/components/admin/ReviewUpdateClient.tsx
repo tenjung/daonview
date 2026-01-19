@@ -23,7 +23,7 @@ export default function ReviewUpdateClient() {
         try {
             const { data: reviews, error } = await supabase
                 .from('reviews')
-                .select('id, review_url, title, platform')
+                .select('id, post_url, title, platform')
                 .is('author_name', null)
                 .in('platform', ['NAVER_BLOG', 'INSTAGRAM']);
 
@@ -46,12 +46,12 @@ export default function ReviewUpdateClient() {
                 try {
                     const platformEmoji = review.platform === 'NAVER_BLOG' ? '📝' :
                         review.platform === 'INSTAGRAM' ? '📷' : '🔗';
-                    addLog(`${platformEmoji} [${i + 1}/${reviews.length}] ${review.platform} - ${review.review_url} 처리 중...`);
+                    addLog(`${platformEmoji} [${i + 1}/${reviews.length}] ${review.platform} - ${review.post_url} 처리 중...`);
 
                     const response = await fetch('/api/scrape-blog', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url: review.review_url })
+                        body: JSON.stringify({ url: review.post_url })
                     });
 
                     if (!response.ok) {

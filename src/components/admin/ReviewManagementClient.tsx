@@ -11,7 +11,7 @@ import Link from 'next/link';
 
 interface Review {
     id: string;
-    review_url: string;
+    post_url: string;
     platform: string;
     title: string | null;
     author_name: string | null;
@@ -37,7 +37,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
         try {
             const { data, error } = await supabase
                 .from('reviews')
-                .select('id, review_url, platform, title, author_name, thumbnail_url, status, created_at')
+                .select('id, post_url, platform, title, author_name, thumbnail_url, status, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -64,7 +64,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
             filtered = filtered.filter(r =>
                 r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 r.author_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                r.review_url.toLowerCase().includes(searchQuery.toLowerCase())
+                r.post_url.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
 
@@ -235,13 +235,13 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                                         </h3>
 
                                         <a
-                                            href={review.review_url}
+                                            href={review.post_url}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-sm text-blue-600 hover:underline flex items-center gap-1 mb-4"
                                         >
                                             <ExternalLink className="w-4 h-4" />
-                                            {review.review_url}
+                                            {review.post_url}
                                         </a>
 
                                         {/* 액션 버튼 */}

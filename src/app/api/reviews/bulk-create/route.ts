@@ -1,16 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { scrapeNaverBlog, scrapeInstagram } from '@/lib/scraper';
+
+// ✅ Node.js Runtime 강제 설정 (Cheerio 사용을 위해 필수)
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const url_base = process.env.NEXT_PUBLIC_SUPABASE_URL;
         const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-        if (!url || !key) {
+        if (!url_base || !key) {
             throw new Error('Missing Supabase environment variables');
         }
 
-        const supabaseAdmin = createClient(url, key, {
+        const supabaseAdmin = createClient(url_base, key, {
             auth: {
                 autoRefreshToken: false,
                 persistSession: false
@@ -36,29 +41,21 @@ export async function POST(request: NextRequest) {
                         url.includes('youtube.com') || url.includes('youtu.be') ? 'YOUTUBE' :
                             url.includes('tiktok.com') ? 'TIKTOK' : 'OTHER';
 
-                // 메타데이터 크롤링
+                // 메타데이터 수집 (직접 함수 호출로 변경하여 내부 fetch 오류 방지)
                 let metadata = null;
-                if (platform === 'NAVER_BLOG' || platform === 'INSTAGRAM') {
-                    const scrapeResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/scrape-blog`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ url })
-                    });
-
-                    if (scrapeResponse.ok) {
-                        const scrapeResult = await scrapeResponse.json();
-                        if (scrapeResult.success) {
-                            metadata = scrapeResult.data;
-                        }
-                    }
+                if (platform === 'NAVER_BLOG') {
+                    metadata = await scrapeNaverBlog(url);
+                } else if (platform === 'INSTAGRAM') {
+                    metadata = await scrapeInstagram(url);
                 }
 
-                // DB에 삽입
+                // DB에 삽입 (필드명 수정: review_url -> post_url)
                 const { data, error } = await supabaseAdmin
                     .from('reviews')
                     .insert({
                         user_id: userId,
-                        review_url: url,
+                        post_url: url,
+                        post_id: metadata?.postId || null,
                         platform,
                         title: metadata?.title || null,
                         description: metadata?.description || null,
@@ -88,6 +85,7 @@ export async function POST(request: NextRequest) {
                 }
 
             } catch (error: any) {
+                console.error(`Error processing URL ${url}:`, error);
                 results.push({
                     url,
                     success: false,
@@ -95,8 +93,8 @@ export async function POST(request: NextRequest) {
                 });
             }
 
-            // Rate limiting (500ms 대기)
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Rate limiting (300ms 대기)
+            await new Promise(resolve => setTimeout(resolve, 300));
         }
 
         const successCount = results.filter(r => r.success).length;
