@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ExternalLink, Calendar, Eye, ThumbsUp, Sparkles } from 'lucide-react';
+import { ExternalLink, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 
@@ -28,16 +28,16 @@ interface ReviewsClientProps {
 // 플랫폼별 아이콘 및 색상
 const platformConfig = {
     NAVER_BLOG: {
-        icon: '📝',
+        icon: 'N',
         label: '네이버 블로그',
-        color: 'bg-green-500',
-        textColor: 'text-green-700',
+        color: 'bg-[#03C75A]',
+        textColor: 'text-[#03C75A]',
         bgColor: 'bg-green-50'
     },
     INSTAGRAM: {
         icon: '📷',
         label: '인스타그램',
-        color: 'bg-pink-500',
+        color: 'bg-gradient-to-tr from-[#FEDA75] via-[#FA7E1E] to-[#D62976]',
         textColor: 'text-pink-700',
         bgColor: 'bg-pink-50'
     },
@@ -162,7 +162,6 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                     ))}
                 </div>
 
-                {/* 역할별 액션 버튼 */}
                 {profile && (
                     <div className="mb-8 flex justify-end gap-3">
                         {profile.role === 'ADMIN' && (
@@ -172,6 +171,12 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                                     className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all"
                                 >
                                     🔄 리뷰 업데이트
+                                </Link>
+                                <Link
+                                    href="/dashboard/admin/reviews/cleanup"
+                                    className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold shadow-lg transition-all"
+                                >
+                                    🗑️ 중복 정리
                                 </Link>
                                 <Link
                                     href="/dashboard/admin/reviews/manage"
@@ -251,7 +256,7 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                                     <div className="p-6">
                                         {/* 작성자 정보 */}
                                         <div className="flex items-center gap-3 mb-4">
-                                            <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-lg font-bold shadow-md`}>
+                                            <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-xl font-black shadow-md`}>
                                                 {config.icon}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -271,32 +276,10 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
 
                                         {/* 설명 */}
                                         {review.description && (
-                                            <p className="text-sm text-gray-500 line-clamp-2 mb-4 leading-relaxed">
+                                            <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
                                                 {review.description}
                                             </p>
                                         )}
-
-                                        {/* 하단 메타 정보 */}
-                                        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                                            <div className="flex items-center gap-3 text-xs text-gray-400">
-                                                <span className="flex items-center gap-1">
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                    {review.view_count}
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <ThumbsUp className="w-3.5 h-3.5" />
-                                                    {review.like_count}
-                                                </span>
-                                            </div>
-                                            <span className="text-xs text-gray-400 flex items-center gap-1">
-                                                <Calendar className="w-3.5 h-3.5" />
-                                                {new Date(review.created_at).toLocaleDateString('ko-KR', {
-                                                    year: 'numeric',
-                                                    month: '2-digit',
-                                                    day: '2-digit'
-                                                }).replace(/\. /g, '.').replace(/\.$/, '')}
-                                            </span>
-                                        </div>
                                     </div>
                                 </a>
                             );

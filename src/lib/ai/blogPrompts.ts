@@ -23,20 +23,52 @@ export function generateAnalyticPrompt(
   storeName: string, 
   menuItems: string, 
   memo: string, 
-  selectedTopic: string = "",
+  selectedTopic: string = "VISIT_REVIEW",
   campaignGuide: string = ""
 ) {
-  return `
-매장명: ${storeName}
-메뉴/제품: ${menuItems}
-작성 주제(방격): ${selectedTopic || "일반 리뷰"}
-사용자 요청(메모): ${memo}
-업체 진행 가이드: ${campaignGuide || "없음"}
+  const topicLabel = 
+    selectedTopic === "VISIT_REVIEW" ? "방문 후기 (오프라인 매장 방문)" :
+    selectedTopic === "PRODUCT_REVIEW" ? "제품 리뷰 (택배/사용 후기)" :
+    selectedTopic === "TRAVEL" ? "여행/투어" :
+    selectedTopic === "DAILY_LIFE" ? "일상/생각" : "일반 포스팅";
 
-위 정보를 바탕으로 다음을 생성하여 JSON 형식으로 응답하세요:
-1. 'keywords': 검색 노출에 유리한 SEO 키워드 7~8개 (메인 키워드 2-3개 + 방문 목적, 메뉴 특성 등이 담긴 세부 롱테일 키워드 5개 이상)
-2. 'titles': 클릭률이 높은 블로그 제목 3개 (제목 내에 핵심 키워드를 반드시 포함하며, 주제와 컨셉 반영)
-3. 'category': 추천 네이버 블로그 카테고리
+  return `
+[분석 대상 데이터]
+매장명: ${storeName}
+주요 메뉴/제품: ${menuItems}
+작성 목적: ${topicLabel}
+사용자 추가 요청: ${memo || "없음"}
+업체 가이드 라인: ${campaignGuide || "없음"}
+
+위 정보를 정밀 분석하여 네이버 블로그 검색 노출에 최적인 SEO 리포트를 JSON 형식으로 생성하세요.
+
+반드시 아래 구조를 엄격히 지켜야 합니다:
+{
+  "keywords": [
+    {
+      "keyword": "키워드명 (예: 성수역 미용실)",
+      "searchVolume": "HIGH",
+      "type": "MAIN",
+      "status": "VERIFIED"
+    }
+  ],
+  "titles": [
+    {
+      "title": "클릭률을 높이는 감각적인 제목",
+      "seo_score": 95,
+      "reason": "키워드 배치와 호기심 유발형 문장"
+    }
+  ],
+  "category": "추천 블로그 카테고리 (예: 맛집/미용/리뷰 등)"
+}
+
+[상세 지침]
+1. keywords: 총 8개를 생성하세요. 
+   - 3개는 MAIN(핵심 키워드), 5개는 DETAIL(세부/롱테일 키워드)로 구성.
+   - searchVolume은 HIGH/MEDIUM/LOW 중 하나로 할당.
+   - status는 모두 'VERIFIED'로 설정.
+2. titles: 독자들의 클릭을 유도할 수 있는 매력적인 제목 3개를 생성하세요.
+3. 모든 텍스트는 한국어로 작성하세요.
 `;
 }
 

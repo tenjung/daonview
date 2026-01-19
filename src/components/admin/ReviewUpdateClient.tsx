@@ -21,6 +21,58 @@ export default function ReviewUpdateClient() {
         addLog('🚀 리뷰 업데이트 시작...');
 
         try {
+            // 1. 중복 URL 정리
+            addLog('🔍 중복 URL 검사 중...');
+            const { data: allReviews, error: fetchError } = await supabase
+                .from('reviews')
+                .select('id, post_url, created_at')
+                .order('post_url');
+
+            if (fetchError) throw fetchError;
+
+            if (allReviews && allReviews.length > 0) {
+                const urlMap = new Map<string, any[]>();
+                
+                // URL별로 그룹화
+                allReviews.forEach(review => {
+                    if (!urlMap.has(review.post_url)) {
+                        urlMap.set(review.post_url, []);
+                    }
+                    urlMap.get(review.post_url)!.push(review);
+                });
+
+                // 중복 찾기 및 삭제
+                let duplicateCount = 0;
+                for (const [url, reviews] of urlMap.entries()) {
+                    if (reviews.length > 1) {
+                        // 최신 것만 남기고 나머지 삭제
+                        const sorted = reviews.sort((a, b) => 
+                            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                        );
+                        const toDelete = sorted.slice(1); // 최신 것 제외하고 모두 삭제
+
+                        for (const review of toDelete) {
+                            const { error: deleteError } = await supabase
+                                .from('reviews')
+                                .delete()
+                                .eq('id', review.id);
+
+                            if (!deleteError) {
+                                duplicateCount++;
+                                addLog(`🗑️ 중복 삭제: ${url.substring(0, 50)}...`);
+                            }
+                        }
+                    }
+                }
+
+                if (duplicateCount > 0) {
+                    addLog(`✅ 중복 URL ${duplicateCount}개 정리 완료`);
+                } else {
+                    addLog('✅ 중복 URL 없음');
+                }
+            }
+
+            // 2. 메타데이터 업데이트
             const { data: reviews, error } = await supabase
                 .from('reviews')
                 .select('id, post_url, title, platform')

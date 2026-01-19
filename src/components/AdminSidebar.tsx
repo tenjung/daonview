@@ -22,6 +22,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
+    const [reviewMenuOpen, setReviewMenuOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(true);
     const [counts, setCounts] = useState<CampaignCounts>(initialCounts || {
         pending: 0,
@@ -243,6 +244,80 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                     }`}>
                                     {counts.draft}
                                 </span>
+                            </Link>
+                        </div>
+                    )}
+                </div>
+
+                {/* 리뷰 관리 (접을 수 있는 메뉴) */}
+                <div>
+                    <button
+                        onClick={() => setReviewMenuOpen(!reviewMenuOpen)}
+                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${
+                            pathname.includes('/dashboard/admin/reviews')
+                                ? 'bg-rose-50 text-primary'
+                                : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                    >
+                        <div className="flex items-center gap-3">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span>리뷰 관리</span>
+                        </div>
+                        {reviewMenuOpen ? (
+                            <ChevronDown className="w-4 h-4" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4" />
+                        )}
+                    </button>
+
+                    {/* 하위 메뉴 */}
+                    {reviewMenuOpen && (
+                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
+                            <Link
+                                href="/dashboard/admin/reviews/update"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    isActive('/dashboard/admin/reviews/update')
+                                        ? 'bg-rose-100 text-primary'
+                                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                }`}
+                            >
+                                <span>🔄</span>
+                                <span>리뷰 업데이트</span>
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/reviews/cleanup"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    isActive('/dashboard/admin/reviews/cleanup')
+                                        ? 'bg-rose-100 text-primary'
+                                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                }`}
+                            >
+                                <span>🗑️</span>
+                                <span>중복 정리</span>
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/reviews/manage"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    isActive('/dashboard/admin/reviews/manage')
+                                        ? 'bg-rose-100 text-primary'
+                                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                }`}
+                            >
+                                <span>⚙️</span>
+                                <span>리뷰 관리</span>
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/reviews/new"
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                    isActive('/dashboard/admin/reviews/new')
+                                        ? 'bg-rose-100 text-primary'
+                                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                                }`}
+                            >
+                                <span>✨</span>
+                                <span>리뷰 등록</span>
                             </Link>
                         </div>
                     )}

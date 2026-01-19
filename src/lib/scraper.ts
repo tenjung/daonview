@@ -16,37 +16,7 @@ export async function scrapeNaverBlog(url: string) {
     let thumbnail = '';
     let authorName = '';
 
-    // 1. 네이버 공식 검색 API 연동 시도
-    const clientId = process.env.NAVER_CLIENT_ID;
-    const clientSecret = process.env.NAVER_CLIENT_SECRET;
-
-    if (clientId && clientSecret) {
-        try {
-            const searchRes = await fetch(
-                `https://openapi.naver.com/v1/search/blog.json?query=${encodeURIComponent(url)}&display=1`,
-                {
-                    headers: {
-                        'X-Naver-Client-Id': clientId,
-                        'X-Naver-Client-Secret': clientSecret,
-                    }
-                }
-            );
-
-            if (searchRes.ok) {
-                const searchData = await searchRes.json();
-                if (searchData.items && searchData.items.length > 0) {
-                    const item = searchData.items[0];
-                    title = item.title.replace(/<[^>]*>?/gm, '');
-                    description = item.description.replace(/<[^>]*>?/gm, '');
-                    authorName = item.bloggername;
-                }
-            }
-        } catch (e) {
-            console.error('Naver Search API Error:', e);
-        }
-    }
-
-    // 2. 모바일 페이지 크롤링
+    // 1. 모바일 페이지 직접 크롤링 (우선순위 1)
     try {
         const mobileUrl = `https://m.blog.naver.com/${blogId}/${postId}`;
         const response = await fetch(mobileUrl, {
@@ -59,18 +29,18 @@ export async function scrapeNaverBlog(url: string) {
             const html = await response.text();
             const $ = cheerio.load(html);
 
+            // OG 태그에서 정확한 데이터 추출
+            title = $('meta[property="og:title"]').attr('content') || '';
+            description = $('meta[property="og:description"]').attr('content') || '';
             thumbnail = $('meta[property="og:image"]').attr('content') || '';
             
-            if (!title) title = $('meta[property="og:title"]').attr('content') || '';
-            if (!description) description = $('meta[property="og:description"]').attr('content') || '';
-            
-            if (!authorName) {
-                authorName = $('meta[property="naverblog:nickname"]').attr('content') || 
-                             $('meta[name="author"]').attr('content') || 
-                             $('.blog_author .nick').text().trim() || 
-                             $('.se_og_box .name').text().trim() || '';
-            }
+            // 작성자 이름 추출
+            authorName = $('meta[property="naverblog:nickname"]').attr('content') || 
+                         $('meta[name="author"]').attr('content') || 
+                         $('.blog_author .nick').text().trim() || 
+                         $('.se_og_box .name').text().trim() || '';
 
+            // 작성자 이름이 없으면 블로그 홈에서 가져오기
             if (!authorName) {
                 const blogHomeUrl = `https://m.blog.naver.com/${blogId}`;
                 const homeResponse = await fetch(blogHomeUrl, {
@@ -86,7 +56,42 @@ export async function scrapeNaverBlog(url: string) {
             }
         }
     } catch (e) {
-        console.error('Cheerio Scraping Error:', e);
+        console.error('Direct scraping error:', e);
+    }
+
+    // 2. 네이버 검색 API (작성자 이름 보완용으로만 사용)
+    if (!authorName) {
+        const clientId = process.env.NAVER_CLIENT_ID;
+        const clientSecret = process.env.NAVER_CLIENT_SECRET;
+
+        if (clientId && clientSecret) {
+            try {
+                const searchRes = await fetch(
+                    `https://openapi.naver.com/v1/search/blog.json?query=${encodeURIComponent(blogId)}&display=10`,
+                    {
+                        headers: {
+                            'X-Naver-Client-Id': clientId,
+                            'X-Naver-Client-Secret': clientSecret,
+                        }
+                    }
+                );
+
+                if (searchRes.ok) {
+                    const searchData = await searchRes.json();
+                    if (searchData.items && searchData.items.length > 0) {
+                        // 같은 블로그 ID를 가진 글 찾기
+                        const matchedItem = searchData.items.find((item: any) => 
+                            item.link.includes(blogId)
+                        );
+                        if (matchedItem) {
+                            authorName = matchedItem.bloggername;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Naver Search API Error:', e);
+            }
+        }
     }
 
     return {
