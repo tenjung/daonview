@@ -61,6 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 
 import AuthHydrator from '@/components/auth/AuthHydrator';
+import OnboardingChecker from '@/components/auth/OnboardingChecker';
 
 export default async function RootLayout({
   children,
@@ -89,6 +90,7 @@ export default async function RootLayout({
         suppressHydrationWarning
       >
         <AuthHydrator user={session?.user ?? null} profile={profile} />
+        <OnboardingChecker />
         <Navbar initialUser={session?.user ?? null} initialProfile={profile} />
         <main className="flex-1">
           {children}

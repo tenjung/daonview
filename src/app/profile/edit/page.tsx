@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { Profile } from '@/types/database';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, Edit2, Lock } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
@@ -86,9 +86,12 @@ function ProfileEditContent() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [providers, setProviders] = useState<string[]>([]);
-    const [isEditingSocial, setIsEditingSocial] = useState({
-        blog: false,
-        instagram: false
+    const [socialSaveStatus, setSocialSaveStatus] = useState<{
+        blog: 'idle' | 'saving' | 'saved';
+        instagram: 'idle' | 'saving' | 'saved';
+    }>({
+        blog: 'idle',
+        instagram: 'idle'
     });
 
     // 기본 정보
@@ -107,6 +110,10 @@ function ProfileEditContent() {
         tiktok: '',
         other: ''
     });
+
+    // 자동 저장 타이머 ref
+    const blogSaveTimer = useRef<NodeJS.Timeout | null>(null);
+    const instaSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
     // 관심사 정보
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -175,6 +182,12 @@ function ProfileEditContent() {
         };
 
         loadProfileData();
+
+        // Cleanup timers on unmount
+        return () => {
+            if (blogSaveTimer.current) clearTimeout(blogSaveTimer.current);
+            if (instaSaveTimer.current) clearTimeout(instaSaveTimer.current);
+        };
     }, [router]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
@@ -218,6 +231,70 @@ function ProfileEditContent() {
             setSaving(false);
         }
     };
+
+    // 소셜 링크 자동 저장 함수
+    const autoSaveSocialLink = useCallback(async (field: 'blog' | 'instagram', value: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) return;
+
+            setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
+
+            const updateData: any = {};
+            
+            if (field === 'blog') {
+                const cleanBlogId = value.trim().replace(/^https?:\/\/blog\.naver\.com\//, "");
+                if (cleanBlogId) {
+                    updateData.blog_url = `https://blog.naver.com/${cleanBlogId}`;
+                    updateData.sns_url = updateData.blog_url;
+                } else {
+                    updateData.blog_url = null;
+                    updateData.sns_url = null;
+                }
+            } else if (field === 'instagram') {
+                const cleanInstaId = value.trim().replace(/^https?:\/\/instagram\.com\//, "");
+                if (cleanInstaId) {
+                    updateData.instagram_url = `https://instagram.com/${cleanInstaId}`;
+                } else {
+                    updateData.instagram_url = null;
+                }
+            }
+
+            const { error } = await supabase
+                .from('profiles')
+                .update(updateData)
+                .eq('id', session.user.id);
+
+            if (error) throw error;
+
+            setSocialSaveStatus(prev => ({ ...prev, [field]: 'saved' }));
+            
+            // "저장됨" 표시를 2초 후 제거
+            setTimeout(() => {
+                setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
+            }, 2000);
+
+            if (session.user.id) await fetchProfile(session.user.id);
+        } catch (error: any) {
+            console.error('Auto-save error:', error);
+            setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
+            toast.error('저장에 실패했습니다.');
+        }
+    }, [fetchProfile]);
+
+    // 소셜 링크 변경 핸들러 (debounced)
+    const handleSocialLinkChange = useCallback((field: 'blog' | 'instagram', value: string) => {
+        setSocialLinks(prev => ({ ...prev, [field]: value }));
+
+        // 기존 타이머 취소
+        const timer = field === 'blog' ? blogSaveTimer : instaSaveTimer;
+        if (timer.current) clearTimeout(timer.current);
+
+        // 1.5초 후 자동 저장
+        timer.current = setTimeout(() => {
+            autoSaveSocialLink(field, value);
+        }, 1500);
+    }, [autoSaveSocialLink]);
 
     const handleInterestsSubmit = async () => {
         setSaving(true);
@@ -416,48 +493,56 @@ function ProfileEditContent() {
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between ml-1">
                                                     <span className="text-[10px] font-black text-emerald-600 uppercase">Naver Blog</span>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => setIsEditingSocial(prev => ({ ...prev, blog: !prev.blog }))}
-                                                        className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 transition-colors flex items-center gap-1"
-                                                    >
-                                                        {isEditingSocial.blog ? <><Lock size={10} /> 잠금</> : <><Edit2 size={10} /> 수정하기</>}
-                                                    </button>
+                                                    {socialSaveStatus.blog === 'saving' && (
+                                                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
+                                                            저장 중...
+                                                        </span>
+                                                    )}
+                                                    {socialSaveStatus.blog === 'saved' && (
+                                                        <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <Check size={12} />
+                                                            저장됨
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div className={`flex items-center transition-all duration-300 ${!isEditingSocial.blog ? 'opacity-70 group' : 'ring-2 ring-emerald-500/20 rounded-xl'}`}>
-                                                    <div className={`bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 ${!isEditingSocial.blog ? 'text-slate-300' : 'text-slate-500'}`}>
+                                                <div className="flex items-center ring-2 ring-emerald-500/20 rounded-xl focus-within:ring-emerald-500/40 transition-all">
+                                                    <div className="bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 text-slate-500">
                                                         {BLOG_PREFIX}
                                                     </div>
                                                     <Input 
                                                         placeholder="아이디 입력" 
                                                         value={socialLinks.blog}
-                                                        disabled={!isEditingSocial.blog}
-                                                        onChange={(e) => setSocialLinks({ ...socialLinks, blog: e.target.value })}
-                                                        className={`bg-slate-50 border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-emerald-500 transition-all ${!isEditingSocial.blog ? 'cursor-not-allowed bg-slate-100/50' : 'bg-white'}`}
+                                                        onChange={(e) => handleSocialLinkChange('blog', e.target.value)}
+                                                        className="bg-white border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-0 border-0"
                                                     />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between ml-1">
                                                     <span className="text-[10px] font-black text-pink-600 uppercase">Instagram</span>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => setIsEditingSocial(prev => ({ ...prev, instagram: !prev.instagram }))}
-                                                        className="text-[10px] font-bold text-slate-400 hover:text-pink-600 transition-colors flex items-center gap-1"
-                                                    >
-                                                        {isEditingSocial.instagram ? <><Lock size={10} /> 잠금</> : <><Edit2 size={10} /> 수정하기</>}
-                                                    </button>
+                                                    {socialSaveStatus.instagram === 'saving' && (
+                                                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-pink-500 rounded-full animate-spin"></span>
+                                                            저장 중...
+                                                        </span>
+                                                    )}
+                                                    {socialSaveStatus.instagram === 'saved' && (
+                                                        <span className="text-[10px] font-bold text-pink-600 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <Check size={12} />
+                                                            저장됨
+                                                        </span>
+                                                    )}
                                                 </div>
-                                                <div className={`flex items-center transition-all duration-300 ${!isEditingSocial.instagram ? 'opacity-70' : 'ring-2 ring-pink-500/20 rounded-xl'}`}>
-                                                    <div className={`bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 ${!isEditingSocial.instagram ? 'text-slate-300' : 'text-slate-500'}`}>
+                                                <div className="flex items-center ring-2 ring-pink-500/20 rounded-xl focus-within:ring-pink-500/40 transition-all">
+                                                    <div className="bg-slate-100 px-3 h-12 flex items-center justify-center rounded-l-xl text-[11px] font-bold border-y border-l border-slate-200 shrink-0 text-slate-500">
                                                         {INSTA_PREFIX}
                                                     </div>
                                                     <Input 
                                                         placeholder="아이디 입력" 
                                                         value={socialLinks.instagram}
-                                                        disabled={!isEditingSocial.instagram}
-                                                        onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                                                        className={`bg-slate-50 border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-pink-500 transition-all ${!isEditingSocial.instagram ? 'cursor-not-allowed bg-slate-100/50' : 'bg-white'}`}
+                                                        onChange={(e) => handleSocialLinkChange('instagram', e.target.value)}
+                                                        className="bg-white border-slate-200 rounded-l-none rounded-r-xl h-12 focus-visible:ring-0 border-0"
                                                     />
                                                 </div>
                                             </div>
@@ -538,6 +623,47 @@ function ProfileEditContent() {
                                     </div>
                                 </CardContent>
                             </Card>
+
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
+                                <CardHeader>
+                                    <CardTitle className="text-xl flex items-center justify-between">
+                                        <span>관심 카테고리</span>
+                                        <span className="text-sm font-bold bg-slate-100 px-3 py-1 rounded-full text-slate-500">
+                                            {selectedCategories.length} / 3 선택됨
+                                        </span>
+                                    </CardTitle>
+                                    <CardDescription>관심 있는 분야를 최대 3개까지 선택해주세요.</CardDescription>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                        {CATEGORIES.map(category => (
+                                            <button
+                                                key={category.id}
+                                                type="button"
+                                                onClick={() => toggleCategory(category.id)}
+                                                disabled={
+                                                    !selectedCategories.includes(category.id) &&
+                                                    selectedCategories.length >= 3
+                                                }
+                                                className={`relative group p-5 rounded-2xl border-2 transition-all duration-300 text-center ${selectedCategories.includes(category.id)
+                                                    ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.02]'
+                                                    : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
+                                                    } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
+                                            >
+                                                {selectedCategories.includes(category.id) && (
+                                                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                        <Check size={14} className="text-white" />
+                                                    </div>
+                                                )}
+                                                <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
+                                                <div className="text-sm font-bold text-slate-800 mb-1">{category.name}</div>
+                                                <div className="text-[10px] text-slate-400 line-clamp-1">{category.desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+
 
                             <Button
                                 onClick={handleInterestsSubmit}

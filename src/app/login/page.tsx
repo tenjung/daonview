@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
+import OnboardingModal from '@/components/OnboardingModal';
 
 function LoginForm() {
     const router = useRouter();
@@ -12,6 +13,8 @@ function LoginForm() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSocialLoading, setIsSocialLoading] = useState<string | null>(null);
+    const [showOnboarding, setShowOnboarding] = useState(false);
+    const [newUserId, setNewUserId] = useState<string | null>(null);
 
     // Load email or error from URL query parameter
     useEffect(() => {
@@ -87,6 +90,32 @@ function LoginForm() {
             toast.success(`${userName}님, 환영합니다! 🎉`, {
                 description: '로그인에 성공했습니다.',
             });
+
+            // 🟢 인플루언서이고 관심사 미설정 시 온보딩 모달 표시
+            if (profileData?.role === 'INFLUENCER') {
+                // 🟢 이번 세션에서 건너뛰었으면 표시 안함
+                if (sessionStorage.getItem('onboarding_skipped') === 'true') {
+                    // 리다이렉트 진행
+                } else {
+                    // 관심사 설정 여부 확인
+                    const { data: fullProfile } = await supabase
+                        .from('profiles')
+                        .select('preferred_platforms, preferred_regions, interests')
+                        .eq('id', authData.user?.id)
+                        .single();
+
+                    const hasInterests = fullProfile?.interests && fullProfile.interests.length > 0;
+                    const hasPlatforms = fullProfile?.preferred_platforms && fullProfile.preferred_platforms.length > 0;
+                    const hasRegions = fullProfile?.preferred_regions && fullProfile.preferred_regions.length > 0;
+
+                    // 🟢 관심사 미설정 시에만 모달 표시
+                    if (!hasInterests || !hasPlatforms || !hasRegions) {
+                        setNewUserId(authData.user.id);
+                        setShowOnboarding(true);
+                        return; // 리다이렉트 하지 않음
+                    }
+                }
+            }
 
             // Redirect based on role using window.location.href for proper navigation
             setTimeout(() => {
@@ -217,6 +246,14 @@ function LoginForm() {
                     </Link>
                 </div>
             </div>
+
+            {showOnboarding && newUserId && (
+                <OnboardingModal 
+                    userId={newUserId} 
+                    onComplete={() => window.location.href = '/'} 
+                    allowSkip={true}  // 로그인 시에는 건너뛰기 허용
+                />
+            )}
         </div>
     );
 }
