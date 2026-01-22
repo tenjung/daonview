@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Filter, X, ChevronDown, ChevronUp, Search, MapPin, Puzzle, Rocket, Shield, BarChart3 } from 'lucide-react';
@@ -51,9 +52,10 @@ const REGION_HIERARCHY = [
     { name: "제주", value: "제주" },
 ];
 
-export default function CampaignListClient({ initialCampaigns }: CampaignListClientProps) {
+function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
+    const searchParams = useSearchParams();
     const [campaigns, setCampaigns] = useState(initialCampaigns);
-    const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE_REVIEW'>('ALL');
+    const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE_REVIEW' | 'STEADY'>('ALL');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
@@ -62,6 +64,19 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isSortOpen, setIsSortOpen] = useState(false);
     const [sortBy, setSortBy] = useState('new');
+
+    // URL 파라미터 감지 (예: ?sort=steady)
+    useEffect(() => {
+        const sort = searchParams.get('sort');
+        if (sort === 'steady') {
+            setActiveTab('STEADY');
+            setSortBy('steady');
+        } else if (sort === 'popular') {
+            setSortBy('popular');
+        } else if (sort === 'new') {
+            setSortBy('new');
+        }
+    }, [searchParams]);
 
     // initialCampaigns가 변경될 때마다 campaigns 상태 업데이트
     useEffect(() => {
@@ -75,12 +90,11 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
 
     const filteredData = useMemo(() => {
         return campaigns.filter(item => {
-            // [수정] 탭 필터 로직 개선
             if (activeTab === 'PURCHASE_REVIEW') {
-                // 구매평만: 배송형(DELIVERY)이면서 플랫폼이 구매평(PURCHASE)인 경우
                 if (!(item.type === 'DELIVERY' && item.platform === 'PURCHASE')) return false;
+            } else if (activeTab === 'STEADY') {
+                if (!(item as any).is_always && item.dday !== '상시') return false;
             } else if (activeTab !== 'ALL' && item.type !== activeTab) {
-                // 그 외(ALL 제외): 탭 이름과 캠페인 타입이 일치해야 함
                 return false;
             }
 
@@ -101,8 +115,14 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
             return true;
         }).sort((a, b) => {
             if (sortBy === 'popular') return b.applicants - a.applicants;
+            if (sortBy === 'steady') {
+                const aAlways = (a as any).is_always || a.dday === '상시';
+                const bAlways = (b as any).is_always || b.dday === '상시';
+                if (aAlways && !bAlways) return -1;
+                if (!aAlways && bAlways) return 1;
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+            }
             if (sortBy === 'deadline') {
-                // 상시모집은 가장 뒤로
                 if (a.dday === '상시') return 1;
                 if (b.dday === '상시') return -1;
 
@@ -110,7 +130,6 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                 const dateB = new Date(b.end_date).getTime();
                 return dateA - dateB;
             }
-            // 기본: 최신순 (created_at)
             const timeA = new Date(a.created_at).getTime();
             const timeB = new Date(b.created_at).getTime();
             return timeB - timeA;
@@ -121,10 +140,8 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
         setter(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
-    // 활성화된 필터가 있는지 확인
     const hasActiveFilters = selectedPlatforms.length > 0 || selectedRegions.length > 0 || selectedMajorRegion !== '' || searchQuery !== '';
 
-    // 모든 필터 초기화
     const clearAllFilters = () => {
         setSelectedPlatforms([]);
         setSelectedRegions([]);
@@ -134,24 +151,21 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
 
     return (
         <>
-            {/* Filter Bar - 헤더 바로 밑에 붙어서 전체 가로 차지 */}
             <div className={`sticky top-[70px] z-40 w-full bg-white border-b border-slate-100 shadow-md transition-all ${isFilterOpen ? 'py-6 md:py-8' : 'py-3 md:py-4'}`}>
                 <div className="max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                        {/* Tabs (Left) */}
                         <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-hide">
-                            {['ALL', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
+                            {['ALL', 'STEADY', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab as any)}
                                     className={`px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
-                                    {tab === 'ALL' ? '전체보기' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
+                                    {tab === 'ALL' ? '전체보기' : tab === 'STEADY' ? '상시모집' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
                                 </button>
                             ))}
                         </div>
 
-                        {/* Search (Center) */}
                         <div className="relative flex-1 w-full">
                             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                             <input
@@ -163,9 +177,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                             />
                         </div>
 
-                        {/* Actions (Right) */}
                         <div className="flex items-center gap-2 w-full md:w-auto justify-between md:justify-end">
-                            {/* 전체 초기화 버튼 - 필터가 활성화되어 있을 때만 표시 */}
                             {hasActiveFilters && (
                                 <button
                                     onClick={clearAllFilters}
@@ -191,7 +203,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
                                 >
                                     <span className="text-sm font-black text-slate-700">
-                                        {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : '마감임박순'}
+                                        {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : sortBy === 'steady' ? '상시우선' : '마감임박순'}
                                     </span>
                                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
                                 </button>
@@ -201,6 +213,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                                         {[
                                             { label: '최신순', value: 'new' },
                                             { label: '인기순', value: 'popular' },
+                                            { label: '상시우선', value: 'steady' },
                                             { label: '마감임박순', value: 'deadline' }
                                         ].map((opt) => (
                                             <button
@@ -275,9 +288,7 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                 </div>
             </div>
 
-            {/* Campaign Grid Container */}
             <div className="max-w-[1600px] mx-auto px-3 md:px-10 py-12">
-                {/* Grid Header */}
                 <div className="flex items-center gap-3 mb-8">
                     <h2 className="text-2xl font-black text-slate-900 tracking-tight">캠페인 목록</h2>
                     <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-black">{filteredData.length}</span>
@@ -288,8 +299,6 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                         {filteredData.map(item => (
                             <CampaignCard key={item.id} {...item} />
                         ))}
-
-                        {/* Ensure at least 3 rows (15 items) are visible or complete the current row */}
                         {[...Array(Math.max(15 - filteredData.length, (5 - (filteredData.length % 5)) % 5))].map((_, i) => (
                             <CampaignSkeleton key={`skel-fill-${i}`} />
                         ))}
@@ -303,5 +312,13 @@ export default function CampaignListClient({ initialCampaigns }: CampaignListCli
                 )}
             </div>
         </>
+    );
+}
+
+export default function CampaignListClient(props: CampaignListClientProps) {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-white" />}>
+            <CampaignListContent {...props} />
+        </Suspense>
     );
 }

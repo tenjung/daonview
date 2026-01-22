@@ -24,11 +24,13 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
         }
 
         // 2. Parallel Fetch with optimized limits
-        const [bannersRes, latestRes, popularRes] = await Promise.all([
+        const [bannersRes, latestRes, popularRes, steadyRes] = await Promise.all([
             supabase.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true }),
             supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).order('created_at', { ascending: false }).limit(newCount),
             // Optimized: Only fetch what we need (hotCount + buffer for sorting)
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(hotCount + 2)
+            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(hotCount + 2),
+            // Always fetching some always-open campaigns
+            supabase.from('campaigns').select('*, applications(count)').eq('is_always', true).in('status', ['RECRUITING', 'ONGOING']).limit(4)
         ]);
 
         // 3. Process Admin Banners
@@ -57,7 +59,9 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
                     link_url: `/campaigns/${c.id}`,
                     badge: 'NEW',
                     extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
-                    applicants: mapped.applicants || 0  // 🟢 신청자 수 추가
+                    applicants: mapped.applicants || 0,
+                    total: mapped.total || 0,
+                    dday: mapped.dday
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -81,12 +85,34 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
                     badge: hasManyApplicants ? 'HOT' : undefined,
                     isBest: isVisit && index < 2, // Only top 2 Visit campaigns get BEST
                     extra_badge: isVisit ? '방문' : '배송',
-                    applicants: mapped.applicants || 0  // 🟢 신청자 수 추가
+                    applicants: mapped.applicants || 0,
+                    total: mapped.total || 0,
+                    dday: mapped.dday
                 };
             })
             .filter(item => item.image_url && item.title);
 
-        return [...adminItems, ...newItems, ...popularItems];
+        // 6. Process Steady (Always) Campaigns
+        const steadyItems: BannerItem[] = (steadyRes.data || [])
+            .map(c => {
+                const mapped = mapCampaignToCard(c as any);
+                return {
+                    id: `steady-${c.id}`,
+                    type: 'STEADY' as const,
+                    title: mapped.title,
+                    subtitle: mapped.provision || '상시 모집 체험 캠페인',
+                    image_url: mapped.imageUrl || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop',
+                    link_url: `/campaigns/${c.id}`,
+                    badge: 'ALWAYS',
+                    extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
+                    applicants: mapped.applicants || 0,
+                    total: mapped.total || 0,
+                    dday: mapped.dday
+                };
+            })
+            .filter(item => item.image_url && item.title);
+
+        return [...adminItems, ...newItems, ...popularItems, ...steadyItems];
     } catch (err) {
         console.error('Error in fetchAllBannerData:', err);
         return [];

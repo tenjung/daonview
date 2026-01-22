@@ -15,6 +15,8 @@ export interface Profile {
     sns_url?: string;
     blog_url?: string;
     instagram_url?: string;
+    youtube_url?: string;
+    tiktok_url?: string;
     point?: number;
     avatar_url?: string;
     [key: string]: any;

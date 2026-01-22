@@ -32,7 +32,7 @@ export default function ReviewUpdateClient() {
 
             if (allReviews && allReviews.length > 0) {
                 const urlMap = new Map<string, any[]>();
-                
+
                 // URL별로 그룹화
                 allReviews.forEach(review => {
                     if (!urlMap.has(review.post_url)) {
@@ -46,7 +46,7 @@ export default function ReviewUpdateClient() {
                 for (const [url, reviews] of urlMap.entries()) {
                     if (reviews.length > 1) {
                         // 최신 것만 남기고 나머지 삭제
-                        const sorted = reviews.sort((a, b) => 
+                        const sorted = reviews.sort((a, b) =>
                             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                         );
                         const toDelete = sorted.slice(1); // 최신 것 제외하고 모두 삭제
@@ -72,11 +72,10 @@ export default function ReviewUpdateClient() {
                 }
             }
 
-            // 2. 메타데이터 업데이트
             const { data: reviews, error } = await supabase
                 .from('reviews')
                 .select('id, post_url, title, platform')
-                .is('author_name', null)
+                .eq('status', 'APPROVED')
                 .in('platform', ['NAVER_BLOG', 'INSTAGRAM']);
 
             if (error) throw error;
@@ -106,7 +105,7 @@ export default function ReviewUpdateClient() {
                         body: JSON.stringify({ url: review.post_url })
                     });
 
-                    if (!response.ok) {
+                    if (response.status === 404) {
                         const hideResponse = await fetch('/api/hide-review', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -118,31 +117,56 @@ export default function ReviewUpdateClient() {
 
                         if (hideResponse.ok) {
                             addLog(`🚫 [${i + 1}/${reviews.length}] 게시물 삭제됨 - 숨김 처리 완료`);
+                        } else {
+                            addLog(`⚠️ [${i + 1}/${reviews.length}] 게시물 삭제되었으나 숨김 처리 실패`);
                         }
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        continue;
+                    }
+
+                    if (!response.ok) {
+                        addLog(`❌ [${i + 1}/${reviews.length}] 서버 오류 (Status: ${response.status})`);
                         continue;
                     }
 
                     const result = await response.json();
 
                     if (result.success && result.data) {
-                        const updateResponse = await fetch('/api/update-review', {
+                        const { title, thumbnail, authorName } = result.data;
+
+                        // 필수 정보(제목, 썸네일)가 없거나 '제목 없음'인 경우 숨김 처리
+                        const isInvalid = !title || title === '제목 없음' || !thumbnail || thumbnail === '';
+
+                        if (isInvalid) {
+                            await fetch('/api/hide-review', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ reviewId: review.id, status: 'HIDDEN' })
+                            });
+                            addLog(`🚫 [${i + 1}/${reviews.length}] 필수 정보(제목/썸네일) 누락 - 자동 숨김`);
+                        } else {
+                            const updateResponse = await fetch('/api/update-review', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    reviewId: review.id,
+                                    data: result.data
+                                })
+                            });
+
+                            if (!updateResponse.ok) throw new Error('DB 업데이트 실패');
+                            addLog(`✅ [${i + 1}/${reviews.length}] ${authorName} - ${title}`);
+                        }
+                    } else {
+                        // 데이터 추출 실패 시에도 숨김 처리 (게시물 삭제/비공개 등 방치된 리뷰 정리)
+                        await fetch('/api/hide-review', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                reviewId: review.id,
-                                data: result.data
-                            })
+                            body: JSON.stringify({ reviewId: review.id, status: 'HIDDEN' })
                         });
-
-                        if (!updateResponse.ok) {
-                            throw new Error('DB 업데이트 실패');
-                        }
-
-                        addLog(`✅ [${i + 1}/${reviews.length}] ${result.data.authorName} - ${result.data.title}`);
-                    } else {
-                        addLog(`⚠️ [${i + 1}/${reviews.length}] 데이터 추출 실패`);
+                        addLog(`🚫 [${i + 1}/${reviews.length}] 데이터 추출 불가 - 자동 숨김`);
                     }
+
 
                     await new Promise(resolve => setTimeout(resolve, 1000));
 

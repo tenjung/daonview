@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical, Building2 } from 'lucide-react';
+import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical, Building2, Infinity } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -703,9 +703,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         <h2 className="text-xl font-bold text-gray-900">브랜드 선택</h2>
                     </div>
                 </div>
-                
+
                 {user ? (
-                    <BrandSelect 
+                    <BrandSelect
                         userId={user.id}
                         value={formData.brandId}
                         onChange={(id, name) => setFormData(prev => ({ ...prev, brandId: id, brandName: name }))}
@@ -715,7 +715,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         브랜드 정보를 불러오려면 로그인이 필요합니다.
                     </div>
                 )}
-                
+
                 <p className="mt-4 text-xs text-gray-400">
                     💡 이 캠페인을 진행할 브랜드를 선택하거나 새로 등록해주세요. 대행사의 경우 여러 클라이언트를 브랜드별로 나누어 관리할 수 있습니다.
                 </p>
@@ -750,8 +750,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             type="button"
                             onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
                             className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${formData.category === cat
-                                    ? 'border-blue-500 bg-blue-50 text-blue-600'
-                                    : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                                ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
                                 }`}
                         >
                             {cat}
@@ -1038,8 +1038,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     type="button"
                                     onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
                                     className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${formData.region === reg
-                                            ? 'border-blue-500 bg-blue-50 text-blue-600'
-                                            : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
+                                        ? 'border-blue-500 bg-blue-50 text-blue-600'
+                                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
                                         }`}
                                 >
                                     {reg}
@@ -1604,12 +1604,15 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             <div className="flex items-center gap-2">
                                 <div className="relative w-32">
                                     <Input
-                                        type="number"
-                                        value={formData.totalRecruitment || ''}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, totalRecruitment: e.target.value }))}
+                                        type="text"
+                                        value={formData.totalRecruitment === '999' ? '∞' : formData.totalRecruitment || ''}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '∞') return;
+                                            setFormData(prev => ({ ...prev, totalRecruitment: val }));
+                                        }}
                                         onBlur={() => validateField('totalRecruitment', formData.totalRecruitment)}
                                         placeholder="10"
-                                        min="1"
                                         className={`text-right pr-8 font-bold text-lg h-11 border-2 ${fieldValidation.totalRecruitment === true ? 'border-green-500 focus-visible:ring-green-500' : ''}`}
                                     />
                                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">명</span>
@@ -1633,6 +1636,16 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         className="h-11 px-4 font-bold active:scale-95 transition-transform"
                                     >
                                         +10
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => setFormData(prev => ({ ...prev, totalRecruitment: '999' }))}
+                                        className="h-11 px-4 font-bold active:scale-95 transition-transform flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none"
+                                        title="무제한 모집"
+                                    >
+                                        <Infinity size={18} strokeWidth={3} />
                                     </Button>
                                     <Button
                                         type="button"

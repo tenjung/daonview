@@ -118,7 +118,8 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const isVisit = type?.toUpperCase() === 'VISIT';
 
     // Calculate percentage
-    const percentage = total > 0 ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
+    const isInfinite = total >= 999;
+    const percentage = total > 0 ? (isInfinite ? 0 : Math.min(Math.round((applicants / total) * 100), 100)) : 0;
 
     const { user } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
@@ -242,26 +243,45 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
 
                 {/* Spacer to push bottom section down */}
-                <div className="mt-auto pt-1.5 border-t border-gray-50">
+                <div className="mt-auto pt-1.5 border-t border-gray-50 text-slate-800">
                     {/* 4. Progress Section */}
-                    <div className="flex items-center justify-between text-xs mb-1">
-                        {/* Percentage Text */}
-                        <span className="font-bold text-blue-600">{percentage}%</span>
+                    <div className="flex items-center justify-between text-xs mb-1.5">
+                        {/* Percentage or ON Indicator */}
+                        {isInfinite ? (
+                            <div className="flex items-center gap-1.5 font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
+                                <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
+                                ON
+                            </div>
+                        ) : (
+                            <span className="font-bold text-blue-600">{percentage}%</span>
+                        )}
+
                         {/* Count Text */}
                         <span className="text-gray-400 font-medium">
-                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {total}명
+                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
                         </span>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                            className="bg-blue-600 h-full rounded-full transition-all duration-500"
-                            style={{ width: `${percentage}%` }}
-                        />
+                    {/* Progress Bar (Infinite Wave for isInfinite) */}
+                    <div className={`w-full ${isInfinite ? 'bg-indigo-50' : 'bg-gray-100'} rounded-full h-1.5 overflow-hidden relative`}>
+                        {isInfinite ? (
+                            <div className="absolute inset-0 w-full h-full">
+                                <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-rose-400 to-indigo-400 w-[200%] h-full animate-[shimmer_2s_linear_infinite]"
+                                    style={{
+                                        backgroundImage: 'linear-gradient(90deg, #818cf8 0%, #fb7185 50%, #818cf8 100%)',
+                                        backgroundSize: '200% 100%'
+                                    }}
+                                />
+                            </div>
+                        ) : (
+                            <div
+                                className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                                style={{ width: `${percentage}%` }}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
-        </Link>
+        </Link >
     );
 }

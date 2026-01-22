@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense, use } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Sparkles } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 
 interface Review {
@@ -22,7 +21,7 @@ interface Review {
 }
 
 interface ReviewsClientProps {
-    reviews: Review[];
+    reviewsPromise: Promise<Review[]>;
 }
 
 // 플랫폼별 아이콘 및 색상
@@ -76,57 +75,9 @@ function extractNaverBlogInfo(url: string) {
     return null;
 }
 
-export default function ReviewsClient({ reviews }: ReviewsClientProps) {
+export default function ReviewsClient({ reviewsPromise }: ReviewsClientProps) {
     const { profile } = useAuthStore();
     const [filter, setFilter] = useState<string>('ALL');
-    const [shuffledReviews, setShuffledReviews] = useState<Review[]>([]);
-    const [displayedCount, setDisplayedCount] = useState(12); // 초기 12개만 표시
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const loadMoreRef = useRef<HTMLDivElement>(null);
-
-    // 페이지 진입 시 리뷰를 랜덤으로 섞기
-    useEffect(() => {
-        const shuffled = [...reviews].sort(() => Math.random() - 0.5);
-        setShuffledReviews(shuffled);
-    }, [reviews]);
-
-    // 필터링된 리뷰
-    const filteredReviews = filter === 'ALL' 
-        ? shuffledReviews 
-        : shuffledReviews.filter(r => r.platform === filter);
-
-    // 표시할 리뷰 (무한 스크롤)
-    const displayedReviews = filteredReviews.slice(0, displayedCount);
-    const hasMore = displayedCount < filteredReviews.length;
-
-    // 무한 스크롤 - Intersection Observer
-    useEffect(() => {
-        if (!loadMoreRef.current || !hasMore) return;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                if (entries[0].isIntersecting && !isLoadingMore) {
-                    setIsLoadingMore(true);
-                    
-                    // 0.5초 후 12개 추가 로드 (자연스러운 로딩)
-                    setTimeout(() => {
-                        setDisplayedCount(prev => prev + 12);
-                        setIsLoadingMore(false);
-                    }, 500);
-                }
-            },
-            { threshold: 0.1, rootMargin: '100px' }
-        );
-
-        observer.observe(loadMoreRef.current);
-
-        return () => observer.disconnect();
-    }, [hasMore, isLoadingMore, displayedCount]);
-
-    // 필터 변경 시 표시 개수 초기화
-    useEffect(() => {
-        setDisplayedCount(12);
-    }, [filter]);
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -151,11 +102,10 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                         <button
                             key={platform}
                             onClick={() => setFilter(platform)}
-                            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all ${
-                                filter === platform
-                                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-200'
-                                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-                            }`}
+                            className={`px-6 py-2.5 rounded-full font-bold text-sm transition-all ${filter === platform
+                                ? 'bg-rose-500 text-white shadow-lg shadow-rose-200'
+                                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                                }`}
                         >
                             {platform === 'ALL' ? '전체' : platformConfig[platform as keyof typeof platformConfig].label}
                         </button>
@@ -203,112 +153,178 @@ export default function ReviewsClient({ reviews }: ReviewsClientProps) {
                     </div>
                 )}
 
-                {/* 리뷰 그리드 */}
-                {displayedReviews.length === 0 ? (
-                    <div className="text-center py-20">
-                        <div className="text-6xl mb-4">📭</div>
-                        <p className="text-gray-400 text-lg font-medium">등록된 리뷰가 없습니다</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {displayedReviews.map((review) => {
-                                const config = platformConfig[review.platform as keyof typeof platformConfig];
-                                const blogInfo = review.platform === 'NAVER_BLOG' ? extractNaverBlogInfo(review.post_url) : null;
-                                
-                                return (
-                                    <a
-                                        key={review.id}
-                                        href={review.post_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="group bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-rose-200 transition-all duration-300 transform hover:-translate-y-2"
-                                    >
-                                    {/* 썸네일 영역 */}
-                                    <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
-                                        {review.thumbnail_url ? (
-                                            <img
-                                                src={review.thumbnail_url}
-                                                alt={review.title || '리뷰 썸네일'}
-                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                referrerPolicy="no-referrer"
-                                            />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-6xl">
-                                                {config.icon}
-                                            </div>
-                                        )}
-                                        
-                                        {/* BEST 뱃지 */}
-                                        {review.is_featured && (
-                                            <div className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs font-black shadow-lg">
-                                                ⭐ BEST
-                                            </div>
-                                        )}
-
-                                        {/* 외부 링크 아이콘 */}
-                                        <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <ExternalLink className="w-5 h-5 text-gray-700" />
-                                        </div>
-                                    </div>
-
-                                    {/* 콘텐츠 영역 */}
-                                    <div className="p-6">
-                                        {/* 작성자 정보 */}
-                                        <div className="flex items-center gap-3 mb-4">
-                                            <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-xl font-black shadow-md`}>
-                                                {config.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-bold text-gray-900 truncate">
-                                                    {review.author_name || blogInfo?.blogId || '익명'}
-                                                </p>
-                                                <p className={`text-xs font-medium ${config.textColor}`}>
-                                                    {config.label}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* 제목 */}
-                                        <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 leading-tight group-hover:text-rose-600 transition-colors">
-                                            {review.title || '제목 없음'}
-                                        </h3>
-
-                                        {/* 설명 */}
-                                        {review.description && (
-                                            <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
-                                                {review.description}
-                                            </p>
-                                        )}
-                                    </div>
-                                </a>
-                            );
-                        })}
-                    </div>
-
-                    {/* 무한 스크롤 로딩 인디케이터 */}
-                    {hasMore && (
-                        <div ref={loadMoreRef} className="py-12 text-center">
-                            <div className="inline-flex items-center gap-3 text-gray-400">
-                                <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                            </div>
-                            <p className="text-sm text-gray-400 mt-3">더 많은 리뷰 불러오는 중...</p>
-                        </div>
-                    )}
-
-                    {/* 모든 리뷰 로드 완료 */}
-                    {!hasMore && displayedReviews.length > 0 && (
-                        <div className="py-12 text-center">
-                            <div className="text-4xl mb-3">🎉</div>
-                            <p className="text-gray-400 font-medium">모든 리뷰를 확인했습니다</p>
-                            <p className="text-sm text-gray-400 mt-1">총 {displayedReviews.length}개의 리뷰</p>
-                        </div>
-                    )}
-                </>
-                )}
+                {/* 리뷰 그리드 영역 (Suspense 적용) */}
+                <Suspense fallback={<GridSkeleton />}>
+                    <ShuffledReviewsGrid reviewsPromise={reviewsPromise} filter={filter} />
+                </Suspense>
             </div>
         </div>
+    );
+}
+
+// 스켈레톤 로더 컴포넌트
+function GridSkeleton() {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="bg-white border-2 border-gray-50 rounded-3xl overflow-hidden shadow-sm animate-pulse">
+                    <div className="h-56 bg-gray-100"></div>
+                    <div className="p-6 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gray-200"></div>
+                            <div className="space-y-2">
+                                <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                                <div className="h-3 w-16 bg-gray-100 rounded"></div>
+                            </div>
+                        </div>
+                        <div className="h-5 w-full bg-gray-200 rounded"></div>
+                        <div className="h-3 w-full bg-gray-100 rounded"></div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// 실제 랜덤 셔플 및 그리드 아이템 렌더링 컴포넌트
+function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promise<Review[]>, filter: string }) {
+    const reviews = use(reviewsPromise);
+    const [shuffledReviews, setShuffledReviews] = useState<Review[]>([]);
+    const [displayedCount, setDisplayedCount] = useState(12);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const loadMoreRef = useRef<HTMLDivElement>(null);
+
+    // 최초 로드 시 랜덤 섞기
+    useEffect(() => {
+        const shuffled = [...reviews].sort(() => Math.random() - 0.5);
+        setShuffledReviews(shuffled);
+    }, [reviews]);
+
+    // 필터링
+    const filteredReviews = filter === 'ALL'
+        ? shuffledReviews
+        : shuffledReviews.filter((r: Review) => r.platform === filter);
+
+    const displayedReviews = filteredReviews.slice(0, displayedCount);
+    const hasMore = displayedCount < filteredReviews.length;
+
+    // 무한 스크롤
+    useEffect(() => {
+        if (!loadMoreRef.current || !hasMore) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && !isLoadingMore) {
+                    setIsLoadingMore(true);
+                    setTimeout(() => {
+                        setDisplayedCount((prev: number) => prev + 12);
+                        setIsLoadingMore(false);
+                    }, 500);
+                }
+            },
+            { threshold: 0.1, rootMargin: '100px' }
+        );
+        observer.observe(loadMoreRef.current);
+        return () => observer.disconnect();
+    }, [hasMore, isLoadingMore, displayedCount]);
+
+    useEffect(() => {
+        setDisplayedCount(12);
+    }, [filter]);
+
+    if (shuffledReviews.length === 0 && reviews.length > 0) {
+        return <GridSkeleton />;
+    }
+
+    if (displayedReviews.length === 0) {
+        return (
+            <div className="text-center py-20">
+                <div className="text-6xl mb-4">📭</div>
+                <p className="text-gray-400 text-lg font-medium">등록된 리뷰가 없습니다</p>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {displayedReviews.map((review: Review) => {
+                    const config = platformConfig[review.platform as keyof typeof platformConfig] || platformConfig.OTHER;
+                    const blogInfo = review.platform === 'NAVER_BLOG' ? extractNaverBlogInfo(review.post_url) : null;
+                    return (
+                        <a
+                            key={review.id}
+                            href={review.post_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group bg-white border-2 border-gray-100 rounded-3xl overflow-hidden hover:shadow-2xl hover:border-rose-200 transition-all duration-300 transform hover:-translate-y-2"
+                        >
+                            <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
+                                {review.thumbnail_url ? (
+                                    <img
+                                        src={review.thumbnail_url}
+                                        alt={review.title || '리뷰 썸네일'}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                        referrerPolicy="no-referrer"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-6xl">
+                                        {config.icon}
+                                    </div>
+                                )}
+                                {review.is_featured && (
+                                    <div className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs font-black shadow-lg">
+                                        ⭐ BEST
+                                    </div>
+                                )}
+                                <div className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <ExternalLink className="w-5 h-5 text-gray-700" />
+                                </div>
+                            </div>
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-xl font-black shadow-md`}>
+                                        {config.icon}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-bold text-gray-900 truncate">
+                                            {review.author_name || blogInfo?.blogId || '익명'}
+                                        </p>
+                                        <p className={`text-xs font-medium ${config.textColor}`}>
+                                            {config.label}
+                                        </p>
+                                    </div>
+                                </div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 leading-tight group-hover:text-rose-600 transition-colors">
+                                    {review.title || '제목 없음'}
+                                </h3>
+                                {review.description && (
+                                    <p className="text-sm text-gray-500 line-clamp-3 leading-relaxed">
+                                        {review.description}
+                                    </p>
+                                )}
+                            </div>
+                        </a>
+                    );
+                })}
+            </div>
+            {hasMore && (
+                <div ref={loadMoreRef} className="py-12 text-center">
+                    <div className="inline-flex items-center gap-3 text-gray-400">
+                        <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <p className="text-sm text-gray-400 mt-3">더 많은 리뷰 불러오는 중...</p>
+                </div>
+            )}
+            {!hasMore && displayedReviews.length > 0 && (
+                <div className="py-12 text-center">
+                    <div className="text-4xl mb-3">🎉</div>
+                    <p className="text-gray-400 font-medium">모든 리뷰를 확인했습니다</p>
+                    <p className="text-sm text-gray-400 mt-1">총 {displayedReviews.length}개의 리뷰</p>
+                </div>
+            )}
+        </>
     );
 }

@@ -14,12 +14,11 @@ import FeaturesCarousel from '@/components/FeaturesCarousel';
 
 export const revalidate = 60; // ISR: 1분마다 재생성
 
-
 export default async function Home() {
     // Fetch banner items for SSR (includes campaign data)
     const bannerItems = await fetchAllBannerData();
 
-    // Extract campaigns from banner data (no duplicate queries!)
+    // Extract campaigns from banner data
     const latestCampaigns = bannerItems
         .filter(item => item.type === 'NEW')
         .slice(0, 4)
@@ -29,8 +28,9 @@ export default async function Home() {
             imageUrl: item.image_url,
             type: item.extra_badge === '방문' ? 'VISIT' : 'DELIVERY',
             provision: item.subtitle || '',
-            dday: 'D-7', // Placeholder, will be calculated in CampaignCard
-            applicants: item.applicants || 0,  // 🟢 배너 데이터에서 가져옴
+            dday: item.dday || 'D-0',
+            applicants: item.applicants || 0,
+            total: item.total || 0,
             platform: 'BLOG',
             region: '',
             end_date: '',
@@ -46,8 +46,27 @@ export default async function Home() {
             imageUrl: item.image_url,
             type: item.extra_badge === '방문' ? 'VISIT' : 'DELIVERY',
             provision: item.subtitle || '',
-            dday: 'D-7',
-            applicants: item.applicants || 0,  // 🟢 배너 데이터에서 가져옴
+            dday: item.dday || 'D-0',
+            applicants: item.applicants || 0,
+            total: item.total || 0,
+            platform: 'BLOG',
+            region: '',
+            end_date: '',
+            created_at: ''
+        }));
+
+    const steadyCampaigns = bannerItems
+        .filter(item => item.type === 'STEADY')
+        .slice(0, 4)
+        .map(item => ({
+            id: item.id.toString().replace('steady-', ''),
+            title: item.title,
+            imageUrl: item.image_url,
+            type: item.extra_badge === '방문' ? 'VISIT' : 'DELIVERY',
+            provision: item.subtitle || '',
+            dday: item.dday || '상시',
+            applicants: item.applicants || 0,
+            total: item.total || 0,
             platform: 'BLOG',
             region: '',
             end_date: '',
@@ -97,8 +116,32 @@ export default async function Home() {
                 </div>
             </section>
 
+            {/* Steady (Always Open) Campaigns Section */}
+            {steadyCampaigns.length > 0 && (
+                <section className="bg-gradient-to-b from-rose-50 to-indigo-50 pb-8 pt-8">
+                    <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
+                        <div className="flex justify-between items-end mb-8">
+                            <div>
+                                <span className="inline-block bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">ALWAYS OPEN</span>
+                                <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
+                                    언제든지 신청 가능한 꿀 캠페인 <span className="text-indigo-500">♾️</span>
+                                </h2>
+                            </div>
+                            <Link href="/campaigns?sort=steady" className="text-sm font-bold text-gray-400 hover:text-indigo-600 transition-colors flex items-center gap-1 group">
+                                전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
+                            </Link>
+                        </div>
+                        <CampaignCarousel
+                            campaigns={steadyCampaigns}
+                            maxItems={4}
+                            showNavigation={false}
+                        />
+                    </div>
+                </section>
+            )}
+
             {/* Popular Campaigns Section (4 items) */}
-            <section className="bg-gradient-to-b from-rose-50 to-white pb-16 pt-8 border-b border-rose-100">
+            <section className="bg-gradient-to-b from-indigo-50 to-white pb-16 pt-8 border-b border-rose-100">
                 <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex justify-between items-end mb-8">
                         <div>
@@ -122,7 +165,7 @@ export default async function Home() {
             {/* KakaoTalk Channel Banner */}
             <KakaoBanner />
 
-            {/* Service Introduction - Updated to match Intro Page */}
+            {/* Service Introduction */}
             <section className="bg-white py-24 border-y border-gray-100 mt-8">
                 <div className="container px-4 md:px-0">
                     <div className="text-center mb-12 md:mb-16">
@@ -133,17 +176,16 @@ export default async function Home() {
                             AI 콘텐츠 생성부터 영향력 진단까지, <br className="md:hidden" />다온뷰가 인플루언서의 성장을 끝까지 책임집니다.
                         </p>
                     </div>
-
                     <FeaturesCarousel />
                 </div>
             </section>
 
-            {/* Notices & Events - Integrated with Shared BoardList Component */}
-            <BoardList 
-                title="이벤트 & 공지" 
-                icon="📢" 
-                items={notices} 
-                viewAllHref="/community/notice" 
+            {/* Notices & Events */}
+            <BoardList
+                title="이벤트 & 공지"
+                icon="📢"
+                items={notices}
+                viewAllHref="/community/notice"
             />
         </div>
     );

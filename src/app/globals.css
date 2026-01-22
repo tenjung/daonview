@@ -71,24 +71,33 @@ body {
   .brand-text-base {
     display: flex;
     align-items: center;
-    font-weight: 900; /* Standard Black */
-    letter-spacing: -0.06em; /* Slightly relaxed to prevent character clipping */
+    font-weight: 900;
+    /* Standard Black */
+    letter-spacing: -0.06em;
+    /* Slightly relaxed to prevent character clipping */
     line-height: 1;
-    padding-right: 0.25em; /* Generous padding to prevent 'W' clipping */
-    padding-left: 0.05em; /* Safe margin for 'D' */
+    padding-right: 0.25em;
+    /* Generous padding to prevent 'W' clipping */
+    padding-left: 0.05em;
+    /* Safe margin for 'D' */
     white-space: nowrap;
-    overflow: visible; /* Ensure glyphs outside box are visible */
+    overflow: visible;
+    /* Ensure glyphs outside box are visible */
   }
 
   .brand-text-gradient {
-    background: linear-gradient(
-      135deg, 
-      #ff385c 0%,    /* Main Rose Red */
-      #ff5a7b 20%,   /* Warm Pink */
-      #a855f7 50%,   /* Premium Violet */
-      #6366f1 80%,   /* Soft Indigo Point */
-      #ff385c 100%   /* Return to Rose Red */
-    );
+    background: linear-gradient(135deg,
+        #ff385c 0%,
+        /* Main Rose Red */
+        #ff5a7b 20%,
+        /* Warm Pink */
+        #a855f7 50%,
+        /* Premium Violet */
+        #6366f1 80%,
+        /* Soft Indigo Point */
+        #ff385c 100%
+        /* Return to Rose Red */
+      );
     background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
@@ -100,18 +109,44 @@ body {
 }
 
 @keyframes gradient-flow {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 /* Global Scrollbar Hide */
-html, body {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+html,
+body {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
 }
 
 html::-webkit-scrollbar,
 body::-webkit-scrollbar {
   display: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
 }

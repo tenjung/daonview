@@ -594,18 +594,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
 
                             <div className="space-y-6">
-                                <div className="flex flex-wrap gap-2">
-                                    {category && (
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
-                                            #{category}
-                                        </span>
-                                    )}
-                                    {region && (
-                                        <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-[11px] font-bold">
-                                            #{region}
-                                        </span>
-                                    )}
-                                </div>
+
 
                                 <div className="bg-slate-50/50 rounded-2xl p-7 border border-slate-100 relative overflow-hidden group">
                                     <div className="absolute top-0 left-0 w-1 h-full bg-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
@@ -916,7 +905,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                                                     if (newSelected.length >= 0) {
                                                                         setSelectedOptions(newSelected);
-                                                                        
+
                                                                         // Auto-collapse if selection is complete
                                                                         if (newSelected.length === (config.maxSelect || 1)) {
                                                                             setTimeout(() => setIsOptionsExpanded(false), 300);

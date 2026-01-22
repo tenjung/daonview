@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
         const isInstagram = url.includes('instagram.com');
 
         if (!isNaverBlog && !isInstagram) {
-            return NextResponse.json({ 
-                error: 'Only Naver Blog and Instagram URLs are supported' 
+            return NextResponse.json({
+                error: 'Only Naver Blog and Instagram URLs are supported'
             }, { status: 400 });
         }
 
@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
 
     } catch (error: any) {
         console.error('Error scraping:', error);
+
+        if (error.message === 'POST_NOT_FOUND') {
+            return NextResponse.json(
+                { error: 'Post not found or deleted' },
+                { status: 404 }
+            );
+        }
+
         return NextResponse.json(
             { error: error.message || 'Failed to scrape data' },
             { status: 500 }

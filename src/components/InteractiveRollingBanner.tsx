@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 
 export interface BannerItem {
     id: string | number;
-    type: 'ADMIN' | 'NEW' | 'POPULAR' | 'NOTICE';
+    type: 'ADMIN' | 'NEW' | 'POPULAR' | 'NOTICE' | 'STEADY';
     title: string;
     subtitle?: string;
     image_url: string;
@@ -28,6 +28,8 @@ export interface BannerItem {
     isBest?: boolean;
     show_content?: boolean;
     applicants?: number; // 신청자 수
+    total?: number; // 모집 인원
+    dday?: string; // 마감 임박 표시
 }
 
 interface BannerProps {

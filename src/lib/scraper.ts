@@ -25,20 +25,28 @@ export async function scrapeNaverBlog(url: string) {
             }
         });
 
+        if (response.status === 404) {
+            throw new Error('POST_NOT_FOUND');
+        }
+
         if (response.ok) {
             const html = await response.text();
+
+            // 삭제되거나 비공개된 글 체크
+
+
             const $ = cheerio.load(html);
 
             // OG 태그에서 정확한 데이터 추출
             title = $('meta[property="og:title"]').attr('content') || '';
             description = $('meta[property="og:description"]').attr('content') || '';
             thumbnail = $('meta[property="og:image"]').attr('content') || '';
-            
+
             // 작성자 이름 추출
-            authorName = $('meta[property="naverblog:nickname"]').attr('content') || 
-                         $('meta[name="author"]').attr('content') || 
-                         $('.blog_author .nick').text().trim() || 
-                         $('.se_og_box .name').text().trim() || '';
+            authorName = $('meta[property="naverblog:nickname"]').attr('content') ||
+                $('meta[name="author"]').attr('content') ||
+                $('.blog_author .nick').text().trim() ||
+                $('.se_og_box .name').text().trim() || '';
 
             // 작성자 이름이 없으면 블로그 홈에서 가져오기
             if (!authorName) {
@@ -49,9 +57,9 @@ export async function scrapeNaverBlog(url: string) {
                 if (homeResponse.ok) {
                     const homeHtml = await homeResponse.text();
                     const $home = cheerio.load(homeHtml);
-                    authorName = $home('.blog_title').text().trim() || 
-                               $home('.nick_name').text().trim() || 
-                               $home('.user_name').text().trim() || '';
+                    authorName = $home('.blog_title').text().trim() ||
+                        $home('.nick_name').text().trim() ||
+                        $home('.user_name').text().trim() || '';
                 }
             }
         }
@@ -80,7 +88,7 @@ export async function scrapeNaverBlog(url: string) {
                     const searchData = await searchRes.json();
                     if (searchData.items && searchData.items.length > 0) {
                         // 같은 블로그 ID를 가진 글 찾기
-                        const matchedItem = searchData.items.find((item: any) => 
+                        const matchedItem = searchData.items.find((item: any) =>
                             item.link.includes(blogId)
                         );
                         if (matchedItem) {
@@ -117,12 +125,16 @@ export async function scrapeInstagram(url: string) {
             headers: { 'Accept': 'application/json' }
         });
 
+        if (response.status === 404) {
+            throw new Error('POST_NOT_FOUND');
+        }
+
         if (response.ok) {
             const data = await response.json();
             const authorName = data.author_name || 'Instagram User';
             const title = data.title || '인스타그램 포스트';
             const thumbnailUrl = data.thumbnail_url || '';
-            
+
             let description = '';
             if (data.html) {
                 const captionMatch = data.html.match(/caption["\s:]+([^"<]+)/i);
@@ -151,14 +163,22 @@ export async function scrapeInstagram(url: string) {
             }
         });
 
+        if (response.status === 404) {
+            throw new Error('POST_NOT_FOUND');
+        }
+
         if (response.ok) {
             const html = await response.text();
+            // 인스타그램 로그인 페이지로 리다이렉트되거나 게시물 부재 시
+
             const $ = cheerio.load(html);
+
+
 
             const ogTitle = $('meta[property="og:title"]').attr('content') || '';
             const ogDescription = $('meta[property="og:description"]').attr('content') || '';
             const ogImage = $('meta[property="og:image"]').attr('content') || '';
-            
+
             let authorName = '';
             if (ogTitle) {
                 const titleMatch = ogTitle.match(/^([^:]+)/);

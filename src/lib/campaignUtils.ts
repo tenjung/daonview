@@ -63,7 +63,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     type: typeMap[rawType] || (typeof rawType === 'string' ? rawType.toUpperCase() : 'VISIT'),
     applicants: applicants,
     total: campaign.recruit_count || 0,
-    dday: campaign.is_always ? "상시" : formatDDay(campaign.end_date),
+    dday: (campaign.is_always || (campaign.recruit_count && campaign.recruit_count >= 999)) ? "상시" : formatDDay(campaign.end_date),
     category: campaign.category,
     region: (campaign as any).region || null,
     imageUrl: campaign.thumbnail_url || '',
