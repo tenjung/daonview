@@ -1,7 +1,8 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import InfluencerColumnClient from "./InfluencerColumnClient";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // ISR: 1분마다 재생성
+
 
 export default async function InfluencerColumnPage() {
     const supabase = await createServerClient();

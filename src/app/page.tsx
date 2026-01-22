@@ -12,30 +12,47 @@ import KakaoBanner from '@/components/KakaoBanner';
 import BoardList from '@/components/board/BoardList';
 import FeaturesCarousel from '@/components/FeaturesCarousel';
 
-export const revalidate = 0;
+export const revalidate = 60; // ISR: 1분마다 재생성
+
 
 export default async function Home() {
-    // 1. Latest Campaigns (Limited to 4)
-    const { data: latestData } = await supabase
-        .from('campaigns')
-        .select('*')
-        .in('status', ['RECRUITING', 'ONGOING'])
-        .order('created_at', { ascending: false })
-        .limit(4);
+    // Fetch banner items for SSR (includes campaign data)
+    const bannerItems = await fetchAllBannerData();
 
-    const latestCampaigns = (latestData || []).map(c => mapCampaignToCard(c as any));
+    // Extract campaigns from banner data (no duplicate queries!)
+    const latestCampaigns = bannerItems
+        .filter(item => item.type === 'NEW')
+        .slice(0, 4)
+        .map(item => ({
+            id: item.id.toString().replace('new-', ''),
+            title: item.title,
+            imageUrl: item.image_url,
+            type: item.extra_badge === '방문' ? 'VISIT' : 'DELIVERY',
+            provision: item.subtitle || '',
+            dday: 'D-7', // Placeholder, will be calculated in CampaignCard
+            applicants: item.applicants || 0,  // 🟢 배너 데이터에서 가져옴
+            platform: 'BLOG',
+            region: '',
+            end_date: '',
+            created_at: ''
+        }));
 
-    // 3. Popular Campaigns (Sorted by application count, top 4)
-    const { data: popularRawData } = await supabase
-        .from('campaigns')
-        .select('*')
-        .in('status', ['RECRUITING', 'ONGOING'])
-        .limit(20);
-
-    const popularCampaigns = (popularRawData || [])
-        .map(c => mapCampaignToCard(c as any))
-        .sort((a, b) => (b.applicants || 0) - (a.applicants || 0))
-        .slice(0, 4);
+    const popularCampaigns = bannerItems
+        .filter(item => item.type === 'POPULAR')
+        .slice(0, 4)
+        .map(item => ({
+            id: item.id.toString().replace('pop-', ''),
+            title: item.title,
+            imageUrl: item.image_url,
+            type: item.extra_badge === '방문' ? 'VISIT' : 'DELIVERY',
+            provision: item.subtitle || '',
+            dday: 'D-7',
+            applicants: item.applicants || 0,  // 🟢 배너 데이터에서 가져옴
+            platform: 'BLOG',
+            region: '',
+            end_date: '',
+            created_at: ''
+        }));
 
     // Fetch latest notices from database
     const { data: noticesData, error: noticeFetchError } = await supabase
@@ -49,9 +66,6 @@ export default async function Home() {
     }
 
     const notices = noticesData || [];
-
-    // Fetch banner items for SSR
-    const bannerItems = await fetchAllBannerData();
 
     return (
         <div className="bg-background">

@@ -2,8 +2,8 @@ import { supabase } from '@/lib/supabaseClient';
 import CampaignDetailClient from '@/components/CampaignDetailClient';
 import { notFound } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export const revalidate = 60; // ISR: 1분마다 재생성
+
 
 interface PageProps {
     params: Promise<{ id: string }>;

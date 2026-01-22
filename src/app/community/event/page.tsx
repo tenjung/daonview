@@ -1,7 +1,8 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import EventBoardClient from "@/app/community/event/EventBoardClient";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // ISR: 5분마다 재생성
+
 
 export default async function EventPage() {
     const supabase = await createServerClient();

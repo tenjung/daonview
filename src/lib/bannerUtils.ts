@@ -23,11 +23,12 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
             console.warn('Failed to fetch banner config, using defaults');
         }
 
-        // 2. Parallel Fetch with dynamic limits based on config
+        // 2. Parallel Fetch with optimized limits
         const [bannersRes, latestRes, popularRes] = await Promise.all([
             supabase.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true }),
             supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).order('created_at', { ascending: false }).limit(newCount),
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(Math.max(hotCount * 2, 10))
+            // Optimized: Only fetch what we need (hotCount + buffer for sorting)
+            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(hotCount + 2)
         ]);
 
         // 3. Process Admin Banners
@@ -55,7 +56,8 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
                     image_url: mapped.imageUrl || 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=800&h=600&fit=crop',
                     link_url: `/campaigns/${c.id}`,
                     badge: 'NEW',
-                    extra_badge: mapped.type === 'VISIT' ? '방문' : '배송'
+                    extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
+                    applicants: mapped.applicants || 0  // 🟢 신청자 수 추가
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -78,7 +80,8 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
                     link_url: `/campaigns/${mapped.id}`,
                     badge: hasManyApplicants ? 'HOT' : undefined,
                     isBest: isVisit && index < 2, // Only top 2 Visit campaigns get BEST
-                    extra_badge: isVisit ? '방문' : '배송'
+                    extra_badge: isVisit ? '방문' : '배송',
+                    applicants: mapped.applicants || 0  // 🟢 신청자 수 추가
                 };
             })
             .filter(item => item.image_url && item.title);

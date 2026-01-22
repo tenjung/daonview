@@ -1,7 +1,8 @@
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import NoticeBoardClient from "@/app/community/notice/NoticeBoardClient";
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 300; // ISR: 5분마다 재생성
+
 
 export default async function NoticePage() {
     const supabase = await createServerClient();

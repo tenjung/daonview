@@ -27,6 +27,7 @@ export interface BannerItem {
     label?: string;
     isBest?: boolean;
     show_content?: boolean;
+    applicants?: number; // 신청자 수
 }
 
 interface BannerProps {
