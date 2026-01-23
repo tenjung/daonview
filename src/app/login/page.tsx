@@ -21,8 +21,8 @@ function LoginForm() {
         const error = searchParams.get('error');
         if (error) {
             toast.error('인증 실패', {
-                description: error === 'auth_callback_failed' 
-                    ? '카카오 인증 정보를 처리하는 중 오류가 발생했습니다. 개발자 설정(Redirect URI 등)을 확인해주세요.' 
+                description: error === 'auth_callback_failed'
+                    ? '카카오 인증 정보를 처리하는 중 오류가 발생했습니다. 개발자 설정(Redirect URI 등)을 확인해주세요.'
                     : error,
             });
         }
@@ -119,6 +119,12 @@ function LoginForm() {
 
             // Redirect based on role using window.location.href for proper navigation
             setTimeout(() => {
+                const returnTo = searchParams.get('returnTo');
+                if (returnTo) {
+                    window.location.href = returnTo;
+                    return;
+                }
+
                 if (profileData?.role === 'ADMIN') {
                     window.location.href = '/dashboard/admin';
                 } else {
@@ -134,12 +140,13 @@ function LoginForm() {
             });
         }
     };
-    
+
     const handleSocialLogin = async (provider: 'kakao' | 'google') => {
         setIsSocialLoading(provider);
         try {
+            const returnTo = searchParams.get('returnTo') || '/';
             const options: any = {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(returnTo)}`,
             };
 
             if (provider === 'kakao') {
@@ -248,9 +255,9 @@ function LoginForm() {
             </div>
 
             {showOnboarding && newUserId && (
-                <OnboardingModal 
-                    userId={newUserId} 
-                    onComplete={() => window.location.href = '/'} 
+                <OnboardingModal
+                    userId={newUserId}
+                    onComplete={() => window.location.href = '/'}
                     allowSkip={true}  // 로그인 시에는 건너뛰기 허용
                 />
             )}

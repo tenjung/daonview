@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
 import {
     ChevronLeft,
     ChevronRight,
@@ -57,6 +58,8 @@ interface CampaignDetailClientProps {
 }
 
 export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
+    const router = useRouter();
+    const pathname = usePathname();
     const { user } = useAuthStore();
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const [campaign, setCampaign] = useState(initialCampaign);
@@ -207,6 +210,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     async function handleApply() {
         if (!user) {
             toast.error('로그인이 필요합니다.');
+            router.push(`/login?returnTo=${encodeURIComponent(pathname)}`);
             return;
         }
 
@@ -425,8 +429,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // 캠페인 소개 (Step1에서 입력)
     const campaignIntro = campaign.description || campaign.experience_details || step1Data.experienceDetails || '';
 
-    // 상세 가이드 (Step2에서 입력)
-    const missionGuide = campaign.mission_guide || step2Data.missionGuide || step2Data.reviewMissionContent || '';
+    // 구매평 가이드 (Step2 구매평 영역)
+    const purchaseNotes = step2Data.purchaseNotes || campaign.purchase_notes || '';
+    const purchaseReviewGuide = step2Data.reviewMissionContent || campaign.review_mission_content || '';
+
+    // 상세 가이드 (Step2 블로그/인스타 가이드 영역)
+    const missionGuide = campaign.mission_guide || step2Data.missionGuide || '';
 
     // 키워드 추출 로직 개선 (메인/서브 분리)
     const mainKeywords = Array.isArray(campaign.keywords) && campaign.keywords.length > 0
@@ -613,103 +621,154 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
                         </section>
 
-                        {/* 체험 미션 Section - Professional Re-design */}
+                        {/* 체험 미션 Section - 시안 B: 플랫폼별 수직 스택 */}
                         <section className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                            <div className="flex items-center gap-3 mb-8">
+                            <div className="flex items-center gap-3 mb-10">
                                 <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
                                     💰
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">체험 미션</h2>
-                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Experience Mission</p>
+                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">체험 미션 가이드</h2>
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Experience Mission Guide</p>
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-8">
-                                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
-                                    </p>
-                                    <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
-                                </div>
-                                <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
-                                    </p>
-                                    <p className="font-black text-slate-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
-                                </div>
-                            </div>
-
-                            {/* 키워드 영역 - Unified Clean Style */}
-                            <div className="space-y-4">
-                                {mainKeywords.length > 0 && (
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 text-[10px] font-black mb-4 border border-rose-100">
-                                            필수 키워드
+                            <div className="space-y-12">
+                                {/* 1. 구매평 작성 가이드 (배송형 + 구매평 미션이 있을 때) */}
+                                {(purchaseReviewGuide || purchaseNotes) && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
+                                                <ShoppingBag size={18} />
+                                            </div>
+                                            <h3 className="text-lg font-black text-slate-900">구매평 작성 가이드</h3>
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {mainKeywords.map((kw: string, i: number) => (
-                                                <span key={i} className="px-3 py-1.5 bg-slate-50 text-slate-900 rounded-xl text-xs font-bold border border-slate-100">
-                                                    #{kw}
-                                                </span>
-                                            ))}
+
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {purchaseNotes && (
+                                                <div className="p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
+                                                    <p className="text-[11px] text-blue-600 font-bold mb-2 uppercase tracking-widest">💡 구매 시 주의사항</p>
+                                                    <p className="text-sm text-slate-700 leading-7 whitespace-pre-line font-medium">{purchaseNotes}</p>
+                                                </div>
+                                            )}
+                                            {purchaseReviewGuide && (
+                                                <div className="p-7 bg-slate-50 rounded-3xl border border-slate-100">
+                                                    <p className="text-[11px] text-slate-400 font-bold mb-4 uppercase tracking-widest text-left">✍️ 구매평 미션 내용</p>
+                                                    <div className="text-[14px] text-slate-700 leading-8 whitespace-pre-line font-medium">
+                                                        {purchaseReviewGuide}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                {subKeywords.length > 0 && (
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black mb-4 border border-slate-200">
-                                            서브 키워드
+                                {/* 2. 플랫폼 포스팅 가이드 (블로그/인스타그램 등) */}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
+                                            {campaign.platform?.toUpperCase().includes('INSTAGRAM') ? <Instagram size={18} /> : <PenTool size={18} />}
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {subKeywords.map((kw: string, i: number) => (
-                                                <span key={i} className="px-3 py-1.5 bg-white text-slate-600 rounded-xl text-xs font-medium border border-slate-100">
-                                                    #{kw}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        <h3 className="text-lg font-black text-slate-900">
+                                            {campaign.platform?.toUpperCase().includes('BLOG') ? '네이버 블로그 포스팅 가이드' :
+                                                campaign.platform?.toUpperCase().includes('INSTAGRAM') ? '인스타그램 업로드 가이드' :
+                                                    `${campaign.platform || '플랫폼'} 가이드`}
+                                        </h3>
                                     </div>
-                                )}
 
-                                {instagramHashtags.length > 0 && (
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-pink-50 text-pink-600 text-[10px] font-black mb-4 border border-pink-100">
-                                            인스타그램 해시태그
+                                    {/* 사진/영상 조건 */}
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
+                                            </p>
+                                            <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
                                         </div>
-                                        <div className="flex flex-wrap gap-2">
-                                            {instagramHashtags.map((kw: string, i: number) => (
-                                                <span key={i} className="px-3 py-1.5 bg-pink-50/30 text-pink-600 rounded-xl text-xs font-bold border border-pink-100">
-                                                    {kw.startsWith('#') ? kw : `#${kw}`}
-                                                </span>
-                                            ))}
+                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
+                                            </p>
+                                            <p className="font-black text-slate-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
                                         </div>
                                     </div>
-                                )}
+
+                                    {/* 키워드 가이드 (블로그용) */}
+                                    {(mainKeywords.length > 0 || subKeywords.length > 0) && (
+                                        <div className="space-y-4">
+                                            {mainKeywords.length > 0 && (
+                                                <div className="p-6 bg-white rounded-2xl border border-slate-100">
+                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 text-[10px] font-black mb-4 border border-rose-100 text-left">
+                                                        필수 키워드
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {mainKeywords.map((kw: string, i: number) => (
+                                                            <span key={i} className="px-3 py-1.5 bg-slate-50 text-slate-900 rounded-xl text-xs font-bold border border-slate-100">
+                                                                #{kw}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {subKeywords.length > 0 && (
+                                                <div className="p-6 bg-white rounded-2xl border border-slate-100">
+                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black mb-4 border border-slate-200 text-left">
+                                                        서브 키워드
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {subKeywords.map((kw: string, i: number) => (
+                                                            <span key={i} className="px-3 py-1.5 bg-white text-slate-600 rounded-xl text-xs font-medium border border-slate-100">
+                                                                #{kw}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* 인스타그램 해시태그 */}
+                                    {instagramHashtags.length > 0 && (
+                                        <div className="p-6 bg-white rounded-2xl border border-slate-100">
+                                            <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-pink-50 text-pink-600 text-[10px] font-black mb-4 border border-pink-100 text-left">
+                                                인스타그램 해시태그
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {instagramHashtags.map((kw: string, i: number) => (
+                                                    <span key={i} className="px-3 py-1.5 bg-pink-50/30 text-pink-600 rounded-xl text-xs font-bold border border-pink-100">
+                                                        {kw.startsWith('#') ? kw : `#${kw}`}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 상세 포스팅 가이드 */}
+                                    {missionGuide && (
+                                        <div className="p-7 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl">
+                                            <p className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em] text-left">📝 상세 포스팅 가이드</p>
+                                            <div className="text-[14px] text-slate-300 leading-8 whitespace-pre-line font-medium">
+                                                {missionGuide}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* 금지 키워드 */}
+                                    {(step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
+                                        <div className="p-5 bg-rose-50/30 rounded-2xl border border-rose-100 flex items-start gap-3">
+                                            <div className="text-rose-500 mt-1">⚠️</div>
+                                            <div>
+                                                <p className="text-[11px] font-bold text-rose-500 mb-2 uppercase tracking-widest text-left">금지 키워드</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {(campaign.prohibited_words || step2Data.prohibitedWords).map((word: string, i: number) => (
+                                                        <span key={i} className="text-xs text-rose-600 font-bold">#{word}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-
-                            {missionGuide && (
-                                <div className="mt-6 p-7 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl">
-                                    <p className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em]">📝 상세 가이드</p>
-                                    <div className="text-[14px] text-slate-300 leading-8 whitespace-pre-line font-medium">
-                                        {missionGuide}
-                                    </div>
-                                </div>
-                            )}
-
-                            {(step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
-                                <div className="mt-4 p-5 bg-rose-50/30 rounded-2xl border border-rose-100 flex items-start gap-3">
-                                    <div className="text-rose-500 mt-1">⚠️</div>
-                                    <div>
-                                        <p className="text-[11px] font-bold text-rose-500 mb-2 uppercase tracking-widest">금지 키워드</p>
-                                        <div className="flex flex-wrap gap-2">
-                                            {(campaign.prohibited_words || step2Data.prohibitedWords).map((word: string, i: number) => (
-                                                <span key={i} className="text-xs text-rose-600 font-bold">#{word}</span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </section>
 
                         {/* 방문 및 예약 안내 (방문형일 때만 노출) - Professional Re-design */}
@@ -979,7 +1038,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             <div className="pt-2">
                                                 <button
                                                     onClick={handleApply}
-                                                    disabled={isClosed || !user}
+                                                    disabled={isClosed}
                                                     className={`group relative w-full py-5 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
                                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                                         : !user
@@ -1049,8 +1108,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 p-4 bg-white/90 backdrop-blur-2xl border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.1)]">
                 {!hasApplied ? (
                     <button
-                        onClick={() => setIsApplySheetOpen(true)}
-                        disabled={isClosed || !user}
+                        onClick={() => {
+                            if (!user) {
+                                handleApply();
+                                return;
+                            }
+                            setIsApplySheetOpen(true);
+                        }}
+                        disabled={isClosed}
                         className={`w-full py-5 rounded-[24px] text-base font-black flex items-center justify-center gap-2 transition-all shadow-2xl active:scale-[0.96] ${isClosed
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                             : !user
