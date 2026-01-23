@@ -8,9 +8,9 @@ export default async function AdminUsersPage() {
     const supabase = await createClient();
 
     // 1. 세션 확인
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (!session) {
+    if (!user) {
         redirect('/login');
     }
 
@@ -18,7 +18,7 @@ export default async function AdminUsersPage() {
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
     if (!profile || profile.role !== 'ADMIN') {

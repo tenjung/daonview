@@ -324,6 +324,7 @@ export default function BrandSelect({ value, onChange, userId }: BrandSelectProp
                                 placeholder="예: 다온뷰, 나이키 등" 
                                 value={newName}
                                 onChange={(e) => setNewName(e.target.value)}
+                                className="h-12"
                             />
                         </div>
                     </div>

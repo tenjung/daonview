@@ -145,8 +145,8 @@ function ProfileEditContent() {
     useEffect(() => {
         const loadProfileData = async () => {
             try {
-                const { data: { session } } = await supabase.auth.getSession();
-                if (!session) {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) {
                     router.push('/login');
                     return;
                 }
@@ -154,14 +154,14 @@ function ProfileEditContent() {
                 const { data, error } = await supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', session.user.id)
+                    .eq('id', user.id)
                     .single();
 
                 if (error) throw error;
 
                 if (data) {
                     setProfile(data);
-                    setProviders(session.user.app_metadata?.providers || []);
+                    setProviders(user.app_metadata?.providers || []);
                     setFormData({
                         nickname: data.nickname || '',
                         phone_number: data.phone_number || '',
@@ -205,8 +205,8 @@ function ProfileEditContent() {
         setSaving(true);
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
             const updateData: any = {
                 nickname: formData.nickname,
@@ -237,12 +237,12 @@ function ProfileEditContent() {
             const { error } = await supabase
                 .from('profiles')
                 .update(updateData)
-                .eq('id', session.user.id);
+                .eq('id', user.id);
 
             if (error) throw error;
 
             toast.success('기본 정보가 저장되었습니다.');
-            if (session.user.id) await fetchProfile(session.user.id);
+            if (user.id) await fetchProfile(user.id);
         } catch (error: any) {
             toast.error(error?.message || '업데이트에 실패했습니다.');
         } finally {
@@ -253,8 +253,8 @@ function ProfileEditContent() {
     // 소셜 링크 자동 저장 함수
     const autoSaveSocialLink = useCallback(async (field: 'blog' | 'instagram' | 'youtube' | 'tiktok', value: string) => {
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
 
@@ -295,7 +295,7 @@ function ProfileEditContent() {
             const { error } = await supabase
                 .from('profiles')
                 .update(updateData)
-                .eq('id', session.user.id);
+                .eq('id', user.id);
 
             if (error) throw error;
 
@@ -306,7 +306,7 @@ function ProfileEditContent() {
                 setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
             }, 2000);
 
-            if (session.user.id) await fetchProfile(session.user.id);
+            if (user.id) await fetchProfile(user.id);
         } catch (error: any) {
             console.error('Auto-save error:', error);
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
@@ -338,22 +338,21 @@ function ProfileEditContent() {
     const handleInterestsSubmit = async () => {
         setSaving(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
 
             const { error } = await supabase
                 .from('profiles')
                 .update({
-                    preferred_platforms: selectedPlatforms,
                     preferred_regions: selectedRegions,
                     interests: selectedCategories
                 })
-                .eq('id', session.user.id);
+                .eq('id', user.id);
 
             if (error) throw error;
 
             toast.success('관심사 설정이 저장되었습니다.');
-            if (session.user.id) await fetchProfile(session.user.id);
+            if (user.id) await fetchProfile(user.id);
         } catch (error: any) {
             toast.error(error?.message || '업데이트에 실패했습니다.');
         } finally {

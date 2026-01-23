@@ -10,9 +10,9 @@ export const revalidate = 0;
 export default async function BrandSettingsPage() {
     const supabase = await createClient();
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
         redirect('/login');
     }
 
@@ -20,7 +20,7 @@ export default async function BrandSettingsPage() {
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
     if (profile?.role?.toUpperCase() !== 'ADMIN') {

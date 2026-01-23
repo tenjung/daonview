@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronRight, Plus, X, Info, HelpCircle, Users, Calendar, Save, GripVertical, Building2, Infinity } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronRight, Plus, X, Users, Calendar, Save, GripVertical, Building2, Infinity, Info, Megaphone, ChevronDown } from 'lucide-react';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import BrandSelect from './BrandSelect';
 import { useAuthStore } from '@/store/authStore';
+import { CampaignActionButtons } from './CampaignActionButtons';
 import {
     DndContext,
     closestCenter,
@@ -34,6 +44,7 @@ interface Step1Data {
     // 배송체험단 제품 정보
     productUrl: string;
     productUrlPrivate: boolean; // 링크 비공개 설정
+    productUrlIndividual: boolean; // 선정시 구매링크 개별전달
     productName: string;
     campaignTitle: string; // 캠페인 제목 동기화용 추가
     brandName: string;     // 브랜드명 (레거시 및 표시용)
@@ -41,7 +52,7 @@ interface Step1Data {
     productOptions: ProductOption[];
     productPrice: string;
     shippingCost: string;
-    freeShippingCondition: boolean;
+    isCouponRequired: boolean; // 쿠폰 사용 필수 여부
     // 방문/기자단용: 플랫폼 선택
     platform: 'BLOG' | 'INSTAGRAM' | null;
     category?: string;  // 카테고리 (선택)
@@ -87,6 +98,7 @@ interface CampaignStep1Props {
     onChange?: (data: Step1Data) => void;
     onSaveDraft?: () => void;
     initialData?: Partial<Step1Data>;
+    submitTrigger?: number;
 }
 
 // Sortable Option Row Component
@@ -188,7 +200,15 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
-export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialData }: CampaignStep1Props) {
+export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialData, submitTrigger = 0 }: CampaignStep1Props) {
+    // HUD 연동 트리거 감시
+    const lastTrigger = useRef(submitTrigger);
+    useEffect(() => {
+        if (submitTrigger > 0 && submitTrigger !== lastTrigger.current) {
+            lastTrigger.current = submitTrigger;
+            handleNext();
+        }
+    }, [submitTrigger]);
     const { user } = useAuthStore();
     // 스마트 기본값: 내일 날짜
     const getTomorrowDate = () => {
@@ -211,6 +231,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         includeInstagram: initialData?.includeInstagram || false,
         productUrl: initialData?.productUrl || '',
         productUrlPrivate: initialData?.productUrlPrivate || false,
+        productUrlIndividual: initialData?.productUrlIndividual || false,
         productName: initialData?.productName || '',
         campaignTitle: initialData?.campaignTitle || '',
         brandName: initialData?.brandName || '',
@@ -218,7 +239,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         productOptions: initialData?.productOptions || [],
         productPrice: initialData?.productPrice || '',
         shippingCost: initialData?.shippingCost || '',
-        freeShippingCondition: initialData?.freeShippingCondition || false,
+        isCouponRequired: initialData?.isCouponRequired || false,
         platform: initialData?.platform || null,
         category: initialData?.category || '',
         region: initialData?.region || '',
@@ -243,6 +264,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             maxSelect: 1
         },
     });
+
 
     // 초기 데이터 로드 (임시저장 불러오기 시)
     useEffect(() => {
@@ -458,6 +480,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         const numbers = value.replace(/[^0-9]/g, '');
         if (numbers.length <= 3) return numbers;
         if (numbers.length <= 7) return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+        if (numbers.length <= 11) return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7)}`;
         return `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
     };
 
@@ -559,7 +582,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 isValid = formData.advertiserWillContact || (value && value.length >= 12); // 010-1234-5678 형식
                 break;
             case 'productUrl':
-                isValid = value && value.startsWith('http');
+                // 개별전달 체크 시 링크 필수 아님
+                isValid = formData.productUrlIndividual || (value && value.startsWith('http'));
                 break;
             case 'productName':
                 isValid = value && value.trim().length > 0;
@@ -574,16 +598,15 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
     // 폼 유효성 검사
     const isFormValid = () => {
+        if (!formData.brandId) return false;
         if (!formData.campaignType) return false;
 
         // 배송체험단
         if (formData.campaignType === 'DELIVERY') {
-            // 최소 하나는 선택되어야 함
             if (!formData.includeReview && !formData.includeNaver && !formData.includeInstagram) {
                 return false;
             }
-            // 제품 정보 필수
-            if (!formData.productUrl || !formData.productName || !formData.productPrice) {
+            if ((!formData.productUrlIndividual && !formData.productUrl) || !formData.productName) {
                 return false;
             }
         }
@@ -592,10 +615,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
             if (!formData.platform) return false;
             if (formData.stores.length === 0) return false;
-            // 광고주 직접 연락이 아닌 경우에만 연락처 필수
             if (!formData.advertiserWillContact && !formData.contactPhone) return false;
-            // 조율 필요가 아닌 경우에만 방문 시간 필수
             if (!formData.visitTimeNegotiable && !formData.visitTime) return false;
+            if (!formData.experienceDetails) return false;
         }
 
         if (!formData.totalRecruitment) return false;
@@ -605,71 +627,76 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     };
 
     const handleNext = () => {
-        if (!formData.campaignType) {
-            toast.error('진행 유형을 선택해주세요.');
-            return;
+        const scrollTo = (id: string, message: string) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // 포커스 가능한 요소인 경우 포커스
+                const input = el.querySelector('input, select, textarea, button') as HTMLElement;
+                if (input) input.focus();
+                else el.focus();
+            }
+            toast.error(message);
+        };
+
+        if (!formData.brandId) {
+            return scrollTo('brand-section', '캠페인을 진행할 브랜드를 선택해주세요.');
         }
 
-        // 배송체험단 유효성 검사
-        if (formData.campaignType === 'DELIVERY') {
+        if (!formData.campaignType) {
+            return scrollTo('type-section', '진행 유형을 선택해주세요.');
+        }
+
+        const isDelivery = formData.campaignType === 'DELIVERY';
+        const isVisitOrPress = formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS';
+
+        // 플랫폼 선택 확인
+        if (isDelivery) {
             if (!formData.includeReview && !formData.includeNaver && !formData.includeInstagram) {
-                toast.error('최소 하나의 플랫폼을 선택해주세요.');
-                return;
+                return scrollTo('platform-section', '최소 하나의 리뷰 플랫폼을 선택해주세요.');
             }
-            if (!formData.productUrl) {
-                toast.error('상품 링크를 입력해주세요.');
-                return;
+        } else if (isVisitOrPress) {
+            if (!formData.platform) {
+                return scrollTo('platform-section', '플랫폼을 선택해주세요.');
+            }
+        }
+
+        // 제품/매장 정보 확인
+        if (isDelivery) {
+            if (!formData.productUrlIndividual && !formData.productUrl) {
+                return scrollTo('product-url', '상품 링크를 입력해주세요.');
             }
             if (!formData.productName) {
-                toast.error('상품명을 입력해주세요.');
-                return;
+                return scrollTo('product-name', '상품명을 입력해주세요.');
             }
-            if (!formData.productPrice) {
-                toast.error('상품 가격을 입력해주세요.');
-                return;
-            }
-        }
-
-        // 방문체험단/기자단 유효성 검사
-        if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
-            if (!formData.platform) {
-                toast.error('플랫폼을 선택해주세요.');
-                return;
-            }
+        } else if (isVisitOrPress) {
             if (formData.stores.length === 0) {
-                toast.error('최소 1개의 매장을 추가해주세요.');
-                return;
+                return scrollTo('store-section', '최소 1개의 매장을 추가해주세요.');
             }
-            // 광고주가 직접 연락하지 않는 경우에만 연락처 필수
             if (!formData.advertiserWillContact && !formData.contactPhone) {
-                toast.error('연락처를 입력하거나 "광고주가 선정자에게 직접 연락" 옵션을 선택해주세요.');
-                return;
+                return scrollTo('contact-phone', '담당자 연락처를 입력해주세요.');
             }
-            // 조율이 필요하지 않은 경우에만 방문 시간 필수
             if (!formData.visitTimeNegotiable && !formData.visitTime) {
-                toast.error('방문 가능 시간을 입력하거나 "연락하여 조율" 옵션을 선택해주세요.');
-                return;
+                return scrollTo('visit-time', '방문 가능 시간을 입력해주세요.');
             }
             if (!formData.experienceDetails) {
-                toast.error('제공 내역을 입력해주세요.');
-                return;
+                return scrollTo('experience-details', '제공 내역을 입력해주세요.');
             }
         }
 
         // 공통 필수 항목
         if (!formData.totalRecruitment) {
-            toast.error('총 모집 인원을 입력해주세요.');
-            return;
+            return scrollTo('recruitment-count', '총 모집 인원을 입력해주세요.');
         }
         if (!formData.recruitmentStartDate) {
-            toast.error('모집 시작일을 선택해주세요.');
-            return;
+            return scrollTo('start-date', '모집 시작일을 선택해주세요.');
         }
 
         if (isFormValid()) {
             onNext(formData);
         }
     };
+
 
     // Schedule type change handler
     const handleScheduleTypeChange = (type: 'recommended' | 'custom' | 'always') => {
@@ -692,57 +719,74 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         }
     };
 
+    const handleOptionModeChange = (val: 'SINGLE' | 'RANKED' | 'MULTI') => {
+        setFormData(prev => ({
+            ...prev,
+            optionConfig: {
+                ...prev.optionConfig,
+                mode: val,
+                // If mode changes to SINGLE, reset maxSelect to 1
+                maxSelect: val === 'SINGLE' ? 1 : prev.optionConfig.maxSelect
+            }
+        }));
+    };
+
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div className="w-full space-y-8 pb-10">
 
-            {/* 브랜드명 / 업체명 */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                        <Building2 className="text-primary" size={24} />
-                        <h2 className="text-xl font-bold text-gray-900">브랜드 선택</h2>
-                    </div>
+
+            <section id="brand-section" className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden outline-none" tabIndex={-1}>
+                <div className="p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <Building2 size={20} className="text-rose-500" />
+                        진행 브랜드 <span className="text-rose-500">*</span>
+                    </h2>
+                    {user ? (
+                        <BrandSelect
+                            userId={user.id}
+                            value={formData.brandId}
+                            onChange={(id, name) => setFormData(prev => ({ ...prev, brandId: id, brandName: name }))}
+                        />
+                    ) : (
+                        <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
+                            브랜드 정보를 불러오려면 로그인이 필요합니다.
+                        </div>
+                    )}
                 </div>
-
-                {user ? (
-                    <BrandSelect
-                        userId={user.id}
-                        value={formData.brandId}
-                        onChange={(id, name) => setFormData(prev => ({ ...prev, brandId: id, brandName: name }))}
-                    />
-                ) : (
-                    <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
-                        브랜드 정보를 불러오려면 로그인이 필요합니다.
-                    </div>
-                )}
-
-                <p className="mt-4 text-xs text-gray-400">
-                    💡 이 캠페인을 진행할 브랜드를 선택하거나 새로 등록해주세요. 대행사의 경우 여러 클라이언트를 브랜드별로 나누어 관리할 수 있습니다.
-                </p>
+                <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-start gap-3">
+                    <Info size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                        이 캠페인을 진행할 브랜드를 선택하거나 새로 등록해주세요. 대행사의 경우 여러 클라이언트를 브랜드별로 나누어 관리할 수 있습니다.
+                    </p>
+                </div>
             </section>
 
             {/* 캠페인 제목 (모집글 제목) */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 overflow-hidden">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">캠페인 제목 (모집글 제목)</h2>
-                </div>
-                <div className="relative">
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6">
+                    <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <Megaphone size={20} className="text-rose-500" />
+                        캠페인 제목 <span className="text-rose-500">*</span>
+                    </h2>
                     <input
                         type="text"
                         value={formData.campaignTitle || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, campaignTitle: e.target.value }))}
                         placeholder="예시) [무료배송] 다온뷰 최고급 세안밴드 체험단 모집"
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+                        className="w-full h-12 px-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all font-medium"
                     />
                 </div>
-                <p className="mt-2 text-xs text-gray-500">
-                    💡 인플루언서들이 모집 목록에서 보게 될 중요 제목입니다.
-                </p>
+                <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-start gap-3">
+                    <Info size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
+                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                        인플루언서들이 모집 목록에서 보게 될 중요 제목입니다. 매력적인 제목으로 더 많은 참여를 유도해보세요.
+                    </p>
+                </div>
             </section>
 
             {/* 카테고리 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">카테고리 선택</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">카테고리 선택</h2>
                 <div className="flex flex-wrap gap-2">
                     {['맛집', '뷰티', '숙박', '생활', '서비스', '유아동', '디지털/가전', '기타'].map((cat) => (
                         <button
@@ -762,7 +806,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
             {/* 진행 유형 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">진행 유형 선택</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">진행 유형 선택</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* 배송체험단 */}
@@ -805,10 +849,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     </button>
                 </div>
             </section>
-
             {/* 배송체험단/방문체험단/기자단 - 플랫폼 토글 선택 (하이브리드 지원) */}
             {formData.campaignType && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <section id="platform-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 outline-none" tabIndex={-1}>
                     <h2 className="text-xl font-bold text-gray-900 mb-4">진행 방식 및 플랫폼 선택</h2>
                     <p className="text-sm text-gray-600 mb-4">
                         원하는 리뷰 플랫폼을 선택하세요. {formData.campaignType === 'DELIVERY' ? '구매평 단독, 네이버/인스타 단독, 또는 구매평+SNS 조합이 가능합니다.' : '네이버 블로그 또는 인스타그램을 선택할 수 있습니다.'}
@@ -931,24 +974,19 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 </div>
                             </div>
 
-                            {/* 1석2조 혜택 안내 (구매평 + SNS 조합 시) */}
-                            {formData.includeReview && (formData.includeNaver || formData.includeInstagram) && (
-                                <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg border border-amber-200">
-                                    <div className="flex items-start gap-3">
-                                        <div className="text-2xl">👍</div>
-                                        <div className="flex-1">
-                                            <p className="font-bold text-amber-900 mb-2">
-                                                1석2조 혜택! 구매평과 SNS를 함께 진행하세요
-                                            </p>
-                                            <ul className="text-sm text-amber-800 space-y-1">
-                                                <li>✓ 제품비용 절약: 한 번의 제품 제공으로 2가지 리뷰 진행</li>
-                                                <li>✓ 시간 효율: 동시 진행으로 캠페인 기간 단축</li>
-                                                <li>✓ 다양한 노출: 쇼핑몰 + SNS 채널 동시 마케팅</li>
-                                            </ul>
-                                        </div>
-                                    </div>
+                            <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl flex items-start gap-3">
+                                <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <p className="font-bold text-indigo-950 mb-2 text-[14px]">
+                                        1석2조 혜택! 구매평과 SNS를 함께 진행하세요
+                                    </p>
+                                    <ul className="text-[13px] text-indigo-700 space-y-1.5 font-medium">
+                                        <li>• 제품비용 절약: 한 번의 제품 제공으로 2가지 리뷰 진행</li>
+                                        <li>• 시간 효율: 동시 진행으로 캠페인 기간 단축</li>
+                                        <li>• 다양한 노출: 쇼핑몰 + SNS 채널 동시 마케팅</li>
+                                    </ul>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     )}
                 </section>
@@ -957,29 +995,32 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             {/* 배송체험단 - 제품 정보 */}
             {formData.campaignType === 'DELIVERY' && (
                 <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">체험 상품 · 모집 조건</h2>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">체험 상품 · 모집 조건</h2>
 
                     {/* 진행할 쇼핑몰 상품 링크 */}
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            진행할 상품 링크(url)을 입력해 주세요 <span className="text-red-500">*</span>
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                            진행할 상품 링크(url)을 입력해 주세요 {!formData.productUrlIndividual && <span className="text-red-500">*</span>}
                             {fieldValidation.productUrl === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
                             )}
+                            <HelpTooltip content={formData.productUrlIndividual ? "개별전달 설정 시 상품 링크 입력이 불필요합니다." : "https://로 시작하는 전체 URL을 입력해주세요"} />
                         </label>
                         <input
+                            id="product-url"
                             type="url"
-                            value={formData.productUrl || ''}
+                            value={formData.productUrlIndividual ? '' : (formData.productUrl || '')}
                             onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
                             onBlur={() => validateField('productUrl', formData.productUrl)}
-                            placeholder="예시) https://smartstore.naver.com/"
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productUrl === true ? 'border-green-300' : 'border-gray-300'
+                            disabled={formData.productUrlIndividual}
+                            placeholder={formData.productUrlIndividual ? "선정된 인플루언서에게 개별적으로 전달됩니다." : "예시) https://smartstore.naver.com/"}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.productUrlIndividual ? 'bg-gray-50 border-gray-200 text-gray-400' : fieldValidation.productUrl === true ? 'border-green-300' : 'border-gray-300'
                                 }`}
                         />
-                        <p className="mt-1 text-xs text-gray-500">https://로 시작하는 전체 URL을 입력해주세요</p>
 
-                        {/* 링크 비공개 설정 */}
-                        <div className="mt-3">
+                        {/* 링크 비공개 / 개별전달 설정 */}
+                        <div className="mt-3 flex flex-wrap gap-6">
+                            {/* 링크 비공개 설정 */}
                             <label className="flex items-start gap-3 cursor-pointer group">
                                 <input
                                     type="checkbox"
@@ -987,13 +1028,32 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     onChange={(e) => setFormData(prev => ({ ...prev, productUrlPrivate: e.target.checked }))}
                                     className="mt-0.5 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                                 />
-                                <div className="flex-1">
+                                <div className="flex items-center gap-1.5">
                                     <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                                         링크 비공개 설정
                                     </span>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        ℹ️ 링크는 체험 선정된 사람들에게만 보입니다.
-                                    </p>
+                                    <HelpTooltip content="링크는 체험 선정된 사람들에게만 보입니다." />
+                                </div>
+                            </label>
+
+                            {/* 선정시 개별전달 */}
+                            <label className="flex items-start gap-3 cursor-pointer group">
+                                <input
+                                    type="checkbox"
+                                    checked={formData.productUrlIndividual}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        productUrlIndividual: e.target.checked,
+                                        // 개별전달 체크 시 링크가 유효하지 않아도 유효성 검사 통과하도록 처리
+                                        productUrl: e.target.checked ? prev.productUrl : prev.productUrl
+                                    }))}
+                                    className="mt-0.5 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
+                                        선정시 구매링크 개별전달
+                                    </span>
+                                    <HelpTooltip content="체크 시 상품 링크를 입력하지 않아도 됩니다." />
                                 </div>
                             </label>
                         </div>
@@ -1001,54 +1061,44 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                     {/* 상품명 */}
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
                             상품명 (체험 제품) <span className="text-red-500">*</span>
                             {fieldValidation.productName === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
                             )}
+                            <HelpTooltip content="체험 받으실 상품의 정확한 명칭을 입력해주세요." />
                         </label>
-                        <input
-                            type="text"
-                            value={formData.productName || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
-                            onBlur={() => validateField('productName', formData.productName)}
-                            placeholder="예시) 다온뷰 최고급 세안밴드"
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productName === true ? 'border-green-300' : 'border-gray-300'
-                                }`}
-                        />
-                        <p className="mt-1 text-xs text-gray-500">💡 체험 받으실 상품의 정확한 명칭을 입력해주세요.</p>
+                        <div className="flex gap-2">
+                            <input
+                                id="product-name"
+                                type="text"
+                                value={formData.productName || ''}
+                                onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
+                                onBlur={() => validateField('productName', formData.productName)}
+                                placeholder="예시) 다온뷰 최고급 세안밴드"
+                                className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productName === true ? 'border-green-300' : 'border-gray-300'
+                                    }`}
+                            />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                            💡 체험 전송받으실 정확한 상품명을 입력해 주세요. (예: [브랜드명] 상품명 옵션)
+                        </p>
                     </div>
                 </section>
             )}
-
             {/* 매장 정보 (방문체험단/기자단만) */}
             {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <section id="store-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 outline-none" tabIndex={-1}>
+                    <h2 className="text-lg font-bold text-gray-900 mb-4">
                         매장 정보 <span className="text-red-500">*</span>
                     </h2>
 
                     {/* 지역 설정 */}
                     <div className="mb-6 pb-6 border-b border-gray-100">
-                        <label className="block text-sm font-medium text-gray-700 mb-3">지역 선택 (시/도)</label>
-                        <div className="flex flex-wrap gap-2">
-                            {['전국', '서울', '경기', '인천', '부산', '대구', '광주', '대전', '울산', '세종', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주'].map((reg) => (
-                                <button
-                                    key={reg}
-                                    type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, region: reg }))}
-                                    className={`px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${formData.region === reg
-                                        ? 'border-blue-500 bg-blue-50 text-blue-600'
-                                        : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
-                                        }`}
-                                >
-                                    {reg}
-                                </button>
-                            ))}
-                        </div>
-                        <p className="mt-3 text-xs text-gray-400">
-                            💡 매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다.
-                        </p>
+                        <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-1">
+                            지역 선택 (시/도)
+                            <HelpTooltip content="매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다." />
+                        </label>
                     </div>
 
                     {/* 네이버 플레이스 주소 입력 */}
@@ -1166,203 +1216,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 </section>
             )}
 
-            {/* 제품/서비스 옵션 정보 (전체 타입 공통) */}
-            {formData.campaignType && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-xl font-bold text-gray-900">제공 옵션 설정</h2>
-                        <p className="text-xs text-gray-500">드래그하여 순서 변경 가능</p>
-                    </div>
-
-                    {/* 옵션 목록 */}
-                    <div className="mb-4">
-                        {formData.productOptions.length === 0 ? (
-                            <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                                <p className="text-sm mb-2">옵션이 없는 경우 추가하지 않아도 됩니다.</p>
-                                <p className="text-xs text-gray-400">(단일 상품/서비스)</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Table Header */}
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-t-lg text-xs font-bold text-gray-600">
-                                    <div className="w-6 flex-shrink-0"></div>
-                                    <div className="w-8 text-center flex-shrink-0">#</div>
-                                    <div className="flex-1">옵션 정보 <span className="text-red-500">*</span></div>
-                                    <div className="w-32 text-center flex-shrink-0">제공 가액</div>
-                                    <div className="w-24 text-center flex-shrink-0">모집 인원</div>
-                                    <div className="w-8 flex-shrink-0"></div>
-                                </div>
-
-                                {/* Sortable Options */}
-                                <DndContext
-                                    sensors={sensors}
-                                    collisionDetection={closestCenter}
-                                    onDragEnd={handleDragEnd}
-                                >
-                                    <SortableContext
-                                        items={formData.productOptions.map(opt => opt.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <div className="space-y-2 border-x border-b border-gray-200 rounded-b-lg p-2 bg-gray-50/50">
-                                            {formData.productOptions.map((option, index) => (
-                                                <SortableOptionRow
-                                                    key={option.id}
-                                                    option={option}
-                                                    index={index}
-                                                    campaignType={formData.campaignType}
-                                                    onUpdate={updateProductOption}
-                                                    onRemove={removeProductOption}
-                                                />
-                                            ))}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                            </>
-                        )}
-                    </div>
-
-                    {/* 옵션 추가 버튼 */}
-                    <button
-                        onClick={addProductOption}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border-2 border-dashed border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all"
-                    >
-                        <Plus size={18} />
-                        옵션 추가
-                    </button>
-
-                    {/* 옵션 선택 규칙 설정 */}
-                    <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-                            <Info size={16} className="text-blue-500" />
-                            옵션 선택 규칙 설정
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-xs text-gray-600 mb-1">선택 모드</label>
-                                <select
-                                    value={formData.optionConfig.mode}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
-                                        optionConfig: {
-                                            ...prev.optionConfig,
-                                            mode: e.target.value as any,
-                                            // 모드 변경 시 적절한 기본값 설정
-                                            maxSelect: e.target.value === 'SINGLE' ? 1 : prev.optionConfig.maxSelect
-                                        }
-                                    }))}
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                                >
-                                    <option value="SINGLE">단일 선택 (하나만 선택)</option>
-                                    <option value="RANKED">지망 순위 선택 (1지망, 2지망...)</option>
-                                    <option value="MULTI">다중 선택 (여러 개 체험)</option>
-                                </select>
-                            </div>
-                            {formData.optionConfig.mode !== 'SINGLE' && (
-                                <div>
-                                    <label className="block text-xs text-gray-600 mb-1">최대 선택 가능 개수</label>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            value={formData.optionConfig.maxSelect}
-                                            onChange={(e) => setFormData(prev => ({
-                                                ...prev,
-                                                optionConfig: { ...prev.optionConfig, maxSelect: parseInt(e.target.value) || 1 }
-                                            }))}
-                                            min="1"
-                                            max={formData.productOptions.length > 0 ? formData.productOptions.length : 10}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                                        />
-                                        <span className="text-sm text-gray-600 whitespace-nowrap">개까지</span>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                        <p className="mt-3 text-xs text-gray-500 italic">
-                            {formData.optionConfig.mode === 'RANKED' && "💡 인플루언서가 우선순위를 정해서 신청할 수 있습니다."}
-                            {formData.optionConfig.mode === 'MULTI' && "💡 인플루언서가 선택한 모든 옵션에 대해 당첨될 수 있습니다."}
-                            {formData.optionConfig.mode === 'SINGLE' && "💡 가장 일반적인 방식으로, 인플루언서가 하나의 옵션만 선택하여 신청합니다."}
-                        </p>
-                    </div>
-                </section>
-            )}
-
-            {/* 배송체험단 전용 추가 설정 (결제금액/쿠폰) */}
-            {formData.campaignType === 'DELIVERY' && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">배송 추가 설정</h2>
-
-                    {/* 상품 결제 금액 (옵션 없는 경우) */}
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            상품 결제 금액(배송비 포함) <span className="text-red-500">*</span>
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={formData.productPrice || ''}
-                                onChange={(e) => handlePriceChange('productPrice', e.target.value)}
-                                placeholder="0"
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
-                            />
-                            <span className="text-gray-600">원</span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">자동으로 천 단위 콤마가 추가됩니다</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                            * 옵션이 있는 경우 위 옵션별 금액을, 옵션이 없는 경우 이 금액을 사용합니다.
-                        </p>
-                    </div>
-
-                    {/* 쿠폰 적용 가격인 경우 체크 */}
-                    <div className="mb-4">
-                        <label className="flex items-start gap-3 cursor-pointer group">
-                            <input
-                                type="checkbox"
-                                checked={formData.freeShippingCondition}
-                                onChange={(e) => setFormData(prev => ({ ...prev, freeShippingCondition: e.target.checked }))}
-                                className="mt-1 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                            />
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                                        쿠폰 적용 가격인 경우 체크해 주세요.
-                                    </span>
-                                    <div className="relative">
-                                        <HelpCircle
-                                            size={16}
-                                            className="text-gray-400 hover:text-blue-500 cursor-help transition-colors"
-                                            onMouseEnter={() => setShowCouponTooltip(true)}
-                                            onMouseLeave={() => setShowCouponTooltip(false)}
-                                        />
-                                        {showCouponTooltip && (
-                                            <div className="absolute left-0 top-6 z-10 w-96 p-3 bg-blue-50 rounded-lg border border-blue-200 shadow-lg">
-                                                <p className="text-sm font-medium text-blue-900 mb-2">💡 쿠폰 할인가 적용 안내</p>
-                                                <p className="text-xs text-blue-700 mb-2">
-                                                    인플루언서가 쿠폰을 사용하여 할인된 가격으로 구매해야 한다면 이 옵션을 체크해 주세요.
-                                                </p>
-                                                <p className="text-xs text-blue-700 mb-2">
-                                                    <strong>권장:</strong> 쿠폰 사용이 가능한 상품인 경우, 할인 적용 후 가격을 입력하고 체크하는 것이 좋습니다.
-                                                </p>
-                                                <p className="text-xs text-blue-700">
-                                                    체크하지 않으면 '쿠폰 미사용'을 안내해 드리지만, 실제 사용 여부를 시스템에서 완벽하게 제한하기는 어렵습니다.
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </label>
-                    </div>
-                </section>
-            )}
-
-            {/* 매장 정보 (방문체험단/기자단만) */}
-
-
-            {/* 상세 정보 */}
+            {/* 체험 제공 내역 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">상세 정보</h2>
-
-
+                <h2 className="text-lg font-bold text-gray-900 mb-4">체험제공 정보</h2>
 
                 {formData.campaignType !== 'DELIVERY' && (
                     <>
@@ -1405,6 +1261,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             {!formData.advertiserWillContact && (
                                 <>
                                     <input
+                                        id="contact-phone"
                                         type="tel"
                                         value={formData.contactPhone || ''}
                                         onChange={handlePhoneChange}
@@ -1421,16 +1278,11 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
                                     )}
 
-                                    {/* 개인정보 보호 안내 */}
-                                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                                        <div className="flex items-start gap-2">
-                                            <span className="text-green-600 text-lg">🔒</span>
-                                            <div className="flex-1">
-                                                <p className="text-xs text-green-800 font-medium">
-                                                    연락처는 선정된 인플루언서에게만 공개됩니다. 개인정보 보호를 위해 선정 전에는 절대 공개되지 않습니다.
-                                                </p>
-                                            </div>
-                                        </div>
+                                    <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
+                                        <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                                        <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                            연락처는 선정된 인플루언서에게만 안전하게 공개됩니다. 다온뷰는 광고주의 개인정보를 소중히 보호합니다.
+                                        </p>
                                     </div>
                                 </>
                             )}
@@ -1466,6 +1318,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                             {/* 방문 시간 입력 필드 (조율 체크 시 선택사항) */}
                             <input
+                                id="visit-time"
                                 type="text"
                                 value={formData.visitTime || ''}
                                 onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
@@ -1474,11 +1327,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     }`}
                                 disabled={formData.visitTimeNegotiable}
                             />
-                            {formData.visitTimeNegotiable && (
-                                <p className="mt-1 text-xs text-gray-500">
-                                    💡 조율 체크 시 방문 시간은 선택사항입니다. 선정 후 개별 연락을 통해 시간을 조정하세요.
+                            <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
+                                <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                    조율 체크 시 방문 시간은 선택사항입니다. 선정 후 인플루언서와 개별 연락을 통해 최적의 방문 시간을 조정하세요.
                                 </p>
-                            )}
+                            </div>
                         </div>
 
                         {/* 방문 가능 요일 */}
@@ -1546,8 +1400,8 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     </>
                 )}
 
-                {/* 체험 제공 내역 */}
-                <div className="mt-4">
+                {/* 체험 제공 내역 - 전체 너비 */}
+                <div id="experience-details" className="mt-4 outline-none" tabIndex={-1}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                         체험 제공 내역 <span className="text-red-500">*</span>
                     </label>
@@ -1556,31 +1410,208 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         value={formData.experienceDetails || ''}
                         onChange={(e) => setFormData(prev => ({ ...prev, experienceDetails: e.target.value }))}
                         placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                 </div>
 
-                {/* 공식 판매가 */}
-                <div className="mt-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        공식 판매가 <span className="text-gray-500 text-xs">(선택, 참고용)</span>
-                    </label>
-                    <div className="flex items-center gap-2">
-                        <input
-                            type="text"
-                            value={formData.officialPrice || ''}
-                            onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
-                            placeholder="30,000"
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
-                        />
-                        <span className="text-gray-600">원 상당</span>
+                {/* 공식 판매가 & 상품 결제 금액 - 좌우 배치 */}
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* 공식 판매가 */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            공식 판매가 <span className="text-gray-500 text-xs">(선택, 참고용)</span>
+                        </label>
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                value={formData.officialPrice || ''}
+                                onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
+                                placeholder="30,000"
+                                className="flex-1 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                            />
+                            <span className="text-gray-600">원 상당</span>
+                        </div>
                     </div>
+
+                    {/* 상품 결제 금액 (배송체험단만) */}
+                    {formData.campaignType === 'DELIVERY' && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                상품 결제 금액(배송비 포함) <span className="text-gray-500 text-xs">(선택)</span>
+                            </label>
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    value={formData.productPrice || ''}
+                                    onChange={(e) => handlePriceChange('productPrice', e.target.value)}
+                                    placeholder="0"
+                                    className="flex-1 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                                />
+                                <span className="text-gray-600">원</span>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                                💡 옵션이 있는 경우 위 옵션별 금액을, 옵션이 없는 경우 이 금액을 사용합니다.
+                            </p>
+                        </div>
+                    )}
                 </div>
+
+                {/* 쿠폰 사용 필수 여부 (배송체험단만) */}
+                {formData.campaignType === 'DELIVERY' && (
+                    <div className="mt-4">
+                        <label className="flex items-start gap-3 cursor-pointer group">
+                            <input
+                                type="checkbox"
+                                checked={formData.isCouponRequired}
+                                onChange={(e) => setFormData(prev => ({ ...prev, isCouponRequired: e.target.checked }))}
+                                className="mt-1 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex-1">
+                                <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                                    인플루언서가 쿠폰을 사용해야 하는 경우 체크해 주세요.
+                                </span>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    💡 쿠폰 할인 적용 후의 최종 결제 금액을 위 '상품 결제 금액'에 입력해주세요.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+                )}
             </section>
+
+            {/* 제품/서비스 옵션 정보 (전체 타입 공통) */}
+            {formData.campaignType && (
+                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-bold text-gray-900">제공 옵션 설정</h2>
+                        <p className="text-xs text-gray-500">드래그하여 순서 변경 가능</p>
+                    </div>
+
+                    {/* 옵션 목록 */}
+                    <div className="mb-4">
+                        {formData.productOptions.length === 0 ? (
+                            <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
+                                <p className="text-sm mb-2">옵션이 없는 경우 추가하지 않아도 됩니다.</p>
+                                <p className="text-xs text-gray-400">(단일 상품/서비스)</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Table Header */}
+                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-t-lg text-xs font-bold text-gray-600">
+                                    <div className="w-6 flex-shrink-0"></div>
+                                    <div className="w-8 text-center flex-shrink-0">#</div>
+                                    <div className="flex-1">옵션 정보 <span className="text-red-500">*</span></div>
+                                    <div className="w-32 text-center flex-shrink-0">제공 가액</div>
+                                    <div className="w-24 text-center flex-shrink-0">모집 인원</div>
+                                    <div className="w-8 flex-shrink-0"></div>
+                                </div>
+
+                                {/* Sortable Options */}
+                                <DndContext
+                                    sensors={sensors}
+                                    collisionDetection={closestCenter}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <SortableContext
+                                        items={formData.productOptions.map(opt => opt.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        <div className="space-y-2 border-x border-b border-gray-200 rounded-b-lg p-2 bg-gray-50/50">
+                                            {formData.productOptions.map((option, index) => (
+                                                <SortableOptionRow
+                                                    key={option.id}
+                                                    option={option}
+                                                    index={index}
+                                                    campaignType={formData.campaignType}
+                                                    onUpdate={updateProductOption}
+                                                    onRemove={removeProductOption}
+                                                />
+                                            ))}
+                                        </div>
+                                    </SortableContext>
+                                </DndContext>
+                            </>
+                        )}
+                    </div>
+
+                    {/* 옵션 추가 버튼 */}
+                    <button
+                        onClick={addProductOption}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border-2 border-dashed border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all"
+                    >
+                        <Plus size={18} />
+                        옵션 추가
+                    </button>
+
+                    {/* 옵션 선택 규칙 설정 */}
+                    <div className="mt-6 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="p-6">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {/* 선택 모드 드롭다운 - 2칸 차지 */}
+                                <div className="space-y-3 md:col-span-2">
+                                    <Label className="text-sm font-bold text-slate-700">선택 모드</Label>
+                                    <Select
+                                        value={formData.optionConfig.mode}
+                                        onValueChange={(val: 'SINGLE' | 'RANKED' | 'MULTI') => handleOptionModeChange(val)}
+                                    >
+                                        <SelectTrigger className="h-12 rounded-xl border-slate-200 font-medium focus:ring-rose-500/20">
+                                            <SelectValue placeholder="선택 모드를 선택하세요" />
+                                        </SelectTrigger>
+                                        <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                            <SelectItem value="SINGLE" className="font-medium focus:bg-rose-50 text-slate-700">단일 선택 (하나만 선택)</SelectItem>
+                                            <SelectItem value="RANKED" className="font-medium focus:bg-rose-50 text-slate-700">순위 선택 (1~3순위 희망)</SelectItem>
+                                            <SelectItem value="MULTI" className="font-medium focus:bg-rose-50 text-slate-700">중복 선택 (여러 개 당첨 가능)</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* 최대 선택 가능 개수 - 1칸 차지 */}
+                                {formData.optionConfig.mode !== 'SINGLE' && (
+                                    <div className="space-y-3 md:col-span-1 animate-in fade-in slide-in-from-right-2 duration-300">
+                                        <Label className="text-sm font-bold text-slate-700">
+                                            {formData.optionConfig.mode === 'RANKED' ? '희망 순위 제한' : '최대 선택 가능 개수'}
+                                        </Label>
+                                        <div className="flex items-center gap-2 h-12">
+                                            <Input
+                                                type="number"
+                                                value={formData.optionConfig.maxSelect}
+                                                onChange={(e) => setFormData(prev => ({
+                                                    ...prev,
+                                                    optionConfig: { ...prev.optionConfig, maxSelect: Math.max(1, parseInt(e.target.value) || 1) }
+                                                }))}
+                                                min="1"
+                                                max={formData.productOptions.length > 0 ? formData.productOptions.length : 10}
+                                                className="flex-1 h-full text-center text-lg font-bold border-slate-200 rounded-xl"
+                                            />
+                                            <span className="text-base font-bold text-slate-600">개</span>
+                                        </div>
+                                        <p className="text-[11px] text-slate-500 font-medium">
+                                            {formData.optionConfig.mode === 'RANKED'
+                                                ? '인플루언서가 최대 몇 순위까지 신청할 수 있는지 설정합니다.'
+                                                : '인플루언서 한 명에게 최대 몇 개의 옵션을 배정할지 설정합니다.'}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-indigo-50/30 border-t border-indigo-100 flex items-start gap-3">
+                            <Info size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                            <p className="text-[13px] text-indigo-700 font-medium leading-relaxed">
+                                {
+                                    formData.optionConfig.mode === 'RANKED' ? `인플루언서가 최대 ${formData.optionConfig.maxSelect}순위까지 우선순위를 정해 신청할 수 있어 매칭률이 높아집니다.` :
+                                        formData.optionConfig.mode === 'MULTI' ? `인플루언서가 선택한 옵션 중 최대 ${formData.optionConfig.maxSelect}개까지 당첨될 수 있는 방식입니다.` :
+                                            "가장 일반적인 방식으로, 인플루언서가 하나의 옵션만 선택하여 신청합니다."
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            )}
+
 
             {/* 모집 정보 & 일정 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">모집 정보 & 일정</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">모집 정보 & 일정</h2>
 
                 {/* 가로 구분선 */}
                 <div className="border-t border-gray-200 mb-6"></div>
@@ -1604,6 +1635,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             <div className="flex items-center gap-2">
                                 <div className="relative w-32">
                                     <Input
+                                        id="recruitment-count"
                                         type="text"
                                         value={formData.totalRecruitment === '999' ? '∞' : formData.totalRecruitment || ''}
                                         onChange={(e) => {
@@ -1662,9 +1694,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                         {/* 미션 완료 리워드 */}
                         <div className="space-y-3">
-                            <label className="text-sm font-semibold text-gray-700">
+                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
                                 미션 완료 리워드 (1인당) <span className="text-muted-foreground font-normal">(선택)</span>
                             </label>
+                            <p className="text-[11px] text-muted-foreground mb-1">
+                                💡 참여자에게는 매칭 프로모션 서비스료 10%를 제외한 포인트가 지급됩니다.
+                            </p>
 
                             <div className="flex items-center gap-2">
                                 <div className="relative flex-1 max-w-[200px]">
@@ -1684,7 +1719,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     variant="secondary"
                                     className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
                                     onClick={() => adjustReward(5000)}
-                                >
+                                    >
                                     + 5,000
                                 </Button>
                                 <Button
@@ -1703,13 +1738,6 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 >
                                     초기화
                                 </Button>
-                            </div>
-
-                            <div className="mt-3 p-3 bg-blue-50 rounded-lg flex items-start gap-2">
-                                <Info size={16} className="text-blue-500 mt-0.5 flex-shrink-0" />
-                                <p className="text-sm text-blue-700">
-                                    참여자에게는 매칭 프로모션 서비스료 10%를 제외한 포인트가 지급됩니다.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -1773,10 +1801,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 </label>
                             </div>
 
-                            {/* 알림 메시지 */}
-                            <div className={`p-4 rounded-xl border flex gap-3 transition-colors ${formData.scheduleType === 'always' ? 'bg-indigo-50 border-indigo-100 text-indigo-700' : 'bg-amber-50 border-amber-100 text-amber-700'}`}>
-                                <Info size={18} className="flex-shrink-0 mt-0.5" />
-                                <p className="text-xs leading-relaxed font-bold">
+                            <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
+                                <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                                <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
                                     {formData.scheduleType === 'recommended' && "추천 일정: 최대한 빠르게 모집하여 선정되는 대로 즉시 투입하는 최적화된 모집 방식입니다."}
                                     {formData.scheduleType === 'custom' && "맞춤 설정: 캠페인 성격에 맞춰 모집, 선정, 리뷰 마감일을 수동으로 설정합니다."}
                                     {formData.scheduleType === 'always' && "상시 모집: 별도의 종료일 없이 캠페인을 중지하기 전까지 무기한으로 인원을 모집합니다."}
@@ -1793,6 +1820,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 </label>
                                 <div className="relative group">
                                     <input
+                                        id="start-date"
                                         type="date"
                                         value={formData.recruitmentStartDate || ''}
                                         onChange={(e) => {
@@ -1824,21 +1852,23 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 md:col-span-2 text-blue-600 bg-blue-50/50 p-4 rounded-xl border border-blue-100">
-                                        <label className="text-sm font-black flex items-center gap-1.5">
-                                            리뷰 마감일 <span className="text-rose-500">*</span>
-                                            {formData.reviewDeadline && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                        </label>
-                                        <div className="relative group mt-2">
-                                            <input
-                                                type="date"
-                                                value={formData.reviewDeadline || ''}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
-                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
-                                            />
-                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 group-hover:text-blue-600 transition-colors pointer-events-none" size={18} />
+                                    <div className="bg-indigo-50/30 rounded-2xl border border-indigo-100 overflow-hidden">
+                                        <div className="p-6">
+                                            <label className="text-sm font-black flex items-center gap-1.5 text-indigo-900 mb-3">
+                                                리뷰 마감일 <span className="text-rose-500">*</span>
+                                                {formData.reviewDeadline && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                            </label>
+                                            <div className="relative group">
+                                                <input
+                                                    type="date"
+                                                    value={formData.reviewDeadline || ''}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
+                                                    className="w-full h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all pr-10"
+                                                />
+                                                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" size={18} />
+                                            </div>
+                                            <p className="text-[11px] text-indigo-500 font-bold mt-2.5 flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
                                         </div>
-                                        <p className="text-[10px] text-blue-400 font-bold pl-1 mt-1 flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
                                     </div>
                                 </>
                             )}
@@ -1908,33 +1938,6 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     </div>
                 </div>
             </section>
-
-            {/* 하단 버튼 */}
-            <div className="flex justify-end gap-3">
-                {onSaveDraft && (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            onSaveDraft();
-                        }}
-                        className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm"
-                    >
-                        <Save size={18} />
-                        임시저장
-                    </button>
-                )}
-                <button
-                    onClick={handleNext}
-                    disabled={!isFormValid()}
-                    className={`px-8 py-3 rounded-lg font-semibold transition-all ${isFormValid()
-                        ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                >
-                    다음 단계로
-                </button>
-            </div>
         </div>
     );
 }

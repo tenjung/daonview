@@ -85,23 +85,28 @@ export const saveDraft = async (userId: string, campaignData: {
         }];
 
         // 전송할 데이터 페이로드 (DB 스키마 필드명과 1:1 매칭)
+        // [무결성] 상태/타입 값은 UPPERCASE로 저장 (제목/설명은 제외)
         const draftPayload: any = {
-            // created_by는 신규 생성일 때만 설정 (아래에서 처리)
-            title: campaignData.title || campaignData.step1Data?.productName || '제목 없음',
-            platform: mappedPlatform,
-            type: mappedType,
+            title: campaignData.title || campaignData.step1Data?.campaignTitle || campaignData.step1Data?.productName || '제목 없음',
+            brand_id: campaignData.step1Data?.brandId || null,
+            brand_name: campaignData.step1Data?.brandName || null,
+            product_name: campaignData.step1Data?.productName || null,
+            experience_details: campaignData.step1Data?.experienceDetails || null,
+            platform: mappedPlatform.toUpperCase(),
+            type: (campaignData.campaignType || 'VISIT').toUpperCase(),
             end_date: campaignData.step1Data?.scheduleType === 'always' ? '9999-12-31' : endDate,
             campaign_options: campaignOptions, // jsonb 배열
-            recruit_count: 0, // 기본값
-            is_always: campaignData.step1Data?.scheduleType === 'always'
+            recruit_count: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
+            total_recruitment: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
+            reward_per_person: Number(campaignData.step1Data?.rewardPerPerson || 0),
+            is_always: campaignData.step1Data?.scheduleType === 'always',
+            category: campaignData.step1Data?.category || null,
+            region: campaignData.step1Data?.region || null
         };
 
         // 5. ID 처리 및 DB 쿼리 실행
         const isExisting = campaignData.id && !isNaN(Number(campaignData.id)) && Number(campaignData.id) > 0;
 
-        // 신규 생성일 때만:
-        // 1. created_by 설정
-        // 2. status를 DRAFT로 설정 (기존 캠페인 수정 중 임시저장 시 상태 유지)
         if (!isExisting) {
             draftPayload.created_by = userId;
             draftPayload.status = 'DRAFT';
@@ -184,20 +189,43 @@ export const loadDraft = async (userId: string, draftId: string): Promise<DraftC
 
 // DB 데이터를 DraftCampaign 형식으로 변환
 const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
+    if (!dbData) return {} as DraftCampaign;
+
     // campaign_options가 배열로 저장되어 있을 경우 첫 번째 요소 사용
     const optionsRaw = dbData.campaign_options;
     const options = Array.isArray(optionsRaw) ? (optionsRaw[0] || {}) : (optionsRaw || {});
+    
+    // [무결성] DB 컬럼의 값을 step1Data에 우선적으로 반영 (동기화 보장)
+    const step1Data = {
+        ...(options.step1Data || {}),
+        brandId: dbData.brand_id || options.step1Data?.brandId,
+        brandName: dbData.brand_name || options.step1Data?.brandName,
+        productName: dbData.product_name || options.step1Data?.productName,
+        campaignTitle: dbData.title || options.step1Data?.campaignTitle || dbData.product_name,
+        experienceDetails: dbData.experience_details || options.step1Data?.experienceDetails,
+        totalRecruitment: dbData.total_recruitment?.toString() || dbData.recruit_count?.toString() || options.step1Data?.totalRecruitment || '0',
+        rewardPerPerson: dbData.reward_per_person || options.step1Data?.rewardPerPerson || 0,
+        category: dbData.category || options.step1Data?.category,
+        region: dbData.region || options.step1Data?.region,
+        campaignType: (dbData.type || options.step1Data?.campaignType || 'VISIT').toUpperCase()
+    };
+
+    // 캠페인 타입 정규화
+    let type = (dbData.type || options.step1Data?.campaignType || 'VISIT').toUpperCase();
+    if (type === '배송형') type = 'DELIVERY';
+    if (type === '방문형') type = 'VISIT';
+    if (!['DELIVERY', 'VISIT', 'PRESS'].includes(type)) type = 'VISIT';
 
     return {
         id: dbData.id.toString(),
         userId: dbData.created_by,
-        title: dbData.title,
-        campaignType: (dbData.campaign_type || dbData.type || 'VISIT').toUpperCase() as 'DELIVERY' | 'VISIT' | 'PRESS',
-        step1Data: options.step1Data || {},
-        step2Data: options.step2Data,
+        title: dbData.title || step1Data.campaignTitle,
+        campaignType: type as 'DELIVERY' | 'VISIT' | 'PRESS',
+        step1Data: step1Data,
+        step2Data: options.step2Data || {},
         currentStep: options.currentStep || 1,
         createdAt: dbData.created_at,
-        updatedAt: dbData.created_at,
+        updatedAt: dbData.updated_at || dbData.created_at,
     };
 };
 

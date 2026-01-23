@@ -1,9 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, CreditCard, Building2, Save } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronRight, ChevronLeft, Check, CreditCard, Building2, Save, Info } from 'lucide-react';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
+import { CampaignActionButtons } from './CampaignActionButtons';
 
 interface Step3Data {
     paymentMethod: 'card' | 'transfer' | null;
@@ -18,6 +20,7 @@ interface CampaignStep3Props {
     initialData?: Partial<Step3Data>;
     step1Data: any;
     step2Data: any;
+    submitTrigger?: number;
 }
 
 export default function CampaignStep3({
@@ -26,8 +29,17 @@ export default function CampaignStep3({
     onSaveDraft,
     initialData,
     step1Data,
-    step2Data
+    step2Data,
+    submitTrigger = 0,
 }: CampaignStep3Props) {
+    // HUD 버튼 연동
+    const lastTrigger = useRef(submitTrigger);
+    useEffect(() => {
+        if (submitTrigger > 0 && submitTrigger !== lastTrigger.current) {
+            lastTrigger.current = submitTrigger;
+            onSubmit(formData);
+        }
+    }, [submitTrigger]);
     const [formData, setFormData] = useState<Step3Data>({
         paymentMethod: initialData?.paymentMethod || null,
         agreeToTerms: initialData?.agreeToTerms || false,
@@ -139,7 +151,8 @@ export default function CampaignStep3({
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div className="w-full space-y-8 pb-10">
+
 
             {/* 캠페인 요약 */}
             <section className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-200 p-6">
@@ -217,7 +230,7 @@ export default function CampaignStep3({
 
             {/* 결제 금액 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-6">결제 금액</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-6 font-bold">결제 금액</h2>
 
                 <div className="space-y-4">
                     <div className="flex justify-between items-center pb-3 border-b border-gray-200">
@@ -260,10 +273,10 @@ export default function CampaignStep3({
                     </div>
                 </div>
 
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <p className="text-sm text-yellow-800">
-                        💡 <strong>안내:</strong> 캠페인이 승인되면 결제가 진행됩니다.
-                        승인 전까지는 결제되지 않습니다.
+                <div className="mt-6 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
+                    <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                    <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                        <strong className="font-bold">안내:</strong> 캠페인이 승인되면 결제가 진행됩니다. 승인 전까지는 실제 결제가 이루어지지 않으니 안심하고 등록하세요.
                     </p>
                 </div>
             </section>
@@ -311,7 +324,7 @@ export default function CampaignStep3({
 
             {/* 약관 동의 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">약관 동의</h2>
+                <h2 className="text-xl font-bold text-gray-900 mb-4 font-bold">약관 동의</h2>
 
                 <div className="space-y-4">
                     <label className="flex items-start gap-3 cursor-pointer group">
@@ -354,88 +367,46 @@ export default function CampaignStep3({
                 </div>
             </section>
 
-            {/* 버튼 */}
-            <div className="flex justify-between">
-                <button
-                    onClick={onPrev}
-                    disabled={isSubmitting}
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <ChevronLeft size={20} />
-                    이전 단계
-                </button>
 
-                <div className="flex gap-3">
-                    {onSaveDraft && (
-                        <button
-                            onClick={onSaveDraft}
-                            disabled={isSubmitting}
-                            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <Save size={18} />
-                            임시저장
-                        </button>
-                    )}
-                    <button
-                        onClick={handleSubmit}
-                        disabled={!isFormValid() || isSubmitting}
-                        className={`px-8 py-3 rounded-lg font-semibold transition-all flex items-center gap-2 ${isFormValid() && !isSubmitting
-                            ? 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                    >
-                        {isSubmitting ? (
-                            <>
-                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                                처리 중...
-                            </>
-                        ) : (
-                            <>
-                                <Check size={20} />
-                                {isAdmin ? '바로 등록하기' : '승인 요청하기'}
-                            </>
-                        )}
-                    </button>
+            <div className="bg-indigo-50/40 rounded-xl p-6 border border-indigo-100">
+                <div className="flex items-center gap-2 mb-4">
+                    <Check className="text-indigo-600" size={20} />
+                    <h3 className="font-bold text-indigo-950 text-lg">
+                        {isAdmin ? '등록 절차 안내' : '승인 절차 안내'}
+                    </h3>
                 </div>
-            </div>
-
-            {/* 안내 메시지 */}
-            <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                <h3 className="font-bold text-gray-900 mb-3">
-                    📌 {isAdmin ? '등록 절차 안내' : '승인 절차 안내'}
-                </h3>
                 {isAdmin ? (
-                    <ol className="space-y-2 text-sm text-gray-700">
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">1.</span>
+                    <ol className="space-y-3 text-[13px] text-indigo-700 font-medium">
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">1</span>
                             <span>등록 즉시 캠페인이 게시되며 리뷰어 모집이 시작됩니다.</span>
                         </li>
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">2.</span>
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">2</span>
                             <span>결제는 등록과 동시에 진행됩니다.</span>
                         </li>
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">3.</span>
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">3</span>
                             <span>대시보드에서 실시간으로 진행 상황을 확인할 수 있습니다.</span>
                         </li>
                     </ol>
                 ) : (
-                    <ol className="space-y-2 text-sm text-gray-700">
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">1.</span>
-                            <span>승인 요청 후 관리자가 캠페인 내용을 검토합니다.</span>
+                    <ol className="space-y-3 text-[13px] text-indigo-700 font-medium">
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">1</span>
+                            <span>승인 요청 후 관리자가 캠페인 내용을 검토합니다. (영업일 기준 24시간 이내)</span>
                         </li>
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">2.</span>
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">2</span>
                             <span>승인이 완료되면 결제가 진행되고 캠페인이 게시됩니다.</span>
                         </li>
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">3.</span>
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">3</span>
                             <span>리뷰어 모집이 시작되며, 대시보드에서 진행 상황을 확인할 수 있습니다.</span>
                         </li>
-                        <li className="flex gap-2">
-                            <span className="font-semibold text-blue-600">4.</span>
-                            <span>승인이 거부된 경우 수정 후 재신청할 수 있습니다.</span>
+                        <li className="flex gap-3">
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">4</span>
+                            <span>승인이 거부된 경우 수정 가이드에 따라 재신청할 수 있습니다.</span>
                         </li>
                     </ol>
                 )}

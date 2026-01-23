@@ -70,15 +70,15 @@ export default async function RootLayout({
 }>) {
   const supabase = await createClient();
 
-  // 서버 사이드에서 세션 및 프로필 미리 가져오기
-  const { data: { session } } = await supabase.auth.getSession();
+  // 서버 사이드에서 사용자 정보 즉시 검증 (getSession 보다 안전)
+  const { data: { user } } = await supabase.auth.getUser();
   let profile = null;
 
-  if (session?.user) {
+  if (user) {
     const { data: profileData } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single();
     profile = profileData;
   }
@@ -89,9 +89,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} flex flex-col min-h-screen`}
         suppressHydrationWarning
       >
-        <AuthHydrator user={session?.user ?? null} profile={profile} />
+        <AuthHydrator user={user ?? null} profile={profile} />
         <OnboardingChecker />
-        <Navbar initialUser={session?.user ?? null} initialProfile={profile} />
+        <Navbar initialUser={user ?? null} initialProfile={profile} />
         <main className="flex-1">
           {children}
         </main>

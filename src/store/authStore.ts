@@ -79,7 +79,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // 보안 강화를 위해 서버에서 다시 한번 검증된 유저 정보 획득
         const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-        const finalUser = verifiedUser || sessionUser;
+        const finalUser = verifiedUser;
 
         if (finalUser) {
           set({ user: finalUser, isLoading: true });

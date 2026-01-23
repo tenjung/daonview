@@ -10,9 +10,9 @@ export const revalidate = 0;
 export default async function BulkReviewPage() {
     const supabase = await createClient();
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!session) {
+    if (!user) {
         redirect('/login');
     }
 
@@ -20,7 +20,7 @@ export default async function BulkReviewPage() {
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
 
     if (profile?.role?.toUpperCase() !== 'ADMIN') {
@@ -34,7 +34,7 @@ export default async function BulkReviewPage() {
         <div className="flex min-h-screen bg-background text-foreground">
             <AdminSidebar initialCounts={sidebarCounts} />
             <div className="flex-1 bg-gray-50 py-12">
-                <BulkReviewClient user={session.user} />
+                <BulkReviewClient user={user} />
             </div>
         </div>
     );

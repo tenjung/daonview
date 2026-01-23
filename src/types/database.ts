@@ -90,6 +90,7 @@ export interface DeliveryCampaign extends BaseCampaign {
     product_price?: number;
     product_options?: string[];
     product_url_private?: boolean;
+    product_url_individual?: boolean;
     reward_per_person?: number;
     payment_method?: string;
 }

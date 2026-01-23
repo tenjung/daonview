@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check, Info } from 'lucide-react';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
+import { CampaignActionButtons } from './CampaignActionButtons';
 import { supabase } from '@/lib/supabaseClient';
 
 // Step1Data 인터페이스 (Step1에서 전달받는 데이터)
@@ -18,6 +20,7 @@ interface Step1Data {
     stores?: { storeName: string; address?: string; naverPlaceUrl?: string; }[];
     region?: string;
     category?: string;
+    productOptions?: { id: string; optionName: string; optionPrice: string; recruitmentCount: string; }[];
 }
 
 interface Step2Data {
@@ -25,9 +28,6 @@ interface Step2Data {
     campaignImages: string[];
 
     // 구매평 가이드 (Shopping Mall Review)
-    purchaseLink: string;
-    purchaseOption: string;
-    paybackAmount: string;
     purchaseNotes: string;
     reviewMissionContent: string;
 
@@ -61,19 +61,25 @@ interface CampaignStep2Props {
     onSaveDraft?: () => void;
     onChange?: (data: Step2Data) => void;
     initialData?: Partial<Step2Data>;
-    step1Data: Step1Data; // Step 1 데이터 추가
+    step1Data: Step1Data;
     isEdit?: boolean;
+    submitTrigger?: number;
 }
 
-export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, initialData, step1Data, isEdit }: CampaignStep2Props) {
+export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, initialData, step1Data, isEdit, submitTrigger = 0 }: CampaignStep2Props) {
+    // HUD 버튼 연동
+    const lastTrigger = useRef(submitTrigger);
+    useEffect(() => {
+        if (submitTrigger > 0 && submitTrigger !== lastTrigger.current) {
+            lastTrigger.current = submitTrigger;
+            handleNext();
+        }
+    }, [submitTrigger]);
     const [formData, setFormData] = useState<Step2Data>({
         campaignTitle: initialData?.campaignTitle || step1Data.campaignTitle || '',
         campaignImages: initialData?.campaignImages || [],
 
         // 구매평 가이드
-        purchaseLink: initialData?.purchaseLink || step1Data.productUrl || '',
-        purchaseOption: initialData?.purchaseOption || '',
-        paybackAmount: initialData?.paybackAmount || '',
         purchaseNotes: initialData?.purchaseNotes || '',
         reviewMissionContent: initialData?.reviewMissionContent || '',
 
@@ -190,9 +196,9 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        // 먼저 세션 확인
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
+        // 먼저 세션 확인 (보안을 위해 getUser 사용)
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
             toast.error('로그인이 필요한 서비스입니다. 다시 로그인해주세요.');
             return;
         }
@@ -378,21 +384,9 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
         if (!formData.campaignTitle.trim()) return false;
         if (!uploadLater && formData.campaignImages.length === 0) return false;
 
-        // 배송체험단인 경우 구매평 필드 검증
-        if (step1Data.campaignType === 'DELIVERY' && step1Data.includeReview) {
-            if (!formData.purchaseLink.trim()) return false;
-        }
-
         // 블로그 선택 시 메인 키워드 필수
         if (step1Data.includeNaver && !formData.blogMainKeyword.trim()) {
             return false;
-        }
-
-        // 배송체험단 + 블로그: 쇼핑몰 링크 삽입 필수
-        if (step1Data.campaignType === 'DELIVERY' && step1Data.includeNaver) {
-            if (formData.blogRequiredLinks.length === 0) {
-                return false;
-            }
         }
 
         return true;
@@ -420,34 +414,39 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
     const showInstagramGuide = step1Data.includeInstagram || (isVisitOrPressCampaign && step1Data.platform === 'INSTAGRAM');
 
     return (
-        <div className="max-w-4xl mx-auto p-6 space-y-8">
+        <div className="w-full space-y-8 pb-10">
+
 
             {/* 캠페인 제목 */}
-            {/* 캠페인 제목 (읽기 전용) */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 bg-gray-50/30">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">캠페인 제목 (모집글 제목)</h2>
-                    <span className="text-xs font-bold bg-blue-100 text-blue-600 px-2 py-1 rounded-full uppercase">Step 1 완료</span>
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                            <h2 className="text-lg font-bold text-slate-800">캠페인 제목 (모집글 제목)</h2>
+                            <HelpTooltip content="캠페인 제목은 1단계에서 확인 및 수정이 가능합니다. 인플루언서에게 가장 먼저 노출되는 정보이니 신중히 검토해주세요." />
+                        </div>
+                        <span className="text-[11px] font-bold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase">Step 1 완료</span>
+                    </div>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={step1Data.campaignTitle || ''}
+                            readOnly
+                            className="w-full h-12 px-4 border border-slate-100 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed font-medium"
+                        />
+                    </div>
                 </div>
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={step1Data.campaignTitle || ''}
-                        readOnly
-                        className="w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed text-lg font-medium"
-                    />
-                </div>
-                <p className="mt-2 text-xs text-gray-500">
-                    💡 캠페인 제목은 1단계에서 확인 및 수정이 가능합니다.
-                </p>
             </section>
 
             {/* 캠페인 이미지 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-bold text-gray-900">
-                        캠페인 이미지 {!uploadLater && <span className="text-red-500">*</span>}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-bold text-gray-900">
+                            캠페인 이미지 {!uploadLater && <span className="text-red-500">*</span>}
+                        </h2>
+                        {!uploadLater && <HelpTooltip content="대표 이미지 1개와 상세 이미지 최대 3개(총 4개)까지 업로드 가능합니다. 고화질 이미지를 권장합니다." />}
+                    </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                         <input
                             type="checkbox"
@@ -524,10 +523,6 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                 />
                             </button>
                         )}
-
-                        <p className="mt-3 text-xs text-gray-500 text-center">
-                            💡 대표 이미지 1개 + 상세 이미지 최대 3개 (총 4개)까지 업로드 가능합니다.
-                        </p>
                     </>
                 )}
             </section>
@@ -542,55 +537,28 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
 
                     <div className="h-px bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 mb-6"></div>
 
-                    {/* 구매 링크 */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            구매 링크 (URL) <span className="text-red-500">*</span>
+                    {/* 페이백 금액 안내 (Step1 데이터 기반) */}
+                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
+                            💰 페이백 금액 (옵션별)
+                            <HelpTooltip content="Step 1에서 설정한 페이백 금액이 자동으로 적용됩니다" />
                         </label>
-                        <input
-                            type="url"
-                            value={formData.purchaseLink || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, purchaseLink: e.target.value }))}
-                            placeholder="리뷰어가 구매할 페이지 URL"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                            Step 1에서 입력한 상품 링크가 자동으로 채워집니다.
-                        </p>
-                    </div>
-
-                    {/* 구매 옵션/키워드 */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            구매 옵션/키워드
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.purchaseOption || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, purchaseOption: e.target.value }))}
-                            placeholder='예: 검색창에 "무설탕" 검색 후 3번째 상품 클릭'
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                    </div>
-
-                    {/* 페이백 금액 */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            페이백 금액
-                        </label>
-                        <div className="flex items-center gap-2">
-                            <input
-                                type="text"
-                                value={formData.paybackAmount || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, paybackAmount: e.target.value }))}
-                                placeholder="0"
-                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
-                            />
-                            <span className="text-gray-600 font-medium">원</span>
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                            💡 리뷰어에게 돌려줄 금액 (자동 계산 추천)
-                        </p>
+                        {step1Data.productOptions && step1Data.productOptions.length > 0 ? (
+                            <div className="space-y-2">
+                                {step1Data.productOptions.map((option: any, idx: number) => (
+                                    <div key={idx} className="flex justify-between items-center bg-white px-4 py-2 rounded border border-blue-100">
+                                        <span className="text-sm font-medium text-gray-700">{option.optionName || `옵션 ${idx + 1}`}</span>
+                                        <span className="text-sm font-bold text-blue-600">
+                                            {parseInt(option.optionPrice || '0').toLocaleString()}원
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-3 text-gray-500 text-sm">
+                                Step 1에서 상품 옵션을 설정해주세요
+                            </div>
+                        )}
                     </div>
 
                     {/* 구매 시 주의사항 */}
@@ -779,12 +747,14 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         />
                     </div>
 
-                    {/* 경제적 대가 고지 */}
-                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-                        <h3 className="text-sm font-bold text-amber-900 mb-2">⚠️ 경제적 대가 고지 문구</h3>
-                        <p className="text-sm text-amber-800 leading-relaxed">
-                            공정위 문구 게재 법에 따라 필수 포함되어야 하며, <strong>"협찬"</strong> 문구 없이 진행 시 발생하는 문제의 책임은 이용자에게 있습니다.
-                        </p>
+                    <div className="mt-8 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3 text-left">
+                        <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                        <div className="flex-1">
+                            <h3 className="text-[14px] font-bold text-indigo-950 mb-1">⚠️ 경제적 대가 고지 필수 안내</h3>
+                            <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                공정위 문구 게재 법에 따라 필수 포함되어야 하며, <strong className="font-bold">"협찬"</strong> 문구 없이 진행 시 발생하는 문제의 책임은 이용자에게 있습니다.
+                            </p>
+                        </div>
                     </div>
                 </section>
             )}
@@ -981,62 +951,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                     <span className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
                                         지도 삽입
                                     </span>
+                                    <HelpTooltip content="방문체험단/기자단은 지도 삽입을 권장합니다. 오프라인 매장의 경우 방문객 유입에 큰 도움이 됩니다." />
                                 </div>
                             </label>
-                            <p className="mt-2 text-xs text-blue-700 bg-blue-50 p-2 rounded border border-blue-200">
-                                💡 방문체험단/기자단은 지도 삽입을 권장합니다. (웹서비스 기자단 등은 제외 가능)
-                            </p>
                         </div>
                     )}
-
-                    {/* 필수 삽입 링크 */}
-                    <div className="mb-6">
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            <LinkIcon size={16} className="inline mr-1" />
-                            필수 삽입 링크
-                            {step1Data.campaignType === 'DELIVERY' && (
-                                <span className="text-red-500 ml-1">*</span>
-                            )}
-                        </label>
-                        {step1Data.campaignType === 'DELIVERY' && (
-                            <p className="text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200 mb-3">
-                                ℹ️ 배송체험단은 쇼핑몰 링크를 최소 1개 이상 추가해야 합니다.
-                            </p>
-                        )}
-                        <div className="flex gap-2 mb-3">
-                            <input
-                                type="url"
-                                value={blogLinkInput}
-                                onChange={(e) => setBlogLinkInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addBlogLink()}
-                                placeholder={step1Data.campaignType === 'DELIVERY' ? "쇼핑몰 링크 입력 후 Enter" : "스마트플레이스, 예약 링크 등 입력 후 Enter"}
-                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
-                            <button
-                                onClick={addBlogLink}
-                                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-                            >
-                                추가
-                            </button>
-                        </div>
-                        <div className="space-y-2">
-                            {formData.blogRequiredLinks.map((link, index) => (
-                                <div
-                                    key={index}
-                                    className="flex items-center gap-2 p-2 bg-green-50 border border-green-200 rounded-lg"
-                                >
-                                    <LinkIcon size={16} className="text-green-600 flex-shrink-0" />
-                                    <span className="flex-1 text-sm text-green-800 truncate">{link}</span>
-                                    <button
-                                        onClick={() => removeBlogLink(link)}
-                                        className="text-red-500 hover:text-red-700 flex-shrink-0"
-                                    >
-                                        <X size={16} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
                 </section>
             )}
 
@@ -1131,9 +1050,10 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                 </span>
                             ))}
                         </div>
-                        <p className="mt-2 text-xs text-gray-500">
-                            💡 해시태그는 자동으로 # 기호가 추가됩니다.
-                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                            <HelpTooltip content="해시태그는 자동으로 # 기호가 추가됩니다." />
+                            <span className="text-xs text-gray-500">도움말</span>
+                        </div>
                     </div>
 
                     {/* 계정 태그 */}
@@ -1246,44 +1166,6 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                 />
             </section>
 
-            {/* 버튼 */}
-            <div className="flex justify-between">
-                <button
-                    onClick={onPrev}
-                    className="flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                    <ChevronLeft size={20} />
-                    이전 단계
-                </button>
-
-                <div className="flex gap-3">
-                    {onSaveDraft && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                onSaveDraft();
-                            }}
-                            className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-all shadow-sm"
-                        >
-                            <Save size={18} />
-                            임시저장
-                        </button>
-                    )}
-                    <button
-                        onClick={handleNext}
-                        disabled={!isFormValid()}
-                        className={`px-8 py-3 rounded-lg font-semibold transition-all ${isFormValid()
-                            ? isEdit
-                                ? 'bg-green-600 text-white hover:bg-green-700 shadow-lg hover:shadow-xl'
-                                : 'bg-blue-500 text-white hover:bg-blue-600 shadow-lg hover:shadow-xl'
-                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
-                    >
-                        {isEdit ? '수정완료' : '다음 단계로'}
-                    </button>
-                </div>
-            </div>
         </div>
     );
 }

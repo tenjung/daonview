@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Download, Trash2, Edit, HelpCircle, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Trash2, Edit, Calendar } from 'lucide-react';
+import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
@@ -18,7 +19,6 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted }:
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
     const [completedCampaigns, setCompletedCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-    const [showTooltip, setShowTooltip] = useState(false);
 
     // 임시저장 목록 불러오기
     useEffect(() => {
@@ -76,7 +76,7 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted }:
     };
 
     return (
-        <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div className="w-full bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
             {/* 헤더 */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
@@ -85,21 +85,7 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted }:
                 <div className="flex items-center gap-3">
                     <Download size={24} className="text-blue-600" />
                     <h2 className="text-lg font-bold text-gray-900">캠페인 불러오기</h2>
-                    <div className="relative">
-                        <div
-                            onMouseEnter={() => setShowTooltip(true)}
-                            onMouseLeave={() => setShowTooltip(false)}
-                            className="text-gray-400 hover:text-gray-600 mt-1 cursor-help"
-                        >
-                            <HelpCircle size={18} />
-                        </div>
-                        {showTooltip && (
-                            <div className="absolute left-0 top-6 z-10 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
-                                임시저장은 최대 10개까지 저장됩니다. 10개를 초과하면 가장 오래된 항목이 자동으로 삭제됩니다.
-                                <div className="absolute -top-1 left-4 w-2 h-2 bg-gray-900 transform rotate-45"></div>
-                            </div>
-                        )}
-                    </div>
+                    <HelpTooltip content="임시저장은 최대 10개까지 저장됩니다. 10개를 초과하면 가장 오래된 항목이 자동으로 삭제됩니다." />
                 </div>
                 {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
             </button>
