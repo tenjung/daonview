@@ -244,6 +244,44 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        // 프로필 필수 정보 검증 (배송형/구매평 케이스)
+        try {
+            const { data: profile, error: profileError } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (profileError || !profile) {
+                toast.error('사용자 정보를 불러올 수 없습니다.');
+                return;
+            }
+
+            const campaignType = campaign.type?.toUpperCase();
+            
+            if (campaignType === 'PURCHASE') {
+                // 구매평 캠페인: 계좌 정보 필수
+                if (!profile.bank_name || !profile.account_number || !profile.account_holder) {
+                    toast.error('정산 계좌 정보가 등록되지 않았습니다.', {
+                        description: '정산을 위해 계좌 정보를 먼저 등록해 주세요.'
+                    });
+                    setTimeout(() => router.push('/profile/edit?tab=payout'), 1500);
+                    return;
+                }
+            } else if (campaignType === 'DELIVERY') {
+                // 단순 배송형 캠페인: 배송지 정보 필수
+                if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
+                    toast.error('배송지 정보(수령인/연락처/주소)가 등록되지 않았습니다.', {
+                        description: '제품 발송을 위해 배송 정보를 먼저 등록해 주세요.'
+                    });
+                    setTimeout(() => router.push('/profile/edit?tab=payout'), 1500);
+                    return;
+                }
+            }
+        } catch (err) {
+            console.error('Profile validation error:', err);
+        }
+
         const currentOptions = getOptions();
         const config = getOptionConfig();
 
@@ -287,9 +325,41 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
 
             console.log('Application successful:', data);
-            toast.success('캠페인 신청이 완료되었습니다!');
-            setHasApplied(true);
             fetchCampaign();
+
+            // 캠페인 생성자(광고주/관리자)에게 마일스톤 알림 발송
+            if (campaign.created_by) {
+                // 현재 총 신청자 수 다시 확인 (정확한 유효 신청자 수)
+                const { count: currentCount } = await supabase
+                    .from('applications')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('campaign_id', id);
+
+                if (currentCount !== null) {
+                    const recruitCount = campaign.recruit_count;
+                    const milestones = [
+                        { percent: 50, count: Math.floor(recruitCount * 0.5) },
+                        { percent: 100, count: recruitCount },
+                        { percent: 120, count: Math.floor(recruitCount * 1.2) }
+                    ];
+
+                    const milestone = milestones.find(m => m.count === currentCount);
+
+                    if (milestone) {
+                        const message = milestone.percent === 120 
+                            ? `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 초과했습니다! 🔥`
+                            : `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 달성했습니다! 🎉`;
+
+                        await supabase.from('notifications').insert({
+                            user_id: campaign.created_by,
+                            type: 'CAMPAIGN_MILESTONE',
+                            title: `📈 모집 현황 ${milestone.percent}% 달성`,
+                            content: message,
+                            link: `/dashboard/advertiser/applicants?campaignId=${id}`
+                        });
+                    }
+                }
+            }
 
             // 백그라운드에서 인플루언서 통계 업데이트 (하루 1회 제한)
             // await 없이 실행하여 사용자 경험에 영향 없음

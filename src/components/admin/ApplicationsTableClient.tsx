@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import { Check, X, Phone, Instagram, ExternalLink, Star, Download } from 'lucide-react';
+import { Check, X, Phone, Instagram, ExternalLink, Star, Download, Truck, Upload, Save } from 'lucide-react';
 import ApplicationStatusBadge from '@/components/admin/ApplicationStatusBadge';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import InfluencerReviewModal from './InfluencerReviewModal';
@@ -147,25 +147,121 @@ export default function ApplicationsTableClient({
         return app.status?.toUpperCase() === filter.toUpperCase();
     });
 
-    // 이메일 발송 함수
-    const sendApprovalEmail = async (email: string, influencerName: string) => {
+    // 송장 정보 업데이트
+    const handleUpdateTracking = async (applicationId: number, company: string, number: string) => {
+        if (!company || !number) {
+            toast.error('택배사와 송장 번호를 모두 입력해주세요.');
+            return;
+        }
+
         try {
-            const response = await fetch('/api/send-approval-email', {
+            const { error } = await supabase
+                .from('applications')
+                .update({
+                    tracking_company: company,
+                    tracking_number: number,
+                    shipped_at: new Date().toISOString()
+                })
+                .eq('id', applicationId);
+
+            if (error) throw error;
+
+            toast.success('송장 정보가 저장되었습니다.');
+            
+            // 알림 발송 로직 (백그라운드)
+            const app = applications.find(a => a.id === applicationId);
+            if (app?.user_id) {
+                await supabase.from('notifications').insert({
+                    user_id: app.user_id,
+                    type: 'CAMPAIGN_SHIPPING',
+                    title: '📦 제품 발송 안내',
+                    content: `[${campaignTitle}] 캠페인의 제품이 발송되었습니다. 송장번호를 확인해 주세요.`,
+                    link: '/dashboard/influencer/campaigns'
+                });
+
+                // 이메일 발송 추가
+                if (app.user?.email) {
+                    triggerEmail(app.user.email, 'PRODUCT_SHIPPED', {
+                        nickname: app.user.nickname,
+                        campaignTitle,
+                        trackingCompany: company,
+                        trackingNumber: number
+                    });
+                }
+            }
+
+            setApplications(prev =>
+                prev.map(app =>
+                    app.id === applicationId
+                        ? { ...app, tracking_company: company, tracking_number: number }
+                        : app
+                )
+            );
+        } catch (error) {
+            console.error('Error updating tracking:', error);
+            toast.error('송장 정보 저장 중 오류가 발생했습니다.');
+        }
+    };
+
+    // 엑셀 일괄 등록 (송장)
+    const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (evt) => {
+            try {
+                const bstr = evt.target?.result;
+                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wsname = wb.SheetNames[0];
+                const ws = wb.Sheets[wsname];
+                const data = XLSX.utils.sheet_to_json(ws) as any[];
+
+                let successCount = 0;
+                for (const row of data) {
+                    const id = row['ID'] || row['id'] || row['신청번호'];
+                    const company = row['택배사'] || row['tracking_company'];
+                    const number = row['송장번호'] || row['tracking_number'];
+
+                    if (id && company && number) {
+                        const { error } = await supabase
+                            .from('applications')
+                            .update({
+                                tracking_company: company,
+                                tracking_number: number,
+                                shipped_at: new Date().toISOString()
+                            })
+                            .eq('id', id);
+                        
+                        if (!error) successCount++;
+                    }
+                }
+
+                toast.success(`${successCount}건의 송장 정보가 일괄 등록되었습니다.`);
+                // 데이터 새로고침
+                window.location.reload();
+            } catch (err) {
+                console.error('Excel import error:', err);
+                toast.error('엑셀 파일 처리 중 오류가 발생했습니다.');
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+
+    // 이메일 발송 공통 함수
+    const triggerEmail = async (to: string, type: string, params: any) => {
+        try {
+            const response = await fetch('/api/send-email', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    influencerName,
-                    campaignTitle,
-                    campaignId
-                })
+                body: JSON.stringify({ to, type, params })
             });
 
             if (!response.ok) {
-                console.error('Failed to send email');
+                console.error(`Failed to send ${type} email:`, await response.text());
             }
         } catch (error) {
-            console.error('Error sending email:', error);
+            console.error(`Error sending ${type} email:`, error);
         }
     };
 
@@ -190,8 +286,24 @@ export default function ApplicationsTableClient({
                 } else {
                     toast.success(`${userName}님의 신청이 승인되었습니다.`);
 
+                    // 알림 전송 (승인)
+                    const app = applications.find(a => a.id === applicationId);
+                    if (app?.user_id) {
+                        await supabase.from('notifications').insert({
+                            user_id: app.user_id,
+                            type: 'CAMPAIGN_SELECTED',
+                            title: '✨ 캠페인 선정 안내',
+                            content: `축하합니다! [${campaignTitle}] 캠페인에 선정되셨습니다.`,
+                            link: '/dashboard/influencer/campaigns'
+                        });
+                    }
+
                     // 이메일 발송
-                    await sendApprovalEmail(userEmail, userName);
+                    triggerEmail(userEmail, 'CAMPAIGN_SELECTED', {
+                        nickname: userName,
+                        campaignTitle,
+                        campaignId
+                    });
 
                     // 낙관적 UI 업데이트
                     setApplications(prev =>
@@ -224,6 +336,7 @@ export default function ApplicationsTableClient({
                     console.error(error);
                 } else {
                     toast.success(`${userName}님의 신청이 거절되었습니다.`);
+
                     setApplications(prev =>
                         prev.map(app =>
                             app.id === applicationId
@@ -266,7 +379,11 @@ export default function ApplicationsTableClient({
                     // 이메일 발송
                     pendingApps.forEach(app => {
                         if (app.user?.email && app.user?.nickname) {
-                            sendApprovalEmail(app.user.email, app.user.nickname);
+                            triggerEmail(app.user.email, 'CAMPAIGN_SELECTED', {
+                                nickname: app.user.nickname,
+                                campaignTitle,
+                                campaignId
+                            });
                         }
                     });
 
@@ -406,13 +523,20 @@ export default function ApplicationsTableClient({
                 </div>
 
                 {filteredApplications.length > 0 && (
-                    <button
-                        onClick={handleExportExcel}
-                        className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
-                    >
-                        <Download size={16} />
-                        Excel 다운로드
-                    </button>
+                    <div className="flex gap-2">
+                        <label className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm cursor-pointer">
+                            <Upload size={16} />
+                            송장 일괄 등록 (Excel)
+                            <input type="file" className="hidden" accept=".xlsx, .xls" onChange={handleImportExcel} />
+                        </label>
+                        <button
+                            onClick={handleExportExcel}
+                            className="flex items-center gap-2 bg-white text-gray-700 border border-gray-200 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm"
+                        >
+                            <Download size={16} />
+                            Excel 다운로드
+                        </button>
+                    </div>
                 )}
             </div>
         );
@@ -447,7 +571,7 @@ export default function ApplicationsTableClient({
                 <table className="w-full text-left">
                     <thead className="bg-gray-50 text-gray-500 text-xs font-bold uppercase tracking-wider border-y border-gray-200">
                         <tr>
-                            <th className="px-6 py-4">
+                            <th className="px-6 py-4 w-[50px]">
                                 <input
                                     type="checkbox"
                                     checked={selectedIds.length === filteredApplications.length}
@@ -455,14 +579,15 @@ export default function ApplicationsTableClient({
                                     className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                                 />
                             </th>
-                            <th className="px-6 py-4">신청일시</th>
-                            <th className="px-6 py-4">인플루언서 정보</th>
-                            <th className="px-6 py-4">블로그 통계</th>
-                            <th className="px-6 py-4">연락처</th>
-                            <th className="px-6 py-4">SNS</th>
-                            <th className="px-6 py-4">신청 메시지</th>
-                            <th className="px-6 py-4">상태</th>
-                            <th className="px-6 py-4 text-center">관리</th>
+                            <th className="px-6 py-4 min-w-[120px]">신청일시</th>
+                            <th className="px-6 py-4 min-w-[200px]">인플루언서 정보</th>
+                            <th className="px-6 py-4 min-w-[150px]">블로그 통계</th>
+                            <th className="px-6 py-4 min-w-[150px]">연락처</th>
+                            <th className="px-6 py-4 min-w-[120px]">SNS</th>
+                            <th className="px-6 py-4 min-w-[200px]">신청 메시지</th>
+                            <th className="px-6 py-4 min-w-[180px]">송장 정보</th>
+                            <th className="px-6 py-4 min-w-[100px]">상태</th>
+                            <th className="px-6 py-4 text-center min-w-[100px]">관리</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -567,6 +692,35 @@ export default function ApplicationsTableClient({
                                         </p>
                                     </td>
                                     <td className="px-6 py-4">
+                                        {app.status?.toUpperCase() === 'APPROVED' && (
+                                            <div className="flex flex-col gap-1.5 min-w-[150px]">
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="택배사" 
+                                                    defaultValue={app.tracking_company || ''}
+                                                    onBlur={(e) => app.temp_company = e.target.value}
+                                                    className="text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-primary outline-none"
+                                                />
+                                                <div className="flex gap-1">
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="송장번호" 
+                                                        defaultValue={app.tracking_number || ''}
+                                                        onBlur={(e) => app.temp_number = e.target.value}
+                                                        className="text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-primary outline-none flex-1"
+                                                    />
+                                                    <button 
+                                                        onClick={() => handleUpdateTracking(app.id, app.temp_company || app.tracking_company, app.temp_number || app.tracking_number)}
+                                                        className="p-1 bg-slate-100 rounded hover:bg-slate-200 text-slate-600"
+                                                        title="저장"
+                                                    >
+                                                        <Save size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4">
                                         <ApplicationStatusBadge status={app.status} />
                                     </td>
                                     <td className="px-6 py-4">
@@ -587,16 +741,32 @@ export default function ApplicationsTableClient({
                                                     </button>
                                                 </>
                                             ) : (
-                                                <button
-                                                    onClick={() => setReviewModal({
-                                                        isOpen: true,
-                                                        influencerId: app.user_id,
-                                                        influencerName: user?.nickname || '인플루언서'
-                                                    })}
-                                                    className="flex items-center gap-1 bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition-colors font-bold text-xs shadow-sm"
-                                                >
-                                                    <Star size={14} /> 평가
-                                                </button>
+                                                <>
+                                                    <button 
+                                                        onClick={() => setReviewModal({
+                                                            isOpen: true,
+                                                            influencerId: app.user_id,
+                                                            influencerName: user?.nickname || '인플루언서'
+                                                        })}
+                                                        className="flex items-center gap-1 bg-yellow-500 text-white px-3 py-1.5 rounded-lg hover:bg-yellow-600 transition-colors font-bold text-xs shadow-sm"
+                                                    >
+                                                        <Star size={14} /> 평가
+                                                    </button>
+                                                    {app.review_submitted && (
+                                                        <button 
+                                                            onClick={() => {
+                                                                // Simple alert or nested modal to show review info
+                                                                const mediaCount = app.review_media_urls?.length || 0;
+                                                                toast.info(`리뷰 확인: ${mediaCount}개의 미디어가 등록됨`, {
+                                                                    description: `URL: ${app.reviews?.[0]?.post_url || 'N/A'}`
+                                                                });
+                                                            }}
+                                                            className="flex items-center gap-1 bg-blue-500 text-white px-3 py-1.5 rounded-lg hover:bg-blue-600 transition-colors font-bold text-xs shadow-sm"
+                                                        >
+                                                            <ExternalLink size={14} /> 리뷰 확인
+                                                        </button>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </td>

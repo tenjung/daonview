@@ -189,6 +189,18 @@ function SignupForm() {
                         } else {
                             router.push('/');
                         }
+
+                        // 가입 여부와 별개로 웰컴 메일 시도 (프로필 생성 시점에 이미 보냈을 수 있지만 안전책)
+                        fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: email,
+                                type: 'WELCOME',
+                                params: { nickname }
+                            })
+                        }).catch(err => console.debug('Welcome email check failed (likely duplicate):', err));
+
                         return;
                     } else {
                         toast.error('이미 사용 중인 이메일입니다.', {
@@ -253,6 +265,18 @@ function SignupForm() {
             toast.success('회원가입이 완료되었습니다!', {
                 description: '다온뷰에 오신 것을 환영합니다.',
             });
+
+            // 웰컴 이메일 발송 (백그라운드 비동기 처리)
+            fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: email,
+                    type: 'WELCOME',
+                    params: { nickname }
+                })
+            }).catch(err => console.error('Welcome email failed:', err));
+
             if (userType === 'INFLUENCER') {
                 setNewUserId(authData.user.id);
                 setShowOnboarding(true);

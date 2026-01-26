@@ -19,6 +19,7 @@ interface NotificationState {
   fetchNotifications: (userId: string) => Promise<void>;
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: (userId: string) => Promise<void>;
+  subscribeToNotifications: (userId: string) => () => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -79,6 +80,36 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       } catch (error) {
         console.error('Error marking all as read:', error);
       }
+    },
+    subscribeToNotifications: (userId: string) => {
+      const channel = supabase
+        .channel(`notifications:user_id=eq.${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+          },
+          (payload) => {
+            const newNotification = payload.new as Notification;
+            set((state) => {
+              if (state.notifications.some(n => n.id === newNotification.id)) return state;
+              
+              const updatedNotifications = [newNotification, ...state.notifications];
+              return {
+                notifications: updatedNotifications,
+                unreadCount: updatedNotifications.filter(n => !n.is_read).length
+              };
+            });
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     },
   })
 );

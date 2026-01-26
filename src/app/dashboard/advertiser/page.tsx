@@ -53,6 +53,41 @@ export default function AdvertiserDashboard() {
         }
     }
 
+    // 마감 임박/모집 미달 캠페인 자동 알림 (지능형 모니터링)
+    useEffect(() => {
+        if (campaigns.length > 0 && user) {
+            const checkAndNotify = async () => {
+                for (const campaign of campaigns) {
+                    const status = analyzeCampaign(campaign);
+                    if (status !== 'success') {
+                        const type = status === 'critical' ? 'CAMPAIGN_CRITICAL' : 'CAMPAIGN_WARNING';
+                        const title = status === 'critical' ? '🚨 캠페인 긴급 조치 필요' : '⚠️ 캠페인 모니터링 알림';
+                        
+                        // 최근 3일 내 동일 캠페인/타입 알림이 있는지 확인
+                        const { count } = await supabase
+                            .from('notifications')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', user.id)
+                            .eq('type', type)
+                            .ilike('content', `%[${campaign.title}]%`)
+                            .gt('created_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString());
+
+                        if (count === 0) {
+                            await supabase.from('notifications').insert({
+                                user_id: user.id,
+                                type,
+                                title,
+                                content: `[${campaign.title}] 캠페인의 마감이 임박했거나 모집이 저조합니다. 확인 후 기간 연장 등의 조치를 고려해 주세요.`,
+                                link: `/dashboard/advertiser/campaigns?id=${campaign.id}`
+                            });
+                        }
+                    }
+                }
+            };
+            checkAndNotify();
+        }
+    }, [campaigns, user]);
+
     // 간단한 상태 분석 (경고 개수 파악용)
     function analyzeCampaign(campaign: Campaign) {
         const applicantCount = campaign.applications?.[0]?.count || 0;

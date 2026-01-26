@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock } from 'lucide-react';
+import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 
@@ -55,7 +56,29 @@ const CATEGORIES = [
     { id: 'health', name: '건강/의료', icon: '💊', desc: '건강식품, 의료기기' },
 ];
 
-type TabType = 'basic' | 'interests';
+type TabType = 'basic' | 'interests' | 'payout';
+
+const BANK_LIST = [
+    { name: '카카오뱅크', color: 'bg-[#FEE500]', text: 'text-[#3c1e1e]' },
+    { name: '토스뱅크', color: 'bg-[#0050FF]', text: 'text-white' },
+    { name: '국민은행', color: 'bg-[#ffbc00]', text: 'text-black' },
+    { name: '신한은행', color: 'bg-[#003e94]', text: 'text-white' },
+    { name: '우리은행', color: 'bg-[#0067ac]', text: 'text-white' },
+    { name: '하나은행', color: 'bg-[#008485]', text: 'text-white' },
+    { name: 'NH농협은행', color: 'bg-[#00a35c]', text: 'text-white' },
+    { name: '기업은행', color: 'bg-[#0050a1]', text: 'text-white' },
+    { name: '케이뱅크', color: 'bg-[#000000]', text: 'text-white' },
+    { name: '우체국', color: 'bg-[#ed1c24]', text: 'text-white' },
+    { name: 'SC제일은행', color: 'bg-[#004a99]', text: 'text-white' },
+    { name: '부산은행', color: 'bg-[#ed1c24]', text: 'text-white' },
+    { name: '대구은행', color: 'bg-[#00a0e9]', text: 'text-white' },
+    { name: '경남은행', color: 'bg-[#ed1c24]', text: 'text-white' },
+    { name: '광주은행', color: 'bg-[#0056a4]', text: 'text-white' },
+    { name: '전북은행', color: 'bg-[#0056a4]', text: 'text-white' },
+    { name: '제주은행', color: 'bg-[#0056a4]', text: 'text-white' },
+    { name: '한국씨티은행', color: 'bg-[#004a99]', text: 'text-white' },
+    { name: '외한은행', color: 'bg-[#008485]', text: 'text-white' },
+];
 
 function ProfileEditContent() {
     const router = useRouter();
@@ -103,9 +126,17 @@ function ProfileEditContent() {
     // 기본 정보
     const [formData, setFormData] = useState({
         nickname: '',
+        name: '',
         phone_number: '',
         company_name: '',
-        avatar_url: ''
+        avatar_url: '',
+        // 배송 및 정산 정보
+        bank_name: '',
+        account_number: '',
+        account_holder: '',
+        zip_code: '',
+        address_base: '',
+        address_detail: ''
     });
 
     // 소셜 링크 정보
@@ -164,9 +195,16 @@ function ProfileEditContent() {
                     setProviders(user.app_metadata?.providers || []);
                     setFormData({
                         nickname: data.nickname || '',
+                        name: data.name || '',
                         phone_number: data.phone_number || '',
                         company_name: data.company_name || '',
-                        avatar_url: data.avatar_url || ''
+                        avatar_url: data.avatar_url || '',
+                        bank_name: data.bank_name || '',
+                        account_number: data.account_number || '',
+                        account_holder: data.account_holder || '',
+                        zip_code: data.zip_code || '',
+                        address_base: data.address_base || '',
+                        address_detail: data.address_detail || ''
                     });
 
                     setSocialLinks({
@@ -210,9 +248,16 @@ function ProfileEditContent() {
 
             const updateData: any = {
                 nickname: formData.nickname,
+                name: formData.name,
                 phone_number: formData.phone_number,
                 company_name: formData.company_name,
-                avatar_url: formData.avatar_url
+                avatar_url: formData.avatar_url,
+                bank_name: formData.bank_name,
+                account_number: formData.account_number,
+                account_holder: formData.account_holder,
+                zip_code: formData.zip_code,
+                address_base: formData.address_base,
+                address_detail: formData.address_detail
             };
 
             const cleanBlogId = socialLinks.blog.trim().replace(/^https?:\/\/blog\.naver\.com\//, "");
@@ -241,13 +286,46 @@ function ProfileEditContent() {
 
             if (error) throw error;
 
-            toast.success('기본 정보가 저장되었습니다.');
+            toast.success('정보가 성공적으로 저장되었습니다.');
             if (user.id) await fetchProfile(user.id);
+            setIsEditingPayout(false); // 저장 후 조회 모드로 전환
         } catch (error: any) {
             toast.error(error?.message || '업데이트에 실패했습니다.');
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleAddressComplete = (data: any) => {
+        let fullAddress = data.address;
+        let extraAddress = '';
+
+        if (data.addressType === 'R') {
+            if (data.bname !== '') {
+                extraAddress += data.bname;
+            }
+            if (data.buildingName !== '') {
+                extraAddress += (extraAddress !== '' ? `, ${data.buildingName}` : data.buildingName);
+            }
+            fullAddress += (extraAddress !== '' ? ` (${extraAddress})` : '');
+        }
+
+        setFormData(prev => ({
+            ...prev,
+            zip_code: data.zonecode,
+            address_base: fullAddress
+        }));
+        setShowAddressSearch(false);
+    };
+
+    const [showAddressSearch, setShowAddressSearch] = useState(false);
+    const [isEditingPayout, setIsEditingPayout] = useState(false);
+
+    // 계좌번호 마스킹 함수
+    const maskAccountNumber = (acc: string) => {
+        if (!acc) return "";
+        if (acc.length <= 4) return acc;
+        return acc.substring(0, 3) + "****" + acc.substring(acc.length - 3);
     };
 
     // 소셜 링크 자동 저장 함수
@@ -381,6 +459,8 @@ function ProfileEditContent() {
         setSelectedCategories(prev => prev.includes(id) ? prev.filter(c => c !== id) : prev.length < 3 ? [...prev, id] : prev);
     };
 
+    const selectedBank = BANK_LIST.find(b => b.name === formData.bank_name);
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50/50">
@@ -406,6 +486,7 @@ function ProfileEditContent() {
                         label: '계정 설정',
                         subLinks: [
                             { href: '/profile/edit?tab=basic', label: '기본 정보' },
+                            { href: '/profile/edit?tab=payout', label: '배송/정산 관리' },
                             { href: '/profile/edit?tab=interests', label: '관심사 설정' }
                         ]
                     },
@@ -507,20 +588,36 @@ function ProfileEditContent() {
                                         <CardDescription>활동 및 연락을 위한 기본 정보를 관리합니다.</CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-6">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="phone_number" className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                                                <Phone className="w-4 h-4 text-rose-500" />
-                                                연락처
-                                            </Label>
-                                            <Input
-                                                id="phone_number"
-                                                type="tel"
-                                                placeholder="010-0000-0000"
-                                                value={formData.phone_number}
-                                                onChange={handlePhoneChange}
-                                                maxLength={13}
-                                                className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
-                                            />
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="name" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                    <User className="w-4 h-4 text-rose-500" />
+                                                    성함 (본명)
+                                                </Label>
+                                                <Input
+                                                    id="name"
+                                                    placeholder="실명을 입력하세요"
+                                                    value={formData.name}
+                                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                    className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                />
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="phone_number" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                    <Phone className="w-4 h-4 text-rose-500" />
+                                                    연락처
+                                                </Label>
+                                                <Input
+                                                    id="phone_number"
+                                                    type="tel"
+                                                    placeholder="010-0000-0000"
+                                                    value={formData.phone_number}
+                                                    onChange={handlePhoneChange}
+                                                    maxLength={13}
+                                                    className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                />
+                                            </div>
                                         </div>
 
                                         <div className="grid gap-4">
@@ -656,6 +753,282 @@ function ProfileEditContent() {
                                     {saving ? '저장 중...' : '기본 정보 업데이트하기'}
                                 </Button>
                             </form>
+                        ) : activeTab === 'payout' ? (
+                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {!isEditingPayout && profile?.bank_name ? (
+                                    /* 요약 카드 모드 (조회 모드) */
+                                    <div className="space-y-6">
+                                        <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden bg-white">
+                                            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                                                <div className="space-y-1">
+                                                    <CardTitle className="text-xl flex items-center gap-2">
+                                                        <Lock className="w-5 h-5 text-rose-500" />
+                                                        배송 및 정산 정보
+                                                    </CardTitle>
+                                                    <CardDescription>현재 등록된 안전한 정보입니다.</CardDescription>
+                                                </div>
+                                                <Button
+                                                    onClick={() => setIsEditingPayout(true)}
+                                                    variant="outline"
+                                                    className="rounded-xl border-slate-200 hover:bg-slate-50 gap-2 font-bold"
+                                                >
+                                                    <Edit2 size={14} />
+                                                    정보 수정
+                                                </Button>
+                                            </CardHeader>
+                                            <CardContent className="p-8 space-y-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                                    {/* 배송지 요약 */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                                                            <MapPin size={14} />
+                                                            기본 배송지
+                                                        </div>
+                                                        <div className="bg-slate-50 p-6 rounded-2xl space-y-4 border border-slate-100">
+                                                            <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 mb-1">
+                                                                <div className="space-y-1">
+                                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">수령인 성함</div>
+                                                                    <div className="text-sm font-bold text-slate-800">{formData.name || '미등록'}</div>
+                                                                </div>
+                                                                <div className="text-right space-y-1">
+                                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">연락처</div>
+                                                                    <div className="text-sm font-medium text-slate-600">{formData.phone_number || '미등록'}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-xs font-black text-rose-500 bg-rose-50 inline-block px-2 py-0.5 rounded-md mb-2">
+                                                                    {formData.zip_code || '-'}
+                                                                </div>
+                                                                <div className="text-base font-bold text-slate-800 break-keep leading-snug">
+                                                                    {formData.address_base || '등록된 주소가 없습니다.'}
+                                                                </div>
+                                                                <div className="text-slate-500 font-medium text-sm mt-1">
+                                                                    {formData.address_detail || ''}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* 계좌 요약 */}
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider">
+                                                            <CreditCard size={14} />
+                                                            정산 계좌
+                                                        </div>
+                                                        <div className={`${selectedBank?.color || 'bg-slate-900'} p-6 rounded-2xl space-y-3 shadow-lg relative overflow-hidden transition-colors duration-500`}>
+                                                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                                                <CreditCard size={80} className={`${selectedBank?.text || 'text-white'}`} />
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <div className={`w-8 h-8 rounded-full ${selectedBank?.text ? 'bg-black/10' : 'bg-white/20'} flex items-center justify-center text-[10px] ${selectedBank?.text || 'text-white'} font-black`}>
+                                                                    {formData.bank_name?.substring(0, 2)}
+                                                                </div>
+                                                                <span className={`font-bold ${selectedBank?.text || 'text-white'}`}>{formData.bank_name}</span>
+                                                            </div>
+                                                            <div className={`text-2xl font-black ${selectedBank?.text || 'text-white'} tracking-widest py-2`}>
+                                                                {maskAccountNumber(formData.account_number)}
+                                                            </div>
+                                                            <div className="flex justify-between items-end">
+                                                                <div className={`${selectedBank?.text ? 'text-black/40' : 'text-white/50'} text-[10px] uppercase font-bold tracking-widest`}>Account Holder</div>
+                                                                <div className={`font-bold ${selectedBank?.text || 'text-white'}`}>{formData.account_holder}</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3">
+                                                    <div className="bg-amber-100 p-2 rounded-full h-fit mt-0.5">
+                                                        <Settings className="w-3 h-3 text-amber-600" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[11px] font-bold text-amber-800">보안 안내</p>
+                                                        <p className="text-[10px] text-amber-700/80 leading-relaxed mt-0.5">
+                                                            중요한 금융 정보는 마스킹 처리되어 안전하게 보호됩니다. 수정이 필요하실 때만 수정 버튼을 눌러주세요.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                ) : (
+                                    /* 수정 모드 (입력 폼) */
+                                    <form onSubmit={handleBasicInfoSubmit} className="space-y-6">
+                                        <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
+                                            <CardHeader className="bg-slate-900 text-white">
+                                                <div className="flex items-center justify-between">
+                                                    <CardTitle className="text-xl flex items-center gap-2">
+                                                        <MapPin className="w-5 h-5 text-rose-500" />
+                                                        배송지 정보 수정
+                                                    </CardTitle>
+                                                    {formData.bank_name && (
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            onClick={() => setIsEditingPayout(false)}
+                                                            className="text-slate-400 hover:text-white"
+                                                        >
+                                                            취소
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                                <CardDescription className="text-slate-400">배송형 캠페인 참여를 위한 기본 배송지입니다.</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="p-8 space-y-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="payout_name" className="text-sm font-bold text-slate-700">수령인 성함</Label>
+                                                        <Input
+                                                            id="payout_name"
+                                                            placeholder="수령인 실명 입력"
+                                                            value={formData.name}
+                                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                                            className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                        />
+                                                    </div>
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="payout_phone" className="text-sm font-bold text-slate-700">수령인 연락처</Label>
+                                                        <Input
+                                                            id="payout_phone"
+                                                            type="tel"
+                                                            placeholder="010-0000-0000"
+                                                            value={formData.phone_number}
+                                                            onChange={handlePhoneChange}
+                                                            maxLength={13}
+                                                            className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid gap-2 pt-2">
+                                                    <Label className="text-sm font-bold text-slate-700">우편번호</Label>
+                                                    <div className="flex gap-2">
+                                                        <Input
+                                                            value={formData.zip_code}
+                                                            readOnly
+                                                            placeholder="우편번호"
+                                                            className="bg-slate-100 border-none h-12 rounded-xl w-32"
+                                                        />
+                                                        <Button
+                                                            type="button"
+                                                            onClick={() => setShowAddressSearch(!showAddressSearch)}
+                                                            className="h-12 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-2"
+                                                        >
+                                                            <Search size={16} />
+                                                            주소 검색
+                                                        </Button>
+                                                    </div>
+                                                </div>
+
+                                                {showAddressSearch && (
+                                                    <div className="border border-slate-200 rounded-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                                                        <DaumPostcodeEmbed onComplete={handleAddressComplete} />
+                                                    </div>
+                                                )}
+
+                                                <div className="grid gap-2">
+                                                    <Label className="text-sm font-bold text-slate-700">기본 주소</Label>
+                                                    <Input
+                                                        value={formData.address_base}
+                                                        readOnly
+                                                        placeholder="주소 검색을 이용해 주세요"
+                                                        className="bg-slate-100 border-none h-12 rounded-xl"
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="address_detail" className="text-sm font-bold text-slate-700">상세 주소</Label>
+                                                    <Input
+                                                        id="address_detail"
+                                                        value={formData.address_detail}
+                                                        onChange={(e) => setFormData({ ...formData, address_detail: e.target.value })}
+                                                        placeholder="상세 주소를 입력하세요 (동, 호수 등)"
+                                                        className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                    />
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
+                                            <CardHeader className="bg-slate-900 text-white">
+                                                <CardTitle className="text-xl flex items-center gap-2">
+                                                    <CreditCard className="w-5 h-5 text-rose-500" />
+                                                    정산 계좌 정보 수정
+                                                </CardTitle>
+                                                <CardDescription className="text-slate-400">페이백 등 현금성 보상이 지급되는 계좌입니다.</CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="p-8 space-y-8">
+                                                <div className="grid gap-4">
+                                                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                        은행 선택
+                                                    </Label>
+                                                    <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-7 gap-2">
+                                                        {BANK_LIST.map(bank => (
+                                                            <button
+                                                                key={bank.name}
+                                                                type="button"
+                                                                onClick={() => setFormData({ ...formData, bank_name: bank.name })}
+                                                                className={`relative group p-2.5 rounded-xl border-2 transition-all duration-300 text-center flex flex-col items-center justify-center gap-1.5 ${formData.bank_name === bank.name
+                                                                    ? 'border-rose-500 bg-rose-50 shadow-md scale-[1.02]'
+                                                                    : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
+                                                                    }`}
+                                                            >
+                                                                {formData.bank_name === bank.name && (
+                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                                        <Check size={10} className="text-white" />
+                                                                    </div>
+                                                                )}
+                                                                <div className={`w-7 h-7 ${bank.color} rounded-full flex items-center justify-center ${bank.text} text-[8px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
+                                                                    {bank.name.substring(0, 2)}
+                                                                </div>
+                                                                <div className="text-[10px] font-bold text-slate-700 leading-tight">{bank.name}</div>
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="account_holder" className="text-sm font-bold text-slate-700">예금주</Label>
+                                                        <Input
+                                                            id="account_holder"
+                                                            value={formData.account_holder}
+                                                            onChange={(e) => setFormData({ ...formData, account_holder: e.target.value })}
+                                                            placeholder="실명 예금주 입력"
+                                                            className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                        />
+                                                        <div className="flex items-start gap-1.5 px-1">
+                                                            <div className="mt-1 w-1 h-1 rounded-full bg-rose-500 shrink-0" />
+                                                            <p className="text-[10px] leading-relaxed text-rose-500 font-medium">
+                                                                예금주 성함이 계좌 정보와 일치하지 않을 경우, 페이백 정산이 반려되거나 지급이 지연될 수 있습니다.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label htmlFor="account_number" className="text-sm font-bold text-slate-700">계좌번호</Label>
+                                                        <Input
+                                                            id="account_number"
+                                                            value={formData.account_number}
+                                                            onChange={(e) => setFormData({ ...formData, account_number: e.target.value.replace(/[^\d]/g, '') })}
+                                                            placeholder="- 없이 숫자만 입력"
+                                                            className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
+                                                        />
+                                                        <p className="text-[11px] text-slate-400 ml-1">계좌번호는 페이백 정산을 위해서만 사용되며 안전하게 보호됩니다.</p>
+                                                    </div>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+
+                                        <Button
+                                            type="submit"
+                                            disabled={saving}
+                                            className="w-full py-8 text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                                        >
+                                            {saving ? '저장 중...' : '배송 및 정산 정보 저장하기'}
+                                        </Button>
+                                    </form>
+                                )}
+                            </div>
                         ) : (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">

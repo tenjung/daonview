@@ -13,7 +13,9 @@ import {
     XCircle,
     ClipboardCheck,
     ChevronDown,
-    ExternalLink
+    ExternalLink,
+    Truck,
+    Camera
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -23,6 +25,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -45,6 +48,19 @@ export default function MyCampaignsPage() {
         APPROVED: 0,
         REJECTED: 0,
         COMPLETED: 0
+    });
+    const [reviewModal, setReviewModal] = useState<{
+        isOpen: boolean;
+        appId: number;
+        campaignId: number;
+        campaignTitle: string;
+        creatorId: string;
+    }>({
+        isOpen: false,
+        appId: 0,
+        campaignId: 0,
+        campaignTitle: '',
+        creatorId: ''
     });
 
     useEffect(() => {
@@ -74,7 +90,41 @@ export default function MyCampaignsPage() {
             const { data: applicationsData } = await query;
 
             if (applicationsData) {
-                setApplications(applicationsData as ApplicationWithCampaign[]);
+                const apps = applicationsData as ApplicationWithCampaign[];
+                setApplications(apps);
+                
+                // 마감 기한 체크 및 알림 생성 (승인된 캠페인 대상)
+                const approvedApps = apps.filter(app => app.status === 'APPROVED');
+                for (const app of approvedApps) {
+                    if (!app.campaigns?.end_date) continue;
+                    
+                    const endDate = new Date(app.campaigns.end_date);
+                    const now = new Date();
+                    const diffTime = endDate.getTime() - now.getTime();
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    
+                    // 마감 3일 이내인 경우
+                    if (diffDays <= 3 && diffDays > 0) {
+                        // 이미 보낸 알림이 있는지 확인 (중복 방지: 최근 7일 내)
+                        const { count } = await supabase
+                            .from('notifications')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', user.id)
+                            .eq('type', 'CAMPAIGN_DEADLINE')
+                            .ilike('content', `%[${app.campaigns.title}]%`)
+                            .gt('created_at', new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString());
+
+                        if (count === 0) {
+                            await supabase.from('notifications').insert({
+                                user_id: user.id,
+                                type: 'CAMPAIGN_DEADLINE',
+                                title: '⏰ 리뷰 마감 임박 안내',
+                                content: `[${app.campaigns.title}] 캠페인 리뷰 마감이 ${diffDays}일 남았습니다!`,
+                                link: `/dashboard/influencer/campaigns`
+                            });
+                        }
+                    }
+                }
             }
 
             // Fetch counts for all statuses
@@ -256,6 +306,7 @@ export default function MyCampaignsPage() {
                                     <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">플랫폼</th>
                                     <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">카테고리</th>
                                     <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">신청일</th>
+                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">배송 정보</th>
                                     <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">상태</th>
                                     <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">액션</th>
                                 </tr>
@@ -273,6 +324,19 @@ export default function MyCampaignsPage() {
                                         <td className="p-4 text-left border-b border-border text-sm">
                                             {new Date(app.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace('.', '')}
                                         </td>
+                                        <td className="p-4 text-left border-b border-border text-sm">
+                                            {app.tracking_number ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-1.5 text-blue-600 font-bold">
+                                                        <Truck size={14} />
+                                                        <span>{app.tracking_company}</span>
+                                                    </div>
+                                                    <div className="text-slate-400 font-mono text-xs">{app.tracking_number}</div>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-300">발송 대기</span>
+                                            )}
+                                        </td>
                                         <td className="p-4 text-left border-b border-border text-sm">{getStatusBadge(app.status)}</td>
                                         <td className="p-4 text-left border-b border-border text-sm">
                                             <DropdownMenu>
@@ -289,12 +353,27 @@ export default function MyCampaignsPage() {
                                                             <span>상세보기</span>
                                                         </Link>
                                                     </DropdownMenuItem>
-                                                    
                                                     {app.status === 'APPROVED' && (
-                                                        <DropdownMenuItem className="rounded-lg cursor-pointer flex items-center gap-2 py-2">
-                                                            <ClipboardCheck size={14} className="text-green-500" />
-                                                            <span>가이드 확인</span>
-                                                        </DropdownMenuItem>
+                                                        <>
+                                                            <DropdownMenuItem className="rounded-lg cursor-pointer flex items-center gap-2 py-2">
+                                                                <ClipboardCheck size={14} className="text-green-500" />
+                                                                <span>가이드 확인</span>
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator className="bg-slate-50" />
+                                                            <DropdownMenuItem 
+                                                                className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-rose-500 font-bold"
+                                                                onClick={() => setReviewModal({
+                                                                    isOpen: true,
+                                                                    appId: app.id,
+                                                                    campaignId: app.campaign_id,
+                                                                    campaignTitle: app.campaigns.title,
+                                                                    creatorId: app.campaigns.created_by
+                                                                })}
+                                                            >
+                                                                <Camera size={14} />
+                                                                <span>리뷰 등록</span>
+                                                            </DropdownMenuItem>
+                                                        </>
                                                     )}
 
                                                     {app.status === 'PENDING' && (
@@ -337,6 +416,17 @@ export default function MyCampaignsPage() {
                 confirmText="취소하기"
                 cancelText="돌아가기"
                 type="danger"
+            />
+
+            {/* Review Submission Modal */}
+            <ReviewSubmitModal
+                isOpen={reviewModal.isOpen}
+                onClose={() => setReviewModal(prev => ({ ...prev, isOpen: false }))}
+                applicationId={reviewModal.appId}
+                campaignId={reviewModal.campaignId}
+                campaignTitle={reviewModal.campaignTitle}
+                creatorId={reviewModal.creatorId}
+                onSuccess={fetchData}
             />
         </div>
     );

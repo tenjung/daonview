@@ -303,6 +303,27 @@ function WritePageContent() {
                     });
 
                     if (error) throw error;
+
+                    // 공지사항 알림 전파 (NOTICE 타입일 때만)
+                    if (dbType === '공지') {
+                        // 모든 프로필 ID 조회
+                        const { data: usersData } = await supabase
+                            .from('profiles')
+                            .select('id');
+
+                        if (usersData && usersData.length > 0) {
+                            const notifications = usersData.map(u => ({
+                                user_id: u.id,
+                                type: 'NOTICE',
+                                title: '📢 전사 공지사항 안내',
+                                content: `[공지] ${title}`,
+                                link: `/community/notice`
+                            }));
+
+                            // 대량 인서트 (배치 처리)
+                            await supabase.from('notifications').insert(notifications);
+                        }
+                    }
                 } else {
                     // posts 테이블에 저장 (자유게시판, 블로그, 아카데미)
                     const { error } = await supabase.from('posts').insert({

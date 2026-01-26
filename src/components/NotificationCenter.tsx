@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Bell, BellRing, Check, ExternalLink, Info, MessageSquare, X } from 'lucide-react';
+import { AlertTriangle, Bell, BellRing, Camera, Check, ExternalLink, Info, MessageSquare, TrendingUp, X } from 'lucide-react';
 import {
   Popover,
   PopoverContent,
@@ -24,6 +24,10 @@ export default function NotificationCenter() {
   useEffect(() => {
     if (user) {
       fetchNotifications(user.id);
+      
+      // 실시간 구독 시작 및 클린업 반환
+      const unsubscribe = useNotificationStore.getState().subscribeToNotifications(user.id);
+      return () => unsubscribe();
     }
   }, [user, fetchNotifications]);
 
@@ -42,9 +46,20 @@ export default function NotificationCenter() {
 
   const getIcon = (type: string) => {
     switch (type) {
-      case 'CAMPAIGN_APPROVED': return <Check className="w-4 h-4 text-green-500" />;
+      case 'CAMPAIGN_APPROVED': 
+      case 'CAMPAIGN_SELECTED': return <Check className="w-4 h-4 text-green-500" />;
       case 'CAMPAIGN_REJECTED': return <X className="w-4 h-4 text-rose-500" />;
+      case 'CAMPAIGN_SHIPPING': return <Info className="w-4 h-4 text-blue-500" />;
+      case 'CAMPAIGN_DEADLINE': return <BellRing className="w-4 h-4 text-rose-500" />;
+      case 'CAMPAIGN_REVIEW_SUBMITTED': return <Camera className="w-4 h-4 text-violet-500" />;
+      case 'CAMPAIGN_NEW_APPLICANT': return <Bell className="w-4 h-4 text-blue-500" />;
+      case 'CAMPAIGN_MILESTONE': return <TrendingUp className="w-4 h-4 text-emerald-500" />;
+      case 'CAMPAIGN_REVIEW_RECEIVED': return <MessageSquare className="w-4 h-4 text-green-500" />;
+      case 'CAMPAIGN_CRITICAL': 
+      case 'ADMIN_CAMPAIGN_CRITICAL': return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'CAMPAIGN_WARNING': return <AlertTriangle className="w-4 h-4 text-amber-500" />;
       case 'MESSAGE': return <MessageSquare className="w-4 h-4 text-blue-500" />;
+      case 'NOTICE': return <Bell className="w-4 h-4 text-amber-500" />;
       case 'SYSTEM': return <Info className="w-4 h-4 text-amber-500" />;
       default: return <Bell className="w-4 h-4 text-slate-400" />;
     }

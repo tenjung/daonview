@@ -117,13 +117,13 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
     const getRoleBadge = (role: string) => {
         switch (role) {
             case 'ADMIN':
-                return <span className="bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-violet-200">관리자</span>;
+                return <span className="bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-violet-200 whitespace-nowrap">관리자</span>;
             case 'ADVERTISER':
-                return <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200">광고주</span>;
+                return <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-blue-200 whitespace-nowrap">광고주</span>;
             case 'INFLUENCER':
-                return <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-rose-200">인플루언서</span>;
+                return <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-rose-200 whitespace-nowrap">인플루언서</span>;
             default:
-                return <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-gray-200">{role}</span>;
+                return <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-xs font-bold border border-gray-200 whitespace-nowrap">{role}</span>;
         }
     };
 
@@ -200,12 +200,12 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
                         <table className="w-full text-left">
                             <thead className="bg-gray-50/50 border-b border-border">
                                 <tr>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">회원 정보</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">역할/등급</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">연락처</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">활동채널</th>
-                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">가입일</th>
-                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">액션</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[240px]">회원 정보</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[120px]">역할/등급</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[150px]">연락처</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[120px]">활동채널</th>
+                                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[120px]">가입일</th>
+                                    <th className="px-6 py-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest min-w-[80px]">액션</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border">

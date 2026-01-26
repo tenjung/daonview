@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
 
 interface AdminDashboardClientProps {
     initialCampaigns: any[];
@@ -14,6 +16,39 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([]);
     const [showBulkModal, setShowBulkModal] = useState(false);
+    const { user } = useAuthStore();
+
+    // 지능형 모니터링 및 알림 (관리자용)
+    useEffect(() => {
+        if (campaigns.length > 0 && user) {
+            const checkAndNotify = async () => {
+                for (const campaign of campaigns) {
+                    const analysis = analyzeCampaignRisk(campaign);
+                    if (analysis.riskLevel === 'critical') {
+                        // 중복 알림 방지 (24시간 내)
+                        const { count } = await supabase
+                            .from('notifications')
+                            .select('*', { count: 'exact', head: true })
+                            .eq('user_id', user.id)
+                            .eq('type', 'ADMIN_CAMPAIGN_CRITICAL')
+                            .ilike('content', `%[${campaign.title}]%`)
+                            .gt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+
+                        if (count === 0) {
+                            await supabase.from('notifications').insert({
+                                user_id: user.id,
+                                type: 'ADMIN_CAMPAIGN_CRITICAL',
+                                title: '🚨 [관리자] 캠페인 긴급 지원 필요',
+                                content: `[${campaign.title}] 캠페인이 마감 임박하였으나 모집이 매우 저조합니다.`,
+                                link: `/dashboard/admin?id=${campaign.id}`
+                            });
+                        }
+                    }
+                }
+            };
+            checkAndNotify();
+        }
+    }, [campaigns, user]);
 
     // 캠페인 위험도 분석
     function analyzeCampaignRisk(campaign: any) {

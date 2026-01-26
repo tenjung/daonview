@@ -19,6 +19,12 @@ export interface Profile {
     tiktok_url?: string;
     point?: number;
     avatar_url?: string;
+    bank_name?: string;
+    account_number?: string;
+    account_holder?: string;
+    zip_code?: string;
+    address_base?: string;
+    address_detail?: string;
     [key: string]: any;
 }
 
