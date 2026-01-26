@@ -22,6 +22,7 @@ import {
     ChevronDown,
     CheckCircle2
 } from 'lucide-react';
+import CampaignShare from '@/components/campaign/CampaignShare';
 import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -1034,12 +1035,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </div>
                                             </div>
 
-                                            {/* Fixed Bottom Button Area - Premium Style */}
-                                            <div className="pt-2">
+                                             {/* Fixed Bottom Button Area - Premium Style */}
+                                            <div className="pt-2 flex gap-3">
                                                 <button
                                                     onClick={handleApply}
                                                     disabled={isClosed}
-                                                    className={`group relative w-full py-5 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
+                                                    className={`group relative flex-1 py-5 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
                                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                                         : !user
                                                             ? 'bg-gray-800 text-white'
@@ -1058,6 +1059,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                         </>
                                                     )}
                                                 </button>
+                                                {!isClosed && (
+                                                    <div className="shrink-0 flex items-center justify-center">
+                                                         <CampaignShare 
+                                                            campaignId={id} 
+                                                            title={displayTitle}
+                                                            description={campaignIntro}
+                                                            thumbnailUrl={campaign.thumbnail_url}
+                                                            variant="large"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1104,35 +1116,55 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 type="danger"
             />
 
-            {/* Mobile Bottom Action Bar */}
+             {/* Mobile Bottom Action Bar */}
             <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 p-4 bg-white/90 backdrop-blur-2xl border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.1)]">
                 {!hasApplied ? (
-                    <button
-                        onClick={() => {
-                            if (!user) {
-                                handleApply();
-                                return;
-                            }
-                            setIsApplySheetOpen(true);
-                        }}
-                        disabled={isClosed}
-                        className={`w-full py-5 rounded-[24px] text-base font-black flex items-center justify-center gap-2 transition-all shadow-2xl active:scale-[0.96] ${isClosed
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                            : !user
-                                ? 'bg-gray-900 text-white'
-                                : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
-                            }`}
-                    >
-                        {isClosed ? closureText : user
-                            ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')
-                            : '로그인이 필요합니다'}
-                        {!isClosed && <ArrowRight size={20} />}
-                    </button>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => {
+                                if (!user) {
+                                    handleApply();
+                                    return;
+                                }
+                                setIsApplySheetOpen(true);
+                            }}
+                            disabled={isClosed}
+                            className={`flex-1 py-5 rounded-[24px] text-base font-black flex items-center justify-center gap-2 transition-all shadow-2xl active:scale-[0.96] ${isClosed
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                : !user
+                                    ? 'bg-gray-900 text-white'
+                                    : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
+                                }`}
+                        >
+                            {isClosed ? closureText : user
+                                ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')
+                                : '로그인이 필요합니다'}
+                            {!isClosed && <ArrowRight size={20} />}
+                        </button>
+                        {!isClosed && (
+                            <div className="shrink-0 flex items-center justify-center">
+                                <CampaignShare 
+                                    campaignId={id} 
+                                    title={displayTitle}
+                                    description={campaignIntro}
+                                    thumbnailUrl={campaign.thumbnail_url}
+                                    variant="large"
+                                />
+                            </div>
+                        )}
+                    </div>
                 ) : (
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-between gap-3">
                         <div className="px-5 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm flex-1 text-center">
                             신청 완료 ✨
                         </div>
+                        <CampaignShare 
+                            campaignId={id} 
+                            title={displayTitle}
+                            description={campaignIntro}
+                            thumbnailUrl={campaign.thumbnail_url}
+                            variant="large"
+                        />
                         <button
                             onClick={() => setShowCancelDialog(true)}
                             className="w-14 h-14 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"

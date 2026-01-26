@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
+import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown, Sparkles, Bell, BellRing } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
 import BrandLogo from '@/components/BrandLogo';
+import NotificationCenter from '@/components/NotificationCenter';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -172,51 +173,49 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
 
         {/* Desktop User Menu */}
         <div className="hidden lg:flex gap-6 items-center">
-          {/* Personalized Tools Group */}
-          {profile?.role === 'INFLUENCER' ? (
-            <div className="flex items-center p-1 bg-white border border-gray-100 rounded-full shadow-sm h-10">
-              <Link
-                href="/recommended"
-                className="flex items-center gap-1.5 px-3 py-1 pl-4 rounded-l-full hover:bg-violet-50 text-gray-500 hover:text-violet-600 transition-colors group"
-              >
-                <Sparkles size={15} className="group-hover:text-violet-500 transition-colors" />
-                <span className="text-[13px] font-bold">맞춤</span>
-              </Link>
+          <div className="flex items-center gap-1.5">
+            {profile?.role === 'INFLUENCER' ? (
+              <div className="flex items-center p-1 bg-white border border-gray-100 rounded-full shadow-sm h-10">
+                <Link
+                  href="/recommended"
+                  className="flex items-center gap-1.5 px-3 py-1 pl-4 rounded-l-full hover:bg-violet-50 text-gray-500 hover:text-violet-600 transition-colors group"
+                >
+                  <Sparkles size={15} className="group-hover:text-violet-500 transition-colors" />
+                  <span className="text-[13px] font-bold">맞춤</span>
+                </Link>
 
-              <div className="w-[1px] h-4 bg-gray-200"></div>
+                <div className="w-[1px] h-4 bg-gray-200"></div>
 
+                <Link
+                  href="/wishlist"
+                  className="relative p-2 rounded-full hover:bg-rose-50 transition-all group outline-none"
+                >
+                  <Heart 
+                    size={20} 
+                    className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
+                  />
+                  {mounted && cartItems.length > 0 && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-sm ring-2 ring-white" />
+                  )}
+                </Link>
+              </div>
+            ) : (
               <Link
                 href="/wishlist"
-                className="flex items-center gap-1.5 px-3 py-1 pr-4 rounded-r-full hover:bg-rose-50 text-gray-500 hover:text-rose-600 transition-colors group relative"
+                className="relative p-2 rounded-full hover:bg-rose-50 transition-all group outline-none"
               >
-                <Heart size={15} className={`group-hover:scale-110 transition-transform ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'group-hover:text-rose-500'}`} />
-                <span className="text-[13px] font-bold">찜</span>
+                <Heart 
+                  size={20} 
+                  className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
+                />
                 {mounted && cartItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] bg-rose-500 text-white text-[9px] font-bold rounded-full shadow-sm ring-2 ring-white">
-                    {cartItems.length}
-                  </span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-sm ring-2 ring-white" />
                 )}
               </Link>
-            </div>
-          ) : (
-            <Link
-              href="/wishlist"
-              className="group flex items-center gap-2.5 px-4 py-1.5 rounded-full border border-gray-100 bg-white hover:bg-rose-50 hover:border-rose-100 hover:text-rose-600 transition-all duration-300 shadow-sm hover:shadow-md h-10"
-            >
-              <Heart
-                size={18}
-                className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-gray-400 group-hover:text-rose-500'}`}
-              />
-              <span className="text-[13px] font-bold text-gray-600 group-hover:text-rose-600 transition-colors whitespace-nowrap">
-                찜한 캠페인
-              </span>
-              {mounted && cartItems.length > 0 && (
-                <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-rose-500 text-white text-[10px] font-bold rounded-full shadow-sm ring-1 ring-rose-300 transform transition-transform group-hover:scale-110">
-                  {cartItems.length}
-                </span>
-              )}
-            </Link>
-          )}
+            )}
+
+            {user && <NotificationCenter />}
+          </div>
 
           {showSkeleton ? (
             <div className="flex gap-2 items-center">
@@ -428,6 +427,15 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                     </span>
                   )}
                 </Link>
+                {user && (
+                  <div className="px-4 py-3 border-l-4 border-transparent flex items-center justify-between hover:bg-slate-50 transition-colors">
+                    <div className="flex items-center gap-2">
+                       <Bell size={16} className="text-gray-600" />
+                       <span className="text-gray-600 font-medium">알림</span>
+                    </div>
+                    <NotificationCenter />
+                  </div>
+                )}
               </div>
 
               {/* Dashboard Links */}
