@@ -15,6 +15,8 @@ export interface Store {
     naverPlaceUrl: string;
     storeName: string;
     address: string;
+    lat?: number;
+    lng?: number;
 }
 
 export interface CampaignState {
@@ -212,7 +214,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     subRegion: s1.subRegion || '',
                     totalRecruitment: (campaign.total_recruitment || campaign.recruit_count || s1.totalRecruitment || '0').toString(),
                     rewardPerPerson: campaign.reward_per_person || s1.rewardPerPerson || 0,
-                    
+
                     includeReview: s1.includeReview || false,
                     includeNaver: s1.includeNaver || false,
                     includeInstagram: s1.includeInstagram || false,

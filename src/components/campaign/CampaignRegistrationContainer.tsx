@@ -25,7 +25,7 @@ export default function CampaignRegistrationContainer() {
     const store = useCampaignStore();
     const { currentStep, currentCampaignId, isSubmitting } = store;
 
-    const [nextTrigger, setNextTrigger] = useState(0); 
+    const [nextTrigger, setNextTrigger] = useState(0);
 
     // --- 캠페인 데이터 로드 로직 ---
     const handleLoadCompleted = useCallback((campaign: any, silent = false) => {
@@ -241,6 +241,9 @@ export default function CampaignRegistrationContainer() {
                 agreeToRefund: store.agreeToRefund,
             };
 
+            // 매장 데이터 정리 (클라이언트 사이드에서 좌표 처리가 완료되므로 서버 API 호출 제거)
+            const updatedStores = store.stores || [];
+
             // 캠페인 데이터 구성
             const campaignData: any = {
                 created_by: user.id,
@@ -276,7 +279,7 @@ export default function CampaignRegistrationContainer() {
                     official_price: store.officialPrice,
                     mission_guide: store.missionGuide,
                     keywords: store.keywords,
-                    stores: store.stores,
+                    stores: updatedStores,
                     lastUpdated: new Date().toISOString()
                 },
                 contact_method: store.contactMethod,
@@ -357,16 +360,16 @@ export default function CampaignRegistrationContainer() {
                     <nav className="relative flex justify-between max-w-md mx-auto mb-12">
                         <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 -z-0" />
                         {[1, 2, 3].map((step) => (
-                            <div 
-                                key={step} 
+                            <div
+                                key={step}
                                 className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group"
                                 onClick={() => goToStep(step)}
                             >
-                                <div 
+                                <div
                                     className={`
                                         w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 transform group-hover:scale-110
-                                        ${currentStep === step 
-                                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-200 ring-4 ring-rose-50' 
+                                        ${currentStep === step
+                                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-200 ring-4 ring-rose-50'
                                             : currentStep > step
                                                 ? 'bg-rose-500 text-white shadow-md'
                                                 : 'bg-white text-slate-400 border-2 border-slate-200 group-hover:border-rose-300 group-hover:text-rose-400'}

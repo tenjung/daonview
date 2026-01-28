@@ -61,6 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "naver-site-verification": "f8f46433f56d1709f28778dc9cb0e568dd67531e",
       },
     },
+    referrer: 'origin',
   };
 }
 

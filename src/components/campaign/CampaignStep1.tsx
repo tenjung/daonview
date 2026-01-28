@@ -17,6 +17,8 @@ import {
 import BrandSelect from './BrandSelect';
 import { useAuthStore } from '@/store/authStore';
 import { CampaignActionButtons } from './CampaignActionButtons';
+import { useCampaignStore } from '@/store/campaignStore';
+import NaverMap from './NaverMap';
 import {
     DndContext,
     closestCenter,
@@ -92,6 +94,8 @@ interface Store {
     naverPlaceUrl: string;
     storeName: string;
     address: string;
+    lat?: number;
+    lng?: number;
 }
 
 interface CampaignStep1Props {
@@ -199,8 +203,6 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
-import { useCampaignStore } from '@/store/campaignStore';
-
 export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }: CampaignStep1Props) {
     // Zustand 스토어 사용
     const campaignStore = useCampaignStore();
@@ -216,7 +218,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     }, [submitTrigger]);
 
     const { user } = useAuthStore();
-    
+
     // 스마트 기본값: 내일 날짜
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -295,7 +297,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     // 주소에서 지역(시/도 및 세부 지역) 추출 유틸리티
     const extractRegionFromAddress = (address: string) => {
         if (!address) return { region: '', subRegion: '' };
-        
+
         const regionMap: Record<string, string> = {
             '서울': '서울', '경기': '경기', '인천': '인천', '부산': '부산', '대구': '대구',
             '광주': '광주', '대전': '대전', '울산': '울산', '세종': '세종', '강원': '강원',
@@ -308,7 +310,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         const parts = address.split(' ');
         const firstWord = parts[0];
         const secondWord = parts[1] || '';
-        
+
         let detectedRegion = '';
         let detectedSubRegion = '';
 
@@ -348,20 +350,28 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             if (!response.ok) throw new Error('정보를 불러오는데 실패했습니다.');
 
             const data = await response.json();
-            
+
             if (data.error) throw new Error(data.error);
 
+            if (!data.title && !data.address) {
+                throw new Error('매장 정보를 찾을 수 없습니다. URL을 확인해 주세요.');
+            }
+
             const storeData = {
-                storeName: data.title || '',
-                address: data.address || '',
+                storeName: data.title || '이름 없는 매장',
+                address: data.address || '주소 정보 없음',
+                lat: data.lat || null,
+                lng: data.lng || null,
             };
 
             const { region, subRegion } = extractRegionFromAddress(storeData.address);
 
+            const latestStores = useCampaignStore.getState().stores;
+
             campaignStore.updateFields({
-                region: region || formData.region,
-                subRegion: subRegion || formData.subRegion,
-                stores: formData.stores.map(store =>
+                region: (region && region !== '기타') ? region : formData.region,
+                subRegion: (subRegion && subRegion !== '전체') ? subRegion : formData.subRegion,
+                stores: latestStores.map(store =>
                     store.id === storeId
                         ? { ...store, naverPlaceUrl: url, ...storeData }
                         : store
@@ -375,8 +385,13 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 toast.success(`'${storeData.storeName}' 정보를 성공적으로 불러왔습니다.`, { id: loadingToast });
             }
         } catch (error: any) {
-            console.error('Naver Place Fetch Error:', error);
-            toast.error(error.message || '매장 정보를 불러오지 못했습니다. 수동으로 입력해주세요.', { id: loadingToast });
+            console.error('Fetch Naver Place Error:', error);
+
+            // 실패 시 생성했던 빈 매장 항목 제거
+            const currentStores = useCampaignStore.getState().stores;
+            campaignStore.setField('stores', currentStores.filter(s => s.id !== storeId));
+
+            toast.error(error.message || '정보를 불러오는데 실패했습니다.', { id: loadingToast });
         }
     };
 
@@ -719,7 +734,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                         <BrandSelect
                             userId={user.id}
                             value={formData.brandId}
-                             onChange={(id, name) => campaignStore.updateFields({ brandId: id, brandName: name })}
+                            onChange={(id, name) => campaignStore.updateFields({ brandId: id, brandName: name })}
                         />
                     ) : (
                         <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
@@ -745,7 +760,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                     <input
                         type="text"
                         value={formData.campaignTitle || ''}
-                         onChange={(e) => campaignStore.setField('campaignTitle', e.target.value)}
+                        onChange={(e) => campaignStore.setField('campaignTitle', e.target.value)}
                         placeholder="예시) [무료배송] 다온뷰 최고급 세안밴드 체험단 모집"
                         className="w-full h-12 px-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all font-medium"
                     />
@@ -766,7 +781,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                         <button
                             key={cat}
                             type="button"
-                             onClick={() => campaignStore.setField('category', cat)}
+                            onClick={() => campaignStore.setField('category', cat)}
                             className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${formData.category === cat
                                 ? 'border-blue-500 bg-blue-50 text-blue-600'
                                 : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
@@ -1120,20 +1135,28 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             />
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (tempNaverUrl.trim()) {
+                                        const url = tempNaverUrl.trim();
+                                        const storeId = Date.now().toString();
+
+                                        // 1. 즉시 빈 매장 객체 추가 (UI에 카드가 먼저 보이게 함)
                                         const newStore = {
-                                            id: Date.now().toString(),
-                                            naverPlaceUrl: tempNaverUrl,
+                                            id: storeId,
+                                            naverPlaceUrl: url,
                                             storeName: '',
                                             address: '',
                                         };
-                                        campaignStore.setField('stores', [...formData.stores, newStore]);
-                                        fetchNaverPlaceInfo(tempNaverUrl, newStore.id);
+
+                                        const currentStores = useCampaignStore.getState().stores;
+                                        campaignStore.setField('stores', [...currentStores, newStore]);
                                         setTempNaverUrl('');
+
+                                        // 2. 정보 서버에서 불러오기
+                                        await fetchNaverPlaceInfo(url, storeId);
                                     }
                                 }}
-                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium"
+                                className="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium active:scale-95 disabled:opacity-50"
                             >
                                 불러오기
                             </button>
@@ -1159,7 +1182,14 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     </div>
 
                                     <div className="space-y-3">
-                                        {sItem.storeName && (
+                                        {!sItem.storeName ? (
+                                            <div className="space-y-2 animate-pulse">
+                                                <div className="h-4 bg-gray-200 rounded w-1/4" />
+                                                <div className="h-10 bg-gray-100 rounded-lg w-full" />
+                                                <div className="h-4 bg-gray-200 rounded w-1/4" />
+                                                <div className="h-10 bg-gray-100 rounded-lg w-full" />
+                                            </div>
+                                        ) : (
                                             <>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1201,6 +1231,19 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                         readOnly
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
                                                     />
+                                                </div>
+
+                                                {/* 매장 지도 미리보기 추가 */}
+                                                <div className="mt-3">
+                                                    <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-tight">위치 미리보기</label>
+                                                    <div className="h-40 rounded-xl overflow-hidden border border-slate-100 shadow-inner">
+                                                        <NaverMap
+                                                            address={sItem.address}
+                                                            storeName={sItem.storeName}
+                                                            lat={sItem.lat}
+                                                            lng={sItem.lng}
+                                                        />
+                                                    </div>
                                                 </div>
                                             </>
                                         )}
@@ -1730,7 +1773,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     variant="secondary"
                                     className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
                                     onClick={() => adjustReward(5000)}
-                                    >
+                                >
                                     + 5,000
                                 </Button>
                                 <Button

@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
 import CampaignCard, { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
+import NaverMap from '@/components/campaign/NaverMap';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
@@ -138,16 +139,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                 let merged = brandData || [];
 
-                // 2. If less than 4, add always recruiting campaigns
                 if (merged.length < 4) {
                     const { data: alwaysData } = await supabase
                         .from('campaigns')
                         .select('*')
-                        .eq('is_always_recruiting', true)
+                        .eq('is_always', true)
                         .neq('id', campaign.id)
                         .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
                         .limit(8 - merged.length);
-                    
+
                     merged = [...merged, ...(alwaysData || [])];
                 }
 
@@ -308,7 +308,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
 
             const campaignType = campaign.type?.toUpperCase();
-            
+
             if (campaignType === 'PURCHASE') {
                 // 구매평 캠페인: 계좌 정보 필수
                 if (!profile.bank_name || !profile.account_number || !profile.account_holder) {
@@ -392,7 +392,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     const milestone = milestones.find(m => m.count === currentCount);
 
                     if (milestone) {
-                        const message = milestone.percent === 120 
+                        const message = milestone.percent === 120
                             ? `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 초과했습니다! 🔥`
                             : `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 달성했습니다! 🎉`;
 
@@ -639,8 +639,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                                         />
                                                         {/* Hover Overlay Removed as per user request */}
-                                            </div>
-                                        </DialogTrigger>
+                                                    </div>
+                                                </DialogTrigger>
                                                 <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 overflow-hidden border-none bg-black/60 backdrop-blur-md shadow-none flex flex-col items-center justify-center outline-none z-[100]">
                                                     <style dangerouslySetInnerHTML={{
                                                         __html: `
@@ -651,15 +651,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     </DialogHeader>
 
                                                     <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/40 to-transparent z-50 flex items-center justify-end px-6 pointer-events-none">
-                                                        <button 
+                                                        <button
                                                             onClick={() => setIsImageModalOpen(false)}
                                                             className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm font-bold transition-all border border-white/10"
                                                         >
                                                             닫기
                                                         </button>
                                                     </div>
-                                                    
-                                                    <div 
+
+                                                    <div
                                                         className="w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center py-10 px-4 md:px-0 scrollbar-hide"
                                                         onClick={(e) => {
                                                             if (e.target === e.currentTarget) setIsImageModalOpen(false);
@@ -669,7 +669,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             src={images[currentImageIndex]}
                                                             alt={`${displayTitle} - Expanded`}
                                                             className="w-full max-w-3xl h-auto object-contain shadow-2xl rounded-sm"
-                                                            onClick={(e) => e.stopPropagation()} 
+                                                            onClick={(e) => e.stopPropagation()}
                                                         />
                                                     </div>
                                                 </DialogContent>
@@ -678,20 +678,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             {/* Navigation Arrows for Main View */}
                                             {images.length > 1 && (
                                                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-                                                        }} 
+                                                        }}
                                                         className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
                                                     >
                                                         <ChevronLeft size={18} />
                                                     </button>
-                                                    <button 
+                                                    <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setCurrentImageIndex((prev) => (prev + 1) % images.length);
-                                                        }} 
+                                                        }}
                                                         className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
                                                     >
                                                         <ChevronRight size={18} />
@@ -712,7 +712,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold text-lg">NO IMAGE</div>
                                     )}
                                 </div>
-                                
+
                                 {/* Thumbnail Strip Removed as per user request */}
                             </div>
                         </div>
@@ -832,7 +832,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             💡 1개 선택하여 작성
                                                         </span>
                                                     </div>
-                                                    
+
                                                     <div className="p-4 bg-purple-50/20 rounded-xl border border-dashed border-purple-100 mb-4">
                                                         <p className="text-[13px] text-slate-600 font-bold leading-relaxed">
                                                             인플루언서 미션: 아래의 키워드 중 <span className="text-purple-600">가장 자신 있는 키워드 1개를 선택</span>하여 포스팅 제목과 본문에 포함해주세요.
@@ -989,8 +989,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
                                                         <span className="font-black text-slate-900 text-xl tracking-tight">{contactPhone || '정보 없음'}</span>
                                                         <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold border border-indigo-100 shadow-sm w-fit">
-                                                            {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' : 
-                                                             contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
+                                                            {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' :
+                                                                contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
                                                         </span>
                                                     </div>
                                                 ) : (
@@ -1042,6 +1042,16 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     {store.address || '주소 정보 없음'}
                                                 </p>
                                             </div>
+                                            {store.address && (
+                                                <div className="mt-4">
+                                                    <NaverMap
+                                                        address={store.address}
+                                                        storeName={store.storeName}
+                                                        lat={store.lat}
+                                                        lng={store.lng}
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -1240,7 +1250,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </div>
                                             </div>
 
-                                             {/* Fixed Bottom Button Area - Premium Style */}
+                                            {/* Fixed Bottom Button Area - Premium Style */}
                                             <div className="pt-2 flex gap-3">
                                                 <button
                                                     onClick={handleApply}
@@ -1266,7 +1276,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </button>
                                                 {!isClosed && (
                                                     <div className="shrink-0 flex items-center justify-center">
-                                                         <CampaignShare
+                                                        <CampaignShare
                                                             campaignId={id}
                                                             title={displayTitle}
                                                             description={campaignIntro}
@@ -1357,7 +1367,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 type={rc.type}
                                                 applicants={rc.app_count || 0}
                                                 total={rc.recruit_count || 0}
-                                                dday={rc.is_always_recruiting ? '상시' : formatDDay(rc.end_date)}
+                                                dday={(rc.is_always || (rc.recruit_count && rc.recruit_count >= 999)) ? '상시' : formatDDay(rc.end_date)}
                                                 imageUrl={rc.thumbnail_url}
                                                 provision={rc.provision_details}
                                                 region={rc.region}
@@ -1381,7 +1391,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 type="danger"
             />
 
-             {/* Mobile Bottom Action Bar */}
+            {/* Mobile Bottom Action Bar */}
             <div className="lg:hidden fixed bottom-0 inset-x-0 z-50 p-4 bg-white/90 backdrop-blur-2xl border-t border-gray-100 shadow-[0_-8px_30px_rgb(0,0,0,0.1)]">
                 {!hasApplied ? (
                     <div className="flex gap-3">
@@ -1394,13 +1404,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 setIsApplySheetOpen(true);
                             }}
                             disabled={isClosed}
-                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
-                                isClosed
+                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClosed
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                 : !user
                                     ? 'bg-gray-900 text-white'
                                     : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
-                            }`}
+                                }`}
                         >
                             {isClosed ? closureText : user
                                 ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')
@@ -1409,14 +1418,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </button>
                         {!isClosed && (
                             <div className="shrink-0 flex items-center justify-center">
-                                    <CampaignShare 
-                                        campaignId={id} 
-                                        title={displayTitle}
-                                        description={campaignIntro || campaign.description || ''}
-                                        thumbnailUrl={images[0]}
-                                        campaignType={campaign.type}
-                                        variant="large"
-                                    />
+                                <CampaignShare
+                                    campaignId={id}
+                                    title={displayTitle}
+                                    description={campaignIntro || campaign.description || ''}
+                                    thumbnailUrl={images[0]}
+                                    campaignType={campaign.type}
+                                    variant="large"
+                                />
                             </div>
                         )}
                     </div>
@@ -1425,8 +1434,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         <div className="px-5 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm flex-1 text-center">
                             신청 완료 ✨
                         </div>
-                        <CampaignShare 
-                            campaignId={id} 
+                        <CampaignShare
+                            campaignId={id}
                             title={displayTitle}
                             description={campaignIntro}
                             thumbnailUrl={campaign.thumbnail_url}
@@ -1561,7 +1570,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
             {/* 매장 지도 Sheet */}
             <Sheet open={isStoreSheetOpen} onOpenChange={setIsStoreSheetOpen}>
-                <SheetContent side="bottom" className="h-[38vh] rounded-t-3xl p-0 overflow-hidden border-none bg-slate-50">
+                <SheetContent side="bottom" className="h-[38vh] rounded-t-3xl p-0 overflow-hidden border-none bg-slate-50 max-w-[1240px] mx-auto">
                     <SheetHeader className="p-6 bg-white border-b border-slate-100 flex flex-row items-center justify-between">
                         <div className="text-left">
                             <SheetTitle className="text-xl font-black text-slate-900">{selectedStore?.storeName}</SheetTitle>
@@ -1570,17 +1579,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </SheetHeader>
                     <div className="p-8 space-y-6">
                         <div className="grid grid-cols-2 gap-4">
-                            <a 
-                                href={selectedStore?.naverPlaceUrl} 
-                                target="_blank" 
+                            <a
+                                href={selectedStore?.naverPlaceUrl}
+                                target="_blank"
                                 className="group flex flex-col items-center justify-center p-6 bg-[#03C75A] text-white rounded-2xl gap-3 shadow-lg shadow-green-100 active:scale-95 transition-all"
                             >
                                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                     <MapPin className="text-white w-6 h-6" />
+                                    <MapPin className="text-white w-6 h-6" />
                                 </div>
                                 <span className="font-bold text-sm">네이버 지도 앱</span>
                             </a>
-                            <button 
+                            <button
                                 onClick={() => {
                                     if (selectedStore?.address) {
                                         navigator.clipboard.writeText(selectedStore.address);
@@ -1590,7 +1599,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 rounded-2xl gap-3 border border-slate-200 shadow-sm active:scale-95 hover:bg-slate-50 transition-all"
                             >
                                 <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
-                                     <CheckCircle2 className="text-slate-400 w-6 h-6" />
+                                    <CheckCircle2 className="text-slate-400 w-6 h-6" />
                                 </div>
                                 <span className="font-bold text-sm">주소 복사하기</span>
                             </button>
@@ -1614,19 +1623,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </DialogTitle>
                     </DialogHeader>
                     <div className="py-4 text-center text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                        {missingInfoType === 'BANK' 
-                            ? '캠페인 참여 및 정산을 위해\n계좌 정보를 먼저 등록해 주세요.' 
+                        {missingInfoType === 'BANK'
+                            ? '캠페인 참여 및 정산을 위해\n계좌 정보를 먼저 등록해 주세요.'
                             : '제품 발송을 위해\n배송 정보(수령인/연락처/주소)가 필요합니다.\n등록 페이지로 이동하시겠습니까?'}
                     </div>
                     <div className="flex gap-2">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             className="flex-1 rounded-xl h-12"
                             onClick={() => setIsProfileAlertOpen(false)}
                         >
                             취소
                         </Button>
-                        <Button 
+                        <Button
                             className="flex-1 rounded-xl h-12 bg-rose-500 hover:bg-rose-600 text-white font-bold"
                             onClick={() => {
                                 setIsProfileAlertOpen(false);
