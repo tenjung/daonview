@@ -12,8 +12,7 @@ import { CampaignActionButtons } from '@/components/campaign/CampaignActionButto
 import FloatingActionWrapper from '@/components/campaign/FloatingActionWrapper';
 import CampaignLoader from '@/components/campaign/CampaignLoader';
 import { saveDraft, loadDraft, DraftCampaign } from '@/lib/draftUtils';
-import { ArrowRight, CheckCircle2 } from 'lucide-react';
-import { ConfirmDialog } from '@/components/ConfirmDialog';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
