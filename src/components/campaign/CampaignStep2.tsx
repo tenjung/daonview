@@ -151,17 +151,19 @@ interface Step2Data {
 }
 
 interface CampaignStep2Props {
-    onNext: (data: Step2Data) => void;
+    onNext: (data?: Step2Data) => void;
     onPrev: () => void;
     onSaveDraft?: () => void;
-    onChange?: (data: Step2Data) => void;
-    initialData?: Partial<Step2Data>;
-    step1Data: Step1Data;
     isEdit?: boolean;
     submitTrigger?: number;
 }
 
-export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, initialData, step1Data, isEdit, submitTrigger = 0 }: CampaignStep2Props) {
+import { useCampaignStore } from '@/store/campaignStore';
+
+export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, submitTrigger = 0 }: CampaignStep2Props) {
+    const store = useCampaignStore();
+    const formData = store;
+
     // HUD 버튼 연동
     const lastTrigger = useRef(submitTrigger);
     useEffect(() => {
@@ -187,76 +189,14 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            setFormData(prev => {
-                const oldIndex = prev.campaignImages.indexOf(active.id as string);
-                const newIndex = prev.campaignImages.indexOf(over.id as string);
-                const newImages = arrayMove(prev.campaignImages, oldIndex, newIndex);
-                return { ...prev, campaignImages: newImages };
-            });
+            const oldIndex = formData.campaignImages.indexOf(active.id as string);
+            const newIndex = formData.campaignImages.indexOf(over.id as string);
+            const newImages = arrayMove(formData.campaignImages, oldIndex, newIndex);
+            store.setField('campaignImages', newImages);
         }
     };
 
-    const [formData, setFormData] = useState<Step2Data>({
-        campaignTitle: initialData?.campaignTitle || step1Data.campaignTitle || '',
-        campaignImages: initialData?.campaignImages || [],
-
-        // 구매평 가이드
-        purchaseNotes: initialData?.purchaseNotes || '',
-        reviewMissionContent: initialData?.reviewMissionContent || '',
-
-        // 공통 리뷰 가이드
-        textLength: initialData?.textLength || 'free',
-        photoCount: initialData?.photoCount || '3',
-        videoRequired: initialData?.videoRequired || 'no',
-        missionGuide: initialData?.missionGuide || '',
-        keywords: initialData?.keywords || [],
-        prohibitedWords: initialData?.prohibitedWords || [],
-        additionalNotes: initialData?.additionalNotes || '',
-
-        // 블로그 가이드
-        blogMainKeyword: initialData?.blogMainKeyword || '',
-        blogSubKeywords: initialData?.blogSubKeywords || [],
-        blogTitleGuide: initialData?.blogTitleGuide || '',
-        blogContentGuide: initialData?.blogContentGuide || '',
-        // 방문체험단/기자단의 경우 지도 삽입 기본값 true
-        blogMapRequired: initialData?.blogMapRequired ?? (step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS'),
-        blogRequiredLinks: initialData?.blogRequiredLinks || [],
-
-        // 인스타그램 가이드
-        instagramHashtags: initialData?.instagramHashtags || [],
-        instagramAccountTag: initialData?.instagramAccountTag || '',
-        instagramPhotoGuide: initialData?.instagramPhotoGuide || '',
-        instagramReelsRequired: initialData?.instagramReelsRequired || false,
-    });
-
-
-    // 초기 데이터 로드 (임시저장 불러오기 시)
-    useEffect(() => {
-        if (initialData) {
-            setFormData(prev => {
-                // null 값을 제거하여 state의 기본값이 유지되도록 함
-                const sanitizedInitial = { ...initialData };
-                Object.keys(sanitizedInitial).forEach(key => {
-                    if ((sanitizedInitial as any)[key] === null) {
-                        delete (sanitizedInitial as any)[key];
-                    }
-                });
-
-                return {
-                    ...prev,
-                    ...sanitizedInitial,
-                    campaignTitle: initialData.campaignTitle || prev.campaignTitle || step1Data.campaignTitle || '',
-                };
-            });
-        }
-    }, [initialData, step1Data.campaignTitle]);
-
-    // 실시간 데이터 변경 알림 (임시저장 연동용)
-    useEffect(() => {
-        if (onChange) {
-            onChange(formData);
-        }
-    }, [formData, onChange]);
+    // 실시간 데이터 변경 알림 (중앙 스토어 사용으로 제거됨)
 
     const [keywordInput, setKeywordInput] = useState('');
     const [prohibitedInput, setProhibitedInput] = useState('');
@@ -279,7 +219,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
 
     useEffect(() => {
         const fetchAIKeywords = async () => {
-            if (!step1Data.productName && !step1Data.stores?.[0]?.storeName) return;
+            if (!formData.includeNaver && !formData.includeInstagram) return null;
             
             setIsAnalyzing(true);
             try {
@@ -287,11 +227,12 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        region: step1Data.region,
-                        storeName: step1Data.stores?.[0]?.storeName,
-                        productName: step1Data.productName,
-                        campaignType: step1Data.campaignType,
-                        category: step1Data.category
+                        region: formData.region,
+                        storeName: formData.stores?.[0]?.storeName,
+                        productName: formData.productName,
+                        campaignType: formData.campaignType,
+                        category: formData.category,
+                        campaignTitle: formData.campaignTitle
                     })
                 });
 
@@ -310,17 +251,15 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
         };
 
         fetchAIKeywords();
-    }, [step1Data.productName, step1Data.region, step1Data.campaignType]);
+    }, [formData.productName, formData.region, formData.campaignType, formData.includeNaver, formData.includeInstagram, formData.campaignTitle]);
 
     // 이미지 업로드 핸들러
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
-        // 먼저 세션 확인 (보안을 위해 getUser 사용)
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            toast.error('로그인이 필요한 서비스입니다. 다시 로그인해주세요.');
+        if (!formData.campaignTitle && !formData.productName) {
+            toast.error('캠페인 제목 또는 제품명을 먼저 입력해주세요.');
             return;
         }
 
@@ -382,10 +321,9 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
             }
 
             if (newImages.length > 0) {
-                setFormData(prev => ({
-                    ...prev,
-                    campaignImages: [...prev.campaignImages, ...newImages],
-                }));
+                store.updateFields({
+                    campaignImages: [...formData.campaignImages, ...newImages]
+                });
                 toast.success(`${newImages.length}개의 이미지가 업로드되었습니다.`);
             }
         } catch (error: any) {
@@ -398,80 +336,53 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
     };
 
     const removeImage = (index: number) => {
-        setFormData(prev => ({
-            ...prev,
-            campaignImages: prev.campaignImages.filter((_, i) => i !== index),
-        }));
+        store.setField('campaignImages', formData.campaignImages.filter((_, i) => i !== index));
     };
 
     // 키워드 관련 함수
     const addKeyword = () => {
         if (keywordInput.trim() && !formData.keywords.includes(keywordInput.trim())) {
-            setFormData(prev => ({
-                ...prev,
-                keywords: [...prev.keywords, keywordInput.trim()],
-            }));
+            store.setField('keywords', [...formData.keywords, keywordInput.trim()]);
             setKeywordInput('');
         }
     };
 
     const removeKeyword = (keyword: string) => {
-        setFormData(prev => ({
-            ...prev,
-            keywords: prev.keywords.filter(k => k !== keyword),
-        }));
+        store.setField('keywords', formData.keywords.filter(k => k !== keyword));
     };
 
     const addProhibited = () => {
         if (prohibitedInput.trim() && !formData.prohibitedWords.includes(prohibitedInput.trim())) {
-            setFormData(prev => ({
-                ...prev,
-                prohibitedWords: [...prev.prohibitedWords, prohibitedInput.trim()],
-            }));
+            store.setField('prohibitedWords', [...formData.prohibitedWords, prohibitedInput.trim()]);
             setProhibitedInput('');
         }
     };
 
     const removeProhibited = (word: string) => {
-        setFormData(prev => ({
-            ...prev,
-            prohibitedWords: prev.prohibitedWords.filter(w => w !== word),
-        }));
+        store.setField('prohibitedWords', formData.prohibitedWords.filter(w => w !== word));
     };
 
     // 블로그 관련 함수
     const addBlogSubKeyword = () => {
         if (blogSubKeywordInput.trim() && !formData.blogSubKeywords.includes(blogSubKeywordInput.trim())) {
-            setFormData(prev => ({
-                ...prev,
-                blogSubKeywords: [...prev.blogSubKeywords, blogSubKeywordInput.trim()],
-            }));
+            store.setField('blogSubKeywords', [...formData.blogSubKeywords, blogSubKeywordInput.trim()]);
             setBlogSubKeywordInput('');
         }
     };
 
     const removeBlogSubKeyword = (keyword: string) => {
-        setFormData(prev => ({
-            ...prev,
-            blogSubKeywords: prev.blogSubKeywords.filter(k => k !== keyword),
-        }));
+        store.setField('blogSubKeywords', formData.blogSubKeywords.filter(k => k !== keyword));
     };
 
     const addBlogLink = () => {
         if (blogLinkInput.trim() && !formData.blogRequiredLinks.includes(blogLinkInput.trim())) {
-            setFormData(prev => ({
-                ...prev,
-                blogRequiredLinks: [...prev.blogRequiredLinks, blogLinkInput.trim()],
-            }));
+            store.setField('blogRequiredLinks', [...formData.blogRequiredLinks, blogLinkInput.trim()]);
             setBlogLinkInput('');
         }
     };
 
     const removeBlogLink = (link: string) => {
-        setFormData(prev => ({
-            ...prev,
-            blogRequiredLinks: prev.blogRequiredLinks.filter(l => l !== link),
-        }));
+        store.setField('blogRequiredLinks', formData.blogRequiredLinks.filter(l => l !== link));
     };
 
     // 인스타그램 관련 함수
@@ -485,19 +396,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
         }
 
         if (!formData.instagramHashtags.includes(hashtag)) {
-            setFormData(prev => ({
-                ...prev,
-                instagramHashtags: [...prev.instagramHashtags, hashtag],
-            }));
+            store.setField('instagramHashtags', [...formData.instagramHashtags, hashtag]);
             setInstagramHashtagInput('');
         }
     };
 
     const removeInstagramHashtag = (hashtag: string) => {
-        setFormData(prev => ({
-            ...prev,
-            instagramHashtags: prev.instagramHashtags.filter(h => h !== hashtag),
-        }));
+        store.setField('instagramHashtags', formData.instagramHashtags.filter(h => h !== hashtag));
     };
 
     // 폼 유효성 검사
@@ -506,7 +411,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
         if (!uploadLater && formData.campaignImages.length === 0) return false;
 
         // 블로그 선택 시 메인 키워드 필수
-        if (step1Data.includeNaver && !formData.blogMainKeyword.trim()) {
+        if (formData.includeNaver && !formData.blogMainKeyword.trim()) {
             return false;
         }
 
@@ -522,17 +427,17 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
     };
 
     // 배송체험단 여부 확인
-    const isDeliveryCampaign = step1Data.campaignType === 'DELIVERY';
-    const isVisitOrPressCampaign = step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS';
+    const isDeliveryCampaign = formData.campaignType === 'DELIVERY';
+    const isVisitOrPressCampaign = formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS';
 
     // 구매평 가이드: 배송체험단 + 구매평 선택 시
-    const showReviewGuide = isDeliveryCampaign && step1Data.includeReview;
+    const showReviewGuide = isDeliveryCampaign && formData.includeReview;
 
     // 블로그 가이드: 배송체험단(includeNaver) 또는 방문/기자단(platform=BLOG)
-    const showBlogGuide = step1Data.includeNaver || (isVisitOrPressCampaign && step1Data.platform === 'BLOG');
+    const showBlogGuide = formData.includeNaver || (isVisitOrPressCampaign && formData.platform === 'BLOG');
 
     // 인스타그램 가이드: 배송체험단(includeInstagram) 또는 방문/기자단(platform=INSTAGRAM)
-    const showInstagramGuide = step1Data.includeInstagram || (isVisitOrPressCampaign && step1Data.platform === 'INSTAGRAM');
+    const showInstagramGuide = formData.includeInstagram || (isVisitOrPressCampaign && formData.platform === 'INSTAGRAM');
 
     return (
         <div className="w-full space-y-8 pb-10">
@@ -551,7 +456,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                     <div className="relative">
                         <input
                             type="text"
-                            value={step1Data.campaignTitle || ''}
+                            value={formData.campaignTitle || ''}
                             readOnly
                             className="w-full h-12 px-4 border border-slate-100 rounded-xl bg-slate-50 text-slate-500 cursor-not-allowed font-medium"
                         />
@@ -680,9 +585,9 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                             💰 페이백 금액 (옵션별)
                             <HelpTooltip content="Step 1에서 설정한 페이백 금액이 자동으로 적용됩니다" />
                         </label>
-                        {step1Data.productOptions && step1Data.productOptions.length > 0 ? (
+                        {formData.productOptions && formData.productOptions.length > 0 ? (
                             <div className="space-y-2">
-                                {step1Data.productOptions.map((option: any, idx: number) => (
+                                {formData.productOptions.map((option: any, idx: number) => (
                                     <div key={idx} className="flex justify-between items-center bg-white px-4 py-2 rounded border border-blue-100">
                                         <span className="text-sm font-medium text-gray-700">{option.optionName || `옵션 ${idx + 1}`}</span>
                                         <span className="text-sm font-bold text-blue-600">
@@ -705,7 +610,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         </label>
                         <textarea
                             value={formData.purchaseNotes || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, purchaseNotes: e.target.value }))}
+                            onChange={(e) => store.setField('purchaseNotes', e.target.value)}
                             placeholder="예: 비공개 요청, 쿠폰 사용 금지 등"
                             rows={3}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -719,7 +624,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         </label>
                         <textarea
                             value={formData.reviewMissionContent || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, reviewMissionContent: e.target.value }))}
+                            onChange={(e) => store.setField('reviewMissionContent', e.target.value)}
                             placeholder='예: "찜하기 필수", "포토리뷰 필수"'
                             rows={4}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -797,7 +702,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                         name="textLength"
                                         value={option.value}
                                         checked={formData.textLength === option.value}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, textLength: e.target.value as any }))}
+                                        onChange={(e) => store.setField('textLength', e.target.value as any)}
                                         className="mr-2"
                                     />
                                     <span className="text-sm font-medium">{option.label}</span>
@@ -830,7 +735,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                         name="photoCount"
                                         value={option.value}
                                         checked={formData.photoCount === option.value}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, photoCount: e.target.value as any }))}
+                                        onChange={(e) => store.setField('photoCount', e.target.value as any)}
                                         className="mr-2"
                                     />
                                     <span className="text-sm font-medium">{option.label}</span>
@@ -861,7 +766,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                         name="videoRequired"
                                         value={option.value}
                                         checked={formData.videoRequired === option.value}
-                                        onChange={(e) => setFormData(prev => ({ ...prev, videoRequired: e.target.value as any }))}
+                                        onChange={(e) => store.setField('videoRequired', e.target.value as any)}
                                         className="mr-2"
                                     />
                                     <span className="text-sm font-medium">{option.label}</span>
@@ -877,7 +782,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         </label>
                         <textarea
                             value={formData.missionGuide || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, missionGuide: e.target.value }))}
+                            onChange={(e) => store.setField('missionGuide', e.target.value)}
                             placeholder="자유롭게 작성해주세요"
                             rows={6}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -915,7 +820,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         <input
                             type="text"
                             value={formData.blogMainKeyword || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, blogMainKeyword: e.target.value }))}
+                            onChange={(e) => store.setField('blogMainKeyword', e.target.value)}
                             placeholder="예: 강남 맛집, 역삼동 카페"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-bold text-green-700"
                         />
@@ -942,7 +847,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                     {recommendedKeywords.map((kw, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => setFormData(prev => ({ ...prev, blogMainKeyword: kw }))}
+                                            onClick={() => store.setField('blogMainKeyword', kw)}
                                             className="group relative px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 shadow-sm overflow-hidden"
                                         >
                                             <span className="relative z-10 flex items-center gap-1">
@@ -1007,10 +912,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                             key={idx}
                                             onClick={() => {
                                                 if (!formData.blogSubKeywords.includes(kw)) {
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        blogSubKeywords: [...prev.blogSubKeywords, kw]
-                                                    }));
+                                                    store.setField('blogSubKeywords', [...formData.blogSubKeywords, kw]);
                                                 }
                                             }}
                                             className="group relative px-3 py-1.5 bg-white text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold hover:border-emerald-400 hover:bg-emerald-50 transition-all duration-200 shadow-sm overflow-hidden"
@@ -1050,8 +952,8 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         <input
                             type="text"
                             value={formData.blogTitleGuide || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, blogTitleGuide: e.target.value }))}
-                            placeholder="예: 키워드를 제목 앞부분에 배치해주세요"
+                            onChange={(e) => store.setField('blogTitleGuide', e.target.value)}
+                            placeholder="노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
                         />
                     </div>
@@ -1063,7 +965,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         </label>
                         <textarea
                             value={formData.blogContentGuide || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, blogContentGuide: e.target.value }))}
+                            onChange={(e) => store.setField('blogContentGuide', e.target.value)}
                             placeholder="예: 제품 사용 후기를 상세하게 작성해주세요. 장점과 단점을 균형있게 서술하고, 실제 사용 사진을 포함해주세요."
                             rows={5}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:green-500 focus:border-transparent"
@@ -1074,13 +976,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                     </div>
 
                     {/* 지도 삽입 여부 - 방문체험단/기자단만 표시 */}
-                    {(step1Data.campaignType === 'VISIT' || step1Data.campaignType === 'PRESS') && (
+                    {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
                         <div className="mb-6">
                             <label className="flex items-center gap-3 cursor-pointer group">
                                 <input
                                     type="checkbox"
                                     checked={formData.blogMapRequired}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, blogMapRequired: e.target.checked }))}
+                                    onChange={(e) => store.setField('blogMapRequired', e.target.checked)}
                                     className="w-5 h-5 text-green-500 border-gray-300 rounded focus:ring-2 focus:ring-green-500"
                                 />
                                 <div className="flex items-center gap-2">
@@ -1152,10 +1054,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                                             key={idx}
                                             onClick={() => {
                                                 if (!formData.instagramHashtags.includes(ht)) {
-                                                    setFormData(prev => ({
-                                                        ...prev,
-                                                        instagramHashtags: [...prev.instagramHashtags, ht]
-                                                    }));
+                                                    store.setField('instagramHashtags', [...formData.instagramHashtags, ht]);
                                                 }
                                             }}
                                             className="group relative px-3 py-1.5 bg-white text-pink-700 border border-pink-200 rounded-lg text-xs font-semibold hover:border-pink-400 hover:bg-pink-50 transition-all duration-200 shadow-sm overflow-hidden"
@@ -1201,7 +1100,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         <input
                             type="text"
                             value={formData.instagramAccountTag || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, instagramAccountTag: e.target.value }))}
+                            onChange={(e) => store.setField('instagramAccountTag', e.target.value)}
                             placeholder="예: @your_brand_account"
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         />
@@ -1217,7 +1116,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                         </label>
                         <textarea
                             value={formData.instagramPhotoGuide || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, instagramPhotoGuide: e.target.value }))}
+                            onChange={(e) => store.setField('instagramPhotoGuide', e.target.value)}
                             placeholder="예: 제품 상세컷 2장 이상, 동영상 1개 필수"
                             rows={4}
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
@@ -1230,7 +1129,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                             <input
                                 type="checkbox"
                                 checked={formData.instagramReelsRequired}
-                                onChange={(e) => setFormData(prev => ({ ...prev, instagramReelsRequired: e.target.checked }))}
+                                onChange={(e) => store.setField('instagramReelsRequired', e.target.checked)}
                                 className="w-5 h-5 text-pink-500 border-gray-300 rounded focus:ring-2 focus:ring-pink-500"
                             />
                             <div className="flex items-center gap-2">
@@ -1296,7 +1195,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                 <h2 className="text-xl font-bold text-gray-900 mb-4">추가 안내사항</h2>
                 <textarea
                     value={formData.additionalNotes || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, additionalNotes: e.target.value }))}
+                    onChange={(e) => store.setField('additionalNotes', e.target.value)}
                     placeholder="리뷰어에게 전달할 추가 안내사항이 있다면 작성해주세요."
                     rows={4}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

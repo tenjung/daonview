@@ -11,8 +11,8 @@ import CampaignStep3 from '@/components/campaign/CampaignStep3';
 import { CampaignActionButtons } from '@/components/campaign/CampaignActionButtons';
 import FloatingActionWrapper from '@/components/campaign/FloatingActionWrapper';
 import CampaignLoader from '@/components/campaign/CampaignLoader';
-import { saveDraft, loadDraft, DraftCampaign } from '@/lib/draftUtils';
-import ConfirmDialog from '@/components/ConfirmDialog';
+import { saveDraft, loadDraft } from '@/lib/draftUtils';
+import { useCampaignStore } from '@/store/campaignStore';
 
 export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -21,68 +21,19 @@ export default function CampaignRegistrationContainer() {
     const isEdit = !!searchParams?.get('id');
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const [currentStep, setCurrentStep] = useState(1);
-    const [step1Data, setStep1Data] = useState<any>(null);
-    const [step1Complete, setStep1Complete] = useState(false);
-    const [step2Data, setStep2Data] = useState<any>(null);
-    const [initialStep1Data, setInitialStep1Data] = useState<any>(null);
-    const [initialStep2Data, setInitialStep2Data] = useState<any>(null);
+    // Zustand Store
+    const store = useCampaignStore();
+    const { currentStep, currentCampaignId, isSubmitting } = store;
 
-    const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [nextTrigger, setNextTrigger] = useState(0); 
-    const [showCancelDialog, setShowCancelDialog] = useState(false);
 
-    // --- 캠페인 데이터 로드 로직 (DB 개별 컬럼과 options 병합) ---
+    // --- 캠페인 데이터 로드 로직 ---
     const handleLoadCompleted = useCallback((campaign: any, silent = false) => {
         if (!campaign) return;
-
-        const optionsRaw = campaign.campaign_options;
-        const options = Array.isArray(optionsRaw) ? (optionsRaw[0] || {}) : (optionsRaw || {});
-        const s1 = options.step1Data || {};
-        const s2 = options.step2Data || {};
-
-        // DB 개별 컬럼 필드를 우선 적용하여 Step1 데이터 정규화
-        const finalStep1: any = {
-            ...(s1 || {}),
-            brandId: campaign.brand_id || s1.brandId || null,
-            brandName: campaign.brand_name || s1.brandName || '',
-            productName: campaign.product_name || s1.productName || '',
-            campaignTitle: campaign.title || s1.campaignTitle || campaign.product_name || '',
-            campaignType: (campaign.type || s1.campaignType || 'VISIT').toUpperCase(),
-            platform: (campaign.platform || s1.platform || 'BLOG').toUpperCase(),
-            category: campaign.category || s1.category || '',
-            region: campaign.region || s1.region || '',
-            totalRecruitment: (campaign.total_recruitment || campaign.recruit_count || s1.totalRecruitment || '0').toString(),
-            rewardPerPerson: campaign.reward_per_person || s1.rewardPerPerson || 0,
-            // 스키마에 따로 컬럼이 없는 필드들은 options 내부에서 복구
-            contactPhone: options.contact_phone || s1.contactPhone || '',
-            officialPrice: (options.official_price || s1.officialPrice || '').toString(),
-            stores: options.stores || s1.stores || [],
-            productOptions: campaign.product_options || s1.productOptions || [],
-        };
-
-        const finalStep2: any = {
-            ...(s2 || {}),
-            campaignTitle: campaign.title || s2.campaignTitle || finalStep1.campaignTitle,
-            campaignImages: (Array.isArray(campaign.campaign_images) && campaign.campaign_images.length > 0)
-                ? campaign.campaign_images
-                : (Array.isArray(s2.campaignImages) ? s2.campaignImages : (campaign.thumbnail_url ? [campaign.thumbnail_url] : [])),
-            missionGuide: options.mission_guide || s2.missionGuide || '',
-            keywords: Array.isArray(campaign.keywords) ? campaign.keywords : (Array.isArray(s2.keywords) ? s2.keywords : []),
-        };
-
-        setCurrentDraftId(campaign.id.toString());
-        setCurrentStep(options.currentStep || 1);
-        setStep1Data(finalStep1);
-        setInitialStep1Data(finalStep1);
-        setStep2Data(finalStep2);
-        setInitialStep2Data(finalStep2);
-        setStep1Complete(options.currentStep > 1 || !!finalStep1.productName);
-
+        store.initializeFromCampaign(campaign);
         if (!silent) toast.success('캠페인 데이터를 성공적으로 불러왔습니다.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, []);
+    }, [store]);
 
     // 초기 데이터 로딩 처리
     useEffect(() => {
@@ -91,10 +42,10 @@ export default function CampaignRegistrationContainer() {
         const draftId = searchParams?.get('draftId');
 
         const loadData = async () => {
-            if (campaignId && currentDraftId !== campaignId) {
+            if (campaignId && currentCampaignId !== campaignId) {
                 const { data } = await supabase.from('campaigns').select('*').eq('id', campaignId).single();
                 if (data) handleLoadCompleted(data, true);
-            } else if (draftId && currentDraftId !== draftId) {
+            } else if (draftId && currentCampaignId !== draftId) {
                 const draft = await loadDraft(user.id, draftId);
                 if (draft) {
                     const rawData = {
@@ -117,22 +68,82 @@ export default function CampaignRegistrationContainer() {
             }
         };
         loadData();
-    }, [authLoading, user, searchParams, currentDraftId, handleLoadCompleted]);
+    }, [authLoading, user, searchParams, currentCampaignId, handleLoadCompleted]);
 
     // --- 액션 핸들러 ---
     const handleSaveDraft = async () => {
-        if (!user || !step1Data) return;
+        if (!user) return;
         try {
+            // 전역 스토어의 현재 상태를 기반으로 임시저장
             const draft = await saveDraft(user.id, {
-                id: currentDraftId || undefined,
-                title: step1Data.campaignTitle || step1Data.productName || '제목 없음',
-                campaignType: step1Data.campaignType,
-                step1Data,
-                step2Data,
-                currentStep,
+                id: currentCampaignId || undefined,
+                title: store.campaignTitle || store.productName || '제목 없음',
+                campaignType: store.campaignType || 'VISIT',
+                step1Data: {
+                    campaignType: store.campaignType,
+                    includeReview: store.includeReview,
+                    includeNaver: store.includeNaver,
+                    includeInstagram: store.includeInstagram,
+                    productUrl: store.productUrl,
+                    productUrlPrivate: store.productUrlPrivate,
+                    productUrlIndividual: store.productUrlIndividual,
+                    productName: store.productName,
+                    campaignTitle: store.campaignTitle,
+                    brandName: store.brandName,
+                    brandId: store.brandId,
+                    productOptions: store.productOptions,
+                    productPrice: store.productPrice,
+                    shippingCost: store.shippingCost,
+                    isCouponRequired: store.isCouponRequired,
+                    platform: store.platform,
+                    category: store.category,
+                    region: store.region,
+                    subRegion: store.subRegion,
+                    stores: store.stores,
+                    contactPhone: store.contactPhone,
+                    contactMethod: store.contactMethod,
+                    advertiserWillContact: store.advertiserWillContact,
+                    visitTime: store.visitTime,
+                    visitTimeNegotiable: store.visitTimeNegotiable,
+                    visitDays: store.visitDays,
+                    visitNotes: store.visitNotes,
+                    experienceDetails: store.experienceDetails,
+                    officialPrice: store.officialPrice,
+                    totalRecruitment: store.totalRecruitment,
+                    rewardPerPerson: store.rewardPerPerson,
+                    scheduleType: store.scheduleType,
+                    recruitmentStartDate: store.recruitmentStartDate,
+                    firstSelectionDate: store.firstSelectionDate,
+                    reviewDeadline: store.reviewDeadline,
+                    reviewDeadlineDays: store.reviewDeadlineDays,
+                    optionConfig: store.optionConfig,
+                },
+                step2Data: {
+                    campaignImages: store.campaignImages,
+                    purchaseNotes: store.purchaseNotes,
+                    reviewMissionContent: store.reviewMissionContent,
+                    textLength: store.textLength,
+                    photoCount: store.photoCount,
+                    videoRequired: store.videoRequired,
+                    missionGuide: store.missionGuide,
+                    keywords: store.keywords,
+                    prohibitedWords: store.prohibitedWords,
+                    additionalNotes: store.additionalNotes,
+                    blogMainKeyword: store.blogMainKeyword,
+                    blogSubKeywords: store.blogSubKeywords,
+                    blogTitleGuide: store.blogTitleGuide,
+                    blogContentGuide: store.blogContentGuide,
+                    blogMapRequired: store.blogMapRequired,
+                    blogRequiredLinks: store.blogRequiredLinks,
+                    instagramHashtags: store.instagramHashtags,
+                    instagramAccountTag: store.instagramAccountTag,
+                    instagramPhotoGuide: store.instagramPhotoGuide,
+                    instagramReelsRequired: store.instagramReelsRequired,
+                },
+                currentStep: store.currentStep,
             });
             if (draft?.id) {
-                setCurrentDraftId(draft.id);
+                store.setField('currentCampaignId', draft.id);
                 toast.success('캠페인이 임시저장되었습니다.');
             }
         } catch (e) {
@@ -140,66 +151,135 @@ export default function CampaignRegistrationContainer() {
         }
     };
 
-    const handleFinalSubmit = async (step3Data: any, latestStep2Data?: any) => {
-        if (!user || !step1Data) {
-            toast.error('사용자 정보 또는 캠페인 데이터가 없습니다.');
+    const handleFinalSubmit = async () => {
+        if (!user) {
+            toast.error('사용자 정보가 없습니다.');
             return;
         }
 
-        setIsSubmitting(true);
+        store.setField('isSubmitting', true);
 
         try {
-            const finalStep2 = latestStep2Data || step2Data;
-
             // 플랫폼 매핑
-            let mappedPlatform = step1Data.platform || 'BLOG';
-            if (step1Data.campaignType === 'DELIVERY') {
-                if (step1Data.includeNaver) mappedPlatform = 'BLOG';
-                else if (step1Data.includeInstagram) mappedPlatform = 'INSTAGRAM';
-                else if (step1Data.includeReview) mappedPlatform = 'PURCHASE';
+            let mappedPlatform = store.platform || 'BLOG';
+            if (store.campaignType === 'DELIVERY') {
+                if (store.includeNaver) mappedPlatform = 'BLOG';
+                else if (store.includeInstagram) mappedPlatform = 'INSTAGRAM';
+                else if (store.includeReview) mappedPlatform = 'PURCHASE';
             }
 
             // 날짜 계산
             const now = new Date().toISOString().split('T')[0];
-            const endDate = step1Data.reviewDeadline || step1Data.recruitmentStartDate || now;
+            const endDate = store.reviewDeadline || store.recruitmentStartDate || now;
+
+            const step1Data = {
+                campaignType: store.campaignType,
+                includeReview: store.includeReview,
+                includeNaver: store.includeNaver,
+                includeInstagram: store.includeInstagram,
+                productUrl: store.productUrl,
+                productUrlPrivate: store.productUrlPrivate,
+                productUrlIndividual: store.productUrlIndividual,
+                productName: store.productName,
+                campaignTitle: store.campaignTitle,
+                brandName: store.brandName,
+                brandId: store.brandId,
+                productOptions: store.productOptions,
+                productPrice: store.productPrice,
+                shippingCost: store.shippingCost,
+                isCouponRequired: store.isCouponRequired,
+                platform: store.platform,
+                category: store.category,
+                region: store.region,
+                subRegion: store.subRegion,
+                stores: store.stores,
+                contactPhone: store.contactPhone,
+                contactMethod: store.contactMethod,
+                advertiserWillContact: store.advertiserWillContact,
+                visitTime: store.visitTime,
+                visitTimeNegotiable: store.visitTimeNegotiable,
+                visitDays: store.visitDays,
+                visitNotes: store.visitNotes,
+                experienceDetails: store.experienceDetails,
+                officialPrice: store.officialPrice,
+                totalRecruitment: store.totalRecruitment,
+                rewardPerPerson: store.rewardPerPerson,
+                scheduleType: store.scheduleType,
+                recruitmentStartDate: store.recruitmentStartDate,
+                firstSelectionDate: store.firstSelectionDate,
+                reviewDeadline: store.reviewDeadline,
+                reviewDeadlineDays: store.reviewDeadlineDays,
+                optionConfig: store.optionConfig,
+            };
+
+            const step2Data = {
+                campaignImages: store.campaignImages,
+                purchaseNotes: store.purchaseNotes,
+                reviewMissionContent: store.reviewMissionContent,
+                textLength: store.textLength,
+                photoCount: store.photoCount,
+                videoRequired: store.videoRequired,
+                missionGuide: store.missionGuide,
+                keywords: store.keywords,
+                prohibitedWords: store.prohibitedWords,
+                additionalNotes: store.additionalNotes,
+                blogMainKeyword: store.blogMainKeyword,
+                blogSubKeywords: store.blogSubKeywords,
+                blogTitleGuide: store.blogTitleGuide,
+                blogContentGuide: store.blogContentGuide,
+                blogMapRequired: store.blogMapRequired,
+                blogRequiredLinks: store.blogRequiredLinks,
+                instagramHashtags: store.instagramHashtags,
+                instagramAccountTag: store.instagramAccountTag,
+                instagramPhotoGuide: store.instagramPhotoGuide,
+                instagramReelsRequired: store.instagramReelsRequired,
+            };
+
+            const step3Data = {
+                paymentMethod: store.paymentMethod,
+                agreeToTerms: store.agreeToTerms,
+                agreeToRefund: store.agreeToRefund,
+            };
 
             // 캠페인 데이터 구성
             const campaignData: any = {
                 created_by: user.id,
-                brand_id: step1Data.brandId,
-                brand_name: step1Data.brandName,
-                product_name: step1Data.productName || '',
-                title: finalStep2?.campaignTitle || step1Data.campaignTitle,
-                type: (step1Data.campaignType || 'VISIT').toUpperCase(),
+                brand_id: store.brandId,
+                brand_name: store.brandName,
+                product_name: store.productName || '',
+                title: store.campaignTitle,
+                type: (store.campaignType || 'VISIT').toUpperCase(),
                 platform: mappedPlatform.toUpperCase(),
-                category: step1Data.category,
-                region: step1Data.region,
-                end_date: step1Data.scheduleType === 'always' ? '9999-12-31' : endDate,
-                is_always: step1Data.scheduleType === 'always',
-                total_recruitment: step1Data.totalRecruitment === '무제한'
+                category: store.category,
+                region: store.region,
+                end_date: store.scheduleType === 'always' ? '9999-12-31' : endDate,
+                is_always: store.scheduleType === 'always',
+                total_recruitment: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
                     ? 999999
-                    : parseInt(step1Data.totalRecruitment) || 0,
-                recruit_count: step1Data.totalRecruitment === '무제한'
+                    : parseInt(store.totalRecruitment) || 0,
+                recruit_count: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
                     ? 999999
-                    : parseInt(step1Data.totalRecruitment) || 0,
-                reward_per_person: Number(step1Data.rewardPerPerson || 0),
-                campaign_images: finalStep2?.campaignImages || [],
-                thumbnail_url: finalStep2?.campaignImages?.[0] || null,
-                experience_details: step1Data.experienceDetails || null,
-                product_options: step1Data.productOptions || [],
+                    : parseInt(store.totalRecruitment) || 0,
+                reward_per_person: Number(store.rewardPerPerson || 0),
+                campaign_images: store.campaignImages || [],
+                thumbnail_url: store.campaignImages?.[0] || null,
+                experience_details: store.experienceDetails || null,
+                product_options: store.productOptions || [],
                 status: profile?.role === 'ADMIN' ? 'RECRUITING' : 'PENDING',
                 campaign_options: {
                     step1Data,
-                    step2Data: finalStep2,
+                    step2Data,
                     step3Data,
                     currentStep: 3,
-                    contact_phone: step1Data.contactPhone,
-                    official_price: step1Data.officialPrice,
-                    mission_guide: finalStep2?.missionGuide,
-                    keywords: finalStep2?.keywords,
-                    stores: step1Data.stores,
+                    contact_phone: store.contactPhone,
+                    contact_method: store.contactMethod,
+                    official_price: store.officialPrice,
+                    mission_guide: store.missionGuide,
+                    keywords: store.keywords,
+                    stores: store.stores,
                     lastUpdated: new Date().toISOString()
                 },
+                contact_method: store.contactMethod,
             };
 
             const campaignId = searchParams?.get('id');
@@ -226,15 +306,17 @@ export default function CampaignRegistrationContainer() {
                 if (error) throw error;
                 result = data;
 
-                if (currentDraftId && currentDraftId !== result.id.toString()) {
-                    // draftId가 숫자인 경우와 문자열인 경우 대응
-                    const isDraftNumeric = !isNaN(Number(currentDraftId));
+                if (currentCampaignId && currentCampaignId !== result.id.toString()) {
+                    const isDraftNumeric = !isNaN(Number(currentCampaignId));
                     if (isDraftNumeric) {
-                        await supabase.from('campaigns').delete().eq('id', Number(currentDraftId));
+                        await supabase.from('campaigns').delete().eq('id', Number(currentCampaignId));
                     }
                 }
                 toast.success('캠페인이 성공적으로 등록되었습니다.');
             }
+
+            // 스토어 초기화
+            store.resetStore();
 
             setTimeout(() => {
                 router.push(profile?.role === 'ADMIN' ? '/dashboard/admin/campaigns' : '/dashboard/advertiser');
@@ -244,13 +326,13 @@ export default function CampaignRegistrationContainer() {
             console.error('Save Error:', error);
             toast.error(error.message || '저장 중 오류가 발생했습니다.');
         } finally {
-            setIsSubmitting(false);
+            store.setField('isSubmitting', false);
         }
     };
 
     // --- 스텝 이동 로직 ---
     const goToStep = (step: number) => {
-        setCurrentStep(step);
+        store.setField('currentStep', step);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -304,10 +386,16 @@ export default function CampaignRegistrationContainer() {
                     <CampaignLoader
                         userId={user.id}
                         onLoadDraft={(draft) => {
-                            setCurrentDraftId(draft.id);
-                            setCurrentStep(draft.currentStep);
-                            setStep1Data(draft.step1Data);
-                            setStep2Data(draft.step2Data);
+                            store.initializeFromCampaign({
+                                ...draft,
+                                id: draft.id,
+                                campaign_options: {
+                                    step1Data: draft.step1Data,
+                                    step2Data: draft.step2Data,
+                                    currentStep: draft.currentStep || 1
+                                }
+                            });
+                            toast.success('임시저장된 캠페인을 불러왔습니다.');
                         }}
                         onLoadCompleted={handleLoadCompleted}
                     />
@@ -316,29 +404,16 @@ export default function CampaignRegistrationContainer() {
                 <div className="mt-8 transition-all duration-500">
                     {currentStep === 1 && (
                         <CampaignStep1
-                            onNext={(data) => {
-                                setStep1Data(data);
-                                setStep1Complete(true);
-                                goToStep(2);
-                            }}
-                            onChange={setStep1Data}
+                            onNext={() => goToStep(2)}
                             onSaveDraft={handleSaveDraft}
-                            initialData={initialStep1Data}
                             submitTrigger={nextTrigger}
                         />
                     )}
                     {currentStep === 2 && (
                         <CampaignStep2
-                            onNext={(data) => {
-                                setStep2Data(data);
-                                if (isEdit) handleFinalSubmit(null, data);
-                                else goToStep(3);
-                            }}
+                            onNext={() => isEdit ? handleFinalSubmit() : goToStep(3)}
                             onPrev={() => goToStep(1)}
                             onSaveDraft={handleSaveDraft}
-                            onChange={setStep2Data}
-                            initialData={initialStep2Data}
-                            step1Data={step1Data}
                             isEdit={isEdit}
                             submitTrigger={nextTrigger}
                         />
@@ -348,8 +423,6 @@ export default function CampaignRegistrationContainer() {
                             onSubmit={handleFinalSubmit}
                             onPrev={() => goToStep(2)}
                             onSaveDraft={handleSaveDraft}
-                            step1Data={step1Data}
-                            step2Data={step2Data}
                             submitTrigger={nextTrigger}
                         />
                     )}

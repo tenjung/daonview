@@ -18,10 +18,11 @@ interface CampaignShareProps {
     title: string;
     description: string;
     thumbnailUrl?: string;
+    campaignType?: string;
     variant?: 'default' | 'large';
 }
 
-export default function CampaignShare({ campaignId, title, description, thumbnailUrl, variant = 'default' }: CampaignShareProps) {
+export default function CampaignShare({ campaignId, title, description, thumbnailUrl, campaignType, variant = 'default' }: CampaignShareProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [kakaoLoaded, setKakaoLoaded] = useState(false);
@@ -114,6 +115,24 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
         }, 1500);
     };
 
+    const handleCopyBrief = async () => {
+        const typeValue = (campaignType || '').toUpperCase();
+        const typeLabel = typeValue === 'VISIT' ? '방문체험단' : 
+                         typeValue === 'DELIVERY' ? '배송체험단' : 
+                         typeValue === 'PURCHASE' ? '구매평 체험단' : '체험단';
+
+        const briefText = `📢 [다온뷰] ${typeLabel} 모집 안내\n\n✨ 캠페인명: ${title}\n🎁 제공 내역: ${description}\n🔗 신청 링크: ${shareUrl}`;
+
+        try {
+            await navigator.clipboard.writeText(briefText);
+            toast.success('모집 요강이 복사되었습니다.', {
+                description: '카카오톡이나 채팅창에 바로 붙여넣어 보세요!'
+            });
+        } catch (err) {
+            toast.error('복사에 실패했습니다.');
+        }
+    };
+
     return (
         <>
             <Script 
@@ -204,7 +223,16 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
                     </div>
                 </div>
 
-                <div className="mt-10 w-full">
+                <div className="mt-8 w-full space-y-3">
+                    <Button 
+                        onClick={handleCopyBrief}
+                        variant="secondary" 
+                        className="w-full h-14 rounded-2xl bg-indigo-50 text-indigo-600 font-black hover:bg-indigo-100 border-none flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+                    >
+                        <Copy className="w-4 h-4" />
+                        모집 요강 문구 복사
+                    </Button>
+
                     <Button 
                         variant="outline" 
                         className="w-full h-14 rounded-2xl border-slate-100 text-slate-600 font-bold hover:bg-slate-50 flex items-center justify-center gap-2 shadow-sm"

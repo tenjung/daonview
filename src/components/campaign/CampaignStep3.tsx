@@ -1,81 +1,59 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Check, CreditCard, Building2, Save, Info } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, CreditCard, Building2, Save, Info, Handshake } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
+import { useAuthStore } from '@/store/authStore';
 
 interface Step3Data {
-    paymentMethod: 'card' | 'transfer' | null;
+    paymentMethod: 'card' | 'transfer' | 'free' | null;
     agreeToTerms: boolean;
     agreeToRefund: boolean;
 }
 
 interface CampaignStep3Props {
-    onSubmit: (data: Step3Data) => Promise<void> | void;
+    onSubmit: (data?: any) => void;
     onPrev: () => void;
-    onSaveDraft?: () => void;
+    onSaveDraft: () => void;
     initialData?: Partial<Step3Data>;
-    step1Data: any;
-    step2Data: any;
     submitTrigger?: number;
 }
+
+import { useCampaignStore } from '@/store/campaignStore';
 
 export default function CampaignStep3({
     onSubmit,
     onPrev,
     onSaveDraft,
-    initialData,
-    step1Data,
-    step2Data,
     submitTrigger = 0,
 }: CampaignStep3Props) {
+    const store = useCampaignStore();
+    const formData = store;
+
     // HUD 버튼 연동
     const lastTrigger = useRef(submitTrigger);
     useEffect(() => {
         if (submitTrigger > 0 && submitTrigger !== lastTrigger.current) {
             lastTrigger.current = submitTrigger;
-            onSubmit(formData);
+            handleSubmit();
         }
     }, [submitTrigger]);
-    const [formData, setFormData] = useState<Step3Data>({
-        paymentMethod: initialData?.paymentMethod || null,
-        agreeToTerms: initialData?.agreeToTerms || false,
-        agreeToRefund: initialData?.agreeToRefund || false,
-    });
 
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false);
-
-    // 사용자 역할 확인
-    useEffect(() => {
-        const checkUserRole = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                // users 테이블에서 role 확인
-                const { data: userData } = await supabase
-                    .from('users')
-                    .select('role')
-                    .eq('id', user.id)
-                    .single();
-
-                setIsAdmin(userData?.role === 'admin');
-            }
-        };
-        checkUserRole();
-    }, []);
+    const { user } = useAuthStore();
+    const isAdmin = user?.user_metadata?.role === 'admin';
 
     // 비용 계산
     const calculateCosts = () => {
-        const recruitmentCount = parseInt(step1Data.totalRecruitment) || 0;
+        const recruitmentCount = parseInt(formData.totalRecruitment) || 0;
 
         // 선택된 플랫폼 개수 확인
         const selectedPlatforms = [
-            step1Data.includeReview,
-            step1Data.includeNaver,
-            step1Data.includeInstagram
+            formData.includeReview,
+            formData.includeNaver,
+            formData.includeInstagram
         ].filter(Boolean).length;
 
         // 플랫폼별 가격 계산
@@ -93,7 +71,7 @@ export default function CampaignStep3({
         const totalReviewCost = recruitmentCount * reviewCostPerPerson;
 
         // 상품 결제 금액 (Step1에서 입력한 productPrice)
-        const productPayment = parseInt(step1Data.productPrice?.replace(/,/g, '') || '0') || 0;
+        const productPayment = parseInt(formData.productPrice?.replace(/,/g, '') || '0') || 0;
 
         // 소계 (구매평 비용 + 상품 결제금액)
         const subtotal = totalReviewCost + productPayment;
@@ -106,9 +84,9 @@ export default function CampaignStep3({
 
         // 선택된 플랫폼 이름 배열
         const selectedPlatformNames = [];
-        if (step1Data.includeReview) selectedPlatformNames.push('구매평');
-        if (step1Data.includeNaver) selectedPlatformNames.push('네이버');
-        if (step1Data.includeInstagram) selectedPlatformNames.push('인스타');
+        if (formData.includeReview) selectedPlatformNames.push('구매평');
+        if (formData.includeNaver) selectedPlatformNames.push('네이버');
+        if (formData.includeInstagram) selectedPlatformNames.push('인스타');
 
         return {
             recruitmentCount,
@@ -138,15 +116,11 @@ export default function CampaignStep3({
             return;
         }
 
-        setIsSubmitting(true);
-
         try {
-            await onSubmit(formData);
+            await onSubmit();
         } catch (error: any) {
             console.error('결제 처리 중 오류:', error);
             toast.error(`처리 중 오류가 발생했습니다: ${error.message || '확인되지 않은 오류'}`);
-        } finally {
-            setIsSubmitting(false);
         }
     };
 
@@ -161,39 +135,39 @@ export default function CampaignStep3({
                 <div className="space-y-3">
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700">캠페인 제목</span>
-                        <span className="font-semibold text-gray-900">{step2Data.campaignTitle || '제목 없음'}</span>
+                        <span className="font-semibold text-gray-900">{formData.campaignTitle || '제목 없음'}</span>
                     </div>
 
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700">브랜드명</span>
-                        <span className="font-semibold text-gray-900">{step1Data.brandName || '미입력'}</span>
+                        <span className="font-semibold text-gray-900">{formData.brandName || '미입력'}</span>
                     </div>
 
                     <div className="flex justify-between items-center">
                         <span className="text-gray-700">캠페인 유형</span>
                         <span className="font-semibold text-gray-900">
-                            {step1Data.campaignType === 'DELIVERY' && '배송체험단'}
-                            {step1Data.campaignType === 'VISIT' && '방문체험단'}
-                            {step1Data.campaignType === 'PRESS' && '기자단'}
+                            {formData.campaignType === 'DELIVERY' && '배송체험단'}
+                            {formData.campaignType === 'VISIT' && '방문체험단'}
+                            {formData.campaignType === 'PRESS' && '기자단'}
                         </span>
                     </div>
 
                     {/* 선택한 플랫폼 표시 */}
-                    {step1Data.campaignType === 'DELIVERY' && (
+                    {formData.campaignType === 'DELIVERY' && (
                         <div className="flex justify-between items-start">
                             <span className="text-gray-700">선택 플랫폼</span>
                             <div className="flex flex-wrap gap-2 justify-end">
-                                {step1Data.includeReview && (
+                                {formData.includeReview && (
                                     <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
                                         구매평
                                     </span>
                                 )}
-                                {step1Data.includeNaver && (
+                                {formData.includeNaver && (
                                     <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                                         네이버 블로그
                                     </span>
                                 )}
-                                {step1Data.includeInstagram && (
+                                {formData.includeInstagram && (
                                     <span className="px-3 py-1 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">
                                         인스타그램
                                     </span>
@@ -202,12 +176,11 @@ export default function CampaignStep3({
                         </div>
                     )}
 
-                    {step1Data.campaignType === 'VISIT' && step1Data.platform && (
+                    {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
                         <div className="flex justify-between items-center">
-                            <span className="text-gray-700">플랫폼</span>
+                            <span className="text-gray-700">진행 채널</span>
                             <span className="font-semibold text-gray-900">
-                                {step1Data.platform === 'BLOG' && '네이버 플레이스'}
-                                {step1Data.platform === 'INSTAGRAM' && '인스타그램'}
+                                {formData.platform === 'BLOG' ? '네이버 블로그' : '인스타그램'}
                             </span>
                         </div>
                     )}
@@ -281,45 +254,68 @@ export default function CampaignStep3({
                 </div>
             </section>
 
-            {/* 결제 방법 선택 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">결제 방법</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* 카드 결제 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* 제휴 및 프로모션 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'card' }))}
-                        className={`p-6 rounded-lg border-2 transition-all ${formData.paymentMethod === 'card'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300'
+                        onClick={() => store.setField('paymentMethod', 'free')}
+                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'free'
+                            ? 'border-rose-500 bg-rose-50'
+                            : 'border-gray-200 hover:border-rose-300'
                             }`}
                     >
-                        <div className="flex items-center gap-3 mb-2">
-                            <CreditCard className={formData.paymentMethod === 'card' ? 'text-blue-500' : 'text-gray-400'} size={24} />
-                            <h3 className="font-bold text-lg">신용/체크카드</h3>
-                        </div>
-                        <p className="text-sm text-gray-600 text-left">
-                            즉시 결제 처리됩니다
-                        </p>
+                        <Handshake className={`mb-3 ${formData.paymentMethod === 'free' ? 'text-rose-500' : 'text-gray-400'}`} size={28} />
+                        <h3 className="font-bold text-base mb-1">제휴 및 프로모션</h3>
+                        <p className="text-[11px] text-gray-500 mt-1 font-medium">별도 협의된 무료 진행</p>
                     </button>
+
+                    {/* 카드 결제 */}
+                    <div
+                        className="p-6 rounded-lg border-2 border-dashed border-gray-200 bg-gray-50/50 opacity-50 grayscale cursor-not-allowed relative overflow-hidden flex flex-col items-center justify-center text-center"
+                    >
+                        <div className="absolute top-2 right-2 px-1.5 py-0.5 bg-gray-200 text-gray-500 rounded text-[9px] font-bold tracking-tighter">준비중</div>
+                        <CreditCard className="text-gray-400 mb-3" size={28} />
+                        <h3 className="font-bold text-gray-400 text-base">신용/체크카드</h3>
+                        <p className="text-[11px] text-gray-400 mt-1 font-medium">현재 전자결제 준비중입니다</p>
+                    </div>
 
                     {/* 계좌이체 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, paymentMethod: 'transfer' }))}
-                        className={`p-6 rounded-lg border-2 transition-all ${formData.paymentMethod === 'transfer'
+                        onClick={() => store.setField('paymentMethod', 'transfer')}
+                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'transfer'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
                             }`}
                     >
-                        <div className="flex items-center gap-3 mb-2">
-                            <Building2 className={formData.paymentMethod === 'transfer' ? 'text-blue-500' : 'text-gray-400'} size={24} />
-                            <h3 className="font-bold text-lg">계좌이체</h3>
-                        </div>
-                        <p className="text-sm text-gray-600 text-left">
-                            입금 확인 후 승인됩니다
-                        </p>
+                        <Building2 className={`mb-3 ${formData.paymentMethod === 'transfer' ? 'text-blue-500' : 'text-gray-400'}`} size={28} />
+                        <h3 className="font-bold text-base">계좌이체</h3>
+                        <p className="text-xs text-gray-500 mt-1">입금 확인 후 승인됩니다</p>
                     </button>
                 </div>
+
+                {/* 계좌 정보 (계좌이체 선택 시) */}
+                {formData.paymentMethod === 'transfer' && (
+                    <div className="mt-4 p-5 bg-amber-50/50 border border-amber-200 rounded-xl animate-in fade-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                            <span className="text-sm font-bold text-amber-900">입금 계좌 안내</span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-3">
+                                <span className="px-2 py-1 bg-[#FEE500] text-[#3C1E1E] rounded font-bold text-[12px] shadow-sm">카카오뱅크</span>
+                                <span className="text-lg font-black text-gray-900 tracking-tight">3333-36-4120453</span>
+                            </div>
+                            <p className="text-sm text-gray-700 font-bold ml-1">
+                                예금주: <span className="text-blue-600">신지호(다온컴퍼니)</span>
+                            </p>
+                            <p className="text-xs text-amber-700 mt-1 ml-1 opacity-80">
+                                * 캠페인 등록 후 위 계좌로 입금해 주시면 확인 후 즉시 승인 처리됩니다.
+                            </p>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {/* 약관 동의 */}
@@ -332,7 +328,7 @@ export default function CampaignStep3({
                             <input
                                 type="checkbox"
                                 checked={formData.agreeToTerms}
-                                onChange={(e) => setFormData(prev => ({ ...prev, agreeToTerms: e.target.checked }))}
+                                onChange={(e) => store.setField('agreeToTerms', e.target.checked)}
                                 className="w-5 h-5 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
@@ -351,7 +347,7 @@ export default function CampaignStep3({
                             <input
                                 type="checkbox"
                                 checked={formData.agreeToRefund}
-                                onChange={(e) => setFormData(prev => ({ ...prev, agreeToRefund: e.target.checked }))}
+                                onChange={(e) => store.setField('agreeToRefund', e.target.checked)}
                                 className="w-5 h-5 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                             />
                         </div>

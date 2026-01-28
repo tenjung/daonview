@@ -54,9 +54,10 @@ interface Step1Data {
     shippingCost: string;
     isCouponRequired: boolean; // 쿠폰 사용 필수 여부
     // 방문/기자단용: 플랫폼 선택
-    platform: 'BLOG' | 'INSTAGRAM' | null;
+    platform: 'BLOG' | 'INSTAGRAM' | 'PURCHASE' | null;
     category?: string;  // 카테고리 (선택)
     region?: string;    // 지역 (방문형용, 선택)
+    subRegion?: string; // 세부 지역 (방문형용, 선택)
     stores: Store[];
     contactPhone: string;
     advertiserWillContact: boolean; // 광고주가 직접 연락 (연락처 입력 불필요)
@@ -94,10 +95,8 @@ interface Store {
 }
 
 interface CampaignStep1Props {
-    onNext: (data: Step1Data) => void;
-    onChange?: (data: Step1Data) => void;
+    onNext: (data?: Step1Data) => void;
     onSaveDraft?: () => void;
-    initialData?: Partial<Step1Data>;
     submitTrigger?: number;
 }
 
@@ -200,7 +199,13 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
 
-export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialData, submitTrigger = 0 }: CampaignStep1Props) {
+import { useCampaignStore } from '@/store/campaignStore';
+
+export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }: CampaignStep1Props) {
+    // Zustand 스토어 사용
+    const campaignStore = useCampaignStore();
+    const formData = campaignStore; // 스토어 자체가 데이터를 포함하고 있음
+
     // HUD 연동 트리거 감시
     const lastTrigger = useRef(submitTrigger);
     useEffect(() => {
@@ -209,7 +214,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             handleNext();
         }
     }, [submitTrigger]);
+
     const { user } = useAuthStore();
+    
     // 스마트 기본값: 내일 날짜
     const getTomorrowDate = () => {
         const tomorrow = new Date();
@@ -224,77 +231,14 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         return date.toISOString().split('T')[0];
     };
 
-    const [formData, setFormData] = useState<Step1Data>({
-        campaignType: initialData?.campaignType || null,
-        includeReview: initialData?.includeReview || false,
-        includeNaver: initialData?.includeNaver || false,
-        includeInstagram: initialData?.includeInstagram || false,
-        productUrl: initialData?.productUrl || '',
-        productUrlPrivate: initialData?.productUrlPrivate || false,
-        productUrlIndividual: initialData?.productUrlIndividual || false,
-        productName: initialData?.productName || '',
-        campaignTitle: initialData?.campaignTitle || '',
-        brandName: initialData?.brandName || '',
-        brandId: initialData?.brandId || null,
-        productOptions: initialData?.productOptions || [],
-        productPrice: initialData?.productPrice || '',
-        shippingCost: initialData?.shippingCost || '',
-        isCouponRequired: initialData?.isCouponRequired || false,
-        platform: initialData?.platform || null,
-        category: initialData?.category || '',
-        region: initialData?.region || '',
-        stores: initialData?.stores || [],
-        contactPhone: initialData?.contactPhone || '',
-        advertiserWillContact: initialData?.advertiserWillContact || false,
-        visitTime: initialData?.visitTime || '',
-        visitTimeNegotiable: initialData?.visitTimeNegotiable || false,
-        visitDays: initialData?.visitDays || [],
-        visitNotes: initialData?.visitNotes || '',
-        experienceDetails: initialData?.experienceDetails || '',
-        officialPrice: initialData?.officialPrice || '',
-        totalRecruitment: initialData?.totalRecruitment || '',
-        rewardPerPerson: initialData?.rewardPerPerson || 0,
-        scheduleType: initialData?.scheduleType || 'recommended',
-        recruitmentStartDate: initialData?.recruitmentStartDate || getTomorrowDate(), // 스마트 기본값: 내일
-        firstSelectionDate: initialData?.firstSelectionDate || getOneWeekLater(getTomorrowDate()), // 스마트 기본값: 1주일 뒤
-        reviewDeadline: initialData?.reviewDeadline || '',
-        reviewDeadlineDays: initialData?.reviewDeadlineDays || '7', // 스마트 기본값: 7일
-        optionConfig: initialData?.optionConfig || {
-            mode: 'SINGLE',
-            maxSelect: 1
-        },
-    });
+    // 필드 업데이트 헬퍼
+    const updateField = (field: string, value: any) => {
+        campaignStore.setField(field as any, value);
+    };
 
-
-    // 초기 데이터 로드 (임시저장 불러오기 시)
-    useEffect(() => {
-        if (initialData) {
-            console.log('📥 [CampaignStep1] 수신된 initialData:', initialData);
-            setFormData(prev => {
-                // null 값을 제거하여 state의 기본값이 유지되도록 함
-                const sanitizedInitial = { ...initialData };
-                Object.keys(sanitizedInitial).forEach(key => {
-                    if ((sanitizedInitial as any)[key] === null) {
-                        delete (sanitizedInitial as any)[key];
-                    }
-                });
-
-                const merged = {
-                    ...prev,
-                    ...sanitizedInitial
-                };
-                console.log('✅ [CampaignStep1] 병합된 formData:', merged);
-                return merged;
-            });
-        }
-    }, [initialData]);
-
-    // 부모 컴포넌트에 데이터 변경 알림
-    useEffect(() => {
-        if (onChange) {
-            onChange(formData);
-        }
-    }, [formData, onChange]);
+    const updateFields = (fields: Partial<Step1Data>) => {
+        campaignStore.updateFields(fields as any);
+    };
 
     const [showAddressModal, setShowAddressModal] = useState(false);
     const [currentStoreIndex, setCurrentStoreIndex] = useState<number | null>(null);
@@ -303,11 +247,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
     // 모집 인원 조정
     const adjustRecruitmentCount = (amount: number) => {
-        setFormData(prev => {
-            const currentCount = parseInt(prev.totalRecruitment) || 0;
-            const newCount = Math.max(0, currentCount + amount);
-            return { ...prev, totalRecruitment: newCount.toString() };
-        });
+        const currentCount = parseInt(formData.totalRecruitment) || 0;
+        const newCount = Math.max(0, currentCount + amount);
+        campaignStore.setField('totalRecruitment', newCount.toString());
     };
 
     // 실시간 유효성 검사 상태
@@ -321,23 +263,39 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             storeName: '',
             address: '',
         };
-        setFormData(prev => ({
-            ...prev,
-            stores: [...prev.stores, newStore],
-        }));
+        campaignStore.setField('stores', [...formData.stores, newStore]);
     };
 
     // 매장 삭제
     const removeStore = (id: string) => {
-        setFormData(prev => ({
-            ...prev,
-            stores: prev.stores.filter(store => store.id !== id),
-        }));
+        campaignStore.setField('stores', formData.stores.filter(store => store.id !== id));
     };
 
-    // 주소에서 지역(시/도) 추출 유틸리티
+    // 대한민국 지역 데이터 (시/도 및 세부 시/군/구)
+    const REGION_DATA: Record<string, string[]> = {
+        '서울': ['강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
+        '경기': ['수원시', '용인시', '성남시', '부천시', '화성시', '안산시', '안양시', '평택시', '시흥시', '김포시', '광주시', '광명시', '군포시', '하남시', '오산시', '이천시', '안성시', '의왕시', '양평군', '여주시', '과천시', '고양시', '남양주시', '파주시', '의정부시', '양주시', '구리시', '포천시', '동두천시', '가평군', '연천군'],
+        '인천': ['계양구', '미추홀구', '남동구', '동구', '부평구', '서구', '연수구', '중구', '강화군', '옹진군'],
+        '대전': ['대덕구', '동구', '서구', '유성구', '중구'],
+        '대구': ['남구', '달서구', '동구', '북구', '서구', '수성구', '중구', '달성군', '군위군'],
+        '부산': ['강서구', '금정구', '남구', '동구', '동래구', '부산진구', '북구', '사상구', '사하구', '서구', '수영구', '연제구', '영도구', '중구', '해운대구', '기장군'],
+        '울산': ['남구', '동구', '북구', '중구', '울주군'],
+        '광주': ['광산구', '남구', '동구', '북구', '서구'],
+        '세종': ['세종시'],
+        '강원': ['강릉시', '동해시', '삼척시', '속초시', '원주시', '춘천시', '태백시', '고성군', '양구군', '양양군', '영월군', '인제군', '정선군', '철원군', '평창군', '홍천군', '화천군', '횡성군'],
+        '경북': ['경산시', '경주시', '구미시', '김천시', '문경시', '상주시', '안동시', '영주시', '영천시', '포항시', '고령군', '봉화군', '성주군', '영덕군', '영양군', '예천군', '울릉군', '울진군', '의성군', '청도군', '청송군', '칠곡군'],
+        '경남': ['거제시', '김해시', '밀양시', '사천시', '양산시', '진주시', '창원시', '통영시', '거창군', '고성군', '남해군', '남해군', '산청군', '의령군', '창녕군', '하동군', '함안군', '함양군', '합천군'],
+        '충북': ['제천시', '청주시', '충주시', '괴산군', '단양군', '보은군', '영동군', '옥천군', '음성군', '증평군', '진천군'],
+        '충남': ['계룡시', '공주시', '논산시', '당진시', '보령시', '서산시', '아산시', '천안시', '금산군', '부여군', '서천군', '예산군', '청양군', '태안군', '홍성군'],
+        '전북': ['군산시', '김제시', '남원시', '익산시', '전주시', '정읍시', '고창군', '무주군', '부안군', '순창군', '완주군', '임실군', '장수군', '진안군'],
+        '전남': ['광양시', '나주시', '목포시', '순천시', '여수시', '강진군', '고흥군', '곡성군', '구례군', '담양군', '무안군', '보성군', '신안군', '영광군', '영암군', '완도군', '장성군', '장흥군', '진도군', '함평군', '해남군', '화순군'],
+        '제주': ['제주시', '서귀포시']
+    };
+
+    // 주소에서 지역(시/도 및 세부 지역) 추출 유틸리티
     const extractRegionFromAddress = (address: string) => {
-        if (!address) return '';
+        if (!address) return { region: '', subRegion: '' };
+        
         const regionMap: Record<string, string> = {
             '서울': '서울', '경기': '경기', '인천': '인천', '부산': '부산', '대구': '대구',
             '광주': '광주', '대전': '대전', '울산': '울산', '세종': '세종', '강원': '강원',
@@ -347,38 +305,78 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             '제주': '제주'
         };
 
-        const firstWord = address.split(' ')[0];
-        // 서울특별시 -> 서울, 경기도 -> 경기 등으로 변환
+        const parts = address.split(' ');
+        const firstWord = parts[0];
+        const secondWord = parts[1] || '';
+        
+        let detectedRegion = '';
+        let detectedSubRegion = '';
+
+        // 시/도 추출
         for (const [key, value] of Object.entries(regionMap)) {
-            if (firstWord.includes(key)) return value;
+            if (firstWord.includes(key)) {
+                detectedRegion = value;
+                break;
+            }
         }
-        return '';
+
+        // 세부 지역 추출
+        if (detectedRegion && REGION_DATA[detectedRegion]) {
+            const subRegions = REGION_DATA[detectedRegion];
+            // 1. "안동시" 처럼 정확한 단어 매칭 시도
+            const match = subRegions.find(sub => secondWord.includes(sub.replace(/시$|구$|군$/, '')));
+            if (match) {
+                detectedSubRegion = match;
+            }
+        }
+
+        return { region: detectedRegion, subRegion: detectedSubRegion };
     };
 
-    // 네이버 플레이스 정보 가져오기 (Mock - 실제로는 API 연동 필요)
+    // 네이버 플레이스 정보 가져오기 (API 연동 구현)
     const fetchNaverPlaceInfo = async (url: string, storeId: string) => {
-        // TODO: 실제 네이버 플레이스 API 연동
-        // 임시로 더미 데이터 사용 (사용자 캡쳐본의 매장 정보 반영)
-        const mockData = {
-            storeName: '오쓰헤어',
-            address: '대구 수성구 달구벌대로 2599 304동 1층 119호',
-        };
+        if (!url) return;
+        const loadingToast = toast.loading('네이버 플레이스 정보를 불러오는 중...');
 
-        const extractedRegion = extractRegionFromAddress(mockData.address);
+        try {
+            const response = await fetch('/api/naver-place', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
 
-        setFormData(prev => ({
-            ...prev,
-            // 주소에서 추출된 지역이 있으면 자동 설정 (수동 선택 전 자동화)
-            region: extractedRegion || prev.region,
-            stores: prev.stores.map(store =>
-                store.id === storeId
-                    ? { ...store, naverPlaceUrl: url, ...mockData }
-                    : store
-            ),
-        }));
+            if (!response.ok) throw new Error('정보를 불러오는데 실패했습니다.');
 
-        if (extractedRegion) {
-            toast.success(`지역이 '${extractedRegion}'(으)로 자동 설정되었습니다.`);
+            const data = await response.json();
+            
+            if (data.error) throw new Error(data.error);
+
+            const storeData = {
+                storeName: data.title || '',
+                address: data.address || '',
+            };
+
+            const { region, subRegion } = extractRegionFromAddress(storeData.address);
+
+            campaignStore.updateFields({
+                region: region || formData.region,
+                subRegion: subRegion || formData.subRegion,
+                stores: formData.stores.map(store =>
+                    store.id === storeId
+                        ? { ...store, naverPlaceUrl: url, ...storeData }
+                        : store
+                ),
+            });
+
+            if (region) {
+                const regionText = subRegion ? `${region} ${subRegion}` : region;
+                toast.success(`'${storeData.storeName}' 정보를 불러왔으며, 지역이 '${regionText}'(으)로 자동 설정되었습니다.`, { id: loadingToast });
+            } else {
+                toast.success(`'${storeData.storeName}' 정보를 성공적으로 불러왔습니다.`, { id: loadingToast });
+            }
+        } catch (error: any) {
+            console.error('Naver Place Fetch Error:', error);
+            toast.error(error.message || '매장 정보를 불러오지 못했습니다. 수동으로 입력해주세요.', { id: loadingToast });
         }
     };
 
@@ -395,15 +393,9 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         const { active, over } = event;
 
         if (over && active.id !== over.id) {
-            setFormData(prev => {
-                const oldIndex = prev.productOptions.findIndex(opt => opt.id === active.id);
-                const newIndex = prev.productOptions.findIndex(opt => opt.id === over.id);
-
-                return {
-                    ...prev,
-                    productOptions: arrayMove(prev.productOptions, oldIndex, newIndex),
-                };
-            });
+            const oldIndex = formData.productOptions.findIndex(opt => opt.id === active.id);
+            const newIndex = formData.productOptions.findIndex(opt => opt.id === over.id);
+            updateField('productOptions', arrayMove(formData.productOptions, oldIndex, newIndex));
         }
     };
 
@@ -415,18 +407,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             optionPrice: '0',
             recruitmentCount: '0',
         };
-        setFormData(prev => ({
-            ...prev,
-            productOptions: [...prev.productOptions, newOption],
-        }));
+        updateField('productOptions', [...formData.productOptions, newOption]);
     };
 
     // 제품 옵션 삭제
     const removeProductOption = (id: string) => {
-        setFormData(prev => ({
-            ...prev,
-            productOptions: prev.productOptions.filter(opt => opt.id !== id),
-        }));
+        updateField('productOptions', formData.productOptions.filter(opt => opt.id !== id));
     };
 
     // 제품 옵션 업데이트
@@ -436,43 +422,34 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             finalValue = formatPrice(value);
         }
 
-        setFormData(prev => ({
-            ...prev,
-            productOptions: prev.productOptions.map(opt =>
-                opt.id === id ? { ...opt, [field]: finalValue } : opt
-            ),
-        }));
+        updateField('productOptions', formData.productOptions.map(opt =>
+            opt.id === id ? { ...opt, [field]: finalValue } : opt
+        ));
     };
 
     // 요일 토글
     const toggleDay = (day: string) => {
-        setFormData(prev => ({
-            ...prev,
-            visitDays: prev.visitDays.includes(day)
-                ? prev.visitDays.filter(d => d !== day)
-                : [...prev.visitDays, day],
-        }));
+        updateField('visitDays', formData.visitDays.includes(day)
+            ? formData.visitDays.filter(d => d !== day)
+            : [...formData.visitDays, day]);
     };
 
     // 요일 빠른 선택
     const setWeekdaysOnly = () => {
-        setFormData(prev => ({ ...prev, visitDays: ['월', '화', '수', '목', '금'] }));
+        updateField('visitDays', ['월', '화', '수', '목', '금']);
     };
 
     const setNoWeekends = () => {
-        setFormData(prev => ({ ...prev, visitDays: ['월', '화', '수', '목', '금'] }));
+        updateField('visitDays', ['월', '화', '수', '목', '금']);
     };
 
     const setAllDays = () => {
-        setFormData(prev => ({ ...prev, visitDays: ['월', '화', '수', '목', '금', '토', '일'] }));
+        updateField('visitDays', ['월', '화', '수', '목', '금', '토', '일']);
     };
 
     // 리워드 조정
     const adjustReward = (amount: number) => {
-        setFormData(prev => ({
-            ...prev,
-            rewardPerPerson: Math.max(0, prev.rewardPerPerson + amount),
-        }));
+        campaignStore.setField('rewardPerPerson', Math.max(0, formData.rewardPerPerson + amount));
     };
 
     // 입력 도우미: 전화번호 자동 포맷팅
@@ -502,13 +479,13 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     // 전화번호 변경 핸들러
     const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const formatted = formatPhoneNumber(e.target.value);
-        setFormData(prev => ({ ...prev, contactPhone: formatted }));
+        updateField('contactPhone', formatted);
     };
 
     // 가격 변경 핸들러
     const handlePriceChange = (field: 'productPrice' | 'shippingCost' | 'officialPrice', value: string) => {
         const formatted = formatPrice(value);
-        setFormData(prev => ({ ...prev, [field]: formatted }));
+        updateField(field, formatted);
     };
 
     // 플랫폼 토글 (하이브리드 지원 및 타입별 동기화)
@@ -516,7 +493,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         const { includeReview, includeNaver, includeInstagram, campaignType } = formData;
 
         if (plat === 'review') {
-            setFormData(prev => ({ ...prev, includeReview: !prev.includeReview }));
+            updateField('includeReview', !formData.includeReview);
         } else if (plat === 'naver') {
             if (!includeNaver) {
                 if (includeInstagram) {
@@ -525,12 +502,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 }
             }
             const newValue = !includeNaver;
-            setFormData(prev => ({
-                ...prev,
+            updateFields({
                 includeNaver: newValue,
-                // 방문형/기자단인 경우 platform 필드 자동 동기화
-                platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'BLOG' : prev.platform
-            }));
+                platform: (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && newValue ? 'BLOG' : formData.platform
+            });
         } else if (plat === 'instagram') {
             if (!includeInstagram) {
                 if (includeNaver) {
@@ -539,12 +514,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 }
             }
             const newValue = !includeInstagram;
-            setFormData(prev => ({
-                ...prev,
+            updateFields({
                 includeInstagram: newValue,
-                // 방문형/기자단인 경우 platform 필드 자동 동기화
-                platform: (campaignType === 'VISIT' || campaignType === 'PRESS') && newValue ? 'INSTAGRAM' : prev.platform
-            }));
+                platform: (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && newValue ? 'INSTAGRAM' : formData.platform
+            });
         }
     };
 
@@ -560,7 +533,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
         targetDate.setDate(targetDate.getDate() + (weeks * 7));
 
         const formattedDate = targetDate.toISOString().split('T')[0];
-        setFormData(prev => ({ ...prev, firstSelectionDate: formattedDate }));
+        campaignStore.setField('firstSelectionDate', formattedDate);
     };
 
     // 실시간 유효성 검사
@@ -643,6 +616,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             return scrollTo('brand-section', '캠페인을 진행할 브랜드를 선택해주세요.');
         }
 
+        if (!formData.campaignTitle) {
+            return scrollTo('title-section', '캠페인 제목을 입력해주세요.');
+        }
+
         if (!formData.campaignType) {
             return scrollTo('type-section', '진행 유형을 선택해주세요.');
         }
@@ -701,34 +678,31 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
     // Schedule type change handler
     const handleScheduleTypeChange = (type: 'recommended' | 'custom' | 'always') => {
         if (type === 'always') {
-            setFormData(prev => ({
-                ...prev,
+            campaignStore.updateFields({
                 scheduleType: 'always',
                 firstSelectionDate: '', // Clear dates for 'always'
                 reviewDeadline: ''
-            }));
+            });
         } else {
             const startDate = formData.recruitmentStartDate || getTomorrowDate();
-            setFormData(prev => ({
-                ...prev,
+            campaignStore.updateFields({
                 scheduleType: type,
                 recruitmentStartDate: startDate,
                 firstSelectionDate: getOneWeekLater(startDate),
                 reviewDeadline: getOneWeekLater(getOneWeekLater(startDate))
-            }));
+            });
         }
     };
 
     const handleOptionModeChange = (val: 'SINGLE' | 'RANKED' | 'MULTI') => {
-        setFormData(prev => ({
-            ...prev,
+        campaignStore.updateFields({
             optionConfig: {
-                ...prev.optionConfig,
+                ...formData.optionConfig,
                 mode: val,
                 // If mode changes to SINGLE, reset maxSelect to 1
-                maxSelect: val === 'SINGLE' ? 1 : prev.optionConfig.maxSelect
+                maxSelect: val === 'SINGLE' ? 1 : formData.optionConfig.maxSelect
             }
-        }));
+        });
     };
 
     return (
@@ -745,7 +719,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         <BrandSelect
                             userId={user.id}
                             value={formData.brandId}
-                            onChange={(id, name) => setFormData(prev => ({ ...prev, brandId: id, brandName: name }))}
+                             onChange={(id, name) => campaignStore.updateFields({ brandId: id, brandName: name })}
                         />
                     ) : (
                         <div className="p-4 bg-gray-50 rounded-lg text-center text-gray-500">
@@ -762,7 +736,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
             </section>
 
             {/* 캠페인 제목 (모집글 제목) */}
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <section id="title-section" className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden outline-none" tabIndex={-1}>
                 <div className="p-6">
                     <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <Megaphone size={20} className="text-rose-500" />
@@ -771,7 +745,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     <input
                         type="text"
                         value={formData.campaignTitle || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, campaignTitle: e.target.value }))}
+                         onChange={(e) => campaignStore.setField('campaignTitle', e.target.value)}
                         placeholder="예시) [무료배송] 다온뷰 최고급 세안밴드 체험단 모집"
                         className="w-full h-12 px-4 border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all font-medium"
                     />
@@ -792,7 +766,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                         <button
                             key={cat}
                             type="button"
-                            onClick={() => setFormData(prev => ({ ...prev, category: cat }))}
+                             onClick={() => campaignStore.setField('category', cat)}
                             className={`px-4 py-2 rounded-full border-2 transition-all font-medium ${formData.category === cat
                                 ? 'border-blue-500 bg-blue-50 text-blue-600'
                                 : 'border-gray-100 bg-gray-50 text-gray-500 hover:border-gray-200'
@@ -811,7 +785,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     {/* 배송체험단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'DELIVERY', platform: null }))}
+                        onClick={() => campaignStore.updateFields({ campaignType: 'DELIVERY', platform: null })}
                         className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'DELIVERY'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
@@ -824,7 +798,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                     {/* 방문체험단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'VISIT', includeReview: false, includeNaver: false, includeInstagram: false }))}
+                        onClick={() => campaignStore.updateFields({ campaignType: 'VISIT', includeReview: false, includeNaver: false, includeInstagram: false })}
                         className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'VISIT'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
@@ -837,7 +811,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
 
                     {/* 기자단 */}
                     <button
-                        onClick={() => setFormData(prev => ({ ...prev, campaignType: 'PRESS', includeReview: false, includeNaver: false, includeInstagram: false }))}
+                        onClick={() => campaignStore.updateFields({ campaignType: 'PRESS', includeReview: false, includeNaver: false, includeInstagram: false })}
                         className={`p-6 rounded-lg border-2 transition-all ${formData.campaignType === 'PRESS'
                             ? 'border-blue-500 bg-blue-50'
                             : 'border-gray-200 hover:border-blue-300'
@@ -1010,10 +984,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             id="product-url"
                             type="url"
                             value={formData.productUrlIndividual ? '' : (formData.productUrl || '')}
-                            onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
+                            onChange={(e) => campaignStore.setField('productUrl', e.target.value)}
                             onBlur={() => validateField('productUrl', formData.productUrl)}
                             disabled={formData.productUrlIndividual}
-                            placeholder={formData.productUrlIndividual ? "선정된 인플루언서에게 개별적으로 전달됩니다." : "예시) https://smartstore.naver.com/"}
+                            placeholder={formData.productUrlIndividual ? "선정된 인플루언서에게 개별적으로 전달됩니다." : "예시) https://smartcampaignStore.naver.com/"}
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.productUrlIndividual ? 'bg-gray-50 border-gray-200 text-gray-400' : fieldValidation.productUrl === true ? 'border-green-300' : 'border-gray-300'
                                 }`}
                         />
@@ -1025,7 +999,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 <input
                                     type="checkbox"
                                     checked={formData.productUrlPrivate}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, productUrlPrivate: e.target.checked }))}
+                                    onChange={(e) => campaignStore.setField('productUrlPrivate', e.target.checked)}
                                     className="mt-0.5 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                                 />
                                 <div className="flex items-center gap-1.5">
@@ -1041,12 +1015,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 <input
                                     type="checkbox"
                                     checked={formData.productUrlIndividual}
-                                    onChange={(e) => setFormData(prev => ({
-                                        ...prev,
+                                    onChange={(e) => campaignStore.updateFields({
                                         productUrlIndividual: e.target.checked,
-                                        // 개별전달 체크 시 링크가 유효하지 않아도 유효성 검사 통과하도록 처리
-                                        productUrl: e.target.checked ? prev.productUrl : prev.productUrl
-                                    }))}
+                                        productUrl: e.target.checked ? formData.productUrl : formData.productUrl
+                                    })}
                                     className="mt-0.5 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                                 />
                                 <div className="flex items-center gap-1.5">
@@ -1073,7 +1045,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 id="product-name"
                                 type="text"
                                 value={formData.productName || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, productName: e.target.value }))}
+                                onChange={(e) => campaignStore.setField('productName', e.target.value)}
                                 onBlur={() => validateField('productName', formData.productName)}
                                 placeholder="예시) 다온뷰 최고급 세안밴드"
                                 className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.productName === true ? 'border-green-300' : 'border-gray-300'
@@ -1096,9 +1068,42 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     {/* 지역 설정 */}
                     <div className="mb-6 pb-6 border-b border-gray-100">
                         <label className="block text-sm font-medium text-gray-700 mb-3 flex items-center gap-1">
-                            지역 선택 (시/도)
+                            지역 선택 (시/도 및 시/군/구)
                             <HelpTooltip content="매장 주소를 불러오면 지역이 자동으로 선택됩니다. 필요 시 직접 선택도 가능합니다." />
                         </label>
+                        <div className="flex flex-wrap gap-3">
+                            {/* 시/도 선택 */}
+                            <Select
+                                value={formData.region}
+                                onValueChange={(val) => campaignStore.updateFields({ region: val, subRegion: '' })}
+                            >
+                                <SelectTrigger className="w-full md:w-[200px] h-12 rounded-xl border-gray-200">
+                                    <SelectValue placeholder="시/도 선택" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Object.keys(REGION_DATA).map(reg => (
+                                        <SelectItem key={reg} value={reg}>{reg}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+
+                            {/* 시/군/구 선택 (시/도가 선택된 경우만 표시) */}
+                            {formData.region && REGION_DATA[formData.region] && (
+                                <Select
+                                    value={formData.subRegion}
+                                    onValueChange={(val) => campaignStore.setField('subRegion', val)}
+                                >
+                                    <SelectTrigger className="w-full md:w-[200px] h-12 rounded-xl border-gray-200 animate-in fade-in slide-in-from-left-2 duration-300">
+                                        <SelectValue placeholder="시/군/구 선택" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {REGION_DATA[formData.region].map(sub => (
+                                            <SelectItem key={sub} value={sub}>{sub}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        </div>
                     </div>
 
                     {/* 네이버 플레이스 주소 입력 */}
@@ -1123,10 +1128,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                             storeName: '',
                                             address: '',
                                         };
-                                        setFormData(prev => ({
-                                            ...prev,
-                                            stores: [...prev.stores, newStore],
-                                        }));
+                                        campaignStore.setField('stores', [...formData.stores, newStore]);
                                         fetchNaverPlaceInfo(tempNaverUrl, newStore.id);
                                         setTempNaverUrl('');
                                     }
@@ -1144,12 +1146,12 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     {/* 불러온 매장 목록 */}
                     {formData.stores.length > 0 && (
                         <div className="space-y-4">
-                            {formData.stores.map((store, index) => (
-                                <div key={store.id} className="border border-gray-200 rounded-lg p-4">
+                            {formData.stores.map((sItem, index) => (
+                                <div key={sItem.id} className="border border-gray-200 rounded-lg p-4">
                                     <div className="flex items-start justify-between mb-3">
                                         <h3 className="font-semibold text-gray-900">매장 {index + 1}</h3>
                                         <button
-                                            onClick={() => removeStore(store.id)}
+                                            onClick={() => removeStore(sItem.id)}
                                             className="text-red-500 hover:text-red-700"
                                         >
                                             <X size={20} />
@@ -1157,7 +1159,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     </div>
 
                                     <div className="space-y-3">
-                                        {store.storeName && (
+                                        {sItem.storeName && (
                                             <>
                                                 <div>
                                                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1165,13 +1167,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                     </label>
                                                     <input
                                                         type="text"
-                                                        value={store.storeName}
+                                                        value={sItem.storeName}
                                                         onChange={(e) => {
                                                             const newValue = e.target.value;
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                stores: prev.stores.map(s => s.id === store.id ? { ...s, storeName: newValue } : s)
-                                                            }));
+                                                            campaignStore.setField('stores', formData.stores.map(s => s.id === sItem.id ? { ...s, storeName: newValue } : s));
                                                         }}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                                     />
@@ -1183,13 +1182,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                     </label>
                                                     <input
                                                         type="text"
-                                                        value={store.address}
+                                                        value={sItem.address}
                                                         onChange={(e) => {
                                                             const newValue = e.target.value;
-                                                            setFormData(prev => ({
-                                                                ...prev,
-                                                                stores: prev.stores.map(s => s.id === store.id ? { ...s, address: newValue } : s)
-                                                            }));
+                                                            campaignStore.setField('stores', formData.stores.map(s => s.id === sItem.id ? { ...s, address: newValue } : s));
                                                         }}
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                                                     />
@@ -1201,7 +1197,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                     </label>
                                                     <input
                                                         type="text"
-                                                        value={store.naverPlaceUrl}
+                                                        value={sItem.naverPlaceUrl}
                                                         readOnly
                                                         className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-sm text-gray-600"
                                                     />
@@ -1240,12 +1236,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <input
                                         type="checkbox"
                                         checked={formData.advertiserWillContact}
-                                        onChange={(e) => setFormData(prev => ({
-                                            ...prev,
+                                        onChange={(e) => campaignStore.updateFields({
                                             advertiserWillContact: e.target.checked,
-                                            // 체크 시 연락처 필드 초기화
-                                            contactPhone: e.target.checked ? '' : prev.contactPhone
-                                        }))}
+                                            contactPhone: e.target.checked ? '' : formData.contactPhone
+                                        })}
                                         className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                     />
                                     <div className="flex-1">
@@ -1260,20 +1254,39 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             {/* 연락처 입력 필드 (광고주 직접 연락 체크 시 숨김) */}
                             {!formData.advertiserWillContact && (
                                 <>
-                                    <input
-                                        id="contact-phone"
-                                        type="tel"
-                                        value={formData.contactPhone || ''}
-                                        onChange={handlePhoneChange}
-                                        onBlur={() => validateField('contactPhone', formData.contactPhone)}
-                                        placeholder="010-0000-0000"
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
-                                            ? 'border-red-300 bg-red-50'
-                                            : fieldValidation.contactPhone === true
-                                                ? 'border-green-300'
-                                                : 'border-gray-300'
-                                            }`}
-                                    />
+                                    <div className="flex flex-col md:flex-row gap-3">
+                                        <div className="flex-1">
+                                            <input
+                                                id="contact-phone"
+                                                type="tel"
+                                                value={formData.contactPhone || ''}
+                                                onChange={handlePhoneChange}
+                                                onBlur={() => validateField('contactPhone', formData.contactPhone)}
+                                                placeholder="010-0000-0000"
+                                                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${fieldValidation.contactPhone === false
+                                                    ? 'border-red-300 bg-red-50'
+                                                    : fieldValidation.contactPhone === true
+                                                        ? 'border-green-300'
+                                                        : 'border-gray-300'
+                                                    }`}
+                                            />
+                                        </div>
+                                        <div className="w-full md:w-[200px]">
+                                            <Select
+                                                value={formData.contactMethod || 'TEXT_ONLY'}
+                                                onValueChange={(val: any) => campaignStore.setField('contactMethod', val)}
+                                            >
+                                                <SelectTrigger className="w-full h-10 rounded-lg border-gray-300">
+                                                    <SelectValue placeholder="연락 방식 선택" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="TEXT_ONLY">문자예약 가능</SelectItem>
+                                                    <SelectItem value="CALL_ONLY">전화예약 전용</SelectItem>
+                                                    <SelectItem value="BOTH">문자/전화 모두 가능</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </div>
                                     {fieldValidation.contactPhone === false && (
                                         <p className="mt-1 text-sm text-red-600">올바른 전화번호 형식을 입력해주세요 (예: 010-1234-5678)</p>
                                     )}
@@ -1299,12 +1312,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     <input
                                         type="checkbox"
                                         checked={formData.visitTimeNegotiable}
-                                        onChange={(e) => setFormData(prev => ({
-                                            ...prev,
+                                        onChange={(e) => campaignStore.updateFields({
                                             visitTimeNegotiable: e.target.checked,
-                                            // 체크 시 방문 시간 필드 초기화
-                                            visitTime: e.target.checked ? '' : prev.visitTime
-                                        }))}
+                                            visitTime: e.target.checked ? '' : formData.visitTime
+                                        })}
                                         className="mt-0.5 w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
                                     />
                                     <div className="flex-1">
@@ -1321,7 +1332,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                 id="visit-time"
                                 type="text"
                                 value={formData.visitTime || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, visitTime: e.target.value }))}
+                                onChange={(e) => campaignStore.setField('visitTime', e.target.value)}
                                 placeholder={formData.visitTimeNegotiable ? "예: 평일 11:00 - 21:00 (선택사항)" : "예: 평일 11:00 - 21:00"}
                                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.visitTimeNegotiable ? 'border-gray-200 bg-gray-50' : 'border-gray-300'
                                     }`}
@@ -1391,7 +1402,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             </label>
                             <textarea
                                 value={formData.visitNotes || ''}
-                                onChange={(e) => setFormData(prev => ({ ...prev, visitNotes: e.target.value }))}
+                                onChange={(e) => campaignStore.setField('visitNotes', e.target.value)}
                                 placeholder="주차 정보, 예약 필요 여부 등"
                                 rows={3}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1408,7 +1419,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                     <input
                         type="text"
                         value={formData.experienceDetails || ''}
-                        onChange={(e) => setFormData(prev => ({ ...prev, experienceDetails: e.target.value }))}
+                        onChange={(e) => campaignStore.setField('experienceDetails', e.target.value)}
                         placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
                         className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
@@ -1463,7 +1474,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                             <input
                                 type="checkbox"
                                 checked={formData.isCouponRequired}
-                                onChange={(e) => setFormData(prev => ({ ...prev, isCouponRequired: e.target.checked }))}
+                                onChange={(e) => campaignStore.setField('isCouponRequired', e.target.checked)}
                                 className="mt-1 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                             />
                             <div className="flex-1">
@@ -1575,10 +1586,10 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                             <Input
                                                 type="number"
                                                 value={formData.optionConfig.maxSelect}
-                                                onChange={(e) => setFormData(prev => ({
-                                                    ...prev,
-                                                    optionConfig: { ...prev.optionConfig, maxSelect: Math.max(1, parseInt(e.target.value) || 1) }
-                                                }))}
+                                                onChange={(e) => campaignStore.setField('optionConfig', {
+                                                    ...formData.optionConfig,
+                                                    maxSelect: Math.max(1, parseInt(e.target.value) || 1)
+                                                })}
                                                 min="1"
                                                 max={formData.productOptions.length > 0 ? formData.productOptions.length : 10}
                                                 className="flex-1 h-full text-center text-lg font-bold border-slate-200 rounded-xl"
@@ -1641,7 +1652,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         onChange={(e) => {
                                             const val = e.target.value;
                                             if (val === '∞') return;
-                                            setFormData(prev => ({ ...prev, totalRecruitment: val }));
+                                            campaignStore.setField('totalRecruitment', val);
                                         }}
                                         onBlur={() => validateField('totalRecruitment', formData.totalRecruitment)}
                                         placeholder="10"
@@ -1673,7 +1684,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         type="button"
                                         variant="secondary"
                                         size="sm"
-                                        onClick={() => setFormData(prev => ({ ...prev, totalRecruitment: '999' }))}
+                                        onClick={() => campaignStore.setField('totalRecruitment', '999')}
                                         className="h-11 px-4 font-bold active:scale-95 transition-transform flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none"
                                         title="무제한 모집"
                                     >
@@ -1683,7 +1694,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         type="button"
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setFormData(prev => ({ ...prev, totalRecruitment: '0' }))}
+                                        onClick={() => campaignStore.setField('totalRecruitment', '0')}
                                         className="h-11 px-3 text-muted-foreground active:scale-95 transition-transform"
                                     >
                                         초기화
@@ -1734,7 +1745,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     type="button"
                                     variant="outline"
                                     className="h-11 px-4 text-muted-foreground active:scale-95 transition-transform"
-                                    onClick={() => setFormData(prev => ({ ...prev, rewardPerPerson: 0 }))}
+                                    onClick={() => campaignStore.setField('rewardPerPerson', 0)}
                                 >
                                     초기화
                                 </Button>
@@ -1824,7 +1835,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         type="date"
                                         value={formData.recruitmentStartDate || ''}
                                         onChange={(e) => {
-                                            setFormData(prev => ({ ...prev, recruitmentStartDate: e.target.value }));
+                                            campaignStore.setField('recruitmentStartDate', e.target.value);
                                             validateField('recruitmentStartDate', e.target.value);
                                         }}
                                         className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
@@ -1845,14 +1856,14 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                             <input
                                                 type="date"
                                                 value={formData.firstSelectionDate || ''}
-                                                onChange={(e) => setFormData(prev => ({ ...prev, firstSelectionDate: e.target.value }))}
+                                                onChange={(e) => campaignStore.setField('firstSelectionDate', e.target.value)}
                                                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
                                             />
                                             <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
                                         </div>
                                     </div>
 
-                                    <div className="bg-indigo-50/30 rounded-2xl border border-indigo-100 overflow-hidden">
+                                    <div className="md:col-span-2 bg-indigo-50/30 rounded-2xl border border-indigo-100 overflow-hidden">
                                         <div className="p-6">
                                             <label className="text-sm font-black flex items-center gap-1.5 text-indigo-900 mb-3">
                                                 리뷰 마감일 <span className="text-rose-500">*</span>
@@ -1862,7 +1873,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                                 <input
                                                     type="date"
                                                     value={formData.reviewDeadline || ''}
-                                                    onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
+                                                    onChange={(e) => campaignStore.setField('reviewDeadline', e.target.value)}
                                                     className="w-full h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all pr-10"
                                                 />
                                                 <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" size={18} />
@@ -1884,7 +1895,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         <input
                                             type="date"
                                             value={formData.firstSelectionDate || ''}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, firstSelectionDate: e.target.value }))}
+                                            onChange={(e) => campaignStore.setField('firstSelectionDate', e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                         {/* 빠른 선택 버튼 */}
@@ -1917,7 +1928,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                     {formData.campaignType === 'DELIVERY' ? (
                                         <select
                                             value={formData.reviewDeadlineDays || '7'}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadlineDays: e.target.value }))}
+                                            onChange={(e) => campaignStore.setField('reviewDeadlineDays', e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         >
                                             <option value="5">제품 배송 완료 후 5일 이내</option>
@@ -1928,7 +1939,7 @@ export default function CampaignStep1({ onNext, onChange, onSaveDraft, initialDa
                                         <input
                                             type="date"
                                             value={formData.reviewDeadline || ''}
-                                            onChange={(e) => setFormData(prev => ({ ...prev, reviewDeadline: e.target.value }))}
+                                            onChange={(e) => campaignStore.setField('reviewDeadline', e.target.value)}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
                                     )}

@@ -72,84 +72,127 @@ export async function POST(request: Request) {
         let title = '';
         let address = '';
 
-        // --- TITLE STRATEGY ---
-        // 1. OG Title
-        title = $('meta[property="og:title"]').attr('content') || '';
-        // 2. Specific Mobile Title Selector
-        if (!title || title === '네이버지도') {
-            title = $('.Fc1rA').text(); // Common class for title in new mobile view
-        }
-        // Cleanup
-        title = title.replace(/ : 네이버 플레이스$/, '')
-            .replace(/ : 네이버 통합검색$/, '')
-            .replace(/^네이버 플레이스 - /, '')
-            .replace(' : 네이버', ''); // Generic cleanup
+        // --- 1. JSON-LD Strategy (Highest Priority) ---
+        $('script[type="application/ld+json"]').each((_i, el) => {
+            try {
+                const json = JSON.parse($(el).html() || '{}');
+                const ent = Array.isArray(json) ? json[0] : json;
+                
+                if (ent.name && !title) title = ent.name;
+                
+                if (ent.address && !address) {
+                    if (typeof ent.address === 'string') {
+                        address = ent.address;
+                    } else if (typeof ent.address === 'object') {
+                        // Use streetAddress or combination
+                        address = ent.address.streetAddress || 
+                                 `${ent.address.addressRegion || ''} ${ent.address.addressLocality || ''} ${ent.address.streetAddress || ''}`.trim();
+                    }
+                }
+            } catch (e) {
+                console.error('JSON-LD parse error:', e);
+            }
+        });
 
-        // --- ADDRESS STRATEGY ---
-        // 1. Specific Mobile Address Selectors (Class names scramble often, try multiple known ones)
-        // .LDgIH is extremely common for address lines in Naver Mobile
-        address = $('.LDgIH').text();
+        // --- 2. Window State Strategy (Second Priority) ---
+        if (!title || !address || !address.includes('길') && !address.includes('로')) {
+            $('script').each((_i, el) => {
+                const txt = $(el).html() || '';
+                if (txt.includes('window.__APOLLO_STATE__') || txt.includes('roadAddress')) {
+                    // Try to find Name
+                    const nameMatch = txt.match(/"name":"([^"]+)"/);
+                    if (!title && nameMatch) title = nameMatch[1];
 
-        if (!address) {
-            // Try looking for span that matches address pattern (ends in "길" or "로" + number)
-            // Or look for text following "주소"
-            $('span, div, a').each((_i: number, el: any) => {
-                if (address) return;
-                const txt = $(el).text().trim();
-                // Heuristic: "서울 XX구"
-                if (/^(서울|경기|인천|강원|충북|충남|대전|세종|전북|전남|광주|경북|경남|대구|부산|울산|제주)\s/.test(txt) && txt.length > 8 && txt.length < 50) {
-                    // Check if it has a number (bunji or road number)
-                    if (/\d/.test(txt)) {
-                        address = txt;
+                    // Priority 1: roadAddress (This is precisely what the user wants)
+                    const roadMatch = txt.match(/"roadAddress":"([^"]+)"/);
+                    if (roadMatch) {
+                        address = roadMatch[1];
+                    } else {
+                        // Priority 2: streetAddress
+                        const addrMatch = txt.match(/"streetAddress":"([^"]+)"/);
+                        if (!address && addrMatch) address = addrMatch[1];
+
+                        // Priority 3: common address key
+                        const addrMatch2 = txt.match(/"address":"([^"]+)"/);
+                        if (!address && addrMatch2) address = addrMatch2[1];
                     }
                 }
             });
         }
 
-        // 2. JSON-LD / Scripts Fallback
-        if (!title || !address) {
-            $('script').each((_i: number, el: any) => {
-                const txt = $(el).html();
-                if (!txt) return;
-
-                // Try JSON-LD
-                if ($(el).attr('type') === 'application/ld+json') {
-                    try {
-                        const json = JSON.parse(txt);
-                        const ent = Array.isArray(json) ? json[0] : json;
-                        if (!title && ent.name) title = ent.name;
-                        if (!address && ent.address) {
-                            if (typeof ent.address === 'string') address = ent.address;
-                            else if (typeof ent.address === 'object') {
-                                address = `${ent.address.addressRegion || ''} ${ent.address.addressLocality || ''} ${ent.address.streetAddress || ''}`.trim();
-                            }
-                        }
-                    } catch (e) { }
-                }
-
-                // Try Window State (Apollo) for address
-                if (!address && txt.includes('streetAddress')) {
-                    try {
-                        // Regex extract streetAddress:"..."
-                        const match = txt.match(/"streetAddress":"([^"]+)"/);
-                        if (match) address = match[1];
-
-                        // Also try common address key
-                        const match2 = txt.match(/"address":"([^"]+)"/);
-                        if (!address && match2) address = match2[1];
-                    } catch (e) { }
-                }
-            });
+        // --- 3. DOM Fallback Strategy ---
+        if (!title) {
+            title = $('meta[property="og:title"]').attr('content') || '';
+            if (!title || title.includes('네이버지도')) {
+                title = $('.Fc1rA').first().text() || $('.X0_Yp').first().text() || '';
+            }
         }
 
-        // Remove "복사" (Copy) text if scraped from button
-        address = address.replace('복사', '').trim();
-        // Remove "도로명" prefix if present
-        address = address.replace(/^도로명\s*/, '').replace(/^지번\s*/, '').trim();
+        if (!address || !address.includes('길') && !address.includes('로')) {
+            // Try specific road name selectors or text matching
+            $('.LDgIH, .Lp1H8, .y9_vA, .v9_vA').each((_i, el) => {
+                const txt = $(el).text().trim();
+                if (txt.includes('도로명') || (txt.includes('길') || txt.includes('로')) && txt.length > 5) {
+                    address = txt;
+                }
+            });
+            
+            if (!address) {
+                // Last ditch DOM search
+                address = $('.LDgIH').first().text() || $('.Lp1H8').first().text() || '';
+            }
+        }
+
+        // --- 4. Robust Cleanup ---
+        function cleanText(text: string, isTitle: boolean = false) {
+            if (!text) return '';
+            
+            let cleaned = text;
+
+            // Common Noise
+            const noise = [
+                '지도', '내비게이션', '거리뷰', '복사', '공유', '저장', '기타',
+                '리뷰', '사진', '메뉴', '홈', '예약', '톡톡', '전화'
+            ];
+
+            if (isTitle) {
+                cleaned = cleaned
+                    .replace(/ : 네이버 플레이스$/, '')
+                    .replace(/ : 네이버 통합검색$/, '')
+                    .replace(/^네이버 플레이스 - /, '')
+                    .replace(/ : 네이버$/, '')
+                    .replace(/\(.*\)$/, ''); // Remove (city names) or (type)
+            }
+
+            // Remove trailing noise words that often get merged
+            noise.forEach(word => {
+                // Regex to remove word if it's at the end or followed by other navigation terms
+                const regex = new RegExp(`${word}$`, 'g');
+                cleaned = cleaned.replace(regex, '');
+            });
+
+            // Address specific cleanup
+            if (!isTitle) {
+                // Fix: Remove "도로명" or "지번" prefix only (not everything after them)
+                cleaned = cleaned.replace(/^도로명\s*/, '').replace(/^지번\s*/, '').trim();
+                
+                // If the address ends with noise combined words (like "카페수플지도")
+                // This usually happens when scraping raw text from a container
+                cleaned = cleaned.replace(/(지도|내비게이션|거리뷰|복사)+$/, '');
+            }
+
+            return cleaned.trim();
+        }
+
+        title = cleanText(title, true);
+        address = cleanText(address, false);
+
+        // Final sanity check: if title is still messy, try to extract first part
+        if (title.length > 50) title = title.split(' ')[0];
 
         return NextResponse.json({
-            title: title.trim(),
-            address: address.trim(),
+            title: title || '정보 없음',
+            address: address || '정보 없음',
             finalUrl: targetUrl
         });
 

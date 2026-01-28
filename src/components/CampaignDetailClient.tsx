@@ -66,12 +66,15 @@ interface CampaignDetailClientProps {
 export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
     const router = useRouter();
     const pathname = usePathname();
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const [campaign, setCampaign] = useState(initialCampaign);
     const [hasApplied, setHasApplied] = useState(false);
+    const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
     const [selectedOptions, setSelectedOptions] = useState<any[]>([]); // Array for ranked/multi support
     const [applicationMessage, setApplicationMessage] = useState<string>('');
+    const [selectedStore, setSelectedStore] = useState<any>(null);
+    const [isStoreSheetOpen, setIsStoreSheetOpen] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [isStatusChecking, setIsStatusChecking] = useState(false); // Only used for button loading state now
@@ -98,6 +101,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
+    const isAdmin = profile?.role === 'ADMIN';
 
     useEffect(() => {
         let isMounted = true;
@@ -166,17 +170,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         if (!currentUser || !id) return;
         try {
             // Only check application status (favorites handled by Zustand)
-            const appResponse = await supabase
+            const { data: appData } = await supabase
                 .from('applications')
-                .select('id, selected_option, application_message')
+                .select('id, selected_option, application_message, status')
                 .eq('user_id', currentUser.id)
                 .eq('campaign_id', id)
                 .maybeSingle();
-
-            const appData = appResponse.data;
-
             if (appData) {
                 setHasApplied(true);
+                setApplicationStatus(appData.status);
                 const optString = appData.selected_option || '';
                 if (optString.includes('|')) {
                     setSelectedOptions(optString.split('|').map((s: string) => s.trim()));
@@ -551,6 +553,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // 상세 가이드 (Step2 블로그/인스타 가이드 영역)
     const missionGuide = campaign.mission_guide || step2Data.missionGuide || '';
+    const blogTitleGuide = step2Data.blogTitleGuide || '';
+    const blogContentGuide = step2Data.blogContentGuide || '';
 
     // 키워드 추출 로직 개선 (메인/서브 분리)
     const mainKeywords = Array.isArray(campaign.keywords) && campaign.keywords.length > 0
@@ -568,6 +572,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const category = campaign.category || step1Data.category || '';
     const region = campaign.region || step1Data.region || '';
     const contactPhone = campaign.contact_phone || step1Data.contactPhone || '';
+    const contactMethod = campaign.contact_method || step1Data.contactMethod || 'TEXT_ONLY';
     const advertiserWillContact = campaign.advertiser_will_contact || step1Data.advertiserWillContact || false;
     const visitTime = campaign.visit_time || step1Data.visitTime || '';
     const visitTimeNegotiable = campaign.visit_time_negotiable || step1Data.visitTimeNegotiable || false;
@@ -862,13 +867,48 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         </div>
                                     )}
 
-                                    {/* 상세 포스팅 가이드 */}
-                                    {missionGuide && (
-                                        <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100">
-                                            <p className="text-[11px] font-bold text-slate-400 mb-5 uppercase tracking-widest text-left font-mono">Mission Detail</p>
-                                            <div className="text-[15px] text-slate-600 leading-8 whitespace-pre-line font-medium">
-                                                {missionGuide}
+                                    {/* 상세 포스팅 가이드 (제목 + 본문 통합) */}
+                                    {(blogTitleGuide || blogContentGuide || missionGuide) && (
+                                        <div className="p-7 bg-white rounded-2xl border border-slate-100 space-y-10">
+                                            {/* 제목 가이드 섹션 */}
+                                            <div>
+                                                <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 text-[10px] font-black mb-4 border border-indigo-100 text-left">
+                                                    제목 가이드
+                                                </div>
+                                                <div className="text-[16px] text-slate-900 leading-8 whitespace-pre-line font-bold pl-1">
+                                                    {blogTitleGuide || '노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요'}
+                                                </div>
                                             </div>
+
+                                            {/* 본문 가이드 섹션 */}
+                                            {(blogContentGuide || missionGuide) && (
+                                                <div className="relative">
+                                                    <div className="absolute -top-5 left-0 right-0 h-px bg-slate-50" />
+                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black mb-4 border border-slate-200 text-left">
+                                                        본문 작성 가이드
+                                                    </div>
+                                                    <div className="text-[15px] text-slate-600 leading-8 whitespace-pre-line font-medium pl-1">
+                                                        {blogContentGuide || missionGuide}
+                                                    </div>
+
+                                                    {/* 공통 가이드 섹션 - 행간 및 간격 축소 */}
+                                                    <div className="mt-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100/80">
+                                                        <ul className="space-y-1.5">
+                                                            {[
+                                                                '체험 후 솔직한 생각, 느낌, 경험을 긍정적이고 구체적으로 적어주세요.',
+                                                                '가이드 내용 참고하여 본인의 문체로 가공하여 적어주세요.',
+                                                                '사진 15장 이상 / 글자수 1000자 이상 꼭 지켜주세요.',
+                                                                '1분 내외의 사용 영상 한 개 이상 꼭 첨부해주세요.'
+                                                            ].map((text, idx) => (
+                                                                <li key={idx} className="flex items-start gap-3 text-[13px] text-slate-600 font-bold leading-tight">
+                                                                    <span className="w-1 h-1 bg-slate-400 rounded-full mt-[7px] shrink-0" />
+                                                                    <span className="flex-1">{text}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -924,15 +964,27 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         </div>
                                     )}
 
-                                    <div className="p-6 bg-slate-900 rounded-2xl border border-slate-800 flex items-center justify-between">
-                                        <div>
-                                            <p className="text-[10px] text-slate-500 font-bold mb-1 uppercase tracking-widest">📞 예약 연락처</p>
-                                            <p className="font-black text-white text-base">
-                                                {advertiserWillContact ? '선정 후 광고주 직접 연락' : (contactPhone || '정보 없음')}
-                                            </p>
+                                    <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                                        <div className="flex-1">
+                                            <p className="text-[10px] text-blue-500 font-black mb-1.5 uppercase tracking-widest">📞 예약 연락처</p>
+                                            <div className="flex items-center gap-3">
+                                                {advertiserWillContact ? (
+                                                    <p className="font-black text-slate-900 text-lg">선정 후 광고주 직접 연락</p>
+                                                ) : (isAdmin || user?.id === campaign.created_by || applicationStatus === 'APPROVED' || applicationStatus === 'SELECTED') ? (
+                                                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
+                                                        <span className="font-black text-slate-900 text-xl tracking-tight">{contactPhone || '정보 없음'}</span>
+                                                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold border border-indigo-100 shadow-sm w-fit">
+                                                            {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' : 
+                                                             contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
+                                                        </span>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-slate-400 font-bold text-sm">선정된 인원에게만 노출됩니다.</span>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white">
-                                            <Phone size={18} />
+                                        <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center text-blue-500">
+                                            <Phone className="w-5 h-5 fill-current" />
                                         </div>
                                     </div>
                                 </div>
@@ -955,17 +1007,18 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 <div className="space-y-6">
                                     {stores.map((store: any, i: number) => (
                                         <div key={i} className="group">
-                                            <div className="flex justify-between items-center mb-4">
+                                            <div className="flex items-center gap-2 mb-4">
                                                 <h3 className="text-lg font-bold text-slate-900">{store.storeName}</h3>
                                                 {store.naverPlaceUrl && (
-                                                    <a
-                                                        href={store.naverPlaceUrl}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="text-slate-400 text-xs font-bold hover:text-rose-500 transition-all flex items-center gap-1.5"
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedStore(store);
+                                                            setIsStoreSheetOpen(true);
+                                                        }}
+                                                        className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition-all flex items-center gap-1"
                                                     >
-                                                        지도로 보기 <ExternalLink size={12} />
-                                                    </a>
+                                                        지도로 보기
+                                                    </button>
                                                 )}
                                             </div>
                                             <div className="flex items-center gap-3">
@@ -1203,6 +1256,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             title={displayTitle}
                                                             description={campaignIntro}
                                                             thumbnailUrl={campaign.thumbnail_url}
+                                                            campaignType={campaign.type}
                                                             variant="large"
                                                         />
                                                     </div>
@@ -1259,7 +1313,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
                                     onClick={() => relatedApi?.scrollPrev()}
                                 >
-                                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                                    <ChevronLeft className="w-4 h-4 md:w-5 h-5" />
                                 </Button>
                                 <Button 
                                     variant="outline" 
@@ -1267,7 +1321,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
                                     onClick={() => relatedApi?.scrollNext()}
                                 >
-                                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                                    <ChevronRight className="w-4 h-4 md:w-5 h-5" />
                                 </Button>
                             </div>
                         </div>
@@ -1339,13 +1393,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </button>
                         {!isClosed && (
                             <div className="shrink-0 flex items-center justify-center">
-                                <CampaignShare 
-                                    campaignId={id} 
-                                    title={displayTitle}
-                                    description={campaignIntro}
-                                    thumbnailUrl={campaign.thumbnail_url}
-                                    variant="large"
-                                />
+                                    <CampaignShare 
+                                        campaignId={id} 
+                                        title={displayTitle}
+                                        description={campaignIntro || campaign.description || ''}
+                                        thumbnailUrl={images[0]}
+                                        campaignType={campaign.type}
+                                        variant="large"
+                                    />
                             </div>
                         )}
                     </div>
@@ -1487,7 +1542,53 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </div>
                 </SheetContent>
             </Sheet>
+
+            {/* 매장 지도 Sheet */}
+            <Sheet open={isStoreSheetOpen} onOpenChange={setIsStoreSheetOpen}>
+                <SheetContent side="bottom" className="h-[38vh] rounded-t-3xl p-0 overflow-hidden border-none bg-slate-50">
+                    <SheetHeader className="p-6 bg-white border-b border-slate-100 flex flex-row items-center justify-between">
+                        <div className="text-left">
+                            <SheetTitle className="text-xl font-black text-slate-900">{selectedStore?.storeName}</SheetTitle>
+                            <p className="text-xs text-slate-500 font-medium mt-1">{selectedStore?.address}</p>
+                        </div>
+                    </SheetHeader>
+                    <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <a 
+                                href={selectedStore?.naverPlaceUrl} 
+                                target="_blank" 
+                                className="group flex flex-col items-center justify-center p-6 bg-[#03C75A] text-white rounded-2xl gap-3 shadow-lg shadow-green-100 active:scale-95 transition-all"
+                            >
+                                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                     <MapPin className="text-white w-6 h-6" />
+                                </div>
+                                <span className="font-bold text-sm">네이버 지도 앱</span>
+                            </a>
+                            <button 
+                                onClick={() => {
+                                    if (selectedStore?.address) {
+                                        navigator.clipboard.writeText(selectedStore.address);
+                                        toast.success('주소가 복사되었습니다.');
+                                    }
+                                }}
+                                className="flex flex-col items-center justify-center p-6 bg-white text-slate-800 rounded-2xl gap-3 border border-slate-200 shadow-sm active:scale-95 hover:bg-slate-50 transition-all"
+                            >
+                                <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center">
+                                     <CheckCircle2 className="text-slate-400 w-6 h-6" />
+                                </div>
+                                <span className="font-bold text-sm">주소 복사하기</span>
+                            </button>
+                        </div>
+                        <div className="text-center space-y-1">
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                ※ 네이버 보안 정책상 외부 앱 연결을 통해 상세 지도를 확인하실 수 있습니다.
+                            </p>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
+
+            <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
         </div>
     );
 }
-
