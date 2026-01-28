@@ -36,6 +36,15 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             return;
         }
 
+        // 네이버 지도 인증 실패 핸들러 (공식 문서 권장)
+        (window as any).navermap_authFailure = function () {
+            console.error('[NaverMap] Authentication Failed - Check Client ID and Web Service URL');
+            if (isMounted) {
+                setStatus(MAP_STATUS.ERROR);
+                setErrorMsg("네이버 지도 인증에 실패했습니다. Client ID와 Web 서비스 URL을 확인해주세요.");
+            }
+        };
+
         const drawMap = (targetLat: number, targetLng: number) => {
             if (!mapRef.current || !isMounted) return;
             const { naver } = window as any;
@@ -58,9 +67,11 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                     });
                 }
 
+                // 네이버 기본 마커 사용
                 new naver.maps.Marker({
                     position: location,
                     map: mapInstance.current,
+                    title: storeName || '매장 위치',
                     animation: naver.maps.Animation.DROP
                 });
 
@@ -92,7 +103,14 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             const script = document.createElement('script');
             script.id = scriptId;
             script.type = 'text/javascript';
-            script.src = `https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=${CLIENT_ID}&submodules=geocoder`;
+            const scriptUrl = `https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=${CLIENT_ID}`;
+
+            // 디버깅: 실제 사용되는 Client ID와 URL 확인
+            console.log('[NaverMap] Loading script with Client ID:', CLIENT_ID);
+            console.log('[NaverMap] Script URL:', scriptUrl);
+            console.log('[NaverMap] Current origin:', window.location.origin);
+
+            script.src = scriptUrl;
             script.async = true;
 
             script.onload = () => {
