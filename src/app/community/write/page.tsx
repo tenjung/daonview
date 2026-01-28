@@ -272,13 +272,19 @@ function WritePageContent() {
             if (editId) {
                 // 수정
                 const tableName = isNoticeTable ? 'notices' : 'posts';
+                const updateData: any = {
+                    title: title,
+                    content: content,
+                };
+
+                // 'posts' 테이블에만 updated_at 컬럼이 있음
+                if (!isNoticeTable) {
+                    updateData.updated_at = new Date().toISOString();
+                }
+
                 const { error } = await supabase
                     .from(tableName)
-                    .update({
-                        title: title,
-                        content: content,
-                        updated_at: new Date().toISOString()
-                    })
+                    .update(updateData)
                     .eq('id', editId);
 
                 if (error) throw error;
@@ -287,17 +293,11 @@ function WritePageContent() {
                 // 신규 작성
                 if (isNoticeTable) {
                     // notices 테이블에 저장 (공지, 이벤트)
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('nickname')
-                        .eq('id', user.id)
-                        .single();
-
                     const { error } = await supabase.from('notices').insert({
                         type: dbType,
                         title,
                         content,
-                        author: profile?.nickname || '관리자',
+                        author_id: user.id,
                         is_pinned: false,
                         view_count: 0
                     });
@@ -347,7 +347,9 @@ function WritePageContent() {
             router.push(REDIRECT_MAP[type] || '/community');
         } catch (error: any) {
             console.error('Error saving post:', error);
-            toast.error("글 저장 중 오류가 발생했습니다: " + error.message);
+            // 에러 객체의 상세 내용을 토스트에 표시
+            const errorMessage = error.message || error.error_description || JSON.stringify(error);
+            toast.error("글 저장 중 오류가 발생했습니다: " + errorMessage);
         } finally {
             setLoading(false);
             isSubmitting.current = false;

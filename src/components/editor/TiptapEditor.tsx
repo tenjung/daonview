@@ -30,7 +30,7 @@ import {
     Heading1, Heading2, Heading3,
     AlignLeft, AlignCenter, AlignRight,
     Undo, Redo, Minus, Youtube as YoutubeIcon, Type,
-    ChevronDown, Palette, Check, Trash2
+    ChevronDown, Palette, Check, Trash2, Eraser, FileCode
 } from 'lucide-react';
 
 // --- Preset Colors (Official Style) ---
@@ -187,6 +187,20 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
         }
     };
 
+    const stripHtml = () => {
+        const { from, to } = editor.state.selection;
+        if (from === to) {
+            toast.error('태그를 제거할 텍스트 범위를 선택해주세요.');
+            return;
+        }
+
+        const text = editor.state.doc.textBetween(from, to, ' ');
+        const stripped = text.replace(/<[^>]*>?/gm, '');
+        
+        editor.chain().focus().insertContentAt({ from, to }, stripped).run();
+        toast.success('HTML 태그가 제거되었습니다.');
+    };
+
     return (
         <div className="flex flex-col w-full relative">
             {/* --- Toolbar --- */}
@@ -322,6 +336,25 @@ export default function TiptapEditor({ initialContent = '', onChange }: { initia
                     <ToolbarButton onClick={setLink} isActive={editor.isActive('link')}><LinkIcon size={18} /></ToolbarButton>
                     <ToolbarButton onClick={addImage}><ImageIcon size={18} /></ToolbarButton>
                     <ToolbarButton onClick={addYoutube}><YoutubeIcon size={18} /></ToolbarButton>
+                </div>
+
+                <ToolbarSeparator />
+
+                {/* 8. Utils */}
+                <div className="flex gap-0.5">
+                    <ToolbarButton
+                        onClick={() => editor.chain().focus().unsetAllMarks().clearNodes().run()}
+                        title="포맷 초기화"
+                    >
+                        <Eraser size={18} />
+                    </ToolbarButton>
+                    <ToolbarButton
+                        onClick={stripHtml}
+                        title="HTML 태그 제거 (선택 영역)"
+                        className="hover:text-red-500"
+                    >
+                        <FileCode size={18} />
+                    </ToolbarButton>
                 </div>
 
             </Toolbar.Root>
