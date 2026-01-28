@@ -73,6 +73,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
     const [selectedOptions, setSelectedOptions] = useState<any[]>([]); // Array for ranked/multi support
     const [applicationMessage, setApplicationMessage] = useState<string>('');
+    // Missing Profile Info Alert State
+    const [isProfileAlertOpen, setIsProfileAlertOpen] = useState(false);
+    const [missingInfoType, setMissingInfoType] = useState<'BANK' | 'ADDRESS' | null>(null);
     const [selectedStore, setSelectedStore] = useState<any>(null);
     const [isStoreSheetOpen, setIsStoreSheetOpen] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -309,19 +312,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             if (campaignType === 'PURCHASE') {
                 // 구매평 캠페인: 계좌 정보 필수
                 if (!profile.bank_name || !profile.account_number || !profile.account_holder) {
-                    toast.error('정산 계좌 정보가 등록되지 않았습니다.', {
-                        description: '정산을 위해 계좌 정보를 먼저 등록해 주세요.'
-                    });
-                    setTimeout(() => router.push('/profile/edit?tab=payout'), 1500);
+                    setMissingInfoType('BANK');
+                    setIsProfileAlertOpen(true);
                     return;
                 }
             } else if (campaignType === 'DELIVERY') {
                 // 단순 배송형 캠페인: 배송지 정보 필수
                 if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
-                    toast.error('배송지 정보(수령인/연락처/주소)가 등록되지 않았습니다.', {
-                        description: '제품 발송을 위해 배송 정보를 먼저 등록해 주세요.'
-                    });
-                    setTimeout(() => router.push('/profile/edit?tab=payout'), 1500);
+                    setMissingInfoType('ADDRESS');
+                    setIsProfileAlertOpen(true);
                     return;
                 }
             }
@@ -1606,6 +1605,39 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             </Sheet>
 
             <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
+            {/* Missing Info Alert Dialog */}
+            <Dialog open={isProfileAlertOpen} onOpenChange={setIsProfileAlertOpen}>
+                <DialogContent className="max-w-[360px] rounded-2xl p-6">
+                    <DialogHeader>
+                        <DialogTitle className="text-lg font-bold text-center">
+                            {missingInfoType === 'BANK' ? '계좌 정보 등록 필요' : '배송지 정보 등록 필요'}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="py-4 text-center text-sm text-slate-600 leading-relaxed whitespace-pre-line">
+                        {missingInfoType === 'BANK' 
+                            ? '캠페인 참여 및 정산을 위해\n계좌 정보를 먼저 등록해 주세요.' 
+                            : '제품 발송을 위해\n배송 정보(수령인/연락처/주소)가 필요합니다.\n등록 페이지로 이동하시겠습니까?'}
+                    </div>
+                    <div className="flex gap-2">
+                        <Button 
+                            variant="outline" 
+                            className="flex-1 rounded-xl h-12"
+                            onClick={() => setIsProfileAlertOpen(false)}
+                        >
+                            취소
+                        </Button>
+                        <Button 
+                            className="flex-1 rounded-xl h-12 bg-rose-500 hover:bg-rose-600 text-white font-bold"
+                            onClick={() => {
+                                setIsProfileAlertOpen(false);
+                                router.push('/profile/edit?tab=payout');
+                            }}
+                        >
+                            {missingInfoType === 'BANK' ? '계좌 등록하러 가기' : '배송지 등록하러 가기'}
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

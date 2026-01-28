@@ -6,6 +6,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 import OnboardingModal from '@/components/OnboardingModal';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import PrivacyContent from '@/components/legal/PrivacyContent';
+import TermsContent from '@/components/legal/TermsContent';
 
 type UserType = 'INFLUENCER' | 'ADVERTISER';
 
@@ -30,6 +40,29 @@ function SignupForm() {
     const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
     const [passwordMatchError, setPasswordMatchError] = useState('');
     const [isSocialLoading, setIsSocialLoading] = useState<string | null>(null);
+
+    // Agreement States
+    const [agreeTerms, setAgreeTerms] = useState(false);
+    const [agreePrivacy, setAgreePrivacy] = useState(false);
+    const [agreeMarketing, setAgreeMarketing] = useState(false);
+    const [agreeAll, setAgreeAll] = useState(false);
+
+    // Toggle All Agreements
+    const handleToggleAll = (checked: boolean) => {
+        setAgreeAll(checked);
+        setAgreeTerms(checked);
+        setAgreePrivacy(checked);
+        setAgreeMarketing(checked);
+    };
+
+    // Update AgreeAll when individual checkboxes change
+    useEffect(() => {
+        if (agreeTerms && agreePrivacy && agreeMarketing) {
+            setAgreeAll(true);
+        } else {
+            setAgreeAll(false);
+        }
+    }, [agreeTerms, agreePrivacy, agreeMarketing]);
 
     // Load email from URL query parameter if available
     useEffect(() => {
@@ -235,7 +268,12 @@ function SignupForm() {
                         email: email,
                         role: userType,
                         nickname: nickname,
-                        point: 0
+                        point: 0,
+                        marketing_agreement: agreeMarketing,
+                        terms_agreement: agreeTerms,
+                        privacy_agreement: agreePrivacy,
+                        agreed_at: new Date().toISOString(),
+                        email_verified: false // Initially false, will be confirmed by auth
                     }
                 ]);
 
@@ -506,10 +544,110 @@ function SignupForm() {
                         )}
                     </div>
 
+                    {/* Agreements Section */}
+                    <div className="mb-8 space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <div className="flex items-center gap-2 pb-3 border-b border-slate-200">
+                            <input
+                                type="checkbox"
+                                id="agree-all"
+                                checked={agreeAll}
+                                onChange={(e) => handleToggleAll(e.target.checked)}
+                                className="w-6 h-6 rounded-md border-slate-300 text-rose-500 focus:ring-rose-500 cursor-pointer accent-rose-500"
+                            />
+                            <label htmlFor="agree-all" className="text-base font-black text-slate-800 cursor-pointer">
+                                전체 동의하기
+                            </label>
+                        </div>
+
+                        <div className="space-y-3 pt-1">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="agree-terms"
+                                        checked={agreeTerms}
+                                        onChange={(e) => setAgreeTerms(e.target.checked)}
+                                        className="w-[18px] h-[18px] shrink-0 rounded border-slate-300 text-rose-500 focus:ring-rose-500 cursor-pointer accent-rose-500"
+                                        required
+                                    />
+                                    <label htmlFor="agree-terms" className="text-sm font-bold text-slate-600 cursor-pointer text-nowrap">
+                                        <span className="text-rose-500 mr-1">[필수]</span> 이용약관 동의
+                                    </label>
+                                </div>
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <button type="button" className="text-[10px] text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
+                                    </SheetTrigger>
+                                    <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 border-l border-border bg-white outline-none">
+                                        <div className="h-full flex flex-col">
+                                            <SheetHeader className="p-6 border-b border-border bg-slate-50">
+                                                <SheetTitle className="text-xl font-bold text-text-main tracking-tight">서비스 이용약관</SheetTitle>
+                                            </SheetHeader>
+                                            <ScrollArea className="flex-1 p-6 md:p-8">
+                                                <TermsContent />
+                                            </ScrollArea>
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="agree-privacy"
+                                        checked={agreePrivacy}
+                                        onChange={(e) => setAgreePrivacy(e.target.checked)}
+                                        className="w-[18px] h-[18px] shrink-0 rounded border-slate-300 text-rose-500 focus:ring-rose-500 cursor-pointer accent-rose-500"
+                                        required
+                                    />
+                                    <label htmlFor="agree-privacy" className="text-sm font-bold text-slate-600 cursor-pointer text-nowrap">
+                                        <span className="text-rose-500 mr-1">[필수]</span> 개인정보 수집 및 이용 동의
+                                    </label>
+                                </div>
+                                <Sheet>
+                                    <SheetTrigger asChild>
+                                        <button type="button" className="text-[10px] text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
+                                    </SheetTrigger>
+                                    <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 border-l border-border bg-white outline-none">
+                                        <div className="h-full flex flex-col">
+                                            <SheetHeader className="p-6 border-b border-border bg-slate-50">
+                                                <SheetTitle className="text-xl font-bold text-text-main tracking-tight">개인정보처리방침</SheetTitle>
+                                            </SheetHeader>
+                                            <ScrollArea className="flex-1 p-6 md:p-8">
+                                                <PrivacyContent />
+                                            </ScrollArea>
+                                        </div>
+                                    </SheetContent>
+                                </Sheet>
+                            </div>
+
+                            <div className="pt-3 border-t border-slate-200/60 transition-all">
+                                <div className="flex items-start gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="agree-marketing"
+                                        checked={agreeMarketing}
+                                        onChange={(e) => setAgreeMarketing(e.target.checked)}
+                                        className="w-[18px] h-[18px] shrink-0 mt-0.5 rounded border-slate-300 text-rose-500 focus:ring-rose-500 cursor-pointer accent-rose-500"
+                                    />
+                                    <div className="flex flex-col gap-1.5">
+                                        <label htmlFor="agree-marketing" className="text-sm font-bold text-slate-600 cursor-pointer">
+                                            <span className="text-slate-400 mr-1">[선택]</span> 마케팅 목적의 개인정보 수집 및 이용 동의
+                                        </label>
+                                        <p className="text-[11px] leading-relaxed text-slate-400">
+                                            캠페인 선정 결과, 가이드 전달 및 신규 캠페인 소식을 이메일로 받아보시겠습니까? 거절하시더라도 서비스 이용은 가능하나, 선정 알림 등 필수 정보 수신이 제한될 수 있습니다.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button 
                         type="submit" 
-                        disabled={loading || emailAvailable === false || !!passwordError || !!passwordMatchError || !email || !password} 
-                        className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50"
+                        disabled={loading || emailAvailable === false || !!passwordError || !!passwordMatchError || !email || !password || !agreeTerms || !agreePrivacy} 
+                        className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none transition-all"
                     >
                         {loading ? '가입 처리중...' : (userType === 'INFLUENCER' ? '인플루언서로 시작하기' : '광고주로 시작하기')}
                     </button>
