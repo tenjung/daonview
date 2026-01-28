@@ -125,7 +125,7 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
 
         try {
             await navigator.clipboard.writeText(briefText);
-            toast.success('모집 요강이 복사되었습니다.', {
+            toast.success('모집 안내글이 복사되었습니다.', {
                 description: '카카오톡이나 채팅창에 바로 붙여넣어 보세요!'
             });
         } catch (err) {
@@ -145,11 +145,10 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
                     <Button 
                         variant="outline" 
                         size="icon" 
-                        className="w-[68px] h-[68px] md:w-16 md:h-16 rounded-[20px] bg-white border-2 border-slate-100 hover:border-rose-200 text-slate-400 hover:text-rose-500 transition-all shadow-lg active:scale-95 flex flex-col items-center justify-center gap-1"
+                        className="w-14 h-14 rounded-[20px] bg-white border-2 border-slate-100 hover:border-rose-200 text-slate-400 hover:text-rose-500 transition-all shadow-lg active:scale-95 flex items-center justify-center"
                         title="공유하기"
                     >
                         <Share2 className="w-6 h-6" />
-                        <span className="text-[10px] font-bold">공유</span>
                     </Button>
                 ) : (
                     <Button 
@@ -230,7 +229,7 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
                         className="w-full h-14 rounded-2xl bg-indigo-50 text-indigo-600 font-black hover:bg-indigo-100 border-none flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
                     >
                         <Copy className="w-4 h-4" />
-                        모집 요강 문구 복사
+                        모집 안내글 복사
                     </Button>
 
                     <Button 

@@ -135,9 +135,7 @@ interface Step2Data {
     prohibitedWords: string[];
     additionalNotes: string;
 
-    // 블로그 가이드 (Blog)
-    blogMainKeyword: string;
-    blogSubKeywords: string[];
+    blogMainKeywords: string[];
     blogTitleGuide: string;
     blogContentGuide: string;
     blogMapRequired: boolean;
@@ -204,6 +202,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
     const [uploadLater, setUploadLater] = useState(false);
 
     // 블로그 관련 입력 상태
+    const [blogMainKeywordInput, setBlogMainKeywordInput] = useState('');
     const [blogSubKeywordInput, setBlogSubKeywordInput] = useState('');
     const [blogLinkInput, setBlogLinkInput] = useState('');
 
@@ -362,7 +361,26 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
         store.setField('prohibitedWords', formData.prohibitedWords.filter(w => w !== word));
     };
 
-    // 블로그 관련 함수
+    // 블로그 메인 키워드 함수
+    const addBlogMainKeyword = (keyword?: string) => {
+        const kw = (keyword || blogMainKeywordInput).trim();
+        if (!kw) return;
+        
+        if (formData.blogMainKeywords.length >= 3) {
+            toast.error('메인 키워드는 최대 3개까지만 등록 가능합니다.');
+            return;
+        }
+
+        if (!formData.blogMainKeywords.includes(kw)) {
+            store.setField('blogMainKeywords', [...formData.blogMainKeywords, kw]);
+            setBlogMainKeywordInput('');
+        }
+    };
+
+    const removeBlogMainKeyword = (keyword: string) => {
+        store.setField('blogMainKeywords', formData.blogMainKeywords.filter(k => k !== keyword));
+    };
+
     const addBlogSubKeyword = () => {
         if (blogSubKeywordInput.trim() && !formData.blogSubKeywords.includes(blogSubKeywordInput.trim())) {
             store.setField('blogSubKeywords', [...formData.blogSubKeywords, blogSubKeywordInput.trim()]);
@@ -410,8 +428,8 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
         if (!formData.campaignTitle.trim()) return false;
         if (!uploadLater && formData.campaignImages.length === 0) return false;
 
-        // 블로그 선택 시 메인 키워드 필수
-        if (formData.includeNaver && !formData.blogMainKeyword.trim()) {
+        // 블로그 선택 시 메인 키워드 필수 (2~3개 권장)
+        if (formData.includeNaver && formData.blogMainKeywords.length < 1) {
             return false;
         }
 
@@ -803,27 +821,59 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
             {/* ========== Section B-1: 블로그 포스팅 가이드 (네이버 선택 시) ========== */}
             {showBlogGuide && (
-                <section className="bg-white rounded-xl shadow-sm border-2 border-green-200 p-6">
+                <section className="bg-white rounded-xl shadow-sm border-2 border-rose-200 p-6">
                     <div className="flex items-center gap-3 mb-6">
                         <div className="text-3xl">📝</div>
                         <h2 className="text-2xl font-bold text-gray-900">블로그 리뷰 미션</h2>
                     </div>
 
-                    <div className="h-px bg-gradient-to-r from-green-200 via-green-300 to-green-200 mb-6"></div>
+                    <div className="h-px bg-gradient-to-r from-rose-200 via-rose-300 to-rose-200 mb-6"></div>
 
                     {/* 메인 키워드 */}
                     <div className="mb-6">
                         <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-1.5">
-                            <Check size={16} className="text-green-600" />
-                            메인 필수 키워드 <span className="text-red-500">*</span>
+                            <Check size={16} className="text-purple-600" />
+                            메인 필수 키워드 (2~3개 권장) <span className="text-red-500">*</span>
                         </label>
-                        <input
-                            type="text"
-                            value={formData.blogMainKeyword || ''}
-                            onChange={(e) => store.setField('blogMainKeyword', e.target.value)}
-                            placeholder="예: 강남 맛집, 역삼동 카페"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-bold text-green-700"
-                        />
+                        
+                        <div className="flex gap-2 mb-3">
+                            <div className={`flex-1 flex flex-wrap items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-purple-500 focus-within:border-transparent bg-white transition-all ${formData.blogMainKeywords.length >= 3 ? 'bg-gray-50' : ''}`}>
+                                {formData.blogMainKeywords.map((keyword, index) => (
+                                    <span
+                                        key={index}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-sm font-bold animate-in fade-in zoom-in duration-200"
+                                    >
+                                        #{keyword}
+                                        <button
+                                            onClick={() => removeBlogMainKeyword(keyword)}
+                                            className="hover:text-purple-900 transition-colors p-0.5 hover:bg-purple-100 rounded-full"
+                                        >
+                                            <X size={13} />
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    type="text"
+                                    value={blogMainKeywordInput}
+                                    onChange={(e) => setBlogMainKeywordInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && addBlogMainKeyword()}
+                                    placeholder={formData.blogMainKeywords.length >= 3 ? "최대 3개까지 등록 가능합니다" : "키워드 입력 후 Enter"}
+                                    className="flex-1 min-w-[150px] outline-none bg-transparent font-bold placeholder:font-normal"
+                                    disabled={formData.blogMainKeywords.length >= 3}
+                                />
+                            </div>
+                            <button
+                                onClick={() => addBlogMainKeyword()}
+                                disabled={formData.blogMainKeywords.length >= 3}
+                                className={`px-6 py-2 rounded-lg font-bold transition-colors shadow-sm ${
+                                    formData.blogMainKeywords.length >= 3 
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                    : 'bg-purple-600 text-white hover:bg-purple-700'
+                                }`}
+                            >
+                                추가
+                            </button>
+                        </div>
                         
                         {/* AI 추천 메인 키워드 */}
                         {isAnalyzing ? (
@@ -847,8 +897,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                     {recommendedKeywords.map((kw, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => store.setField('blogMainKeyword', kw)}
-                                            className="group relative px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 shadow-sm overflow-hidden"
+                                            onClick={() => addBlogMainKeyword(kw)}
+                                            disabled={formData.blogMainKeywords.length >= 3 || formData.blogMainKeywords.includes(kw)}
+                                            className={`group relative px-3 py-1.5 bg-white text-indigo-700 border border-indigo-200 rounded-lg text-xs font-semibold hover:border-indigo-400 hover:bg-indigo-50 transition-all duration-200 shadow-sm overflow-hidden ${
+                                                (formData.blogMainKeywords.length >= 3 || formData.blogMainKeywords.includes(kw)) ? 'opacity-50 cursor-not-allowed' : ''
+                                            }`}
                                         >
                                             <span className="relative z-10 flex items-center gap-1">
                                                 <span className="text-indigo-400 group-hover:text-indigo-600 transition-colors">+</span> {kw}
@@ -861,7 +914,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                         )}
 
                         <p className="mt-2 text-xs text-gray-500">
-                            상위 노출을 목표로 하는 키워드를 입력하세요.
+                            상위 노출을 목표로 하는 키워드를 입력하세요. 인플루언서는 이 중 <strong>1개를 선택</strong>하여 리뷰를 작성하게 됩니다.
                         </p>
                     </div>
 
@@ -872,17 +925,33 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             서브 필수 키워드
                         </label>
                         <div className="flex gap-2 mb-3">
-                            <input
-                                type="text"
-                                value={blogSubKeywordInput}
-                                onChange={(e) => setBlogSubKeywordInput(e.target.value)}
-                                onKeyPress={(e) => e.key === 'Enter' && addBlogSubKeyword()}
-                                placeholder="본문에 포함할 단어 입력 후 Enter"
-                                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                            />
+                            <div className="flex-1 flex flex-wrap items-center gap-2 px-4 py-3 border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-green-500 focus-within:border-transparent bg-white transition-all">
+                                {formData.blogSubKeywords.map((keyword, index) => (
+                                    <span
+                                        key={index}
+                                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg text-sm font-medium animate-in fade-in zoom-in duration-200"
+                                    >
+                                        #{keyword}
+                                        <button
+                                            onClick={() => removeBlogSubKeyword(keyword)}
+                                            className="hover:text-green-900 transition-colors p-0.5 hover:bg-green-100 rounded-full"
+                                        >
+                                            <X size={13} />
+                                        </button>
+                                    </span>
+                                ))}
+                                <input
+                                    type="text"
+                                    value={blogSubKeywordInput}
+                                    onChange={(e) => setBlogSubKeywordInput(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && addBlogSubKeyword()}
+                                    placeholder="본문에 포함할 단어 입력 후 Enter"
+                                    className="flex-1 min-w-[150px] outline-none bg-transparent"
+                                />
+                            </div>
                             <button
                                 onClick={addBlogSubKeyword}
-                                className="px-6 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors"
+                                className="px-6 py-2 bg-green-500 text-white rounded-lg font-bold hover:bg-green-600 transition-colors shadow-sm"
                             >
                                 추가
                             </button>
@@ -926,22 +995,6 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                 </div>
                             </div>
                         )}
-                        <div className="flex flex-wrap gap-2">
-                            {formData.blogSubKeywords.map((keyword, index) => (
-                                <span
-                                    key={index}
-                                    className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm"
-                                >
-                                    {keyword}
-                                    <button
-                                        onClick={() => removeBlogSubKeyword(keyword)}
-                                        className="hover:text-green-900"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </span>
-                            ))}
-                        </div>
                     </div>
 
                     {/* 제목 가이드 */}
@@ -954,12 +1007,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             value={formData.blogTitleGuide || ''}
                             onChange={(e) => store.setField('blogTitleGuide', e.target.value)}
                             placeholder="노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                         />
                     </div>
 
                     {/* 본문 작성 가이드 */}
                     <div className="mb-6">
+                        <div className="h-px bg-gradient-to-r from-rose-200 via-rose-300 to-rose-200 my-8" />
                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                             본문 작성 가이드
                         </label>
@@ -968,7 +1022,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             onChange={(e) => store.setField('blogContentGuide', e.target.value)}
                             placeholder="예: 제품 사용 후기를 상세하게 작성해주세요. 장점과 단점을 균형있게 서술하고, 실제 사용 사진을 포함해주세요."
                             rows={5}
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:green-500 focus:border-transparent"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                         />
                         <p className="mt-1 text-xs text-gray-500">
                             블로그 본문 작성 시 리뷰어가 따라야 할 가이드를 자유롭게 작성해주세요.
@@ -983,11 +1037,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                     type="checkbox"
                                     checked={formData.blogMapRequired}
                                     onChange={(e) => store.setField('blogMapRequired', e.target.checked)}
-                                    className="w-5 h-5 text-green-500 border-gray-300 rounded focus:ring-2 focus:ring-green-500"
+                                    className="w-5 h-5 text-rose-500 border-gray-300 rounded focus:ring-2 focus:ring-rose-500"
                                 />
                                 <div className="flex items-center gap-2">
-                                    <MapPin size={20} className="text-green-600" />
-                                    <span className="font-medium text-gray-900 group-hover:text-green-600 transition-colors">
+                                    <MapPin size={20} className="text-rose-600" />
+                                    <span className="font-medium text-gray-900 group-hover:text-rose-600 transition-colors">
                                         지도 삽입
                                     </span>
                                     <HelpTooltip content="방문체험단/기자단은 지도 삽입을 권장합니다. 오프라인 매장의 경우 방문객 유입에 큰 도움이 됩니다." />

@@ -557,11 +557,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const blogContentGuide = step2Data.blogContentGuide || '';
 
     // 키워드 추출 로직 개선 (메인/서브 분리)
-    const mainKeywords = Array.isArray(campaign.keywords) && campaign.keywords.length > 0
-        ? campaign.keywords
-        : (typeof step2Data.blogMainKeyword === 'string' && step2Data.blogMainKeyword
-            ? [step2Data.blogMainKeyword]
-            : (Array.isArray(step2Data.keywords) ? step2Data.keywords : []));
+    const mainKeywords = Array.isArray(step2Data.blogMainKeywords) && step2Data.blogMainKeywords.length > 0
+        ? step2Data.blogMainKeywords
+        : (Array.isArray(campaign.keywords) && campaign.keywords.length > 0
+            ? campaign.keywords
+            : (typeof step2Data.blogMainKeyword === 'string' && step2Data.blogMainKeyword
+                ? [step2Data.blogMainKeyword]
+                : (Array.isArray(step2Data.keywords) ? step2Data.keywords : [])));
 
     const subKeywords = Array.isArray(step2Data.blogSubKeywords) ? step2Data.blogSubKeywords : [];
     const instagramHashtags = Array.isArray(step2Data.instagramHashtags) ? step2Data.instagramHashtags : [];
@@ -625,94 +627,96 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     <div className="lg:col-span-8 pb-10">
                         {/* Main Image Slider */}
                         <div className="pt-4 mb-8">
-                            <div className="w-full max-w-xl mx-auto bg-slate-50 rounded-lg aspect-square border border-slate-100 flex items-center justify-center overflow-hidden relative group">
-                            {images.length > 0 ? (
-                                <>
-                                    <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-                                        <DialogTrigger asChild>
-                                            <img
-                                                src={images[currentImageIndex]}
-                                                alt={displayTitle}
-                                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 cursor-zoom-in"
-                                            />
-                                        </DialogTrigger>
-                                        <DialogContent className="max-w-[85vw] w-full h-[90vh] p-0 overflow-hidden border border-white/20 bg-white/5 backdrop-blur-2xl shadow-none flex flex-col items-center justify-center rounded-3xl outline-none">
-                                            <style dangerouslySetInnerHTML={{
-                                                __html: `
-                                                [data-radix-portal] > div { background-color: rgba(0, 0, 0, 0.4) !important; }
-                                            `}} />
-                                            <DialogHeader className="sr-only">
-                                                <DialogTitle>{displayTitle} 이미지 갤러리</DialogTitle>
-                                            </DialogHeader>
-
-                                            <div className="w-full flex-1 flex flex-col items-center justify-center p-4 md:p-8 relative overflow-hidden">
-                                                <Carousel setApi={setModalApi} className="w-full h-full flex items-center justify-center">
-                                                    <CarouselContent className="h-full items-center">
-                                                        {images.map((img, idx) => (
-                                                            <CarouselItem key={idx} className="flex items-center justify-center h-full">
-                                                                <div className="w-full h-full flex items-center justify-center p-2">
-                                                                    <img
-                                                                        src={img}
-                                                                        alt={`${displayTitle} - ${idx + 1}`}
-                                                                        className="max-w-full max-h-[75vh] object-contain rounded-xl shadow-2xl transition-all duration-300"
-                                                                    />
-                                                                </div>
-                                                            </CarouselItem>
-                                                        ))}
-                                                    </CarouselContent>
-                                                    {images.length > 1 && (
-                                                        <>
-                                                            <CarouselPrevious className="left-4 w-12 h-12 bg-white/10 hover:bg-rose-500 border-none text-white transition-all scale-110 active:scale-95" />
-                                                            <CarouselNext className="right-4 w-12 h-12 bg-white/10 hover:bg-rose-500 border-none text-white transition-all scale-110 active:scale-95" />
-                                                        </>
-                                                    )}
-                                                </Carousel>
+                            <div className="w-full max-w-xl mx-auto">
+                                <div className="w-full h-auto rounded-2xl overflow-hidden shadow-sm relative group bg-slate-50 border border-slate-100 aspect-square">
+                                    {images.length > 0 ? (
+                                        <>
+                                            <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                                                <DialogTrigger asChild>
+                                                    <div className="relative w-full h-full cursor-zoom-in">
+                                                        <img
+                                                            src={images[currentImageIndex]}
+                                                            alt={displayTitle}
+                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                        />
+                                                        {/* Hover Overlay Removed as per user request */}
                                             </div>
+                                        </DialogTrigger>
+                                                <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 overflow-hidden border-none bg-black/60 backdrop-blur-md shadow-none flex flex-col items-center justify-center outline-none z-[100]">
+                                                    <style dangerouslySetInnerHTML={{
+                                                        __html: `
+                                                        [data-radix-portal] > div[data-state='open'] { background-color: rgba(0, 0, 0, 0.4) !important; }
+                                                    `}} />
+                                                    <DialogHeader className="sr-only">
+                                                        <DialogTitle>{displayTitle} 이미지 확대</DialogTitle>
+                                                    </DialogHeader>
 
-                                            {/* Thumbnail Strip for UX */}
-                                            {images.length > 1 && (
-                                                <div className="w-full bg-white/5 backdrop-blur-xl p-6 flex justify-center gap-4 border-t border-white/10 mt-auto">
-                                                    {images.map((img, idx) => (
-                                                        <button
-                                                            key={idx}
-                                                            onClick={() => modalApi?.scrollTo(idx)}
-                                                            className={`relative w-16 h-16 rounded-xl overflow-hidden transition-all duration-500 hover:scale-105 ${idx === currentImageIndex
-                                                                ? 'ring-4 ring-rose-500 ring-offset-4 ring-offset-black scale-110 shadow-2xl shadow-rose-500/40'
-                                                                : 'opacity-30 hover:opacity-100 grayscale hover:grayscale-0'
-                                                                }`}
+                                                    <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/40 to-transparent z-50 flex items-center justify-end px-6 pointer-events-none">
+                                                        <button 
+                                                            onClick={() => setIsImageModalOpen(false)}
+                                                            className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm font-bold transition-all border border-white/10"
                                                         >
-                                                            <img src={img} alt="thumb" className="w-full h-full object-cover" />
+                                                            닫기
                                                         </button>
+                                                    </div>
+                                                    
+                                                    <div 
+                                                        className="w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center py-10 px-4 md:px-0 scrollbar-hide"
+                                                        onClick={(e) => {
+                                                            if (e.target === e.currentTarget) setIsImageModalOpen(false);
+                                                        }}
+                                                    >
+                                                        <img
+                                                            src={images[currentImageIndex]}
+                                                            alt={`${displayTitle} - Expanded`}
+                                                            className="w-full max-w-3xl h-auto object-contain shadow-2xl rounded-sm"
+                                                            onClick={(e) => e.stopPropagation()} 
+                                                        />
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
+
+                                            {/* Navigation Arrows for Main View */}
+                                            {images.length > 1 && (
+                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+                                                        }} 
+                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                    >
+                                                        <ChevronLeft size={18} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setCurrentImageIndex((prev) => (prev + 1) % images.length);
+                                                        }} 
+                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                    >
+                                                        <ChevronRight size={18} />
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Indicator Dots */}
+                                            {images.length > 1 && (
+                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
+                                                    {images.map((_, i) => (
+                                                        <div key={i} className={`h-1.5 rounded-full transition-all shadow-sm ${i === currentImageIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`} />
                                                     ))}
                                                 </div>
                                             )}
-                                        </DialogContent>
-                                    </Dialog>
-                                    {images.length > 1 && (
-                                        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"><ChevronLeft size={20} /></button>
-                                            <button onClick={() => setCurrentImageIndex((prev) => (prev + 1) % images.length)} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-sm text-gray-800 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md"><ChevronRight size={20} /></button>
-                                        </div>
+                                        </>
+                                    ) : (
+                                        <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold text-lg">NO IMAGE</div>
                                     )}
-                                    <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        onClick={toggleFavorite}
-                                        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-white/90 hover:bg-white backdrop-blur-md shadow-md transition-all hover:scale-110"
-                                    >
-                                        <Heart className={`w-5 h-5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-gray-400'}`} />
-                                    </Button>
-                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                                        {images.map((_, i) => (
-                                            <div key={i} className={`h-1.5 rounded-full transition-all ${i === currentImageIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/50'}`} />
-                                        ))}
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="text-gray-300 font-bold text-xl">NO IMAGE</div>
-                            )}
+                                </div>
+                                
+                                {/* Thumbnail Strip Removed as per user request */}
+                            </div>
                         </div>
-                    </div>
 
                         {/* 제공 내역 Section */}
                         <section className="py-10 border-t border-slate-100">
@@ -821,12 +825,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         <div className="space-y-4">
                                             {mainKeywords.length > 0 && (
                                                 <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 text-[10px] font-black mb-4 border border-rose-100 text-left">
-                                                        필수 키워드
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-black border border-purple-100 text-left">
+                                                            필수 메인 키워드
+                                                        </div>
+                                                        <span className="text-[11px] font-bold text-purple-500 bg-purple-50/50 px-2 py-0.5 rounded-full border border-purple-100 animate-pulse">
+                                                            💡 1개 선택하여 작성
+                                                        </span>
                                                     </div>
+                                                    
+                                                    <div className="p-4 bg-purple-50/20 rounded-xl border border-dashed border-purple-100 mb-4">
+                                                        <p className="text-[13px] text-slate-600 font-bold leading-relaxed">
+                                                            인플루언서 미션: 아래의 키워드 중 <span className="text-purple-600">가장 자신 있는 키워드 1개를 선택</span>하여 포스팅 제목과 본문에 포함해주세요.
+                                                        </p>
+                                                    </div>
+
                                                     <div className="flex flex-wrap gap-2">
                                                         {mainKeywords.map((kw: string, i: number) => (
-                                                            <span key={i} className="px-3 py-1.5 bg-slate-50 text-slate-900 rounded-xl text-xs font-bold border border-slate-100">
+                                                            <span key={i} className="px-4 py-2 bg-white text-purple-900 rounded-xl text-sm font-bold border border-purple-200 shadow-sm hover:border-purple-400 hover:text-purple-600 transition-all cursor-default">
                                                                 #{kw}
                                                             </span>
                                                         ))}
@@ -836,12 +852,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                             {subKeywords.length > 0 && (
                                                 <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black mb-4 border border-slate-200 text-left">
+                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-black mb-4 border border-emerald-100 text-left">
                                                         서브 키워드
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
                                                         {subKeywords.map((kw: string, i: number) => (
-                                                            <span key={i} className="px-3 py-1.5 bg-white text-slate-600 rounded-xl text-xs font-medium border border-slate-100">
+                                                            <span key={i} className="px-3 py-1.5 bg-emerald-50/30 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-100">
                                                                 #{kw}
                                                             </span>
                                                         ))}
@@ -1230,7 +1246,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 <button
                                                     onClick={handleApply}
                                                     disabled={isClosed}
-                                                    className={`group relative flex-1 py-5 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
+                                                    className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
                                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                                         : !user
                                                             ? 'bg-gray-800 text-white'
@@ -1251,8 +1267,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </button>
                                                 {!isClosed && (
                                                     <div className="shrink-0 flex items-center justify-center">
-                                                         <CampaignShare 
-                                                            campaignId={id} 
+                                                         <CampaignShare
+                                                            campaignId={id}
                                                             title={displayTitle}
                                                             description={campaignIntro}
                                                             thumbnailUrl={campaign.thumbnail_url}
@@ -1307,17 +1323,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recommended for you</p>
                             </div>
                             <div className="flex gap-2">
-                                <Button 
-                                    variant="outline" 
-                                    size="icon" 
+                                <Button
+                                    variant="outline"
+                                    size="icon"
                                     className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
                                     onClick={() => relatedApi?.scrollPrev()}
                                 >
                                     <ChevronLeft className="w-4 h-4 md:w-5 h-5" />
                                 </Button>
-                                <Button 
-                                    variant="outline" 
-                                    size="icon" 
+                                <Button
+                                    variant="outline"
+                                    size="icon"
                                     className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
                                     onClick={() => relatedApi?.scrollNext()}
                                 >
@@ -1379,12 +1395,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 setIsApplySheetOpen(true);
                             }}
                             disabled={isClosed}
-                            className={`flex-1 py-5 rounded-[24px] text-base font-black flex items-center justify-center gap-2 transition-all shadow-2xl active:scale-[0.96] ${isClosed
+                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${
+                                isClosed
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                 : !user
                                     ? 'bg-gray-900 text-white'
                                     : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
-                                }`}
+                            }`}
                         >
                             {isClosed ? closureText : user
                                 ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')

@@ -71,7 +71,7 @@ export interface CampaignState {
     keywords: string[];
     prohibitedWords: string[];
     additionalNotes: string;
-    blogMainKeyword: string;
+    blogMainKeywords: string[];
     blogSubKeywords: string[];
     blogTitleGuide: string;
     blogContentGuide: string;
@@ -155,7 +155,7 @@ const initialState: CampaignState = {
     keywords: [],
     prohibitedWords: [],
     additionalNotes: '',
-    blogMainKeyword: '',
+    blogMainKeywords: [],
     blogSubKeywords: [],
     blogTitleGuide: '노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요',
     blogContentGuide: '',
@@ -253,7 +253,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     keywords: Array.isArray(campaign.keywords) ? campaign.keywords : (Array.isArray(s2.keywords) ? s2.keywords : []),
                     prohibitedWords: s2.prohibitedWords || [],
                     additionalNotes: s2.additionalNotes || '',
-                    blogMainKeyword: s2.blogMainKeyword || '',
+                    blogMainKeywords: Array.isArray(s2.blogMainKeywords) ? s2.blogMainKeywords : (s2.blogMainKeyword ? [s2.blogMainKeyword] : []),
                     blogSubKeywords: s2.blogSubKeywords || [],
                     blogTitleGuide: s2.blogTitleGuide || '노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요',
                     blogContentGuide: s2.blogContentGuide || '',
