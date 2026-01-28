@@ -1,6 +1,7 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
+import PostActions from '@/components/community/PostActions';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -49,6 +50,14 @@ export default async function PostDetailPage({ params }: PageProps) {
             title={post.title}
             createdAt={new Date(post.created_at).toLocaleDateString()}
             viewCount={(post.view_count || 0) + 1}
+            extraHeader={
+                <PostActions
+                    postId={post.id}
+                    postUserId={post.user_id}
+                    postType={post.type}
+                    isPinned={post.is_pinned || false}
+                />
+            }
         >
             <div
                 className="prose prose-xs md:prose-sm max-w-none prose-slate prose-img:rounded-lg leading-relaxed"

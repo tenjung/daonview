@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { BookOpen, PenSquare, Calendar, Eye } from "lucide-react";
+import { BookOpen, PenSquare, Calendar, Eye, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuthStore } from "@/store/authStore";
 
@@ -32,13 +32,44 @@ export default function AdvertiserColumnClient({ initialPosts }: AdvertiserColum
                     <p className="text-gray-500 mt-1">광고주를 위한 마케팅 인사이트와 전략</p>
                 </div>
                 {isAdmin && (
-                    <Link
-                        href="/community/write?type=ACADEMY_ADVERTISER"
-                        className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
-                    >
-                        <PenSquare size={18} />
-                        칼럼 작성
-                    </Link>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={async () => {
+                                if (!confirm('AI 칼럼을 생성하시겠습니까?')) return;
+
+                                try {
+                                    const response = await fetch('/api/admin/generate-column', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ type: 'ACADEMY_ADVERTISER' }),
+                                    });
+
+                                    const data = await response.json();
+
+                                    if (response.ok) {
+                                        alert(`✅ ${data.message}\n⏱️ 소요 시간: ${data.duration}`);
+                                        window.location.reload();
+                                    } else {
+                                        alert(`❌ 오류: ${data.error || data.details}`);
+                                    }
+                                } catch (error) {
+                                    alert('❌ 칼럼 생성 중 오류가 발생했습니다.');
+                                    console.error(error);
+                                }
+                            }}
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold rounded-xl hover:from-blue-600 hover:to-cyan-600 transition-all shadow-lg shadow-blue-500/20 gap-2"
+                        >
+                            <Sparkles size={18} />
+                            AI 칼럼 생성
+                        </button>
+                        <Link
+                            href="/community/write?type=ACADEMY_ADVERTISER"
+                            className="inline-flex items-center justify-center px-5 py-2.5 bg-primary text-white font-bold rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 gap-2"
+                        >
+                            <PenSquare size={18} />
+                            칼럼 작성
+                        </Link>
+                    </div>
                 )}
             </div>
 
@@ -83,12 +114,9 @@ export default function AdvertiserColumnClient({ initialPosts }: AdvertiserColum
                                             <h3 className="text-lg md:text-xl font-semibold text-gray-900 group-hover:text-primary transition-colors mb-2.5 line-clamp-1 leading-snug">
                                                 {post.title}
                                             </h3>
-                                            <div
-                                                className="text-gray-500 text-sm md:text-base line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed"
-                                                dangerouslySetInnerHTML={{
-                                                    __html: post.content.replace(/<[^>]*>?/gm, '').substring(0, 200) + '...'
-                                                }}
-                                            />
+                                            <p className="text-gray-500 text-sm md:text-base line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed">
+                                                {post.content.replace(/<[^>]*>/g, '').substring(0, 200)}...
+                                            </p>
                                             <div className="flex items-center gap-4 text-xs md:text-sm text-gray-400">
                                                 <span className="flex items-center gap-1.5 font-medium">
                                                     <Calendar size={14} />

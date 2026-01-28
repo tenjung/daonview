@@ -33,8 +33,8 @@ export default function PostDetailLayout({
 }: PostDetailLayoutProps) {
     return (
         <div className="max-w-5xl pb-10">
-            {/* Back Button */}
-            <div className="mb-3">
+            {/* Back Button & Actions */}
+            <div className="mb-3 flex items-center justify-between gap-4">
                 <Link
                     href={backLink}
                     className="inline-flex items-center gap-1.5 text-gray-500 hover:text-primary transition-colors text-sm font-semibold"
@@ -42,6 +42,7 @@ export default function PostDetailLayout({
                     <ArrowLeft size={16} />
                     {backLabel}
                 </Link>
+                {extraHeader && <div className="flex-shrink-0">{extraHeader}</div>}
             </div>
 
             {/* Main Content Card */}
@@ -58,12 +59,9 @@ export default function PostDetailLayout({
                         )}
                     </div>
 
-                    <div className="flex items-start justify-between gap-4">
-                        <h1 className="text-lg md:text-xl font-black text-gray-900 mb-3 leading-snug flex-1">
-                            {title}
-                        </h1>
-                        {extraHeader}
-                    </div>
+                    <h1 className="text-lg md:text-xl font-black text-gray-900 mb-3 leading-snug">
+                        {title}
+                    </h1>
 
                     <div className="flex items-center gap-4 text-[11px] text-gray-400 pb-5 border-b border-gray-50">
                         <div className="flex items-center gap-1.5 font-medium">

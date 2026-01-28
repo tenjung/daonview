@@ -1,18 +1,23 @@
-import nodemailer from 'nodemailer';
-import * as AWS from 'aws-sdk';
+/**
+ * ⚠️ AWS SES 샌드박스 모드로 인해 임시 비활성화
+ * ✅ AWS SES 프로덕션 승인 후 아래 주석을 해제하세요
+ */
 
-// AWS SES 설정
-const ses = new AWS.SES({
-  apiVersion: '2010-12-01',
-  region: process.env.AWS_SES_REGION || 'ap-northeast-2',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-});
+// import nodemailer from 'nodemailer';
+// import * as AWS from 'aws-sdk';
 
-// Nodemailer Transporter 생성
-const transporter = nodemailer.createTransport({
-  SES: { ses, aws: AWS },
-});
+// // AWS SES 설정
+// const ses = new AWS.SES({
+//   apiVersion: '2010-12-01',
+//   region: process.env.AWS_SES_REGION || 'ap-northeast-2',
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+// });
+
+// // Nodemailer Transporter 생성
+// const transporter = nodemailer.createTransport({
+//   SES: { ses, aws: AWS },
+// });
 
 export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
 
@@ -143,8 +148,17 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
 };
 
 /**
- * 이메일 전송 함수
+ * 이메일 전송 함수 (임시 비활성화)
+ * ⚠️ AWS SES 샌드박스 모드로 인해 임시 비활성화
+ * ✅ AWS SES 프로덕션 승인 후 아래 주석을 해제하세요
  */
+export const sendEmail = async (to: string, type: EmailType, params: EmailParams) => {
+  console.log('[EMAIL DISABLED] Would send email:', { to, type, params });
+  return { success: true, messageId: `temp-${Date.now()}` };
+};
+
+/*
+// ✅ AWS SES 프로덕션 승인 후 아래 주석 해제
 export const sendEmail = async (to: string, type: EmailType, params: EmailParams) => {
   try {
     const { subject, html } = getEmailTemplate(type, params);
@@ -163,3 +177,4 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     throw error;
   }
 };
+*/
