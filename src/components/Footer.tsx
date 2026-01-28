@@ -25,7 +25,7 @@ export default function Footer() {
     };
 
     return (
-        <footer className="relative z-50 bg-white border-t border-border mt-16">
+        <footer className="relative z-50 bg-white border-t border-border">
             {/* Desktop Footer - Single Line */}
             <div className="hidden lg:block">
                 <div className="w-[90%] max-w-[1200px] mx-auto py-2.5">

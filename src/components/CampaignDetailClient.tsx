@@ -14,6 +14,11 @@ import {
     ShoppingBag,
     PenTool,
     Instagram,
+    PenLine,
+    Target,
+    CalendarCheck,
+    Calendar,
+    Users,
     Gift,
     ArrowRight,
     Youtube,
@@ -23,7 +28,7 @@ import {
     CheckCircle2
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
-import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
+import CampaignCard, { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
@@ -74,6 +79,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [modalApi, setModalApi] = useState<CarouselApi>();
     const [isApplySheetOpen, setIsApplySheetOpen] = useState(false);
     const [isOptionsExpanded, setIsOptionsExpanded] = useState(true);
+    const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
+    const [relatedApi, setRelatedApi] = useState<CarouselApi>();
 
     // Sync modal carousel when it opens or external index changes
     useEffect(() => {
@@ -107,6 +114,44 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         init();
         return () => { isMounted = false; };
     }, [user?.id, id]);
+
+    // Fetch Related Campaigns
+    useEffect(() => {
+        const fetchRelatedCampaigns = async () => {
+            if (!campaign?.created_by) return;
+
+            try {
+                // 1. Same brand campaigns
+                const { data: brandData } = await supabase
+                    .from('campaigns')
+                    .select('*')
+                    .eq('created_by', campaign.created_by)
+                    .neq('id', campaign.id)
+                    .limit(8);
+
+                let merged = brandData || [];
+
+                // 2. If less than 4, add always recruiting campaigns
+                if (merged.length < 4) {
+                    const { data: alwaysData } = await supabase
+                        .from('campaigns')
+                        .select('*')
+                        .eq('is_always_recruiting', true)
+                        .neq('id', campaign.id)
+                        .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
+                        .limit(8 - merged.length);
+                    
+                    merged = [...merged, ...(alwaysData || [])];
+                }
+
+                setRelatedCampaigns(merged);
+            } catch (error) {
+                console.error('Error fetching related campaigns:', error);
+            }
+        };
+
+        fetchRelatedCampaigns();
+    }, [campaign.created_by, campaign.id]);
 
     const fetchCampaign = async () => {
         const { data } = await supabase
@@ -543,8 +588,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     else if (isNotRecruiting) closureText = '현재 신청 가능한 상태가 아닙니다';
 
     return (
-        <div className="min-h-screen bg-gray-50/30 pb-24">
-            <div className="container py-6 md:py-12 max-w-[1400px] w-full px-4 mx-auto">
+        <div className="bg-white pb-0">
+            <div className="container py-4 md:py-8 max-w-[1240px] w-full px-6 mx-auto">
                 {/* Breadcrumb - Reduced bottom margin */}
                 <div className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-400">
                     <Link href="/campaigns" className="hover:text-rose-500 transition-colors flex items-center gap-1">
@@ -552,27 +597,30 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </Link>
                 </div>
 
-                {/* Campaign Header Section: Badges & Title - Compressed spacing */}
-                <div className="mb-6 mt-1 space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                        <TypeBadge type={campaign.type} />
-                        <PlatformBadge platform={campaign.platform} />
-                        {campaign.type === 'VISIT' && <RegionBadge region={campaign.region} />}
-                        <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
+                {/* Campaign Header Section */}
+                <div className="mb-6 mt-0 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <TypeBadge type={campaign.type} />
+                            <PlatformBadge platform={campaign.platform} />
+                            {campaign.type === 'VISIT' && <RegionBadge region={campaign.region} />}
+                            <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
+                        </div>
                         <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
                     </div>
 
-                    <h1 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight tracking-tight truncate">
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight">
                         {displayTitle}
                     </h1>
                 </div>
 
-                {/* Main Layout: Left Content + Right Sticky Panel */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                    {/* Left Content Area (Scrollable) - Compressed vertical spacing */}
-                    <div className="lg:col-span-7 space-y-5">
-                        {/* Main Image Slider - Slightly reduced aspect for compactness */}
-                        <div className="w-full bg-white rounded-2xl aspect-[4/3] border border-gray-100 flex items-center justify-center overflow-hidden relative shadow-md group">
+                {/* Main Layout: Left Content + Right Sticky Aside */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-100">
+                    {/* Left Content Area (Scrollable) */}
+                    <div className="lg:col-span-8 pb-10">
+                        {/* Main Image Slider */}
+                        <div className="pt-4 mb-8">
+                            <div className="w-full max-w-xl mx-auto bg-slate-50 rounded-lg aspect-square border border-slate-100 flex items-center justify-center overflow-hidden relative group">
                             {images.length > 0 ? (
                                 <>
                                     <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
@@ -659,32 +707,32 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 <div className="text-gray-300 font-bold text-xl">NO IMAGE</div>
                             )}
                         </div>
+                    </div>
 
-                        {/* 제공 내역 Section - Professional Re-design */}
-                        <section className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                            <div className="flex items-center gap-3 mb-8">
-                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
-                                    📦
+                        {/* 제공 내역 Section */}
+                        <section className="py-10 border-t border-slate-100">
+                            <div className="flex items-center gap-4 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                                    <Gift className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">제공 내역</h2>
-                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Provision Details</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">제공 내역</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Provision Details</p>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
 
 
-                                <div className="bg-slate-50/50 rounded-2xl p-7 border border-slate-100 relative overflow-hidden group">
-                                    <div className="absolute top-0 left-0 w-1 h-full bg-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    <p className="text-[15px] font-medium text-slate-700 leading-8 whitespace-pre-line">
+                                <div className="relative overflow-hidden">
+                                    <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium">
                                         {campaignIntro || '제공 내역 정보가 없습니다.'}
                                     </p>
                                     {campaign.official_price && (
-                                        <div className="mt-6 pt-6 border-t border-slate-200/60 flex items-center justify-between">
-                                            <span className="text-xs font-bold text-slate-400">정가 안내</span>
-                                            <p className="text-lg font-black text-slate-900">
-                                                {parseInt(campaign.official_price).toLocaleString()}<span className="text-sm ml-1 font-bold">원</span>
+                                        <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
+                                            <span className="text-sm font-bold text-slate-400">정가</span>
+                                            <p className="text-xl font-bold text-slate-900">
+                                                {parseInt(campaign.official_price).toLocaleString()}<span className="text-sm ml-1 font-medium">원</span>
                                             </p>
                                         </div>
                                     )}
@@ -692,15 +740,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
                         </section>
 
-                        {/* 체험 미션 Section - 시안 B: 플랫폼별 수직 스택 */}
-                        <section className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                            <div className="flex items-center gap-3 mb-10">
-                                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
-                                    💰
+                        {/* 체험 미션 Section */}
+                        <section className="py-10 border-t border-slate-100">
+                            <div className="flex items-center gap-4 mb-8">
+                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                                    <Target className="w-5 h-5" strokeWidth={2.5} />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 tracking-tight">체험 미션 가이드</h2>
-                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Experience Mission Guide</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">체험 미션 가이드</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Experience Mission Guide</p>
                                 </div>
                             </div>
 
@@ -708,11 +756,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 {/* 1. 구매평 작성 가이드 (배송형 + 구매평 미션이 있을 때) */}
                                 {(purchaseReviewGuide || purchaseNotes) && (
                                     <div className="space-y-6">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500">
-                                                <ShoppingBag size={18} />
+                                        <div className="flex items-center gap-4 mb-2">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
+                                                <ShoppingBag size={20} strokeWidth={2.5} />
                                             </div>
-                                            <h3 className="text-lg font-black text-slate-900">구매평 작성 가이드</h3>
+                                            <h3 className="text-lg font-bold text-slate-900">구매평 작성 가이드</h3>
                                         </div>
 
                                         <div className="grid grid-cols-1 gap-4">
@@ -737,8 +785,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 {/* 2. 플랫폼 포스팅 가이드 (블로그/인스타그램 등) */}
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500">
-                                            {campaign.platform?.toUpperCase().includes('INSTAGRAM') ? <Instagram size={18} /> : <PenTool size={18} />}
+                                        <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
+                                            {campaign.platform?.toUpperCase().includes('INSTAGRAM') ? <Instagram size={20} strokeWidth={2.5} /> : <PenTool size={20} strokeWidth={2.5} />}
                                         </div>
                                         <h3 className="text-lg font-black text-slate-900">
                                             {campaign.platform?.toUpperCase().includes('BLOG') ? '네이버 블로그 포스팅 가이드' :
@@ -816,9 +864,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                     {/* 상세 포스팅 가이드 */}
                                     {missionGuide && (
-                                        <div className="p-7 bg-slate-900 rounded-3xl border border-slate-800 shadow-xl">
-                                            <p className="text-[11px] font-bold text-slate-400 mb-4 uppercase tracking-[0.2em] text-left">📝 상세 포스팅 가이드</p>
-                                            <div className="text-[14px] text-slate-300 leading-8 whitespace-pre-line font-medium">
+                                        <div className="p-8 bg-slate-50 rounded-2xl border border-slate-100">
+                                            <p className="text-[11px] font-bold text-slate-400 mb-5 uppercase tracking-widest text-left font-mono">Mission Detail</p>
+                                            <div className="text-[15px] text-slate-600 leading-8 whitespace-pre-line font-medium">
                                                 {missionGuide}
                                             </div>
                                         </div>
@@ -842,16 +890,16 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
                         </section>
 
-                        {/* 방문 및 예약 안내 (방문형일 때만 노출) - Professional Re-design */}
+                        {/* 방문 및 예약 안내 */}
                         {campaign.type === 'VISIT' && (
-                            <section className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
-                                        📅
+                            <section className="py-10 border-t border-slate-100">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
+                                        <CalendarCheck className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">방문 및 예약</h2>
-                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Visit & Reservation</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">방문 및 예약</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Visit & Reservation</p>
                                     </div>
                                 </div>
 
@@ -891,38 +939,38 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </section>
                         )}
 
-                        {/* 매장 정보 (방문형일 때만 노출) - Professional Re-design */}
+                        {/* 매장 정보 */}
                         {campaign.type === 'VISIT' && stores.length > 0 && (
-                            <section className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm transition-all hover:shadow-md">
-                                <div className="flex items-center gap-3 mb-8">
-                                    <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-xl">
-                                        📍
+                            <section className="py-10 border-t border-slate-100">
+                                <div className="flex items-center gap-4 mb-6">
+                                    <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+                                        <MapPin className="w-5 h-5" />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 tracking-tight">매장 정보</h2>
-                                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mt-1">Location Details</p>
+                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">매장 정보</h2>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Location Details</p>
                                     </div>
                                 </div>
 
-                                <div className="space-y-4">
+                                <div className="space-y-6">
                                     {stores.map((store: any, i: number) => (
-                                        <div key={i} className="p-7 bg-white rounded-3xl border border-slate-100 group hover:border-rose-200 transition-all">
-                                            <div className="flex justify-between items-start mb-4">
-                                                <h3 className="text-lg font-black text-slate-900">{store.storeName}</h3>
+                                        <div key={i} className="group">
+                                            <div className="flex justify-between items-center mb-4">
+                                                <h3 className="text-lg font-bold text-slate-900">{store.storeName}</h3>
                                                 {store.naverPlaceUrl && (
                                                     <a
                                                         href={store.naverPlaceUrl}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded-lg hover:bg-rose-500 hover:text-white transition-all flex items-center gap-1.5"
+                                                        className="text-slate-400 text-xs font-bold hover:text-rose-500 transition-all flex items-center gap-1.5"
                                                     >
-                                                        네이버 지도 <ExternalLink size={10} />
+                                                        지도로 보기 <ExternalLink size={12} />
                                                     </a>
                                                 )}
                                             </div>
-                                            <div className="flex items-center gap-3 py-4 px-5 bg-slate-50 rounded-2xl border border-slate-50">
-                                                <MapPin size={16} className="text-slate-400 shrink-0" />
-                                                <p className="text-sm text-slate-600 font-medium leading-relaxed">
+                                            <div className="flex items-center gap-3">
+                                                <MapPin size={14} className="text-slate-300 shrink-0" />
+                                                <p className="text-sm text-slate-500 font-medium">
                                                     {store.address || '주소 정보 없음'}
                                                 </p>
                                             </div>
@@ -933,37 +981,56 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         )}
                     </div>
 
-                    {/* Right Sticky Panel (Desktop Only) - Expanded for balance */}
-                    <div className="lg:col-span-5 relative">
-                        <div className="lg:sticky lg:top-24">
-                            <div id="options-section" className="bg-white rounded-3xl p-6 md:p-8 border-2 border-rose-100 shadow-xl flex flex-col transition-all duration-500">
-                                {/* Campaign Info Cards */}
-                                <div className="grid grid-cols-2 gap-3 mb-6">
-                                    {/* 체험 기간 */}
-                                    <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 p-4 rounded-2xl border border-orange-200">
-                                        <p className="text-[10px] text-orange-600 font-bold mb-1.5 uppercase tracking-wider">📅 체험 기간</p>
-                                        <p className="text-sm font-black text-gray-900">{isAlwaysRecruiting ? '상시 모집' : startDate.replace('2025. ', '').replace('2026. ', '')}</p>
-                                        <p className="text-[10px] text-gray-500 mt-0.5">
-                                            {isAlwaysRecruiting ? '중지 시까지 무제한' : `~ ${endDateLabel.replace('2025. ', '').replace('2026. ', '')}`}
-                                        </p>
+                    {/* Right Sticky Aside */}
+                    <div className="lg:col-span-4 border-l border-slate-100 bg-slate-50/30 relative">
+                        <div className="lg:sticky lg:top-24 p-6 md:p-8">
+                            <div id="options-section" className="flex flex-col">
+                                {/* Campaign Info Summary */}
+                                <div className="space-y-4 mb-8">
+                                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                                                <Calendar className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-500">모집 기간</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-slate-900">
+                                                {isAlwaysRecruiting ? '상시 모집' : `${startDate} ~ ${endDateLabel}`}
+                                            </p>
+                                            <p className="text-[10px] text-rose-500 font-bold mt-0.5">
+                                                {isAlwaysRecruiting ? '중지 시까지' : formatDDay(campaign.end_date)}
+                                            </p>
+                                        </div>
                                     </div>
 
-                                    {/* 신청 인원 */}
-                                    <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 p-4 rounded-2xl border border-blue-200">
-                                        <p className="text-[10px] text-blue-600 font-bold mb-1.5 uppercase tracking-wider">👥 신청 인원</p>
-                                        <p className="text-sm font-black text-gray-900">
-                                            <span className="text-rose-500">{appCount}</span> / {campaign.recruit_count}명
-                                        </p>
-                                        <p className="text-[10px] text-gray-500 mt-0.5">
-                                            {isClosed ? '마감됨' : `${campaign.recruit_count - appCount}명 남음`}
-                                        </p>
+                                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                                                <Users className="w-5 h-5" />
+                                            </div>
+                                            <span className="text-sm font-bold text-slate-500">모집 인원</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-sm font-bold text-slate-900">
+                                                <span className="text-rose-500 font-extrabold">{appCount}</span> / {campaign.recruit_count}명
+                                            </p>
+                                            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                {isClosed ? '마감됨' : `${campaign.recruit_count - appCount}명 남음`}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div className="h-px bg-gray-100 mb-6"></div>
-
-                                <h2 className="text-xl font-black text-gray-900 mb-2">신청 정보</h2>
-                                <p className="text-xs text-gray-400 mb-6 font-medium">원하는 옵션과 메시지를 남겨주세요.</p>
+                                <div className="mb-4 flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
+                                        <PenLine className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-slate-900 mb-0.5">신청 정보</h2>
+                                        <p className="text-[11px] text-slate-400 font-medium">옵션과 한마디를 적어주세요.</p>
+                                    </div>
+                                </div>
 
                                 {!hasApplied ? (
                                     <div className="flex-1 flex flex-col">
@@ -1175,6 +1242,65 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </div>
                 </div>
             </div>
+
+            {/* Related Campaigns Section (Slider) */}
+            {relatedCampaigns.length > 0 && (
+                <div className="bg-slate-50 border-t border-slate-100 py-4 md:py-6">
+                    <div className="container max-w-[1240px] px-6 mx-auto">
+                        <div className="flex items-center justify-between mb-6 md:mb-8">
+                            <div>
+                                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">추천 캠페인</h2>
+                                <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recommended for you</p>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
+                                    onClick={() => relatedApi?.scrollPrev()}
+                                >
+                                    <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+                                </Button>
+                                <Button 
+                                    variant="outline" 
+                                    size="icon" 
+                                    className="rounded-xl border-slate-200 bg-white w-9 h-9 md:w-10 md:h-10 hover:bg-slate-50 transition-colors"
+                                    onClick={() => relatedApi?.scrollNext()}
+                                >
+                                    <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+                                </Button>
+                            </div>
+                        </div>
+
+                        <Carousel
+                            opts={{ align: "start", loop: false }}
+                            setApi={setRelatedApi}
+                            className="w-full"
+                        >
+                            <CarouselContent className="-ml-4 pb-4">
+                                {relatedCampaigns.map((rc) => (
+                                    <CarouselItem key={rc.id} className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                                        <div className="h-full">
+                                            <CampaignCard
+                                                id={rc.id}
+                                                title={rc.title}
+                                                platform={rc.platform}
+                                                type={rc.type}
+                                                applicants={rc.app_count || 0}
+                                                total={rc.recruit_count || 0}
+                                                dday={rc.is_always_recruiting ? '상시' : formatDDay(rc.end_date)}
+                                                imageUrl={rc.thumbnail_url}
+                                                provision={rc.provision_details}
+                                                region={rc.region}
+                                            />
+                                        </div>
+                                    </CarouselItem>
+                                ))}
+                            </CarouselContent>
+                        </Carousel>
+                    </div>
+                </div>
+            )}
 
             <ConfirmDialog
                 isOpen={showCancelDialog}

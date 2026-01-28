@@ -1,11 +1,106 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check, Info } from 'lucide-react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check, Info, GripVertical } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { supabase } from '@/lib/supabaseClient';
+
+// @dnd-kit imports
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    rectSortingStrategy,
+    useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// --- Sortable Image Item Component ---
+interface SortableImageItemProps {
+    id: string;
+    url: string;
+    index: number;
+    onRemove: () => void;
+}
+
+function SortableImageItem({ id, url, index, onRemove }: SortableImageItemProps) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 50 : undefined,
+    };
+
+    return (
+        <div 
+            ref={setNodeRef} 
+            style={style} 
+            className={`
+                relative aspect-square rounded-xl overflow-hidden group transition-all duration-300
+                ${index === 0 
+                    ? 'border-2 border-rose-500 shadow-md ring-2 ring-rose-50' 
+                    : 'border-2 border-slate-100 hover:border-slate-300'}
+                ${isDragging ? 'opacity-50 scale-105 shadow-xl z-50' : 'opacity-100'}
+            `}
+        >
+            <img src={url} alt={`CamImg-${index}`} className="w-full h-full object-cover" />
+            
+            {/* 드래그 영역 (전체 커버) */}
+            <div 
+                {...attributes} 
+                {...listeners} 
+                className="absolute inset-0 cursor-move z-0" 
+            />
+
+            {/* 컨트롤 레이어 */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors pointer-events-none" />
+            
+            {/* 순서 핸들 아이콘 (호버 시 표시) */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity pointer-events-none">
+                <GripVertical className="text-white" size={24} />
+            </div>
+
+            {/* 대표 배지 */}
+            {index === 0 && (
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-md shadow-sm z-10 animate-in fade-in zoom-in duration-300">
+                    대표 이미지
+                </div>
+            )}
+
+            {/* 삭제 버튼 */}
+            <button 
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onRemove();
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-white/90 text-slate-600 rounded-full hover:bg-rose-500 hover:text-white transition-all shadow-sm z-10 opacity-0 group-hover:opacity-100"
+            >
+                <X size={14} />
+            </button>
+        </div>
+    );
+}
+
 
 // Step1Data 인터페이스 (Step1에서 전달받는 데이터)
 interface Step1Data {
@@ -75,6 +170,32 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
             handleNext();
         }
     }, [submitTrigger]);
+
+
+    // DND Sensors
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 8, // 8px 이동해야 드래그 시작 (클릭과 구분)
+            },
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            setFormData(prev => {
+                const oldIndex = prev.campaignImages.indexOf(active.id as string);
+                const newIndex = prev.campaignImages.indexOf(over.id as string);
+                const newImages = arrayMove(prev.campaignImages, oldIndex, newIndex);
+                return { ...prev, campaignImages: newImages };
+            });
+        }
+    };
+
     const [formData, setFormData] = useState<Step2Data>({
         campaignTitle: initialData?.campaignTitle || step1Data.campaignTitle || '',
         campaignImages: initialData?.campaignImages || [],
@@ -468,61 +589,77 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, onChange, i
                     </div>
                 ) : (
                     <>
-                        <div className="grid grid-cols-4 gap-3 mb-4">
-                            {/* 대표 이미지 (Slot 0) */}
-                            <div className="space-y-1.5">
-                                <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-tight text-center">대표 이미지</h3>
-                                {formData.campaignImages[0] ? (
-                                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-blue-500 group shadow-sm">
-                                        <img src={formData.campaignImages[0]} alt="대표" className="w-full h-full object-cover" />
-                                        <button onClick={() => removeImage(0)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
-                                    </div>
-                                ) : (
-                                    <label className="aspect-square rounded-lg border-2 border-dashed border-gray-200 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors bg-gray-50/50">
-                                        <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                                        <Upload className="text-gray-300" size={20} />
-                                        <span className="text-[10px] font-bold text-gray-400">대표</span>
-                                    </label>
-                                )}
-                            </div>
+                        <div className="mb-6">
+                            <DndContext 
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext 
+                                    items={formData.campaignImages}
+                                    strategy={rectSortingStrategy}
+                                >
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                                        {formData.campaignImages.map((url, index) => (
+                                            <SortableImageItem 
+                                                key={url} 
+                                                id={url} 
+                                                url={url} 
+                                                index={index} 
+                                                onRemove={() => removeImage(index)} 
+                                            />
+                                        ))}
 
-                            {/* 상세 이미지 슬롯 1, 2, 3 */}
-                            {[1, 2, 3].map((idx) => (
-                                <div key={idx} className="space-y-1.5">
-                                    <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-tight text-center">이미지 {idx}</h3>
-                                    {formData.campaignImages[idx] ? (
-                                        <div className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group shadow-sm">
-                                            <img src={formData.campaignImages[idx]} alt={`상세${idx}`} className="w-full h-full object-cover" />
-                                            <button onClick={() => removeImage(idx)} className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={12} /></button>
-                                        </div>
-                                    ) : (
-                                        <label className={`aspect-square rounded-lg border-2 border-dashed border-gray-100 hover:border-blue-500 cursor-pointer flex flex-col items-center justify-center gap-1 transition-colors ${!formData.campaignImages[0] ? 'opacity-30 cursor-not-allowed' : ''}`}>
-                                            <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" disabled={!formData.campaignImages[0]} />
-                                            <Upload className="text-gray-200" size={18} />
-                                            <span className="text-[10px] font-medium text-gray-300">추가</span>
-                                        </label>
-                                    )}
-                                </div>
-                            ))}
+                                        {/* 빈 슬롯 표시 */}
+                                        {Array.from({ length: 4 - formData.campaignImages.length }).map((_, idx) => (
+                                            <div key={`empty-${idx}`} className="space-y-1.5">
+                                                <div 
+                                                    className={`
+                                                        aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all cursor-pointer
+                                                        ${formData.campaignImages.length === 0 && idx === 0 
+                                                            ? 'border-rose-200 bg-rose-50/30' 
+                                                            : 'border-slate-100 bg-slate-50/30 hover:border-slate-300 hover:bg-slate-50'}
+                                                    `}
+                                                    onClick={() => document.getElementById('image-upload-input')?.click()}
+                                                >
+                                                    <div className={`p-2 rounded-full ${formData.campaignImages.length === 0 && idx === 0 ? 'bg-rose-100 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
+                                                        <Upload size={20} />
+                                                    </div>
+                                                    <span className="text-[11px] font-bold text-slate-400">
+                                                        {formData.campaignImages.length === 0 && idx === 0 ? '대표 이미지 등록' : '추가 등록'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </SortableContext>
+                            </DndContext>
+
+                            <input
+                                id="image-upload-input"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={handleImageUpload}
+                                className="hidden"
+                            />
                         </div>
 
-                        {/* 상세 이미지 추가 버튼 */}
-                        {formData.campaignImages.length > 0 && formData.campaignImages.length < 4 && (
-                            <button
-                                onClick={() => document.getElementById('add-detail-image')?.click()}
-                                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-blue-500 hover:text-blue-600 transition-colors flex items-center justify-center gap-2"
-                            >
-                                <Upload size={20} />
-                                <span className="font-medium">상세 이미지 추가 (최대 3개)</span>
-                                <input
-                                    id="add-detail-image"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-                            </button>
-                        )}
+                        {/* 하단 도움말 */}
+                        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 mb-2">
+                            <div className="flex gap-2 items-start">
+                                <Info size={16} className="text-slate-400 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-[13px] text-slate-600 leading-snug">
+                                        첫 번째 이미지가 <strong>대표 이미지</strong>로 설정됩니다.
+                                    </p>
+                                    <p className="text-[12px] text-slate-500">
+                                        이미지를 드래그하여 순서를 자유롭게 변경할 수 있습니다. (최대 4개)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                     </>
                 )}
             </section>

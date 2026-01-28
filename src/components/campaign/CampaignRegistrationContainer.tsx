@@ -132,19 +132,84 @@ export default function CampaignRegistrationContainer() {
     };
 
     const handleFinalSubmit = async (step3Data: any, latestStep2Data?: any) => {
+        if (!user || !step1Data) return;
         setIsSubmitting(true);
-        // ... (최종 제출 로직은 page.tsx에서 이관하되 핵심 기능 유지)
-        // 여기서는 구조를 위해 성공 시 리다이렉트만 표시
+
+        const s2Data = latestStep2Data || step2Data;
+        const thumbnail = s2Data?.campaignImages?.[0] || '';
+        
+        // [무결성] DB 스키마에 존재하는 컬럼만 최상위 필드로 구성
+        const campaignData: any = {
+            title: step1Data.campaignTitle || step1Data.productName || '제목 없음',
+            brand_name: step1Data.brandName || null,
+            brand_id: step1Data.brandId || null,
+            product_name: step1Data.productName || null,
+            type: (step1Data.campaignType || 'VISIT').toUpperCase(),
+            platform: (step1Data.platform || 'BLOG').toUpperCase(),
+            category: step1Data.category || null,
+            region: step1Data.region || null,
+            thumbnail_url: thumbnail,
+            campaign_images: s2Data?.campaignImages || [],
+            total_recruitment: parseInt(step1Data.totalRecruitment || '0'),
+            recruit_count: parseInt(step1Data.totalRecruitment || '0'),
+            reward_per_person: Number(step1Data.officialPrice || 0), // official_price 대신 reward_per_person 사용
+            product_options: step1Data.productOptions || [],
+            // 확장 데이터는 campaign_options JSONB 필드에 저장 (배열 구조 유지)
+            campaign_options: [{
+                step1Data: {
+                    ...step1Data,
+                    contactPhone: step1Data.contactPhone,
+                    stores: step1Data.stores || []
+                },
+                step2Data: {
+                    ...s2Data,
+                    missionGuide: s2Data?.missionGuide,
+                    keywords: s2Data?.keywords
+                },
+                step3Data,
+                currentStep: 3,
+                lastUpdated: new Date().toISOString()
+            }]
+        };
+
         try {
-            // 실제 제출 로직 생략 (page.tsx에서 가져옴)
-            toast.success('캠페인이 성공적으로 등록되었습니다.');
+            let result;
+            if (isEdit) {
+                const campaignId = searchParams?.get('id');
+                // 수정 시에는 update 실행
+                result = await supabase
+                    .from('campaigns')
+                    .update(campaignData)
+                    .eq('id', campaignId);
+            } else {
+                // 신규 등록 시 created_by 및 기본 상태 추가
+                campaignData.created_by = user.id;
+                campaignData.status = 'PENDING';
+                
+                result = await supabase
+                    .from('campaigns')
+                    .insert([campaignData])
+                    .select();
+                
+                // 성공 시 임시저장 데이터 삭제
+                if (currentDraftId && !result.error) {
+                    await supabase.from('campaign_drafts').delete().eq('id', currentDraftId);
+                }
+            }
+
+            if (result.error) throw result.error;
+
+            toast.success(isEdit ? '캠페인이 성공적으로 수정되었습니다.' : '캠페인이 성공적으로 등록되었습니다.');
             router.push(profile?.role === 'ADMIN' ? '/dashboard/admin/campaigns' : '/dashboard/advertiser');
-        } catch (e) {
-            toast.error('등록 중 오류가 발생했습니다.');
+        } catch (e: any) {
+            console.error('Save Error:', e);
+            toast.error(`저장 중 오류가 발생했습니다: ${e.message || '알 수 없는 오류'}`);
         } finally {
             setIsSubmitting(false);
         }
     };
+
+
 
     // --- 스텝 이동 로직 ---
     const goToStep = (step: number) => {
@@ -177,23 +242,27 @@ export default function CampaignRegistrationContainer() {
                     </div>
 
                     {/* 스텝 내비게이션 (복구됨) */}
-                    <nav className="relative flex justify-between max-w-2xl mx-auto mb-12">
+                    <nav className="relative flex justify-between max-w-md mx-auto mb-12">
                         {/* 배경 선 */}
                         <div className="absolute top-5 left-0 w-full h-0.5 bg-slate-200 -z-0" />
                         
                         {[1, 2, 3].map((step) => (
-                            <div key={step} className="relative z-10 flex flex-col items-center gap-2">
+                            <div 
+                                key={step} 
+                                className="relative z-10 flex flex-col items-center gap-2 cursor-pointer group"
+                                onClick={() => goToStep(step)}
+                            >
                                 <div 
                                     className={`
-                                        w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300
-                                        ${currentStep >= step 
-                                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-200' 
-                                            : 'bg-white text-slate-400 border-2 border-slate-200'}
+                                        w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 transform group-hover:scale-110
+                                        ${currentStep === step 
+                                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-200 ring-4 ring-rose-50' 
+                                            : 'bg-white text-slate-400 border-2 border-slate-200 group-hover:border-rose-300 group-hover:text-rose-400'}
                                     `}
                                 >
                                     {step}
                                 </div>
-                                <span className={`text-xs font-bold transition-colors duration-300 ${currentStep >= step ? 'text-rose-600' : 'text-slate-400'}`}>
+                                <span className={`text-xs font-bold transition-colors duration-300 ${currentStep === step ? 'text-rose-600 scale-105' : 'text-slate-400 group-hover:text-rose-400'}`}>
                                     {step === 1 ? '기본 정보' : step === 2 ? '상세 설정' : '등록 확인'}
                                 </span>
                             </div>
