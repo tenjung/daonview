@@ -157,10 +157,10 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
     };
 
     return (
-        <div className="relative w-full overflow-hidden rounded-[2rem] border border-slate-200/60 bg-slate-50 shadow-xl min-h-[340px] transition-all duration-500">
+        <div className="relative w-full overflow-hidden rounded-[2rem] border border-slate-200/60 bg-slate-50 shadow-xl min-h-[480px] transition-all duration-500">
             <div
                 ref={mapRef}
-                className={`w-full h-[340px] transition-opacity duration-700 ${status === MAP_STATUS.READY ? 'opacity-100' : 'opacity-0'
+                className={`w-full h-[480px] transition-opacity duration-700 ${status === MAP_STATUS.READY ? 'opacity-100' : 'opacity-0'
                     }`}
             />
 

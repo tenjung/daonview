@@ -1236,7 +1236,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                 {/* 매장 지도 미리보기 추가 */}
                                                 <div className="mt-3">
                                                     <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-tight">위치 미리보기</label>
-                                                    <div className="h-40 rounded-xl overflow-hidden border border-slate-100 shadow-inner">
+                                                    <div className="rounded-xl overflow-hidden border border-slate-100 shadow-inner">
                                                         <NaverMap
                                                             address={sItem.address}
                                                             storeName={sItem.storeName}

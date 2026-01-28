@@ -579,7 +579,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const visitTimeNegotiable = campaign.visit_time_negotiable || step1Data.visitTimeNegotiable || false;
     const visitDays = Array.isArray(campaign.visit_days) ? campaign.visit_days : (step1Data.visitDays || []);
     const visitNotes = campaign.visit_notes || step1Data.visitNotes || '';
-    const stores = Array.isArray(campaign.stores) ? campaign.stores : (step1Data.stores || []);
+    // 우선순위: store_locations (DB 컬럼) > campaign_options.stores (레거시)
+    // store_locations에 좌표가 저장되어 있으면 API 호출 없이 지도 표시 가능
+    const stores = Array.isArray(campaign.store_locations) && campaign.store_locations.length > 0
+        ? campaign.store_locations
+        : (Array.isArray(campaign.stores) ? campaign.stores : (step1Data.stores || []));
 
     // Recruitment Closure Logic
     const nowStr = new Date().toISOString().split('T')[0];
