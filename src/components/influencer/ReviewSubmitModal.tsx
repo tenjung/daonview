@@ -3,12 +3,12 @@
 import { useState, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
     DialogTitle,
-    DialogFooter 
+    DialogFooter
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -146,6 +146,38 @@ export default function ReviewSubmitModal({
                     content: `[${campaignTitle}] 캠페인에 새로운 리뷰가 제출되었습니다. 검토를 시작해 주세요.`,
                     link: `/dashboard/advertiser/reviews?campaignId=${campaignId}`
                 });
+
+                // 5. 광고주에게 카카오 알림톡 발송
+                try {
+                    const { data: advertiserData } = await supabase
+                        .from('profiles')
+                        .select('nickname, phone_number')
+                        .eq('id', creatorId)
+                        .single();
+
+                    if (advertiserData?.phone_number) {
+                        const { sendReviewSubmittedAlimtalk } = await import('@/lib/alimtalk');
+                        const { data: influencerData } = await supabase
+                            .from('profiles')
+                            .select('nickname')
+                            .eq('id', user.id)
+                            .single();
+
+                        const alimtalkResult = await sendReviewSubmittedAlimtalk(
+                            advertiserData.phone_number,
+                            advertiserData.nickname || '광고주',
+                            campaignTitle,
+                            influencerData?.nickname || '인플루언서',
+                            reviewUrl
+                        );
+
+                        if (!alimtalkResult.success) {
+                            console.warn('광고주 알림톡 발송 실패:', alimtalkResult.error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('광고주 알림톡 발송 중 오류:', error);
+                }
             }
 
             toast.success('리뷰가 성공적으로 등록되었습니다!');
@@ -203,12 +235,12 @@ export default function ReviewSubmitModal({
                             <span>리뷰 사진/영상 첨부 (최대 5개)</span>
                             <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{mediaUrls.length} / 5</span>
                         </Label>
-                        
+
                         <div className="grid grid-cols-5 gap-2">
                             {mediaUrls.map((url, index) => (
                                 <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
                                     <img src={url} alt={`media-${index}`} className="w-full h-full object-cover" />
-                                    <button 
+                                    <button
                                         onClick={() => removeMedia(url)}
                                         className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                     >

@@ -627,7 +627,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 {/* Main Layout: Left Content + Right Sticky Aside */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-100">
                     {/* Left Content Area (Scrollable) */}
-                    <div className="lg:col-span-8 pb-10">
+                    <div className="lg:col-span-8 pb-10 pr-2.5">
                         {/* Main Image Slider */}
                         <div className="pt-4 mb-8">
                             <div className="w-full max-w-xl mx-auto">
@@ -1046,7 +1046,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     {store.address || '주소 정보 없음'}
                                                 </p>
                                             </div>
-                                            {store.address && (
+                                            {/* Dynamic Map 사용 - DB 저장된 좌표로 빠른 로딩 */}
+                                            {store.address && store.lat && store.lng && (
                                                 <div className="mt-4">
                                                     <NaverMap
                                                         address={store.address}
@@ -1617,7 +1618,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 </SheetContent>
             </Sheet>
 
-            <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
             {/* Missing Info Alert Dialog */}
             <Dialog open={isProfileAlertOpen} onOpenChange={setIsProfileAlertOpen}>
                 <DialogContent className="max-w-[360px] rounded-2xl p-6">

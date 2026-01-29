@@ -167,7 +167,7 @@ export default function ApplicationsTableClient({
             if (error) throw error;
 
             toast.success('송장 정보가 저장되었습니다.');
-            
+
             // 알림 발송 로직 (백그라운드)
             const app = applications.find(a => a.id === applicationId);
             if (app?.user_id) {
@@ -232,7 +232,7 @@ export default function ApplicationsTableClient({
                                 shipped_at: new Date().toISOString()
                             })
                             .eq('id', id);
-                        
+
                         if (!error) successCount++;
                     }
                 }
@@ -304,6 +304,26 @@ export default function ApplicationsTableClient({
                         campaignTitle,
                         campaignId
                     });
+
+                    // 카카오 알림톡 발송
+                    const selectedApp = applications.find(a => a.id === applicationId);
+                    if (selectedApp?.user?.phone_number) {
+                        try {
+                            const { sendInfluencerSelectedAlimtalk } = await import('@/lib/alimtalk');
+                            const alimtalkResult = await sendInfluencerSelectedAlimtalk(
+                                selectedApp.user.phone_number,
+                                userName,
+                                campaignTitle,
+                                parseInt(campaignId)
+                            );
+
+                            if (!alimtalkResult.success) {
+                                console.warn('알림톡 발송 실패:', alimtalkResult.error);
+                            }
+                        } catch (error) {
+                            console.error('알림톡 발송 중 오류:', error);
+                        }
+                    }
 
                     // 낙관적 UI 업데이트
                     setApplications(prev =>
@@ -694,22 +714,22 @@ export default function ApplicationsTableClient({
                                     <td className="px-6 py-4">
                                         {app.status?.toUpperCase() === 'APPROVED' && (
                                             <div className="flex flex-col gap-1.5 min-w-[150px]">
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="택배사" 
+                                                <input
+                                                    type="text"
+                                                    placeholder="택배사"
                                                     defaultValue={app.tracking_company || ''}
                                                     onBlur={(e) => app.temp_company = e.target.value}
                                                     className="text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-primary outline-none"
                                                 />
                                                 <div className="flex gap-1">
-                                                    <input 
-                                                        type="text" 
-                                                        placeholder="송장번호" 
+                                                    <input
+                                                        type="text"
+                                                        placeholder="송장번호"
                                                         defaultValue={app.tracking_number || ''}
                                                         onBlur={(e) => app.temp_number = e.target.value}
                                                         className="text-xs border border-gray-200 rounded px-2 py-1 focus:ring-1 focus:ring-primary outline-none flex-1"
                                                     />
-                                                    <button 
+                                                    <button
                                                         onClick={() => handleUpdateTracking(app.id, app.temp_company || app.tracking_company, app.temp_number || app.tracking_number)}
                                                         className="p-1 bg-slate-100 rounded hover:bg-slate-200 text-slate-600"
                                                         title="저장"
@@ -742,7 +762,7 @@ export default function ApplicationsTableClient({
                                                 </>
                                             ) : (
                                                 <>
-                                                    <button 
+                                                    <button
                                                         onClick={() => setReviewModal({
                                                             isOpen: true,
                                                             influencerId: app.user_id,
@@ -753,7 +773,7 @@ export default function ApplicationsTableClient({
                                                         <Star size={14} /> 평가
                                                     </button>
                                                     {app.review_submitted && (
-                                                        <button 
+                                                        <button
                                                             onClick={() => {
                                                                 // Simple alert or nested modal to show review info
                                                                 const mediaCount = app.review_media_urls?.length || 0;
