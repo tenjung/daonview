@@ -151,8 +151,11 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
 
     const copyOrigin = () => {
         const origin = window.location.origin;
-        navigator.clipboard.writeText(origin).then(() => {
-            alert(`복사 완료: ${origin}\n\nNCP 콘솔의 [Web 서비스 URL]에 이 주소를 추가해 주세요.`);
+        // www 제거 (네이버 콘솔 정책)
+        const urlWithoutWww = origin.replace('://www.', '://');
+        
+        navigator.clipboard.writeText(urlWithoutWww).then(() => {
+            alert(`✅ 복사 완료!\n\nNCP 콘솔의 [Web 서비스 URL]에 아래 주소를 추가하세요:\n\n${urlWithoutWww}\n\n⚠️ 네이버 콘솔 정책: www는 빼고 등록해야 합니다!`);
         });
     };
 
@@ -180,10 +183,23 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                     </div>
 
                     <h5 className="font-black text-slate-900 mb-2">지도가 표시되지 않나요?</h5>
-                    <p className="text-[12px] text-slate-500 mb-8 leading-relaxed">
+                    <p className="text-[12px] text-slate-500 mb-4 leading-relaxed">
                         NCP(VPC) 콘솔 설정이 맞지 않으면 지도가 사라집니다.<br />
-                        아래 버튼을 눌러 정확한 주소를 복사해 등록하세요.
+                        <strong className="text-rose-600">www를 제외한 도메인</strong>을 등록해야 합니다.
                     </p>
+                    
+                    {/* 현재 접속 URL 표시 */}
+                    <div className="mb-6 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <p className="text-[10px] text-slate-400 mb-1">NCP 콘솔에 등록할 URL:</p>
+                        <code className="text-[11px] font-mono text-rose-600 font-bold">
+                            {typeof window !== 'undefined' 
+                                ? window.location.origin.replace('www.', '') 
+                                : ''}
+                        </code>
+                        <p className="text-[9px] text-slate-400 mt-2">
+                            ⚠️ www는 빼고 등록하세요
+                        </p>
+                    </div>
 
                     <div className="w-full max-w-[240px] space-y-3">
                         <button
