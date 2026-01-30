@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       title: "DAONVIEW | 혜택으로 다가온 리뷰",
       description: "블로그·인스타·유튜브 체험단 혜택, 다온뷰에서 시작하세요",
-      url: "https://www.daonview.com",
+      url: "https://daonview.com",
       siteName: "DAONVIEW",
       images: [
         {
