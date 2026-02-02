@@ -51,7 +51,9 @@ interface OnboardingModalProps {
 }
 
 export default function OnboardingModal({ userId, onComplete, allowSkip = false }: OnboardingModalProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // 0: 성함/연락처, 1: 플랫폼, 2: 지역, 3: 카테고리
+  const [name, setName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -92,6 +94,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
       const { error } = await supabase
         .from('profiles')
         .update({
+          name: name,
+          phone_number: phoneNumber,
           preferred_platforms: selectedPlatforms,
           preferred_regions: selectedRegions,
           interests: selectedCategories,
@@ -117,6 +121,11 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
   };
 
   const canProceed = () => {
+    if (step === 0) {
+      // 성함: 2글자 이상, 전화번호: 10-11자리 숫자
+      const phoneRegex = /^01[0-9]{8,9}$/;
+      return name.trim().length >= 2 && phoneRegex.test(phoneNumber.replace(/-/g, ''));
+    }
     if (step === 1) return selectedPlatforms.length > 0;
     if (step === 2) return selectedRegions.length > 0;
     if (step === 3) return selectedCategories.length > 0;
@@ -125,6 +134,13 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
   // 각 단계별 혜택 설명
   const getBenefits = () => {
+    if (step === 0) {
+      return [
+        { icon: '📱', text: '카톡 알림 받기' },
+        { icon: '⚡', text: '빠른 선정 안내' },
+        { icon: '🎁', text: '맞춤 캠페인 추천' },
+      ];
+    }
     if (step === 1) {
       return [
         { icon: '🎯', text: '맞춤 캠페인 추천' },
@@ -185,13 +201,14 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                 )}
               </div>
               <p className="text-sm text-gray-600 mt-1">
+                {step === 0 && '성함과 연락처를 입력해주세요'}
                 {step === 1 && '활동 플랫폼을 선택해주세요'}
                 {step === 2 && '선호하는 지역을 선택해주세요'}
                 {step === 3 && '관심 분야를 선택해주세요'}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {[1, 2, 3].map(s => (
+              {[0, 1, 2, 3].map(s => (
                 <div
                   key={s}
                   className={`w-2 h-2 rounded-full transition-all duration-500 ${s === step ? 'bg-primary w-6' : s < step ? 'bg-primary' : 'bg-gray-200'
@@ -214,6 +231,76 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+          {/* Step 0: Name & Phone */}
+          {step === 0 && (
+            <div className="max-w-md mx-auto space-y-6">
+              <div className="text-center mb-8">
+                <div className="text-6xl mb-4">📱</div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  캠페인 선정 시 카톡으로 알림받기
+                </h3>
+                <p className="text-sm text-gray-500">
+                  선정되면 빠르게 알려드릴게요!
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                {/* 성함 입력 */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    성함 <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="실명을 입력해주세요"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
+                  />
+                  {name.trim().length > 0 && name.trim().length < 2 && (
+                    <p className="text-xs text-red-500 mt-1">
+                      2글자 이상 입력해주세요
+                    </p>
+                  )}
+                </div>
+
+                {/* 연락처 입력 */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                    연락처 <span className="text-primary">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, '');
+                      if (value.length <= 11) {
+                        setPhoneNumber(value);
+                      }
+                    }}
+                    placeholder="01012345678"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
+                  />
+                  {phoneNumber.length > 0 && phoneNumber.length < 10 && (
+                    <p className="text-xs text-red-500 mt-1">
+                      올바른 전화번호를 입력해주세요
+                    </p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-1">
+                    '-' 없이 숫자만 입력해주세요
+                  </p>
+                </div>
+              </div>
+
+              {/* 안내 문구 */}
+              <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  💡 <strong>선택사항</strong>이지만, 입력하시면 캠페인 선정 시 카카오톡으로 즉시 알림을 받을 수 있어요!
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Step 1: Platforms */}
           {step === 1 && (
             <div className="grid grid-cols-2 gap-4">
@@ -300,7 +387,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
         {/* Footer */}
         <div className="p-6 border-t border-gray-100 bg-gray-50">
           <div className="flex items-center justify-between gap-4">
-            {step > 1 ? (
+            {step > 0 ? (
               <button
                 onClick={() => setStep(step - 1)}
                 className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-100 transition-colors flex items-center gap-2"
@@ -314,7 +401,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
             <div className="flex items-center gap-3">
               {/* 건너뛰기 버튼 (allowSkip이 true일 때만) */}
-              {allowSkip && step === 1 && (
+              {allowSkip && step === 0 && (
                 <button
                   onClick={handleSkip}
                   className="px-6 py-3 rounded-xl font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-sm"

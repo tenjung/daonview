@@ -58,6 +58,8 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
+import PhoneInputModal from '@/components/PhoneInputModal';
+
 
 interface CampaignDetailClientProps {
     campaign: any;
@@ -89,6 +91,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
     const [relatedApi, setRelatedApi] = useState<CarouselApi>();
     const [isApplying, setIsApplying] = useState(false);
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
+
 
     // Sync modal carousel when it opens or external index changes
     useEffect(() => {
@@ -330,6 +334,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
             if (profileError || !profile) {
                 toast.error('사용자 정보를 불러올 수 없습니다.');
+                return;
+            }
+
+            // 🔥 전화번호 체크 (모든 캠페인 신청 시 필수)
+            if (!profile.phone_number) {
+                setShowPhoneModal(true);
                 return;
             }
 
@@ -1709,6 +1719,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {/* 전화번호 입력 모달 */}
+            {showPhoneModal && user && (
+                <PhoneInputModal
+                    userId={user.id}
+                    onComplete={(phoneNumber) => {
+                        setShowPhoneModal(false);
+                        // 전화번호 저장 후 자동으로 신청 진행
+                        handleApply();
+                    }}
+                    onClose={() => setShowPhoneModal(false)}
+                />
+            )}
         </div>
     );
 }
