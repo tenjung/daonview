@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
 import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { LayoutDashboard, Megaphone, FileText, CheckCircle, Clock } from 'lucide-react';
@@ -17,6 +18,7 @@ interface ApplicationWithCampaign extends Application {
 
 export default function InfluencerDashboard() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
+    const router = useRouter();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [stats, setStats] = useState({
         total: 0,
@@ -27,11 +29,15 @@ export default function InfluencerDashboard() {
 
     useEffect(() => {
         if (!authLoading && user) {
+            if (profile?.role === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
             fetchDashboardData();
         } else if (!authLoading && !user) {
             setLoading(false);
         }
-    }, [authLoading, user]);
+    }, [authLoading, user, profile, router]);
 
     async function fetchDashboardData() {
         if (!user) return;

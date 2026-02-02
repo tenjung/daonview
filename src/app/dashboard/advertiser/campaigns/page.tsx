@@ -1,26 +1,38 @@
+'use client';
+
 import { supabase } from '@/lib/supabaseClient';
-import AdvertiserSidebar from '@/components/AdvertiserSidebar';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import { useAuthStore } from '@/store/authStore';
 import { UnifiedAdvertiserCampaigns } from '@/components/admin/UnifiedAdvertiserCampaigns';
 import Link from 'next/link';
 import { Megaphone } from 'lucide-react';
 import UnifiedAdvertiserPage from './UnifiedAdvertiserPage';
 
-// Next.js 캐싱 비활성화
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
-export default async function AdvertiserCampaignsPage() {
-    // 세션 정보 대신 쿠키나 다른 방식으로 사용자 ID를 가져와야 할 수도 있습니다. 
-    // 여기서는 기존 서버 컴포넌트 패턴을 따릅니다.
-    // 하지만 현재 user 정보를 가져오는 것은 클라이언트 사이드 authStore에 의존하고 있어
-    // 데이터 페칭을 클라이언트 컴포넌트로 넘기는 것이 안전할 수 있습니다.
-    
-    // 하지만 일관성을 위해 클라이언트 컴포넌트로 구조를 바꿉니다.
-    // AdvertiserCampaignsContent를 UnifiedAdvertiserPage로 리팩토링합니다.
+export default function AdvertiserCampaignsPage() {
+    const { profile } = useAuthStore();
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdvertiserSidebar />
+            <DashboardSidebar
+                userType="ADVERTISER"
+                userName={profile?.company_name || profile?.nickname || '광고주'}
+                links={[
+                    { href: '/dashboard/advertiser', label: '대시보드' },
+                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리', active: true },
+                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
+                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
+                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
+                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
+                    {
+                        href: '/profile/edit',
+                        label: '계정 설정',
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ]}
+            />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-[1600px] mx-auto">

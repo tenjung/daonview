@@ -4,14 +4,14 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
-import { LayoutDashboard, Megaphone, Plus, AlertCircle } from 'lucide-react';
-import AdvertiserSidebar from '@/components/AdvertiserSidebar';
+import { LayoutDashboard, Megaphone, Plus, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
+import DashboardSidebar from '@/components/DashboardSidebar';
 import { AdvertiserStatsCards } from '@/components/advertiser/AdvertiserStatsCards';
 import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
 
 export default function AdvertiserDashboard() {
-    const { user, isLoading } = useAuthStore();
+    const { user, profile, isLoading } = useAuthStore();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -112,7 +112,26 @@ export default function AdvertiserDashboard() {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <AdvertiserSidebar />
+            <DashboardSidebar
+                userType="ADVERTISER"
+                userName={profile?.company_name || profile?.nickname || '광고주'}
+                links={[
+                    { href: '/dashboard/advertiser', label: '대시보드', active: true },
+                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
+                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
+                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
+                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
+                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
+                    {
+                        href: '/profile/edit',
+                        label: '계정 설정',
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ]}
+            />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-[1600px] mx-auto">
@@ -131,6 +150,43 @@ export default function AdvertiserDashboard() {
                             <Plus size={20} /> 새 캠페인 등록
                         </Link>
                     </div>
+
+                    {/* Business Verification Banner */}
+                    {profile?.biz_verification_status !== 'APPROVED' && (
+                        <div className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white p-8 rounded-[32px] shadow-2xl mb-10 overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <ShieldCheck size={140} className="text-white" />
+                            </div>
+                            <div className="flex items-start gap-8 relative z-10">
+                                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-primary shrink-0 backdrop-blur-xl border border-white/20">
+                                    <ShieldCheck size={32} />
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-3 mb-2">
+                                        <h3 className="font-black text-2xl tracking-tight">비즈니스 인증이 필요합니다</h3>
+                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                                            profile?.biz_verification_status === 'PENDING' ? 'bg-amber-500 text-white' : 
+                                            profile?.biz_verification_status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-white/20 text-white'
+                                        }`}>
+                                            {profile?.biz_verification_status === 'PENDING' ? '심사 대기 중' : 
+                                             profile?.biz_verification_status === 'REJECTED' ? '반려됨' : '미인증'}
+                                        </div>
+                                    </div>
+                                    <p className="text-gray-300 mb-6 leading-relaxed max-w-2xl font-medium">
+                                        캠페인을 등록하고 인플루언서를 모집하려면 사업자 인증이 필수입니다. <br/>
+                                        사업자 등록증을 제출하시면 AI 분석을 통해 정보 일치 시 <strong>즉시 승인</strong>됩니다.
+                                    </p>
+                                    <Link 
+                                        href="/dashboard/advertiser/verification" 
+                                        className="inline-flex items-center gap-3 bg-primary text-white px-8 py-3.5 rounded-2xl font-black hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all text-sm group/btn"
+                                    >
+                                        {profile?.biz_verification_status === 'PENDING' ? '인증 진행 현황 보기' : '지금 인증 요청하기'} 
+                                        <ArrowRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
+                                    </Link>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Alert Banner */}
                     {(criticalCampaigns.length > 0 || warningCampaigns.length > 0) && (

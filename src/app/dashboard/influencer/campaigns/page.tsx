@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
 import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
@@ -37,6 +38,7 @@ interface ApplicationWithCampaign extends Application {
 
 export default function MyCampaignsPage() {
     const { user, profile, isLoading } = useAuthStore();
+    const router = useRouter();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [filter, setFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED'>('all');
     const [loading, setLoading] = useState(true);
@@ -69,11 +71,15 @@ export default function MyCampaignsPage() {
 
     useEffect(() => {
         if (!isLoading && user) {
+            if (profile?.role === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
             fetchData();
         } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isLoading, user, filter]);
+    }, [isLoading, user, profile, router, filter]);
 
     async function fetchData() {
         if (!user) return;

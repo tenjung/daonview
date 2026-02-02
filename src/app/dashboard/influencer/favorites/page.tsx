@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
 import { Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import CampaignCard from '@/components/CampaignCard';
@@ -19,16 +20,21 @@ interface FavoriteCampaign {
 
 export default function FavoritesPage() {
     const { user, profile, isLoading } = useAuthStore();
+    const router = useRouter();
     const [favorites, setFavorites] = useState<FavoriteCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         if (!isLoading && user) {
+            if (profile?.role === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
             fetchData();
         } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isLoading, user]);
+    }, [isLoading, user, profile, router]);
 
     async function fetchData() {
         if (!user) return;

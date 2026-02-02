@@ -28,6 +28,13 @@ export default function CampaignRegistrationContainer() {
     const [nextTrigger, setNextTrigger] = useState(0);
 
     // --- 캠페인 데이터 로드 로직 ---
+    useEffect(() => {
+        if (!authLoading && user && profile?.role === 'ADVERTISER' && profile?.biz_verification_status !== 'APPROVED') {
+            toast.error('캠페인을 등록하려면 사업자 인증이 필요합니다.');
+            router.push('/dashboard/advertiser/verification');
+        }
+    }, [authLoading, user, profile, router]);
+
     const handleLoadCompleted = useCallback((campaign: any, silent = false) => {
         if (!campaign) return;
         store.initializeFromCampaign(campaign);

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image } from 'lucide-react';
+import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image, ShieldCheck } from 'lucide-react';
 import { useState, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -239,6 +239,18 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                 >
                     <Users className="w-5 h-5" />
                     <span>회원 관리</span>
+                </Link>
+
+                {/* 사업자 인증 관리 */}
+                <Link
+                    href="/dashboard/admin/verifications"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.includes('/dashboard/admin/verifications')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <ShieldCheck className="w-5 h-5" />
+                    <span>사업자 인증 관리</span>
                 </Link>
 
                 {/* 배너 관리 */}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useState, Suspense } from 'react';
+import { useAuthStore } from '@/store/authStore';
 
 function AdvertiserSidebarContent() {
     const pathname = usePathname();
@@ -21,13 +22,18 @@ function AdvertiserSidebarContent() {
         return pathname === path;
     };
 
+    const { profile } = useAuthStore();
     const isInCampaignSection = pathname.includes('/dashboard/advertiser/campaigns') || pathname.includes('/dashboard/campaign/new');
+
+    const displayName = profile?.company_name || profile?.nickname || '광고주';
 
     return (
         <aside className="w-[260px] bg-white border-r border-border p-8 flex flex-col shrink-0">
             <div className="mb-8 pb-6 border-b border-border">
                 <div className="text-xs uppercase text-gray-400 font-bold tracking-wider mb-1">ADVERTISER</div>
-                <div className="text-lg font-bold text-text-main">(주)다온컴퍼니</div>
+                <div className="text-lg font-bold text-text-main truncate" title={displayName}>
+                    {displayName}
+                </div>
             </div>
 
             <nav className="flex flex-col gap-2 flex-1">
@@ -108,6 +114,17 @@ function AdvertiserSidebarContent() {
                         }`}
                 >
                     <span>계정 설정</span>
+                </Link>
+
+                {/* 사업자 인증 */}
+                <Link
+                    href="/dashboard/advertiser/verification"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname === '/dashboard/advertiser/verification'
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <span>사업자 인증</span>
                 </Link>
             </nav>
         </aside>

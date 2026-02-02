@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText } from 'lucide-react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -475,9 +475,28 @@ function ProfileEditContent() {
     return (
         <div className="flex min-h-screen bg-background">
             <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={[
+                userType={profile?.role === 'ADVERTISER' ? 'ADVERTISER' : 'INFLUENCER'}
+                userName={profile?.role === 'ADVERTISER' 
+                    ? (profile?.company_name || profile?.nickname || '광고주')
+                    : (profile?.nickname || '사용자')
+                }
+                links={profile?.role === 'ADVERTISER' ? [
+                    { href: '/dashboard/advertiser', label: '대시보드' },
+                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
+                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
+                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
+                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
+                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
+                    {
+                        href: '/profile/edit',
+                        label: '계정 설정',
+                        active: true,
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ] : [
                     { href: '/dashboard/influencer', label: '대시보드' },
                     { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
                     { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
@@ -582,6 +601,59 @@ function ProfileEditContent() {
                                     </CardContent>
                                 </Card>
 
+                                {/* 광고주 전용: 사업자 정보 섹션 */}
+                                {profile?.role === 'ADVERTISER' && (
+                                    <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl h-full">
+                                        <CardHeader>
+                                            <CardTitle className="text-xl flex items-center gap-2">
+                                                <Building2 className="w-5 h-5 text-rose-500" />
+                                                사업자 정보
+                                            </CardTitle>
+                                            <CardDescription>인증된 사업자 정보입니다. 수정이 필요한 경우 관리자에게 문의하세요.</CardDescription>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="company_name_readonly" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                        <Building2 className="w-4 h-4 text-rose-500" />
+                                                        회사명 / 상호명
+                                                    </Label>
+                                                    <Input
+                                                        id="company_name_readonly"
+                                                        value={profile?.company_name || '미등록'}
+                                                        disabled
+                                                        className="bg-slate-100 text-slate-600 border-slate-200 h-12 rounded-xl cursor-not-allowed"
+                                                    />
+                                                </div>
+
+                                                <div className="grid gap-2">
+                                                    <Label htmlFor="biz_number_readonly" className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                                                        <FileText className="w-4 h-4 text-rose-500" />
+                                                        사업자 등록번호
+                                                    </Label>
+                                                    <Input
+                                                        id="biz_number_readonly"
+                                                        value={profile?.biz_number || '미등록'}
+                                                        disabled
+                                                        className="bg-slate-100 text-slate-600 border-slate-200 h-12 rounded-xl cursor-not-allowed"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
+                                                <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                                                <div className="text-sm text-amber-800">
+                                                    <p className="font-bold mb-1">수정 안내</p>
+                                                    <p className="text-amber-700 leading-relaxed">
+                                                        사업자 정보는 보안상의 이유로 직접 수정할 수 없습니다. 
+                                                        변경이 필요하신 경우 <a href="/contact" className="underline font-bold hover:text-amber-900">1:1 문의</a>를 통해 관리자에게 요청해 주세요.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
                                 <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl h-full">
                                     <CardHeader>
                                         <CardTitle className="text-xl">추가 정보</CardTitle>
@@ -623,7 +695,7 @@ function ProfileEditContent() {
                                         <div className="grid gap-4">
                                             <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
                                                 <Globe className="w-4 h-4 text-rose-500" />
-                                                활동 소셜 링크
+                                                {profile?.role === 'ADVERTISER' ? '브랜드 소셜 링크' : '활동 소셜 링크'}
                                             </Label>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">

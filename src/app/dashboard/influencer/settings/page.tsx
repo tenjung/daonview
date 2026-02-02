@@ -3,9 +3,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 export default function SettingsPage() {
     const { user, profile, isLoading } = useAuthStore();
+    const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState('');
@@ -18,6 +21,10 @@ export default function SettingsPage() {
 
     useEffect(() => {
         if (!isLoading) {
+            if (user && profile?.role === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
             if (profile) {
                 setFormData({
                     nickname: profile.nickname || '',
@@ -27,7 +34,7 @@ export default function SettingsPage() {
             }
             setLoading(false);
         }
-    }, [isLoading, profile]);
+    }, [isLoading, profile, user, router]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -70,19 +77,24 @@ export default function SettingsPage() {
 
     return (
         <div className="flex min-h-screen bg-background">
-            <aside className="w-[260px] bg-white border-r border-border p-8 flex flex-col shrink-0">
-                <div className="mb-8 pb-6 border-b border-border">
-                    <div className="text-xs uppercase text-gray-400 font-bold tracking-wider mb-1">INFLUENCER</div>
-                    <div className="text-lg font-bold text-text-main">{profile?.nickname || '사용자'} 님</div>
-                </div>
-                <nav className="flex flex-col gap-2 flex-1">
-                    <Link href="/dashboard/influencer" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">대시보드</Link>
-                    <Link href="/dashboard/influencer/campaigns" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">나의 캠페인</Link>
-                    <Link href="/dashboard/influencer/favorites" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">관심 캠페인</Link>
-                    <Link href="/dashboard/influencer/settings" className="flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer bg-rose-50 text-primary">계정 설정</Link>
-                    <Link href="/contact" className="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 font-medium transition-all hover:bg-rose-50 hover:text-primary cursor-pointer">1:1 문의</Link>
-                </nav>
-            </aside>
+            <DashboardSidebar
+                userType="INFLUENCER"
+                userName={profile?.nickname || '사용자'}
+                links={[
+                    { href: '/dashboard/influencer', label: '대시보드' },
+                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페' },
+                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
+                    { 
+                        href: '/dashboard/influencer/settings', 
+                        label: '계정 설정',
+                        active: true,
+                        subLinks: [
+                            { href: '/dashboard/influencer/settings', label: '기본 정보' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ]}
+            />
 
             <main className="flex-1 p-10 overflow-y-auto">
                 <div className="max-w-2xl">

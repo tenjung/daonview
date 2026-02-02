@@ -26,6 +26,11 @@ export interface Profile {
     zip_code?: string;
     address_base?: string;
     address_detail?: string;
+    biz_number?: string;
+    biz_certificate_url?: string;
+    biz_verification_status?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+    biz_verification_requested_at?: string;
+    biz_rejection_reason?: string;
     [key: string]: any;
 }
 

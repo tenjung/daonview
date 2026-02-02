@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import DashboardSidebar from '@/components/DashboardSidebar';
 
 interface Brand {
     id: string;
@@ -46,7 +47,7 @@ interface Brand {
 }
 
 export default function BrandManagementPage() {
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const [brands, setBrands] = useState<Brand[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
@@ -201,7 +202,30 @@ export default function BrandManagementPage() {
     );
 
     return (
-        <div className="p-8 space-y-8">
+        <div className="flex min-h-screen bg-background text-foreground">
+            <DashboardSidebar
+                userType="ADVERTISER"
+                userName={profile?.company_name || profile?.nickname || '광고주'}
+                links={[
+                    { href: '/dashboard/advertiser', label: '대시보드' },
+                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
+                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
+                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
+                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
+                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리', active: true },
+                    {
+                        href: '/profile/edit',
+                        label: '계정 설정',
+                        subLinks: [
+                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
+                        ]
+                    },
+                    { href: '/contact', label: '1:1 문의' }
+                ]}
+            />
+
+            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+                <div className="space-y-8">
             {/* Header Area */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -431,6 +455,8 @@ export default function BrandManagementPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+                </div>
+            </main>
         </div>
     );
 }
