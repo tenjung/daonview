@@ -88,6 +88,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [isOptionsExpanded, setIsOptionsExpanded] = useState(true);
     const [relatedCampaigns, setRelatedCampaigns] = useState<any[]>([]);
     const [relatedApi, setRelatedApi] = useState<CarouselApi>();
+    const [isApplying, setIsApplying] = useState(false);
 
     // Sync modal carousel when it opens or external index changes
     useEffect(() => {
@@ -161,12 +162,33 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     }, [campaign.created_by, campaign.id]);
 
     const fetchCampaign = async () => {
+        // Fetch campaign details along with counts for all vs approved applications
         const { data } = await supabase
             .from('campaigns')
-            .select('*, applications(count)')
+            .select('*')
             .eq('id', id)
             .single();
-        if (data) setCampaign(data);
+
+        if (data) {
+            // Get total application count
+            const { count: totalCount } = await supabase
+                .from('applications')
+                .select('*', { count: 'exact', head: true })
+                .eq('campaign_id', id);
+
+            // Get approved application count
+            const { count: approvedCount } = await supabase
+                .from('applications')
+                .select('*', { count: 'exact', head: true })
+                .eq('campaign_id', id)
+                .in('status', ['SELECTED', 'APPROVED']);
+
+            setCampaign({
+                ...data,
+                total_app_count: totalCount || 0,
+                approved_app_count: approvedCount || 0
+            });
+        }
     };
 
     async function checkUserStatus(currentUser: any) {
@@ -189,6 +211,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     setSelectedOptions([optString]);
                 }
                 setApplicationMessage(appData.application_message || '');
+            } else {
+                setHasApplied(false);
+                setApplicationStatus(null);
             }
         } catch (err) {
             console.error('Error in checkUserStatus:', err);
@@ -246,7 +271,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     type: campaign.type,
                     platform: campaign.platform,
                     region: campaign.region,
-                    applicants: campaign.applications?.[0]?.count ?? 0,
+                    applicants: campaign.total_app_count || 0,
                     total: campaign.recruit_count,
                     dday: campaign.end_date || ''
                 });
@@ -271,10 +296,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
-        // 모집 인원 초과 체크
-        const currentAppCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
-        if (currentAppCount >= campaign.recruit_count) {
-            toast.error('모집 인원이 마감되었습니다.');
+        // 모집 인원(선정 인원) 초과 체크 - 선정 완료된 인원 기준
+        const approvedCount = campaign.approved_app_count || 0;
+        if (approvedCount >= campaign.recruit_count && campaign.recruit_count > 0) {
+            toast.error('선정 인원이 마감되었습니다.');
             return;
         }
 
@@ -282,7 +307,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         if (campaign.end_date) {
             const endDate = new Date(campaign.end_date);
             const now = new Date();
-            if (now > endDate) {
+            // 시간까지는 정확히 안 따지고 날짜 기준으로 체크하도록 함
+            if (now > endDate && !isAlwaysRecruiting) {
                 toast.error('모집 기간이 종료된 캠페인입니다.');
                 return;
             }
@@ -348,6 +374,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             formattedOption = typeof opt === 'object' ? opt.optionName : opt;
         }
 
+        if (isApplying) return;
+        setIsApplying(true);
+
         try {
             const { data, error } = await supabase
                 .from('applications')
@@ -371,6 +400,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
 
             console.log('Application successful:', data);
+            
+            // 상태 즉시 업데이트
+            setHasApplied(true);
+            setApplicationStatus('PENDING');
+            toast.success('캠페인 신청이 완료되었습니다!');
+            
             fetchCampaign();
 
             // 캠페인 생성자(광고주/관리자)에게 마일스톤 알림 발송
@@ -407,23 +442,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 }
             }
 
-            // 백그라운드에서 인플루언서 통계 업데이트 (하루 1회 제한)
-            // await 없이 실행하여 사용자 경험에 영향 없음
-            updateInfluencerStats(user.id).catch(err => {
-                console.error('Stats update failed (non-blocking):', err);
-            });
         } catch (error: any) {
             console.error('Error applying:', error);
-            console.error('Error type:', typeof error);
-            console.error('Error keys:', Object.keys(error || {}));
-
-            // 중복 신청 에러 처리
+            // 중복 신청 에러 처리 (DB 제약 조건 위반 포함)
             if (error?.code === '23505') {
                 toast.error('이미 신청한 캠페인입니다.');
                 setHasApplied(true);
             } else {
                 toast.error(error?.message || '신청 중 오류가 발생했습니다.');
             }
+        } finally {
+            setIsApplying(false);
         }
     }
 
@@ -451,6 +480,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
             toast.success('신청이 취소되었습니다.');
             setHasApplied(false);
+            setApplicationStatus(null); // 상태 초기화
             setSelectedOptions([]);
             setApplicationMessage('');
             fetchCampaign();
@@ -461,7 +491,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     }
 
     // UI Helpers (derived from campaign data)
-    const appCount = campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
+    const appCount = campaign.total_app_count ?? campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
+    const approvedCount = campaign.approved_app_count ?? 0;
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step1Data = campaignOptions?.step1Data || {};
     const step2Data = campaignOptions?.step2Data || {};
@@ -588,13 +619,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // Recruitment Closure Logic
     const nowStr = new Date().toISOString().split('T')[0];
     const isPastDeadline = (campaign.end_date && !isAlwaysRecruiting) ? nowStr > campaign.end_date : false;
-    const isFull = appCount >= campaign.recruit_count && campaign.recruit_count > 0;
+    const isFull = approvedCount >= campaign.recruit_count && campaign.recruit_count > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
 
     let closureText = '';
     if (isPastDeadline) closureText = '모집 기간이 종료되었습니다';
-    else if (isFull) closureText = '모집 인원이 마감되었습니다';
+    else if (isFull) closureText = '선정 완료되어 마감되었습니다';
     else if (isNotRecruiting) closureText = '현재 신청 가능한 상태가 아닙니다';
 
     return (
@@ -1111,10 +1142,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         </div>
                                         <div className="text-right">
                                             <p className="text-sm font-bold text-slate-900">
-                                                <span className="text-rose-500 font-extrabold">{appCount}</span> / {campaign.recruit_count}명
+                                                <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
                                             </p>
                                             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                {isClosed ? '마감됨' : `${campaign.recruit_count - appCount}명 남음`}
+                                                모집 정원: {campaign.recruit_count}명
                                             </p>
                                         </div>
                                     </div>
@@ -1274,15 +1305,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             <div className="pt-2 flex gap-3">
                                                 <button
                                                     onClick={handleApply}
-                                                    disabled={isClosed}
-                                                    className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed
+                                                    disabled={isClosed || isApplying}
+                                                    className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed || isApplying
                                                         ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                                         : !user
                                                             ? 'bg-gray-800 text-white'
                                                             : 'bg-gradient-to-r from-rose-500 via-rose-600 to-rose-500 bg-[length:200%_auto] hover:bg-right text-white shadow-rose-200'
                                                         }`}
                                                 >
-                                                    {isClosed ? closureText : (
+                                                    {isApplying ? (
+                                                        <span className="flex items-center gap-2">
+                                                            <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                                                            처리중...
+                                                        </span>
+                                                    ) : isClosed ? closureText : (
                                                         <>
                                                             <span className="relative z-10 flex items-center gap-3 uppercase tracking-tight">
                                                                 {user ? '캠페인 신청하기' : '로그인이 필요합니다'}
@@ -1430,18 +1466,18 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 }
                                 setIsApplySheetOpen(true);
                             }}
-                            disabled={isClosed}
-                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClosed
+                            disabled={isClosed || isApplying}
+                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClosed || isApplying
                                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                                 : !user
                                     ? 'bg-gray-900 text-white'
                                     : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
                                 }`}
                         >
-                            {isClosed ? closureText : user
+                            {isApplying ? '처리 중...' : isClosed ? closureText : user
                                 ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')
                                 : '로그인이 필요합니다'}
-                            {!isClosed && <ArrowRight size={20} />}
+                            {!isClosed && !isApplying && <ArrowRight size={20} />}
                         </button>
                         {!isClosed && (
                             <div className="shrink-0 flex items-center justify-center">
@@ -1588,7 +1624,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             }}
                             className="w-full py-5 rounded-[24px] bg-gradient-to-r from-rose-500 to-rose-600 text-white text-base font-black flex items-center justify-center gap-2 shadow-2xl shadow-rose-200 active:scale-[0.96] transition-all"
                         >
-                            캠페인 신청 완료하기
+                            캠페인 신청하기
                             <ArrowRight size={20} />
                         </button>
                     </div>

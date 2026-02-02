@@ -296,6 +296,7 @@ export default function ApplicationsTableClient({
                     selectedCount={selectedApplications.length}
                     onApprove={handleBulkApprove}
                     onReject={handleBulkReject}
+                    onExport={handleExportExcel}
                     onClear={() => setSelectedApplications([])}
                 />
             )}

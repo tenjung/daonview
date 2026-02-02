@@ -12,8 +12,8 @@ interface InfluencerReviewModalProps {
     onClose: () => void;
     influencerId: string;
     influencerName: string;
-    campaignId: number;
-    onReviewAdded?: () => void;
+    campaignId: string | number;
+    onReviewSubmitted?: () => void;
 }
 
 export default function InfluencerReviewModal({
@@ -22,7 +22,7 @@ export default function InfluencerReviewModal({
     influencerId,
     influencerName,
     campaignId,
-    onReviewAdded
+    onReviewSubmitted
 }: InfluencerReviewModalProps) {
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
     const [comment, setComment] = useState('');
@@ -116,7 +116,7 @@ export default function InfluencerReviewModal({
                 toast.success('평가가 저장되었습니다.');
                 setSelectedTags([]);
                 setComment('');
-                onReviewAdded?.();
+                onReviewSubmitted?.();
                 loadExistingReviews(); // 목록 새로고침
             }
         } catch (error) {
