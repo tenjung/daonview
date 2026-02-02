@@ -9,6 +9,7 @@ export interface Profile {
     created_at?: string;
     email?: string;
     nickname?: string;
+    name?: string;
     company_name?: string;
     role?: UserRole;
     phone_number?: string;
@@ -149,16 +150,14 @@ export interface InfluencerReview {
 export interface InfluencerStats {
     id: number;
     user_id: string;
-    platform: string;
-    blog_url: string;
+    platform: string; // 'NAVER_BLOG', 'INSTAGRAM', 'YOUTUBE', etc.
+    blog_url: string; // URL of the blog or social media profile
 
-    // 기본 지표
+    // 기본 지표 (사용 안 함)
     visitor_today: number;
     visitor_yesterday: number;
     visitor_total: number;
     neighbor_count: number;
-
-    // 활동 지표
     avg_likes: number;
     avg_comments: number;
     avg_engagement: number;
@@ -173,11 +172,13 @@ export interface InfluencerStats {
 
     // 메타 정보
     last_crawled_at?: string;
-    crawl_status: string;
+    crawl_status: string; // 'SUCCESS', 'FAILED', 'PENDING', 'DISABLED'
     crawl_error?: string;
     created_at: string;
     updated_at: string;
 
     [key: string]: any;
 }
+
+export type User = Profile;
 

@@ -1,0 +1,121 @@
+"use client"
+
+import * as React from "react"
+import { Campaign } from "@/types/database"
+import { CampaignDataTable } from "./CampaignDataTable"
+import { supabase } from "@/lib/supabaseClient"
+import { toast } from "sonner"
+import ConfirmDialog from "@/components/ConfirmDialog"
+import { useRouter } from "next/navigation"
+
+interface UnifiedAdminCampaignsProps {
+  initialData: Campaign[]
+}
+
+export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProps) {
+  const [data, setData] = React.useState<Campaign[]>(initialData)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const router = useRouter()
+
+  // Confirm Dialog State
+  const [confirmModal, setConfirmModal] = React.useState<{
+    isOpen: boolean
+    title: string
+    message: string
+    onConfirm: () => void
+    type: "info" | "danger" | "warning"
+    confirmText?: string
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+    type: "info",
+  })
+
+  // 승인 처리
+  const handleApprove = (id: number, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "캠페인 승인",
+      message: `"${title}" 캠페인을 승인하시겠습니까?\n승인 후 모집 일정이 활성화됩니다.`,
+      type: "info",
+      confirmText: "승인하기",
+      onConfirm: async () => {
+        setIsLoading(true)
+        const { error } = await supabase
+          .from("campaigns")
+          .update({ status: "RECRUITING" })
+          .eq("id", id)
+
+        if (error) {
+          toast.error("승인 처리 중 오류가 발생했습니다.")
+          console.error(error)
+        } else {
+          toast.success("캠페인이 승인되었습니다.")
+          // 로컬 상태 업데이트
+          setData(prev => prev.map(c => c.id === id ? { ...c, status: "RECRUITING" } : c))
+        }
+        setIsLoading(false)
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
+      },
+    })
+  }
+
+  // 거절 처리
+  const handleReject = (id: number, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "캠페인 거절",
+      message: `"${title}" 캠페인을 거절하시겠습니까?`,
+      type: "danger",
+      confirmText: "거절하기",
+      onConfirm: async () => {
+        setIsLoading(true)
+        const { error } = await supabase
+          .from("campaigns")
+          .update({ status: "REJECTED" })
+          .eq("id", id)
+
+        if (error) {
+          toast.error("거절 처리 중 오류가 발생했습니다.")
+          console.error(error)
+        } else {
+          toast.success("캠페인이 거절되었습니다.")
+          // 로컬 상태 업데이트
+          setData(prev => prev.map(c => c.id === id ? { ...c, status: "REJECTED" } : c))
+        }
+        setIsLoading(false)
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
+      },
+    })
+  }
+
+  // 상세 보기 (광고주 신청자 관리로 이동)
+  const handleView = (id: number) => {
+    router.push(`/dashboard/admin/campaigns/${id}`)
+  }
+
+  return (
+    <>
+      <CampaignDataTable
+        data={data}
+        isAdmin={true}
+        onApprove={handleApprove}
+        onReject={handleReject}
+        onView={handleView}
+        isLoading={isLoading}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmModal.onConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+      />
+    </>
+  )
+}

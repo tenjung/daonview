@@ -612,8 +612,23 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-2">
                             <TypeBadge type={campaign.type} />
-                            <PlatformBadge platform={campaign.platform} />
-                            {campaign.type === 'VISIT' && <RegionBadge region={campaign.region} />}
+                            
+                            {/* 배송형일 경우 includeReview, includeNaver, includeInstagram 체크하여 뱃지 표시 */}
+                            {campaign.type?.toUpperCase() === 'DELIVERY' ? (
+                                <>
+                                    {step1Data.includeReview && <PlatformBadge platform="PURCHASE" />}
+                                    {step1Data.includeNaver && <PlatformBadge platform="BLOG" />}
+                                    {step1Data.includeInstagram && <PlatformBadge platform="INSTAGRAM" />}
+                                    {/* 위 항목들이 하나도 없을 때만 기본 platform 표시 (하위 호환) */}
+                                    {!step1Data.includeReview && !step1Data.includeNaver && !step1Data.includeInstagram && (
+                                        <PlatformBadge platform={campaign.platform} />
+                                    )}
+                                </>
+                            ) : (
+                                <PlatformBadge platform={campaign.platform} />
+                            )}
+                            
+                            {campaign.type?.toUpperCase() === 'VISIT' && <RegionBadge region={campaign.region} />}
                             <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
                         </div>
                         <AdminControls campaignId={campaign.id} createdBy={campaign.created_by} />
@@ -1362,24 +1377,31 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             className="w-full"
                         >
                             <CarouselContent className="-ml-4 pb-4">
-                                {relatedCampaigns.map((rc) => (
-                                    <CarouselItem key={rc.id} className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
-                                        <div className="h-full">
-                                            <CampaignCard
-                                                id={rc.id}
-                                                title={rc.title}
-                                                platform={rc.platform}
-                                                type={rc.type}
-                                                applicants={rc.app_count || 0}
-                                                total={rc.recruit_count || 0}
-                                                dday={(rc.is_always || (rc.recruit_count && rc.recruit_count >= 999)) ? '상시' : formatDDay(rc.end_date)}
-                                                imageUrl={rc.thumbnail_url}
-                                                provision={rc.provision_details}
-                                                region={rc.region}
-                                            />
-                                        </div>
-                                    </CarouselItem>
-                                ))}
+                                {relatedCampaigns.map((rc) => {
+                                    const options = Array.isArray(rc.campaign_options) ? rc.campaign_options[0] : rc.campaign_options;
+                                    const s1 = options?.step1Data || {};
+                                    return (
+                                        <CarouselItem key={rc.id} className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
+                                            <div className="h-full">
+                                                <CampaignCard
+                                                    id={rc.id}
+                                                    title={rc.title}
+                                                    platform={rc.platform}
+                                                    type={rc.type}
+                                                    applicants={rc.app_count || 0}
+                                                    total={rc.recruit_count || 0}
+                                                    dday={(rc.is_always || (rc.recruit_count && rc.recruit_count >= 999)) ? '상시' : formatDDay(rc.end_date)}
+                                                    imageUrl={rc.thumbnail_url}
+                                                    provision={rc.provision_details}
+                                                    region={rc.region}
+                                                    includeReview={s1.includeReview}
+                                                    includeNaver={s1.includeNaver}
+                                                    includeInstagram={s1.includeInstagram}
+                                                />
+                                            </div>
+                                        </CarouselItem>
+                                    );
+                                })}
                             </CarouselContent>
                         </Carousel>
                     </div>

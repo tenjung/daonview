@@ -42,65 +42,16 @@ function AdvertiserSidebarContent() {
                     대시보드
                 </Link>
 
-                {/* 캠페인 관리 (접을 수 있는 메뉴) */}
-                <div>
-                    <button
-                        onClick={() => setCampaignMenuOpen(!campaignMenuOpen)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isInCampaignSection
-                            ? 'bg-rose-50 text-primary'
-                            : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                            }`}
-                    >
-                        <span>캠페인 관리</span>
-                        {campaignMenuOpen ? (
-                            <ChevronDown className="w-4 h-4" />
-                        ) : (
-                            <ChevronRight className="w-4 h-4" />
-                        )}
-                    </button>
-
-                    {/* 하위 메뉴 */}
-                    {campaignMenuOpen && (
-                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
-                            <Link
-                                href="/dashboard/advertiser/campaigns"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/advertiser/campaigns') && !searchParams.get('status')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                전체 보기
-                            </Link>
-                            <Link
-                                href="/dashboard/advertiser/campaigns?status=RECRUITING"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/advertiser/campaigns', 'RECRUITING')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                모집중/진행중
-                            </Link>
-                            <Link
-                                href="/dashboard/advertiser/campaigns?status=COMPLETED"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/advertiser/campaigns', 'COMPLETED')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                완료
-                            </Link>
-                            <Link
-                                href="/dashboard/advertiser/campaigns?status=DRAFT"
-                                className={`block px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/advertiser/campaigns', 'DRAFT')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                임시저장
-                            </Link>
-                        </div>
-                    )}
-                </div>
+                {/* 캠페인 관리 통합 메뉴 */}
+                <Link
+                    href="/dashboard/advertiser/campaigns"
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${pathname.includes('/dashboard/advertiser/campaigns') || pathname.includes('/dashboard/campaign/new')
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    캠페인 관리
+                </Link>
 
                 {/* 신청자 목록 */}
                 <Link

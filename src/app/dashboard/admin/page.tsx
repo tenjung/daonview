@@ -3,6 +3,9 @@ import AdminSidebar from '@/components/AdminSidebar';
 import { supabase } from '@/lib/supabaseClient';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
+import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
+import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
+import { LayoutDashboard, Megaphone, Plus } from 'lucide-react';
 
 export default async function AdminDashboard() {
     const today = new Date();
@@ -33,7 +36,7 @@ export default async function AdminDashboard() {
         supabase.from('campaigns').select(`
             *,
             applications(count),
-            profiles:created_by(id, email, name, company_name, role)
+            profiles:created_by(id, email, nickname, company_name, role)
         `)
             .in('status', ['RECRUITING', 'ONGOING'])
             .order('end_date', { ascending: true }),
@@ -42,7 +45,7 @@ export default async function AdminDashboard() {
         fetchAdminCampaignCounts(supabase)
     ]);
 
-    const stats = {
+    const statsData = {
         totalAdvertisers: advertiserRes.count || 0,
         totalInfluencers: influencerRes.count || 0,
         todayCampaigns: todayCampaignRes.count || 0,
@@ -55,79 +58,52 @@ export default async function AdminDashboard() {
         <div className="flex min-h-screen bg-background text-foreground">
             <AdminSidebar initialCounts={sidebarCounts} />
 
-            <main className="flex-1 p-10 overflow-y-auto bg-gray-50">
-                <div className="flex justify-between items-center mb-8">
-                    <div>
-                        <h1 className="text-3xl font-bold text-gray-900">슈퍼 어드민 관리페이지</h1>
-                        <p className="text-gray-500 mt-1">실시간 데이터 기반으로 성과를 확인하고 문제를 해결합니다</p>
+            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+                <div className="max-w-[1600px] mx-auto">
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
+                                <LayoutDashboard className="w-10 h-10 text-primary" />
+                                Admin Insight
+                            </h1>
+                            <p className="text-gray-500 mt-2 font-medium">
+                                실시간 플랫폼 상태와 위험 요소를 한눈에 모니터링합니다.
+                            </p>
+                        </div>
+                        <Link 
+                            href="/dashboard/campaign/new" 
+                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
+                        >
+                            + 신규 캠페인 등록
+                        </Link>
                     </div>
-                    <Link href="/dashboard/campaign/new" className="btn btn-primary text-sm shadow-md hover:shadow-lg transition-all">+ 캠페인 강제 등록</Link>
+
+                    {/* Section A: 통합 현황판 */}
+                    <DashboardStatsCards stats={statsData} />
+
+                    {/* Section B: 위젯 및 모니터링 */}
+                    <div className="space-y-12">
+                        <AdminDashboardClient initialCampaigns={campaigns} />
+                        
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Active & Pending Campaigns</h2>
+                                <Link 
+                                    href="/dashboard/admin/campaigns" 
+                                    className="text-gray-500 hover:text-gray-900 font-bold transition-colors text-sm"
+                                >
+                                    Manage All →
+                                </Link>
+                            </div>
+                            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                                <CampaignDataTable 
+                                    data={campaigns} 
+                                    isAdmin={true}
+                                />
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                {/* Section A: 최상단 현황판 (Global KPI) */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <Link
-                        href="/admin/users?tab=ADVERTISER"
-                        className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer group"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm text-gray-500 group-hover:text-blue-600 transition-colors">총 회원수 (기업)</div>
-                            <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center group-hover:bg-blue-100 transition-colors">
-                                <span className="text-xl">🏢</span>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-blue-600">
-                            {stats.totalAdvertisers.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">광고주 계정</div>
-                    </Link>
-
-                    <Link
-                        href="/admin/users?tab=INFLUENCER"
-                        className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-purple-300 transition-all cursor-pointer group"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm text-gray-500 group-hover:text-purple-600 transition-colors">총 회원수 (인플)</div>
-                            <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center group-hover:bg-purple-100 transition-colors">
-                                <span className="text-xl">⭐</span>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-purple-600">
-                            {stats.totalInfluencers.toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">인플루언서 계정</div>
-                    </Link>
-
-                    <Link
-                        href="/dashboard/admin/campaigns"
-                        className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-green-300 transition-all cursor-pointer group"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm text-gray-500 group-hover:text-green-600 transition-colors">오늘 신규 캠페인</div>
-                            <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center group-hover:bg-green-100 transition-colors">
-                                <span className="text-xl">📢</span>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-green-600">{stats.todayCampaigns}</div>
-                        <div className="text-xs text-gray-400 mt-1">오늘 등록된 캠페인</div>
-                    </Link>
-
-                    <Link
-                        href="/dashboard/admin/campaigns?type=pending"
-                        className="bg-white p-6 rounded-xl border border-border shadow-sm hover:shadow-md hover:border-orange-300 transition-all cursor-pointer group"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <div className="text-sm text-gray-500 group-hover:text-orange-600 transition-colors">대기중인 승인 요청</div>
-                            <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center group-hover:bg-orange-100 transition-colors">
-                                <span className="text-xl">⏰</span>
-                            </div>
-                        </div>
-                        <div className="text-3xl font-bold text-orange-600">{stats.pendingApprovals}</div>
-                        <div className="text-xs text-gray-400 mt-1">승인 대기 중</div>
-                    </Link>
-                </div>
-
-                <AdminDashboardClient initialCampaigns={campaigns} />
             </main>
         </div>
     );

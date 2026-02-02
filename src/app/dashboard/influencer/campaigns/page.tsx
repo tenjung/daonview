@@ -1,4 +1,5 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
@@ -12,10 +13,9 @@ import {
     Eye, 
     XCircle,
     ClipboardCheck,
-    ChevronDown,
-    ExternalLink,
     Truck,
-    Camera
+    Camera,
+    Megaphone
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -26,6 +26,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
+import { DataTable } from '@/components/ui/data-table';
+import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -105,7 +109,6 @@ export default function MyCampaignsPage() {
                     
                     // 마감 3일 이내인 경우
                     if (diffDays <= 3 && diffDays > 0) {
-                        // 이미 보낸 알림이 있는지 확인 (중복 방지: 최근 7일 내)
                         const { count } = await supabase
                             .from('notifications')
                             .select('*', { count: 'exact', head: true })
@@ -136,10 +139,10 @@ export default function MyCampaignsPage() {
             if (countData) {
                 const newCounts = {
                     all: countData.length,
-                    PENDING: countData.filter(a => a.status === 'PENDING').length,
-                    APPROVED: countData.filter(a => a.status === 'APPROVED').length,
-                    REJECTED: countData.filter(a => a.status === 'REJECTED').length,
-                    COMPLETED: countData.filter(a => a.status === 'COMPLETED').length,
+                    PENDING: countData.filter((a: any) => a.status === 'PENDING').length,
+                    APPROVED: countData.filter((a: any) => a.status === 'APPROVED').length,
+                    REJECTED: countData.filter((a: any) => a.status === 'REJECTED').length,
+                    COMPLETED: countData.filter((a: any) => a.status === 'COMPLETED').length,
                 };
                 setCounts(newCounts);
             }
@@ -150,21 +153,6 @@ export default function MyCampaignsPage() {
             setLoading(false);
         }
     }
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'PENDING':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-orange-50 text-orange-600">심사중</span>;
-            case 'APPROVED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-600">선정됨</span>;
-            case 'REJECTED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-red-50 text-red-600">미선정</span>;
-            case 'COMPLETED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-600">완료</span>;
-            default:
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-gray-50 text-gray-600">{status}</span>;
-        }
-    };
 
     async function handleCancel(applicationId: number, campaignTitle: string, status: string) {
         if (status !== 'PENDING') {
@@ -189,26 +177,107 @@ export default function MyCampaignsPage() {
 
             if (error) throw error;
 
-            toast.success('신청이 취소되었습니다.', {
-                description: '언제든지 다시 신청하실 수 있습니다.'
-            });
-            fetchData(); // Refresh list
+            toast.success('신청이 취소되었습니다.');
+            fetchData();
         } catch (error) {
             console.error('Error canceling application:', error);
             toast.error('취소 중 오류가 발생했습니다.');
         }
     }
 
-    if (loading) {
+    const columns = [
+        ...influencerApplicationColumns,
+        {
+            accessorKey: "tracking_number",
+            header: "배송 정보",
+            cell: ({ row }: any) => {
+                const app = row.original;
+                return app.tracking_number ? (
+                    <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
+                            <Truck size={12} />
+                            <span>{app.tracking_company}</span>
+                        </div>
+                        <div className="text-slate-400 font-mono text-[10px]">{app.tracking_number}</div>
+                    </div>
+                ) : (
+                    <span className="text-slate-300 text-xs">발송 대기</span>
+                );
+            }
+        },
+        {
+            id: "actions",
+            header: "액션",
+            cell: ({ row }: any) => {
+                const app = row.original;
+                return (
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                <MoreHorizontal className="h-4 w-4 text-slate-500" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl border-slate-100 p-1">
+                            <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                                <Link href={`/campaigns/${app.campaign_id}`} className="flex items-center gap-2 py-2">
+                                    <Eye size={14} className="text-slate-500" />
+                                    <span>상세보기</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            {app.status === 'APPROVED' && (
+                                <>
+                                    <DropdownMenuItem className="rounded-lg cursor-pointer flex items-center gap-2 py-2">
+                                        <ClipboardCheck size={14} className="text-green-500" />
+                                        <span>가이드 확인</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="bg-slate-50" />
+                                    <DropdownMenuItem 
+                                        className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-rose-500 font-bold"
+                                        onClick={() => setReviewModal({
+                                            isOpen: true,
+                                            appId: app.id,
+                                            campaignId: app.campaign_id,
+                                            campaignTitle: app.campaigns.title,
+                                            creatorId: app.campaigns.created_by
+                                        })}
+                                    >
+                                        <Camera size={14} />
+                                        <span>리뷰 등록</span>
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                            {app.status === 'PENDING' && (
+                                <>
+                                    <DropdownMenuSeparator className="bg-slate-50" />
+                                    <DropdownMenuItem 
+                                        onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
+                                        className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-red-500 focus:text-red-500 focus:bg-red-50"
+                                    >
+                                        <XCircle size={14} />
+                                        <span>신청 취소</span>
+                                    </DropdownMenuItem>
+                                </>
+                            )}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                );
+            }
+        }
+    ];
+
+    if (loading && applications.length === 0) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="text-gray-500">로딩 중...</div>
+            <div className="flex min-h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-gray-500 font-bold">캠페인 목록을 불러오는 중...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
+        <div className="flex min-h-screen bg-background text-foreground">
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
@@ -228,185 +297,67 @@ export default function MyCampaignsPage() {
                 ]}
             />
 
-            <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl font-bold text-text-main">나의 캠페인</h1>
-                    <Link href="/campaigns" className="btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-6">
-                    <button
-                        onClick={() => setFilter('all')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${filter === 'all' 
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>전체</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'all' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {counts.all}
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setFilter('PENDING')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${filter === 'PENDING' 
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>심사중</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'PENDING' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {counts.PENDING}
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setFilter('APPROVED')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${filter === 'APPROVED' 
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>선정됨</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'APPROVED' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {counts.APPROVED}
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setFilter('REJECTED')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${filter === 'REJECTED' 
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>미선정</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'REJECTED' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {counts.REJECTED}
-                        </span>
-                    </button>
-                    <button
-                        onClick={() => setFilter('COMPLETED')}
-                        className={`px-4 py-2 rounded-xl font-bold text-sm transition-all flex items-center gap-2 ${filter === 'COMPLETED' 
-                            ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' 
-                            : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                        <span>완료</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${filter === 'COMPLETED' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                            {counts.COMPLETED}
-                        </span>
-                    </button>
-                </div>
-
-                <div className="bg-white border border-border rounded-xl overflow-hidden shadow-sm">
-                    {applications.length > 0 ? (
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">캠페인명</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">플랫폼</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">카테고리</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">신청일</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">배송 정보</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">상태</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">액션</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {applications.map((app) => (
-                                    <tr key={app.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            <Link href={`/campaigns/${app.campaign_id}`} className="hover:text-primary transition-colors font-medium">
-                                                {app.campaigns.title}
-                                            </Link>
-                                        </td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{app.campaigns.platform}</td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{app.campaigns.category}</td>
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            {new Date(app.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace('.', '')}
-                                        </td>
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            {app.tracking_number ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center gap-1.5 text-blue-600 font-bold">
-                                                        <Truck size={14} />
-                                                        <span>{app.tracking_company}</span>
-                                                    </div>
-                                                    <div className="text-slate-400 font-mono text-xs">{app.tracking_number}</div>
-                                                </div>
-                                            ) : (
-                                                <span className="text-slate-300">발송 대기</span>
-                                            )}
-                                        </td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{getStatusBadge(app.status)}</td>
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
-                                                        <MoreHorizontal className="h-4 w-4 text-slate-500" />
-                                                        <span className="sr-only">메뉴 열기</span>
-                                                    </Button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl border-slate-100 p-1">
-                                                    <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
-                                                        <Link href={`/campaigns/${app.campaign_id}`} className="flex items-center gap-2 py-2">
-                                                            <Eye size={14} className="text-slate-500" />
-                                                            <span>상세보기</span>
-                                                        </Link>
-                                                    </DropdownMenuItem>
-                                                    {app.status === 'APPROVED' && (
-                                                        <>
-                                                            <DropdownMenuItem className="rounded-lg cursor-pointer flex items-center gap-2 py-2">
-                                                                <ClipboardCheck size={14} className="text-green-500" />
-                                                                <span>가이드 확인</span>
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator className="bg-slate-50" />
-                                                            <DropdownMenuItem 
-                                                                className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-rose-500 font-bold"
-                                                                onClick={() => setReviewModal({
-                                                                    isOpen: true,
-                                                                    appId: app.id,
-                                                                    campaignId: app.campaign_id,
-                                                                    campaignTitle: app.campaigns.title,
-                                                                    creatorId: app.campaigns.created_by
-                                                                })}
-                                                            >
-                                                                <Camera size={14} />
-                                                                <span>리뷰 등록</span>
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-
-                                                    {app.status === 'PENDING' && (
-                                                        <>
-                                                            <DropdownMenuSeparator className="bg-slate-50" />
-                                                            <DropdownMenuItem 
-                                                                onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
-                                                                className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-red-500 focus:text-red-500 focus:bg-red-50"
-                                                            >
-                                                                <XCircle size={14} />
-                                                                <span>신청 취소</span>
-                                                            </DropdownMenuItem>
-                                                        </>
-                                                    )}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className="p-12 text-center text-gray-500">
-                            <p className="text-lg mb-2">신청한 캠페인이 없습니다.</p>
-                            <Link href="/campaigns" className="text-primary hover:underline">
-                                캠페인 둘러보기 →
-                            </Link>
+            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+                <div className="max-w-[1600px] mx-auto">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
+                                <Megaphone className="w-10 h-10 text-primary" />
+                                My Campaigns
+                            </h1>
+                            <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
                         </div>
-                    )}
+                        <Link 
+                            href="/campaigns" 
+                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1"
+                        >
+                            신규 캠페인 찾기
+                        </Link>
+                    </div>
+
+                    {/* Tabs / Filters */}
+                    <div className="mb-8">
+                        <Tabs defaultValue="all" value={filter} onValueChange={(v: any) => setFilter(v)} className="w-full">
+                            <TabsList className="bg-transparent h-auto p-0 flex-wrap gap-2">
+                                {[
+                                    { value: 'all', label: '전체', count: counts.all, color: 'bg-gray-500' },
+                                    { value: 'PENDING', label: '심사중', count: counts.PENDING, color: 'bg-orange-500' },
+                                    { value: 'APPROVED', label: '선정됨', count: counts.APPROVED, color: 'bg-green-500' },
+                                    { value: 'REJECTED', label: '미선정', count: counts.REJECTED, color: 'bg-red-500' },
+                                    { value: 'COMPLETED', label: '완료', count: counts.COMPLETED, color: 'bg-blue-500' },
+                                ].map((tab) => (
+                                    <TabsTrigger
+                                        key={tab.value}
+                                        value={tab.value}
+                                        className={`
+                                            px-6 py-3 rounded-2xl font-bold text-sm border transition-all gap-3
+                                            data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:border-gray-200 data-[state=active]:shadow-md
+                                            data-[state=inactive]:bg-white/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:border-transparent hover:bg-white
+                                        `}
+                                    >
+                                        {tab.label}
+                                        <Badge className={`${tab.color} text-white border-none text-[10px] px-1.5 py-0`}>
+                                            {tab.count}
+                                        </Badge>
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                    </div>
+
+                    {/* Table Section */}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                        <DataTable 
+                            columns={columns} 
+                            data={applications} 
+                            isLoading={loading}
+                            emptyMessage="선택한 조건의 캠페인이 없습니다."
+                        />
+                    </div>
                 </div>
             </main>
 
-            {/* Cancel Confirmation Dialog */}
             <ConfirmDialog
                 isOpen={cancelDialog.isOpen}
                 onClose={() => setCancelDialog({ ...cancelDialog, isOpen: false })}
@@ -418,10 +369,9 @@ export default function MyCampaignsPage() {
                 type="danger"
             />
 
-            {/* Review Submission Modal */}
             <ReviewSubmitModal
                 isOpen={reviewModal.isOpen}
-                onClose={() => setReviewModal(prev => ({ ...prev, isOpen: false }))}
+                onClose={() => setReviewModal((prev: any) => ({ ...prev, isOpen: false }))}
                 applicationId={reviewModal.appId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}

@@ -1,10 +1,15 @@
 'use client';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import { LayoutDashboard, Megaphone, FileText, CheckCircle, Clock } from 'lucide-react';
+import { InfluencerStatsCards } from '@/components/influencer/InfluencerStatsCards';
+import { DataTable } from '@/components/ui/data-table';
+import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -58,44 +63,19 @@ export default function InfluencerDashboard() {
         }
     }
 
-    const getStatusBadge = (status: string) => {
-        const s = status?.toUpperCase();
-        switch (s) {
-            case 'PENDING':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-orange-50 text-orange-600">심사중</span>;
-            case 'APPROVED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-green-50 text-green-600">선정됨</span>;
-            case 'REJECTED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-red-50 text-red-600">미선정</span>;
-            case 'COMPLETED':
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-blue-50 text-blue-600">완료</span>;
-            default:
-                return <span className="inline-block px-2 py-1 rounded text-xs font-bold bg-gray-50 text-gray-600">{status}</span>;
-        }
-    };
-
-    const getStatusNote = (status: string) => {
-        const s = status?.toUpperCase();
-        switch (s) {
-            case 'APPROVED':
-                return '가이드 확인 필요';
-            case 'REJECTED':
-                return '아쉽게도 선정되지 않았습니다.';
-            default:
-                return '-';
-        }
-    };
-
     if (loading) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <div className="text-gray-500">로딩 중...</div>
+            <div className="flex min-h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-gray-500 font-bold">인사이트를 불러오는 중...</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
+        <div className="flex min-h-screen bg-background text-foreground">
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
@@ -115,67 +95,71 @@ export default function InfluencerDashboard() {
                 ]}
             />
 
-            <main className="flex-1 p-6 md:p-10 overflow-y-auto">
-                <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-2xl font-bold text-text-main">나의 활동</h1>
-                    <Link href="/campaigns" className="btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
-                </div>
+            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+                <div className="max-w-[1600px] mx-auto">
+                    {/* Header Section */}
+                    <div className="flex justify-between items-center mb-10">
+                        <div>
+                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
+                                <LayoutDashboard className="w-10 h-10 text-primary" />
+                                My Activity
+                            </h1>
+                            <p className="text-gray-500 mt-2 font-medium">캠페인 활동과 리뷰 현황을 한눈에 관리하세요.</p>
+                        </div>
+                        <Link 
+                            href="/campaigns" 
+                            className="bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center gap-3"
+                        >
+                            <Megaphone size={20} /> 캠페인 찾아보기
+                        </Link>
+                    </div>
 
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6">
-                    <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
-                        <div className="text-sm text-gray-500 mb-2">신청한 캠페인</div>
-                        <div className="text-3xl font-bold text-primary">{stats.total}</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
-                        <div className="text-sm text-gray-500 mb-2">선정된 캠페인</div>
-                        <div className="text-3xl font-bold text-primary">{stats.approved}</div>
-                    </div>
-                    <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
-                        <div className="text-sm text-gray-500 mb-2">작성해야 할 리뷰</div>
-                        <div className="text-3xl font-bold text-primary">{stats.pending}</div>
-                    </div>
-                </div>
+                    {/* Stats Cards Section */}
+                    <InfluencerStatsCards stats={stats} />
 
-                <div className="bg-white border border-border rounded-xl overflow-hidden mt-8 shadow-sm">
-                    <div className="p-6 border-b border-border">
-                        <h3 className="font-bold text-lg">최근 신청 내역</h3>
+                    {/* Recent Activity Section */}
+                    <div className="mt-12">
+                        <div className="flex items-center justify-between mb-8">
+                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                                <Clock className="w-6 h-6 text-primary" />
+                                최근 신청 내역
+                            </h2>
+                            <Link 
+                                href="/dashboard/influencer/campaigns" 
+                                className="text-gray-500 hover:text-gray-900 font-bold transition-colors text-sm"
+                            >
+                                전체 내역 보기 →
+                            </Link>
+                        </div>
+                        
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                            <DataTable 
+                                columns={influencerApplicationColumns} 
+                                data={applications} 
+                                isLoading={loading}
+                                emptyMessage="아직 신청한 캠페인이 없습니다."
+                            />
+                        </div>
                     </div>
-                    {applications.length > 0 ? (
-                        <table className="w-full border-collapse">
-                            <thead>
-                                <tr>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">캠페인명</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">플랫폼</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">신청일</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">상태</th>
-                                    <th className="p-4 text-left border-b border-border bg-gray-50 font-semibold text-sm text-gray-500">비고</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {applications.map((app) => (
-                                    <tr key={app.id}>
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            <Link href={`/campaigns/${app.campaign_id}`} className="hover:text-primary transition-colors">
-                                                {app.campaigns.title}
-                                            </Link>
-                                        </td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{app.campaigns.platform}</td>
-                                        <td className="p-4 text-left border-b border-border text-sm">
-                                            {new Date(app.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\. /g, '.').replace('.', '')}
-                                        </td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{getStatusBadge(app.status)}</td>
-                                        <td className="p-4 text-left border-b border-border text-sm">{getStatusNote(app.status)}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className="p-8 text-center text-gray-500">
-                            아직 신청한 캠페인이 없습니다.
+
+                    {/* Empty State Suggestion */}
+                    {applications.length === 0 && !loading && (
+                        <div className="mt-12 p-12 bg-white rounded-3xl border border-dashed border-gray-200 text-center">
+                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <Megaphone className="w-10 h-10 text-gray-400" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">새로운 캠페인을 시작해보세요!</h3>
+                            <p className="text-gray-500 mb-8 max-w-md mx-auto">전국 팔도의 다양한 캠페인들이 인플루언서님의 참여를 기다리고 있습니다.</p>
+                            <Link 
+                                href="/campaigns" 
+                                className="inline-flex items-center gap-2 text-primary font-bold hover:underline"
+                            >
+                                추천 캠페인 보러가기 →
+                            </Link>
                         </div>
                     )}
                 </div>
             </main>
-        </div >
+        </div>
     );
 }

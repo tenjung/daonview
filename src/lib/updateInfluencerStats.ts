@@ -47,7 +47,10 @@ export async function updateInfluencerStats(userId: string): Promise<boolean> {
         const crawlResponse = await fetch('/api/crawl-blog', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: profile.sns_url })
+            body: JSON.stringify({ 
+                userId: userId,
+                blogUrl: profile.sns_url 
+            })
         });
 
         if (!crawlResponse.ok) {

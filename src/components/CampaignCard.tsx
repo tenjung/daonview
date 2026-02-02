@@ -18,6 +18,9 @@ interface CampaignProps {
     category?: string | null;
     provision?: string | null;
     region?: string | null;
+    includeReview?: boolean;
+    includeNaver?: boolean;
+    includeInstagram?: boolean;
 }
 
 // Exported Badge Components for reuse
@@ -107,7 +110,7 @@ export const RegionBadge = ({ region }: { region?: string | null }) => {
     );
 };
 
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, includeReview, includeNaver, includeInstagram }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -214,15 +217,22 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             <div className="p-2.5 flex flex-col flex-1 gap-1.5">
                 {/* 1. Tags: Type & Platform & Region */}
                 <div className="flex items-center gap-1.5 flex-wrap">
-                    {/* 1. Badge Order: Type -> (Purchase if Delivery) -> Platform -> Region */}
                     <TypeBadge type={type} />
 
-                    {/* Special Rule: For Delivery campaigns, insert 'Purchase' badge if not already main platform */}
-                    {type?.toUpperCase() === 'DELIVERY' && platform.toUpperCase() !== 'PURCHASE' && (
-                        <PlatformBadge platform="PURCHASE" />
+                    {/* 배송형일 경우 명시적인 include 플래그 사용 */}
+                    {type?.toUpperCase() === 'DELIVERY' ? (
+                        <>
+                            {includeReview && <PlatformBadge platform="PURCHASE" />}
+                            {includeNaver && <PlatformBadge platform="BLOG" />}
+                            {includeInstagram && <PlatformBadge platform="INSTAGRAM" />}
+                            {/* 플래그 정보가 하나도 없을 때만 기본 platform 표시 (하위 호환) */}
+                            {!includeReview && !includeNaver && !includeInstagram && (
+                                <PlatformBadge platform={platform} />
+                            )}
+                        </>
+                    ) : (
+                        <PlatformBadge platform={platform} />
                     )}
-
-                    <PlatformBadge platform={platform} />
 
                     {isVisit && (
                         <RegionBadge region={region} />

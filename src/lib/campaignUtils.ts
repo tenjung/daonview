@@ -70,5 +70,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     provision: provision,
     end_date: campaign.end_date,
     created_at: campaign.created_at,
+    includeReview: options?.step1Data?.includeReview ?? false,
+    includeNaver: options?.step1Data?.includeNaver ?? false,
+    includeInstagram: options?.step1Data?.includeInstagram ?? false,
   };
 };

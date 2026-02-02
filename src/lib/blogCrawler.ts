@@ -19,88 +19,191 @@ export interface PostStats {
 }
 
 /**
- * 네이버 블로그 통계 크롤링
+ * 네이버 블로그 통계 크롤링 (간소화 버전)
+ * - 확실하게 가져올 수 있는 정보만 수집
+ * - 실패 시 기본값 반환으로 안정성 확보
  */
 export async function crawlNaverBlog(blogUrl: string): Promise<BlogStats> {
     try {
         const blogId = extractBlogId(blogUrl);
         if (!blogId) {
-            throw new Error('Invalid blog URL');
+            throw new Error('Invalid blog URL format');
         }
 
         console.log(`[Crawl] Starting for blog: ${blogId}`);
 
-        // 1. 모바일 홈 페이지에서 기본 통계 수집
-        const mobileHomeUrl = `https://m.blog.naver.com/${blogId}`;
-        const homeResponse = await axios.get(mobileHomeUrl, {
+        // 데스크톱 버전 사용 (모바일보다 안정적)
+        const desktopUrl = `https://blog.naver.com/${blogId}`;
+        
+        const response = await axios.get(desktopUrl, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
             },
-            timeout: 10000
+            timeout: 15000,
+            maxRedirects: 5
         });
 
-        const $home = cheerio.load(homeResponse.data);
+        const $ = cheerio.load(response.data);
+        const bodyText = $('body').text();
+        const htmlText = response.data; // 전체 HTML도 확인
 
-        // 방문자 수 추출 (모바일 헤더)
-        const homeText = $home('body').text();
-        const visitorToday = extractNumber(homeText.match(/오늘\s*(\d+[,\d]*)/)) ||
-            extractNumber(homeText.match(/TODAY\s*(\d+[,\d]*)/i)) || 0;
-        const visitorTotal = extractNumber(homeText.match(/전체\s*(\d+[,\d]*)/)) ||
-            extractNumber(homeText.match(/TOTAL\s*(\d+[,\d]*)/i)) || 0;
+        console.log('[Crawl] Page loaded, body text length:', bodyText.length);
+        
+        // 디버그: HTML 일부 출력 (처음 500자)
+        const htmlSnippet = htmlText.substring(0, 500);
+        console.log('[Crawl] HTML snippet:', htmlSnippet);
+        
+        // 디버그: Body 텍스트 일부 출력 (처음 500자)
+        const bodySnippet = bodyText.substring(0, 500);
+        console.log('[Crawl] Body text snippet:', bodySnippet);
 
-        // 이웃 수 추출
-        const neighborCount = extractNumber(homeText.match(/이웃\s*(\d+[,\d]*)/)) ||
-            extractNumber(homeText.match(/BUDDY\s*(\d+[,\d]*)/i)) || 0;
+        // 방문자 수 추출 (여러 패턴 시도)
+        let visitorToday = 0;
+        let visitorTotal = 0;
+        let neighborCount = 0;
 
-        console.log(`[Crawl] Stats - Today: ${visitorToday}, Total: ${visitorTotal}, Neighbors: ${neighborCount}`);
+        // === 오늘 방문자 추출 (다양한 패턴) ===
+        const todayPatterns = [
+            /오늘\s*(\d+[,\d]*)/,
+            /TODAY\s*(\d+[,\d]*)/i,
+            /today\s*(\d+[,\d]*)/i,
+            /방문\s*오늘\s*(\d+[,\d]*)/,
+            /일일\s*방문\s*(\d+[,\d]*)/,
+            /"visitorCountToday"\s*:\s*(\d+)/,
+            /"todayCount"\s*:\s*(\d+)/,
+        ];
 
-        // 2. 블로그 탭에서 최근 포스팅 수집
-        const blogTabUrl = `https://m.blog.naver.com/${blogId}?tab=1`;
-        const blogResponse = await axios.get(blogTabUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
-            },
-            timeout: 10000
-        });
+        for (const pattern of todayPatterns) {
+            const match = bodyText.match(pattern) || htmlText.match(pattern);
+            if (match && match[1]) {
+                visitorToday = extractNumber(match);
+                console.log(`[Crawl] Today visitor matched with pattern: ${pattern}, value: ${match[1]}`);
+                break;
+            }
+        }
 
-        const $blog = cheerio.load(blogResponse.data);
+        // === 전체 방문자 추출 (다양한 패턴) ===
+        const totalPatterns = [
+            /전체\s*(\d+[,\d]*)/,
+            /TOTAL\s*(\d+[,\d]*)/i,
+            /total\s*(\d+[,\d]*)/i,
+            /누적\s*방문\s*(\d+[,\d]*)/,
+            /총\s*방문\s*(\d+[,\d]*)/,
+            /"visitorCountTotal"\s*:\s*(\d+)/,
+            /"totalCount"\s*:\s*(\d+)/,
+        ];
 
-        // 포스팅 목록에서 URL 추출
-        const postUrls: string[] = [];
-        $blog('a[href*="/PostView.naver"]').each((i, elem) => {
-            if (postUrls.length >= 10) return false;
-            const href = $blog(elem).attr('href');
-            if (href) {
-                const fullUrl = href.startsWith('http') ? href : `https://m.blog.naver.com${href}`;
-                if (!postUrls.includes(fullUrl)) {
+        for (const pattern of totalPatterns) {
+            const match = bodyText.match(pattern) || htmlText.match(pattern);
+            if (match && match[1]) {
+                visitorTotal = extractNumber(match);
+                console.log(`[Crawl] Total visitor matched with pattern: ${pattern}, value: ${match[1]}`);
+                break;
+            }
+        }
+
+        // === 이웃 수 추출 (다양한 패턴) ===
+        const neighborPatterns = [
+            /이웃\s*(\d+[,\d]*)/,
+            /BUDDY\s*(\d+[,\d]*)/i,
+            /neighbor\s*(\d+[,\d]*)/i,
+            /이웃님\s*(\d+[,\d]*)/,
+            /"buddyCount"\s*:\s*(\d+)/,
+            /"neighborCount"\s*:\s*(\d+)/,
+        ];
+
+        for (const pattern of neighborPatterns) {
+            const match = bodyText.match(pattern) || htmlText.match(pattern);
+            if (match && match[1]) {
+                neighborCount = extractNumber(match);
+                console.log(`[Crawl] Neighbor matched with pattern: ${pattern}, value: ${match[1]}`);
+                break;
+            }
+        }
+
+        console.log(`[Crawl] Final extracted - Today: ${visitorToday}, Total: ${visitorTotal}, Neighbors: ${neighborCount}`);
+
+        // 포스팅 정보는 선택적으로 수집 (실패해도 무방)
+        let recentPosts: PostStats[] = [];
+        let mainCategories: string[] = [];
+
+        try {
+            // iframe 내부의 포스트 목록 URL 시도
+            const postListUrl = `https://blog.naver.com/PostList.naver?blogId=${blogId}&from=postList&categoryNo=0`;
+            const postListResponse = await axios.get(postListUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Referer': desktopUrl
+                },
+                timeout: 10000
+            });
+
+            const $posts = cheerio.load(postListResponse.data);
+            const postUrls: string[] = [];
+
+            // 포스트 링크 추출
+            $posts('a[href*="PostView"]').each((i, elem) => {
+                if (postUrls.length >= 5) return false; // 최대 5개만
+                const href = $posts(elem).attr('href');
+                if (href && !postUrls.includes(href)) {
+                    const fullUrl = href.startsWith('http') ? href : `https://blog.naver.com${href}`;
                     postUrls.push(fullUrl);
                 }
-            }
-        });
+            });
 
-        console.log(`[Crawl] Found ${postUrls.length} posts`);
+            console.log(`[Crawl] Found ${postUrls.length} post URLs`);
 
-        // 3. 각 포스팅의 좋아요/댓글 수 수집 (병렬 처리, 최대 10개)
-        const recentPosts = await Promise.all(
-            postUrls.slice(0, 10).map(url => crawlPostDetails(url))
-        );
+            // 포스트 상세 정보는 수집하지 않음 (너무 불안정)
+            // 대신 기본 정보만 저장
+            recentPosts = postUrls.map((url, index) => ({
+                title: `포스트 ${index + 1}`,
+                url,
+                date: new Date().toISOString(),
+                likes: 0,
+                comments: 0
+            }));
 
-        const validPosts = recentPosts.filter(p => p !== null) as PostStats[];
-        console.log(`[Crawl] Successfully crawled ${validPosts.length} posts`);
+        } catch (postError) {
+            console.warn('[Crawl] Failed to fetch posts (non-critical):', postError);
+            // 포스트 수집 실패는 무시
+        }
 
-        // 4. 주요 카테고리 추출
-        const mainCategories = extractMainCategories(validPosts);
+        // 최소한의 유효성 검증 완화
+        // 전체 방문자 수만 있어도 유효한 블로그로 간주
+        if (visitorTotal === 0 && visitorToday === 0 && neighborCount === 0) {
+            console.error('[Crawl] All statistics are zero - likely invalid blog or access denied');
+            throw new Error('No valid statistics found - blog may be private or URL is incorrect');
+        }
+
+        console.log('[Crawl] ✅ Success! Returning statistics...');
 
         return {
             visitorToday,
             visitorTotal,
             neighborCount,
-            recentPosts: validPosts,
+            recentPosts,
             mainCategories
         };
+
     } catch (error: any) {
         console.error('[Crawl] Error:', error.message);
-        throw new Error(`Failed to crawl blog: ${error.message}`);
+        
+        // 네트워크 에러인 경우 더 명확한 메시지
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            throw new Error('Blog crawling timeout - please try again later');
+        }
+        
+        if (error.response?.status === 404) {
+            throw new Error('Blog not found - please check the URL');
+        }
+
+        if (error.response?.status === 403) {
+            throw new Error('Access denied - blog may be private');
+        }
+
+        throw new Error(`Crawling failed: ${error.message}`);
     }
 }
 
@@ -108,8 +211,15 @@ export async function crawlNaverBlog(blogUrl: string): Promise<BlogStats> {
  * 블로그 URL에서 ID 추출
  */
 function extractBlogId(url: string): string | null {
-    const match = url.match(/blog\.naver\.com\/([^\/\?]+)/);
-    return match ? match[1] : null;
+    // 패턴 1: blog.naver.com/blogId
+    let match = url.match(/blog\.naver\.com\/([^\/\?]+)/);
+    if (match) return match[1];
+
+    // 패턴 2: m.blog.naver.com/blogId
+    match = url.match(/m\.blog\.naver\.com\/([^\/\?]+)/);
+    if (match) return match[1];
+
+    return null;
 }
 
 /**
@@ -117,160 +227,9 @@ function extractBlogId(url: string): string | null {
  */
 function extractNumber(match: RegExpMatchArray | null): number {
     if (!match || !match[1]) return 0;
-    return parseInt(match[1].replace(/,/g, ''));
-}
-
-/**
- * 방문자 수 추출
- */
-function extractVisitorCount($: cheerio.CheerioAPI, type: 'TODAY' | 'TOTAL'): number {
-    const text = $('body').text();
-    const regex = new RegExp(`${type}\\s*(\\d+[,\\d]*)`, 'i');
-    const match = text.match(regex);
-
-    if (match && match[1]) {
-        return parseInt(match[1].replace(/,/g, ''));
-    }
-
-    return 0;
-}
-
-/**
- * 이웃 수 추출
- */
-function extractNeighborCount($: cheerio.CheerioAPI): number {
-    // 이웃 수는 여러 패턴으로 표시될 수 있음
-    const text = $('body').text();
-
-    // 패턴 1: "이웃 326"
-    let match = text.match(/이웃\s*(\d+[,\d]*)/);
-    if (match && match[1]) {
-        return parseInt(match[1].replace(/,/g, ''));
-    }
-
-    // 패턴 2: "BUDDY 326"
-    match = text.match(/BUDDY\s*(\d+[,\d]*)/i);
-    if (match && match[1]) {
-        return parseInt(match[1].replace(/,/g, ''));
-    }
-
-    return 0;
-}
-
-/**
- * 최근 포스팅 크롤링
- */
-async function crawlRecentPosts(blogId: string, count: number = 10): Promise<PostStats[]> {
-    try {
-        const posts: PostStats[] = [];
-
-        // 모바일 포스트 목록 페이지
-        const listUrl = `https://m.blog.naver.com/PostList.naver?blogId=${blogId}&categoryNo=0`;
-
-        const response = await axios.get(listUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-            },
-            timeout: 10000
-        });
-
-        const $ = cheerio.load(response.data);
-
-        // 포스트 목록 추출
-        $('.list_area .post_item, .list_area li').slice(0, count).each((i, elem) => {
-            const $elem = $(elem);
-            const $link = $elem.find('a').first();
-            const title = $link.text().trim() || $elem.find('.tit').text().trim();
-            const href = $link.attr('href');
-
-            if (title && href) {
-                const postUrl = href.startsWith('http') ? href : `https://m.blog.naver.com${href}`;
-                const logNo = extractLogNo(postUrl);
-
-                if (logNo) {
-                    posts.push({
-                        title,
-                        url: postUrl,
-                        date: new Date().toISOString(), // 실제로는 포스트 날짜 파싱 필요
-                        likes: 0, // 개별 포스트 크롤링 필요
-                        comments: 0,
-                        category: undefined
-                    });
-                }
-            }
-        });
-
-        // 각 포스트의 좋아요/댓글 수 크롤링 (병렬 처리)
-        const detailedPosts = await Promise.all(
-            posts.map(post => crawlPostDetails(post.url))
-        );
-
-        return detailedPosts.filter(p => p !== null) as PostStats[];
-    } catch (error) {
-        console.error('Error crawling recent posts:', error);
-        return [];
-    }
-}
-
-/**
- * 포스트 상세 정보 크롤링
- */
-async function crawlPostDetails(postUrl: string): Promise<PostStats | null> {
-    try {
-        const response = await axios.get(postUrl, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15'
-            },
-            timeout: 5000
-        });
-
-        const $ = cheerio.load(response.data);
-        const bodyText = $('body').text();
-
-        // 제목 추출
-        const title = $('meta[property="og:title"]').attr('content') ||
-            $('title').text().split(':')[0].trim() ||
-            '제목 없음';
-
-        // 좋아요 수 (공감)
-        let likes = 0;
-        const likeMatch = bodyText.match(/공감\s*(\d+)/);
-        if (likeMatch && likeMatch[1]) {
-            likes = parseInt(likeMatch[1]);
-        }
-
-        // 댓글 수
-        let comments = 0;
-        const commentMatch = bodyText.match(/댓글\s*(\d+)/);
-        if (commentMatch && commentMatch[1]) {
-            comments = parseInt(commentMatch[1]);
-        }
-
-        // 카테고리 추출
-        const category = $('meta[property="article:section"]').attr('content') ||
-            $('.blog_category').text().trim() ||
-            undefined;
-
-        return {
-            title,
-            url: postUrl,
-            date: new Date().toISOString(),
-            likes,
-            comments,
-            category
-        };
-    } catch (error) {
-        console.error(`[Crawl] Failed to crawl post ${postUrl}:`, error);
-        return null;
-    }
-}
-
-/**
- * URL에서 logNo 추출
- */
-function extractLogNo(url: string): string | null {
-    const match = url.match(/\/(\d+)$/);
-    return match ? match[1] : null;
+    const cleaned = match[1].replace(/,/g, '').replace(/\s/g, '');
+    const num = parseInt(cleaned, 10);
+    return isNaN(num) ? 0 : num;
 }
 
 /**
@@ -293,26 +252,30 @@ function extractMainCategories(posts: PostStats[]): string[] {
 }
 
 /**
- * 영향력 점수 계산
+ * 영향력 점수 계산 (간소화 버전)
+ * - 방문자 수 기반으로만 계산
  */
 export function calculateInfluenceScore(stats: {
     visitorToday: number;
     visitorTotal: number;
     neighborCount: number;
-    avgLikes: number;
-    avgComments: number;
+    avgLikes?: number;
+    avgComments?: number;
 }): number {
-    // 1. 일 방문자 점수 (0-25점)
-    const dailyScore = Math.min(25, (stats.visitorToday / 100) * 25);
+    // 1. 일 방문자 점수 (0-40점) - 가중치 증가
+    const dailyScore = Math.min(40, (stats.visitorToday / 100) * 40);
 
-    // 2. 전체 방문자 점수 (0-25점)
-    const totalScore = Math.min(25, (stats.visitorTotal / 100000) * 25);
+    // 2. 전체 방문자 점수 (0-40점) - 가중치 증가
+    const totalScore = Math.min(40, (stats.visitorTotal / 100000) * 40);
 
-    // 3. 이웃 수 점수 (0-25점)
-    const neighborScore = Math.min(25, (stats.neighborCount / 500) * 25);
+    // 3. 이웃 수 점수 (0-20점)
+    const neighborScore = Math.min(20, (stats.neighborCount / 500) * 20);
 
-    // 4. 참여도 점수 (0-25점)
-    const engagementScore = Math.min(25, ((stats.avgLikes + stats.avgComments) / 20) * 25);
+    // 좋아요/댓글은 선택적 (가져올 수 없는 경우가 많음)
+    let engagementScore = 0;
+    if (stats.avgLikes !== undefined && stats.avgComments !== undefined) {
+        engagementScore = Math.min(10, ((stats.avgLikes + stats.avgComments) / 20) * 10);
+    }
 
     // 총점 계산
     const totalInfluenceScore = dailyScore + totalScore + neighborScore + engagementScore;

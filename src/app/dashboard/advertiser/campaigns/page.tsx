@@ -1,107 +1,53 @@
-'use client';
-
-import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { useAuthStore } from '@/store/authStore';
-import Link from 'next/link';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
-import AdvertiserCampaignTable from '@/components/AdvertiserCampaignTable';
+import { UnifiedAdvertiserCampaigns } from '@/components/admin/UnifiedAdvertiserCampaigns';
+import Link from 'next/link';
+import { Megaphone } from 'lucide-react';
+import UnifiedAdvertiserPage from './UnifiedAdvertiserPage';
 
-function AdvertiserCampaignsContent() {
-    const { user, isLoading } = useAuthStore();
-    const searchParams = useSearchParams();
-    const status = searchParams?.get('status');
+// Next.js 캐싱 비활성화
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-    const [campaigns, setCampaigns] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    const getPageTitle = () => {
-        switch (status) {
-            case 'RECRUITING': return '모집/진행 중인 캠페인';
-            case 'COMPLETED': return '완료된 캠페인';
-            case 'DRAFT': return '임시저장함';
-            default: return '전체 캠페인 목록';
-        }
-    };
-
-    const getPageDescription = () => {
-        switch (status) {
-            case 'RECRUITING': return '리뷰어 모집 중이거나 진행 중인 캠페인 (승인 대기 포함)';
-            case 'COMPLETED': return '모든 과정이 마무리된 캠페인입니다.';
-            case 'DRAFT': return '작성 중인 캠페인입니다. 이어서 작성하고 등록하세요.';
-            default: return '등록한 모든 캠페인을 관리합니다.';
-        }
-    };
-
-    useEffect(() => {
-        if (!isLoading && user) {
-            fetchCampaigns();
-        } else if (!isLoading && !user) {
-            setLoading(false);
-        }
-    }, [isLoading, user, status]);
-
-    const fetchCampaigns = async () => {
-        if (!user) return;
-        setLoading(true);
-
-        let query = supabase
-            .from('campaigns')
-            .select('*, applications(count)')
-            .eq('created_by', user.id)
-            .order('created_at', { ascending: false });
-
-        if (status === 'RECRUITING') {
-            query = query.in('status', ['PENDING', 'RECRUITING', 'ONGOING']);
-        } else if (status === 'COMPLETED') {
-            query = query.eq('status', 'COMPLETED');
-        } else if (status === 'DRAFT') {
-            query = query.eq('status', 'DRAFT');
-        }
-
-        const { data, error } = await query;
-
-        if (error) {
-            console.error('Error fetching campaigns:', error);
-        } else {
-            setCampaigns(data || []);
-        }
-        setLoading(false);
-    };
+export default async function AdvertiserCampaignsPage() {
+    // 세션 정보 대신 쿠키나 다른 방식으로 사용자 ID를 가져와야 할 수도 있습니다. 
+    // 여기서는 기존 서버 컴포넌트 패턴을 따릅니다.
+    // 하지만 현재 user 정보를 가져오는 것은 클라이언트 사이드 authStore에 의존하고 있어
+    // 데이터 페칭을 클라이언트 컴포넌트로 넘기는 것이 안전할 수 있습니다.
+    
+    // 하지만 일관성을 위해 클라이언트 컴포넌트로 구조를 바꿉니다.
+    // AdvertiserCampaignsContent를 UnifiedAdvertiserPage로 리팩토링합니다.
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
             <AdvertiserSidebar />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
-                <div className="max-w-6xl mx-auto">
+                <div className="max-w-[1600px] mx-auto">
                     <div className="flex justify-between items-center mb-8">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">{getPageTitle()}</h1>
-                            <p className="text-gray-500 mt-1">{getPageDescription()}</p>
+                            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 italic">
+                                <Megaphone className="w-8 h-8 text-primary" />
+                                My Campaigns
+                            </h1>
+                            <p className="text-gray-500 mt-1 font-medium">
+                                등록하신 모든 캠페인을 효율적으로 관리하세요.
+                            </p>
                         </div>
-                        <Link href="/dashboard/campaign/new" className="btn btn-primary text-sm shadow-md hover:shadow-lg transition-all">+ 캠페인 신규 등록</Link>
+                        <Link 
+                            href="/dashboard/campaign/new" 
+                            className="bg-primary text-white px-5 py-3 rounded-2xl font-bold shadow-sm hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0"
+                        >
+                            + 새 캠페인 등록
+                        </Link>
                     </div>
 
-                    {loading ? (
-                        <div className="text-center py-20">
-                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-                            <p className="text-gray-500">데이터를 불러오는 중입니다...</p>
-                        </div>
-                    ) : (
-                        <AdvertiserCampaignTable initialCampaigns={campaigns} />
-                    )}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                        <UnifiedAdvertiserPage />
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-export default function AdvertiserCampaignsPage() {
-    return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <AdvertiserCampaignsContent />
-        </Suspense>
-    );
-}

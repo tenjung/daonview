@@ -4,25 +4,15 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
-import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Plus, AlertCircle } from 'lucide-react';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
-
-interface Campaign {
-    id: number;
-    title: string;
-    platform: string;
-    type: string;
-    recruit_count: number;
-    end_date: string;
-    status: string;
-    created_at: string;
-    applications?: { count: number }[];
-}
+import { AdvertiserStatsCards } from '@/components/advertiser/AdvertiserStatsCards';
+import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
+import { Campaign } from '@/types/database';
 
 export default function AdvertiserDashboard() {
     const { user, isLoading } = useAuthStore();
-    const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+    const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -114,37 +104,57 @@ export default function AdvertiserDashboard() {
     const criticalCampaigns = campaigns.filter(c => analyzeCampaign(c) === 'critical');
     const warningCampaigns = campaigns.filter(c => analyzeCampaign(c) === 'warning');
 
+    const statsData = {
+        activeCampaigns: campaigns.length,
+        totalApplications: campaigns.reduce((acc, curr) => acc + (curr.applications?.[0]?.count || 0), 0),
+        pointBalance: 0
+    };
+
     return (
         <div className="flex min-h-screen bg-background text-foreground">
             <AdvertiserSidebar />
 
-            <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
-                <div className="max-w-6xl mx-auto">
-                    <div className="flex justify-between items-center mb-8">
+            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+                <div className="max-w-[1600px] mx-auto">
+                    <div className="flex justify-between items-center mb-10">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900">광고주 대시보드</h1>
-                            <p className="text-gray-500 mt-1">캠페인 현황을 한눈에 확인하세요.</p>
+                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
+                                <LayoutDashboard className="w-10 h-10 text-primary" />
+                                Advertiser
+                            </h1>
+                            <p className="text-gray-500 mt-2 font-medium">캠페인 효율과 브랜드 성과를 실시간으로 확인하세요.</p>
                         </div>
-                        <Link href="/dashboard/campaign/new" className="btn btn-primary text-sm shadow-md hover:shadow-lg transition-all">+ 캠페인 신규 등록</Link>
+                        <Link 
+                            href="/dashboard/campaign/new" 
+                            className="bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
+                        >
+                            <Plus size={20} /> 새 캠페인 등록
+                        </Link>
                     </div>
 
                     {/* Alert Banner */}
                     {(criticalCampaigns.length > 0 || warningCampaigns.length > 0) && (
-                        <div className="bg-white border-l-4 border-orange-500 p-6 rounded-lg shadow-sm mb-8 animate-pulse-subtle">
-                            <div className="flex items-start gap-4">
-                                <AlertCircle className="w-6 h-6 text-orange-600 mt-1" />
-                                <div>
-                                    <h3 className="font-bold text-lg text-gray-900 mb-1">
-                                        주의가 필요한 캠페인이 {criticalCampaigns.length + warningCampaigns.length}개 있습니다
+                        <div className="bg-white border border-rose-100 p-8 rounded-3xl shadow-sm mb-10 overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                                <AlertCircle size={120} className="text-primary" />
+                            </div>
+                            <div className="flex items-start gap-6 relative z-10">
+                                <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-primary shrink-0 animate-bounce-subtle">
+                                    <AlertCircle size={28} />
+                                </div>
+                                <div className="flex-1">
+                                    <h3 className="font-bold text-xl text-gray-900 mb-2">
+                                        주의가 필요한 캠페인이 {criticalCampaigns.length + warningCampaigns.length}개 발견되었습니다
                                     </h3>
-                                    <p className="text-gray-600 mb-3">
-                                        모집 마감이 임박했거나 신청자가 부족한 캠페인을 확인해주세요.
+                                    <p className="text-gray-600 mb-6 leading-relaxed">
+                                        모집 마감이 임박했거나 신청자가 부족한 캠페인이 감지되었습니다. <br/>
+                                        리뷰어의 관심을 끌 수 있도록 공고를 수정하거나 모집 기간을 연장하는 것을 권장합니다.
                                     </p>
                                     <Link 
-                                        href="/dashboard/advertiser/campaigns?status=RECRUITING" 
-                                        className="text-orange-600 font-bold hover:underline text-sm"
+                                        href="/dashboard/advertiser/campaigns" 
+                                        className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-black transition-all text-sm"
                                     >
-                                        → 조치하러 가기
+                                        캠페인 관리로 이동 <Megaphone size={16} />
                                     </Link>
                                 </div>
                             </div>
@@ -152,34 +162,49 @@ export default function AdvertiserDashboard() {
                     )}
 
                     {/* Summary Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div className="text-sm text-gray-500 font-medium mb-2">진행 중인 캠페인</div>
-                            <div className="text-4xl font-bold text-gray-900">{campaigns.length}</div>
+                    <AdvertiserStatsCards stats={statsData} />
+
+                    {/* Recent Campaigns Table */}
+                    <div className="mt-10">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Recent Campaigns</h2>
+                            <Link 
+                                href="/dashboard/advertiser/campaigns" 
+                                className="text-gray-500 hover:text-gray-900 font-bold transition-colors text-sm"
+                            >
+                                View All →
+                            </Link>
                         </div>
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div className="text-sm text-gray-500 font-medium mb-2">총 신청자 수</div>
-                            <div className="text-4xl font-bold text-blue-600">
-                                {campaigns.reduce((acc, curr) => acc + (curr.applications?.[0]?.count || 0), 0)}
-                            </div>
-                        </div>
-                        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                            <div className="text-sm text-gray-500 font-medium mb-2">포인트 잔액</div>
-                            <div className="text-4xl font-bold text-gray-900">0 P</div>
+                        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
+                            <CampaignDataTable 
+                                data={campaigns} 
+                                isLoading={loading}
+                                isAdmin={false}
+                            />
                         </div>
                     </div>
 
                     {/* Empty State / Welcome */}
                     {campaigns.length === 0 && !loading && (
-                        <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-                            <div className="text-6xl mb-4">👋</div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">환영합니다!</h3>
-                            <p className="text-gray-500 mb-6">아직 진행 중인 캠페인이 없습니다. 첫 캠페인을 등록해보세요.</p>
-                            <Link href="/dashboard/campaign/new" className="btn btn-primary">+ 캠페인 등록하기</Link>
+                        <div className="text-center py-32 bg-white rounded-3xl border border-dashed border-gray-200 shadow-sm">
+                            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl">
+                                🚀
+                            </div>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-3">다온뷰에 오신 것을 환영합니다!</h3>
+                            <p className="text-gray-500 mb-10 max-w-md mx-auto leading-relaxed">
+                                아직 등록된 캠페인이 없네요. <br/>
+                                지금 바로 첫 번째 캠페인을 등록하고 최고의 인플루언서들을 만나보세요.
+                            </p>
+                            <Link 
+                                href="/dashboard/campaign/new" 
+                                className="inline-flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1"
+                            >
+                                <Plus size={24} /> 첫 캠페인 등록하기
+                            </Link>
                         </div>
                     )}
                 </div>
-            </div>
+            </main>
         </div>
     );
 }

@@ -40,6 +40,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 user:profiles!applications_user_id_fkey (
                     id,
                     nickname,
+                    name,
                     email,
                     phone_number,
                     sns_url

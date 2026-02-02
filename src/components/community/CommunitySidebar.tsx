@@ -78,6 +78,8 @@ export default function CommunitySidebar() {
 
     const isParentActive = (item: any) => {
         if (pathname === item.href) return true;
+        // 상세 페이지 경로에서도 부모 활성화 (예: /community/notice/1 -> 공지사항 활성화)
+        if (pathname.startsWith(item.href + '/')) return true;
         if (item.subMenus?.some((sub: any) => pathname.startsWith(sub.href))) return true;
         return false;
     };

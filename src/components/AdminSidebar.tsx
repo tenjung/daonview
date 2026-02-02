@@ -135,119 +135,25 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <span>대시보드</span>
                 </Link>
 
-                {/* 캠페인 승인/관리 (접을 수 있는 메뉴) */}
-                <div>
-                    <button
-                        onClick={() => setCampaignMenuOpen(!campaignMenuOpen)}
-                        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isInCampaignSection
-                            ? 'bg-rose-50 text-primary'
-                            : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                            }`}
-                    >
-                        <div className="flex items-center gap-3">
-                            <Megaphone className="w-5 h-5" />
-                            <span>캠페인 관리</span>
-                        </div>
-                        {campaignMenuOpen ? (
-                            <ChevronDown className="w-4 h-4" />
-                        ) : (
-                            <ChevronRight className="w-4 h-4" />
-                        )}
-                    </button>
-
-                    {/* 하위 메뉴 */}
-                    {campaignMenuOpen && (
-                        <div className="ml-4 mt-2 space-y-1 border-l-2 border-rose-100 pl-4">
-                            <Link
-                                href="/dashboard/admin/campaigns?type=pending"
-                                className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'pending')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                <span>요청중인 캠페인</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive('/dashboard/admin/campaigns', 'pending')
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-200 text-gray-700'
-                                    }`}>
-                                    {counts.pending}
-                                </span>
-                            </Link>
-                            <Link
-                                href="/dashboard/admin/campaigns?type=upcoming"
-                                className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'upcoming')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                <span>진행 전</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive('/dashboard/admin/campaigns', 'upcoming')
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-200 text-gray-700'
-                                    }`}>
-                                    {counts.upcoming}
-                                </span>
-                            </Link>
-                            <Link
-                                href="/dashboard/admin/campaigns?type=active"
-                                className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'active')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                <span>진행 중</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive('/dashboard/admin/campaigns', 'active')
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-200 text-gray-700'
-                                    }`}>
-                                    {counts.active}
-                                </span>
-                            </Link>
-
-                            {/* 신청자 관리 - 현재 페이지가 특정 캠페인의 신청자 관리 페이지인 경우 표시 */}
-                            {pathname.match(/\/dashboard\/admin\/campaigns\/(\d+)/) && (
-                                <div className="ml-4 pl-4 border-l-2 border-rose-50">
-                                    <div
-                                        className="block px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white"
-                                    >
-                                        📋 신청자 관리
-                                    </div>
-                                </div>
-                            )}
-
-                            <Link
-                                href="/dashboard/admin/campaigns?type=completed"
-                                className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/admin/campaigns', 'completed')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                <span>완료</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive('/dashboard/admin/campaigns', 'completed')
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-200 text-gray-700'
-                                    }`}>
-                                    {counts.completed}
-                                </span>
-                            </Link>
-                            <Link
-                                href="/dashboard/campaign/drafts"
-                                className={`flex items-center justify-between px-4 py-2 rounded-lg text-sm font-medium transition-all ${isActive('/dashboard/campaign/drafts')
-                                    ? 'bg-rose-100 text-primary'
-                                    : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                                    }`}
-                            >
-                                <span>임시저장</span>
-                                <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isActive('/dashboard/campaign/drafts')
-                                    ? 'bg-primary text-white'
-                                    : 'bg-gray-200 text-gray-700'
-                                    }`}>
-                                    {counts.draft}
-                                </span>
-                            </Link>
-                        </div>
-                    )}
-                </div>
+                {/* 캠페인 관리 통합 메뉴 */}
+                <Link
+                    href="/dashboard/admin/campaigns"
+                    className={`flex items-center justify-between px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isInCampaignSection
+                        ? 'bg-rose-50 text-primary'
+                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
+                        }`}
+                >
+                    <div className="flex items-center gap-3">
+                        <Megaphone className="w-5 h-5" />
+                        <span>캠페인 관리</span>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${isInCampaignSection
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-200 text-gray-700'
+                        }`}>
+                        {Object.values(counts).reduce((a, b) => a + b, 0)}
+                    </span>
+                </Link>
 
                 {/* 리뷰 관리 (접을 수 있는 메뉴) */}
                 <div>

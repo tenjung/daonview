@@ -91,11 +91,13 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
     const filteredData = useMemo(() => {
         return campaigns.filter(item => {
             if (activeTab === 'PURCHASE_REVIEW') {
-                if (!(item.type === 'DELIVERY' && item.platform === 'PURCHASE')) return false;
+                // 구매평 포함 여부 확인 (신규 includeReview 플래그 또는 레거시 platform/type 체크)
+                if (!(item.includeReview || item.platform === 'PURCHASE' || item.type === 'PURCHASE')) return false;
             } else if (activeTab === 'STEADY') {
                 if (!(item as any).is_always && item.dday !== '상시') return false;
-            } else if (activeTab !== 'ALL' && item.type !== activeTab) {
-                return false;
+            } else if (activeTab !== 'ALL') {
+                // 일반 탭 (VISIT, DELIVERY 등) 필터링
+                if (item.type !== activeTab) return false;
             }
 
             if (searchQuery) {

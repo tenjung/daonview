@@ -506,34 +506,41 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     // 플랫폼 토글 (하이브리드 지원 및 타입별 동기화)
     const toggleDeliveryPlatform = (plat: 'review' | 'naver' | 'instagram') => {
         const { includeReview, includeNaver, includeInstagram, campaignType } = formData;
+        
+        let newReview = includeReview;
+        let newNaver = includeNaver;
+        let newInstagram = includeInstagram;
 
         if (plat === 'review') {
-            updateField('includeReview', !formData.includeReview);
+            newReview = !includeReview;
         } else if (plat === 'naver') {
-            if (!includeNaver) {
-                if (includeInstagram) {
-                    toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n인스타그램을 먼저 해제해주세요.');
-                    return;
-                }
+            if (!includeNaver && includeInstagram) {
+                toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n인스타그램을 먼저 해제해주세요.');
+                return;
             }
-            const newValue = !includeNaver;
-            updateFields({
-                includeNaver: newValue,
-                platform: (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && newValue ? 'BLOG' : formData.platform
-            });
+            newNaver = !includeNaver;
         } else if (plat === 'instagram') {
-            if (!includeInstagram) {
-                if (includeNaver) {
-                    toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n네이버를 먼저 해제해주세요.');
-                    return;
-                }
+            if (!includeInstagram && includeNaver) {
+                toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n네이버를 먼저 해제해주세요.');
+                return;
             }
-            const newValue = !includeInstagram;
-            updateFields({
-                includeInstagram: newValue,
-                platform: (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && newValue ? 'INSTAGRAM' : formData.platform
-            });
+            newInstagram = !includeInstagram;
         }
+
+        // 주 플랫폼 결정 로직 (DB 저장용)
+        let primaryPlatform = formData.platform;
+        if (campaignType === 'DELIVERY') {
+            if (newNaver) primaryPlatform = 'BLOG';
+            else if (newInstagram) primaryPlatform = 'INSTAGRAM';
+            else if (newReview) primaryPlatform = 'PURCHASE';
+        }
+
+        updateFields({
+            includeReview: newReview,
+            includeNaver: newNaver,
+            includeInstagram: newInstagram,
+            platform: primaryPlatform
+        });
     };
 
     // 모집 시작일로부터 N주 뒤 날짜 설정

@@ -160,12 +160,13 @@ export default function CampaignRegistrationContainer() {
         store.setField('isSubmitting', true);
 
         try {
-            // 플랫폼 매핑
+            // 플랫폼 매핑 (배송형은 복수 선택 가능하므로 주 플랫폼 결정)
             let mappedPlatform = store.platform || 'BLOG';
             if (store.campaignType === 'DELIVERY') {
                 if (store.includeNaver) mappedPlatform = 'BLOG';
                 else if (store.includeInstagram) mappedPlatform = 'INSTAGRAM';
                 else if (store.includeReview) mappedPlatform = 'PURCHASE';
+                else mappedPlatform = 'PURCHASE'; // 기본값
             }
 
             // 날짜 계산
