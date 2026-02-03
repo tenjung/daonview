@@ -13,7 +13,7 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
-    
+
     const { data: campaign } = await supabase
         .from('campaigns')
         .select('*')
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step2Data = campaignOptions?.step2Data || {};
     const step1Data = campaignOptions?.step1Data || {};
-    
+
     const title = step2Data.campaignTitle || campaign.title;
     const description = campaign.description || campaign.experience_details || step1Data.experienceDetails || '';
     const thumbnail = campaign.thumbnail_url;
@@ -45,6 +45,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
             title: title,
             description: description.substring(0, 160),
             images: thumbnail ? [thumbnail] : [],
+        },
+        alternates: {
+            canonical: `/campaigns/${id}`,
         }
     };
 }
