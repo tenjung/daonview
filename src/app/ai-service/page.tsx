@@ -35,8 +35,17 @@ export default function AIServicePage() {
       path: "/ai-service/writing-assistant",
       color: "bg-primary/10 text-primary",
       gradient: "from-primary/20 to-purple-500/20",
+    },
+    {
+      title: "1분 랜딩페이지 생성기",
+      desc: "인플루언서 포트폴리오나 사업 아이템을 입력하면 AI가 즉시 배포 가능한 전문적인 웹페이지를 생성합니다.",
+      icon: Wand2,
+      path: "/ai-service/landing-builder",
+      color: "bg-purple-500/10 text-purple-600",
+      gradient: "from-purple-500/20 to-pink-500/20",
     }
   ];
+
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#fafafa]">
@@ -70,7 +79,7 @@ export default function AIServicePage() {
         </div>
 
         {/* --- 서비스 그리드 --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-6xl mx-auto px-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto px-4">
           {services.map((service, idx) => (
             <div 
               key={service.path}
