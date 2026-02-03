@@ -155,6 +155,37 @@ export async function sendReviewSubmittedAlimtalk(
 }
 
 /**
+ * 인플루언서 리뷰 승인 알림톡 발송
+ * @param to - 수신자 전화번호
+ * @param influencerName - 인플루언서 이름
+ * @param campaignTitle - 캠페인 제목
+ */
+export async function sendReviewApprovedAlimtalk(
+    to: string,
+    influencerName: string,
+    campaignTitle: string
+): Promise<AlimtalkResponse> {
+    if (!isValidPhoneNumber(to)) {
+        return {
+            success: false,
+            error: '유효하지 않은 전화번호입니다.'
+        };
+    }
+
+    const request: AlimtalkRequest = {
+        to: formatPhoneNumber(to),
+        templateCode: process.env.SOLAPI_TEMPLATE_REVIEW_APPROVED || 'REVIEW_APPROVED',
+        variables: {
+            '인플루언서명': influencerName,
+            '캠페인명': campaignTitle,
+            '승인일': new Date().toLocaleDateString('ko-KR')
+        }
+    };
+
+    return sendAlimtalk(request);
+}
+
+/**
  * 알림톡 발송 공통 함수
  * @param request - 알림톡 요청 데이터
  */

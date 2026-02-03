@@ -49,8 +49,8 @@ function CampaignStatusBadge({ status }: { status: string }) {
 // 캠페인 정보 셀 (이미지 + 제목 + 카테고리)
 function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?: boolean }) {
     // 제목 클릭 시 신청자 관리 페이지로 이동
-    const managePath = isAdmin 
-        ? `/dashboard/admin/campaigns/${campaign.id}` 
+    const managePath = isAdmin
+        ? `/dashboard/admin/campaigns/${campaign.id}`
         : `/dashboard/advertiser/campaigns/${campaign.id}`;
 
     return (
@@ -63,7 +63,7 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
                 />
             )}
             <div className="min-w-0">
-                <Link 
+                <Link
                     href={managePath}
                     className="font-bold text-gray-900 truncate hover:text-primary transition-colors cursor-pointer block"
                 >
@@ -140,15 +140,16 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             const campaign = row.original;
             const applicationsCount = campaign.applications?.[0]?.count || 0;
             const recruitCount = campaign.recruit_count || 0;
+            const isInfinite = recruitCount >= 999;
             const percentage = recruitCount > 0 ? Math.round((applicationsCount / recruitCount) * 100) : 0;
 
             return (
                 <div className="text-sm whitespace-nowrap">
                     <div className="font-bold text-gray-900">
-                        {applicationsCount} / {recruitCount}명
+                        {applicationsCount} / {isInfinite ? <span className="text-indigo-600 font-black text-base">∞</span> : `${recruitCount}명`}
                     </div>
                     <div className="text-xs text-gray-500">
-                        {percentage}% 달성
+                        {isInfinite ? <span className="text-rose-500 font-bold">무제한 모집</span> : `${percentage}% 달성`}
                     </div>
                 </div>
             );
@@ -200,7 +201,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             const campaign = row.original;
             const startDate = campaign.recruitment_start_date || campaign.created_at;
             const isAlwaysRecruiting = campaign.recruit_count && campaign.recruit_count >= 999;
-            
+
             return (
                 <div className="flex flex-col gap-1.5 py-1">
                     <div className="flex items-center gap-1.5">
@@ -280,16 +281,16 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                                     <Edit className="mr-2 h-4 w-4" />
                                     <span>캠페인 수정</span>
                                 </DropdownMenuItem>
-                                
+
                                 {!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING') && (
                                     <DropdownMenuItem onClick={() => context.onExtend?.(campaign.id, campaign.title)}>
                                         <Clock className="mr-2 h-4 w-4" />
                                         <span>기간 연장</span>
                                     </DropdownMenuItem>
                                 )}
-                                
+
                                 {!context.isAdmin && (
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         onClick={() => context.onDelete?.(campaign.id, campaign.title)}
                                         className="text-red-600 focus:text-red-600"
                                     >

@@ -33,11 +33,10 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
           <button
             type="button"
             onClick={() => setTargetType('INFLUENCER')}
-            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-              targetType === 'INFLUENCER'
+            className={`p-4 rounded-xl border-2 transition-all duration-300 ${targetType === 'INFLUENCER'
                 ? 'border-primary bg-primary/5 shadow-lg'
                 : 'border-gray-200 hover:border-gray-300'
-            }`}
+              }`}
           >
             <User className={`mx-auto mb-2 ${targetType === 'INFLUENCER' ? 'text-primary' : 'text-gray-400'}`} size={32} />
             <div className="font-bold text-sm">인플루언서</div>
@@ -45,11 +44,10 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
           <button
             type="button"
             onClick={() => setTargetType('BUSINESS')}
-            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
-              targetType === 'BUSINESS'
+            className={`p-4 rounded-xl border-2 transition-all duration-300 ${targetType === 'BUSINESS'
                 ? 'border-primary bg-primary/5 shadow-lg'
                 : 'border-gray-200 hover:border-gray-300'
-            }`}
+              }`}
           >
             <Building2 className={`mx-auto mb-2 ${targetType === 'BUSINESS' ? 'text-primary' : 'text-gray-400'}`} size={32} />
             <div className="font-bold text-sm">사업자</div>
@@ -207,7 +205,7 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
       {/* 공통 필드: 연락처 */}
       <div className="pt-4 border-t border-gray-200">
         <h3 className="text-sm font-bold text-text-main mb-4">연락처 정보</h3>
-        
+
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-text-secondary mb-2">
@@ -267,7 +265,7 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
       <button
         type="submit"
         disabled={isGenerating}
-        className="w-full py-4 rounded-xl bg-primary text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        className="w-full py-3 md:py-4 rounded-xl bg-primary text-white font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
       >
         {isGenerating ? 'AI 생성 중...' : 'AI 랜딩페이지 생성하기'}
       </button>

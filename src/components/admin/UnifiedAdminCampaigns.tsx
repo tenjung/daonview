@@ -29,7 +29,7 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
     isOpen: false,
     title: "",
     message: "",
-    onConfirm: () => {},
+    onConfirm: () => { },
     type: "info",
   })
 
@@ -96,6 +96,39 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
     router.push(`/dashboard/admin/campaigns/${id}`)
   }
 
+  // 캠페인 수정
+  const handleEdit = (id: number) => {
+    router.push(`/dashboard/campaign/new?id=${id}`)
+  }
+
+  // 캠페인 삭제
+  const handleDelete = (id: number, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "캠페인 삭제",
+      message: `"${title}" 캠페인을 영구적으로 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
+      type: "danger",
+      confirmText: "삭제하기",
+      onConfirm: async () => {
+        setIsLoading(true)
+        const { error } = await supabase
+          .from("campaigns")
+          .delete()
+          .eq("id", id)
+
+        if (error) {
+          toast.error("삭제 중 오류가 발생했습니다.")
+          console.error(error)
+        } else {
+          toast.success("캠페인이 삭제되었습니다.")
+          setData(prev => prev.filter(c => c.id !== id))
+        }
+        setIsLoading(false)
+        setConfirmModal(prev => ({ ...prev, isOpen: false }))
+      },
+    })
+  }
+
   return (
     <>
       <CampaignDataTable
@@ -104,6 +137,8 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
         onApprove={handleApprove}
         onReject={handleReject}
         onView={handleView}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
         isLoading={isLoading}
       />
 

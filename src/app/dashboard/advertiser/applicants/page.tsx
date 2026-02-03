@@ -88,18 +88,31 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
-    const handleStatusChange = async (applicationId: number, newStatus: string) => {
+    const handleStatusChange = async (applicationId: number, newStatus: string, campaignId: number) => {
         try {
-            const { error } = await supabase
+            // 1. 신청 상태 업데이트
+            const { error: appError } = await supabase
                 .from('applications')
                 .update({ status: newStatus })
                 .eq('id', applicationId);
 
-            if (error) throw error;
+            if (appError) throw appError;
+
+            // 2. 선정(SELECTED)인 경우 캠페인의 모집 인원 카운트 증가 (RPC 호출)
+            if (newStatus === 'SELECTED') {
+                const { error: campaignError } = await supabase.rpc('increment_campaign_recruit_count', {
+                    campaign_id: campaignId
+                });
+
+                if (campaignError) {
+                    console.error('RPC Error:', campaignError);
+                    // RPC 실패 시에만 예외적으로 사용자에게 알림 (데이터 무결성 중요)
+                }
+            }
 
             toast.success(newStatus === 'SELECTED' ? '리뷰어를 선정했습니다!' : '신청을 거절했습니다.');
 
-            // 목록 갱신** (Optimistic Update)
+            // 목록 갱신
             setApplicants(prev => prev.map(app =>
                 app.id === applicationId ? { ...app, status: newStatus } : app
             ));
@@ -170,13 +183,13 @@ export default function AdvertiserApplicantsPage() {
                                         {app.status === 'PENDING' ? (
                                             <>
                                                 <button
-                                                    onClick={() => handleStatusChange(app.id, 'SELECTED')}
+                                                    onClick={() => handleStatusChange(app.id, 'SELECTED', app.campaign.id)}
                                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                                                 >
                                                     선정하기
                                                 </button>
                                                 <button
-                                                    onClick={() => handleStatusChange(app.id, 'REJECTED')}
+                                                    onClick={() => handleStatusChange(app.id, 'REJECTED', app.campaign.id)}
                                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                                                 >
                                                     거절

@@ -25,7 +25,7 @@ export default function AdvertiserDashboard() {
 
     async function fetchCampaigns() {
         if (!user) return;
-        
+
         try {
             const { data, error } = await supabase
                 .from('campaigns')
@@ -52,7 +52,7 @@ export default function AdvertiserDashboard() {
                     if (status !== 'success') {
                         const type = status === 'critical' ? 'CAMPAIGN_CRITICAL' : 'CAMPAIGN_WARNING';
                         const title = status === 'critical' ? '🚨 캠페인 긴급 조치 필요' : '⚠️ 캠페인 모니터링 알림';
-                        
+
                         // 최근 3일 내 동일 캠페인/타입 알림이 있는지 확인
                         const { count } = await supabase
                             .from('notifications')
@@ -89,7 +89,7 @@ export default function AdvertiserDashboard() {
         const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 
         let status: 'critical' | 'warning' | 'success' = 'success';
-        
+
         if (daysLeft <= 0) {
             status = 'critical';
         } else if (applicationRate < 30 && daysLeft <= 3) {
@@ -118,6 +118,7 @@ export default function AdvertiserDashboard() {
                 links={[
                     { href: '/dashboard/advertiser', label: '대시보드', active: true },
                     { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
+                    { href: '/dashboard/advertiser/landing-pages', label: '나의 랜딩페이지' },
                     { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
                     { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
                     { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
@@ -143,8 +144,8 @@ export default function AdvertiserDashboard() {
                             </h1>
                             <p className="text-gray-500 mt-2 font-medium">캠페인 효율과 브랜드 성과를 실시간으로 확인하세요.</p>
                         </div>
-                        <Link 
-                            href="/dashboard/campaign/new" 
+                        <Link
+                            href="/dashboard/campaign/new"
                             className="bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
                         >
                             <Plus size={20} /> 새 캠페인 등록
@@ -164,23 +165,22 @@ export default function AdvertiserDashboard() {
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h3 className="font-black text-2xl tracking-tight">비즈니스 인증이 필요합니다</h3>
-                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                                            profile?.biz_verification_status === 'PENDING' ? 'bg-amber-500 text-white' : 
+                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${profile?.biz_verification_status === 'PENDING' ? 'bg-amber-500 text-white' :
                                             profile?.biz_verification_status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-white/20 text-white'
-                                        }`}>
-                                            {profile?.biz_verification_status === 'PENDING' ? '심사 대기 중' : 
-                                             profile?.biz_verification_status === 'REJECTED' ? '반려됨' : '미인증'}
+                                            }`}>
+                                            {profile?.biz_verification_status === 'PENDING' ? '심사 대기 중' :
+                                                profile?.biz_verification_status === 'REJECTED' ? '반려됨' : '미인증'}
                                         </div>
                                     </div>
                                     <p className="text-gray-300 mb-6 leading-relaxed max-w-2xl font-medium">
-                                        캠페인을 등록하고 인플루언서를 모집하려면 사업자 인증이 필수입니다. <br/>
+                                        캠페인을 등록하고 인플루언서를 모집하려면 사업자 인증이 필수입니다. <br />
                                         사업자 등록증을 제출하시면 AI 분석을 통해 정보 일치 시 <strong>즉시 승인</strong>됩니다.
                                     </p>
-                                    <Link 
-                                        href="/dashboard/advertiser/verification" 
+                                    <Link
+                                        href="/dashboard/advertiser/verification"
                                         className="inline-flex items-center gap-3 bg-primary text-white px-8 py-3.5 rounded-2xl font-black hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all text-sm group/btn"
                                     >
-                                        {profile?.biz_verification_status === 'PENDING' ? '인증 진행 현황 보기' : '지금 인증 요청하기'} 
+                                        {profile?.biz_verification_status === 'PENDING' ? '인증 진행 현황 보기' : '지금 인증 요청하기'}
                                         <ArrowRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
                                     </Link>
                                 </div>
@@ -203,11 +203,11 @@ export default function AdvertiserDashboard() {
                                         주의가 필요한 캠페인이 {criticalCampaigns.length + warningCampaigns.length}개 발견되었습니다
                                     </h3>
                                     <p className="text-gray-600 mb-6 leading-relaxed">
-                                        모집 마감이 임박했거나 신청자가 부족한 캠페인이 감지되었습니다. <br/>
+                                        모집 마감이 임박했거나 신청자가 부족한 캠페인이 감지되었습니다. <br />
                                         리뷰어의 관심을 끌 수 있도록 공고를 수정하거나 모집 기간을 연장하는 것을 권장합니다.
                                     </p>
-                                    <Link 
-                                        href="/dashboard/advertiser/campaigns" 
+                                    <Link
+                                        href="/dashboard/advertiser/campaigns"
                                         className="inline-flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-black transition-all text-sm"
                                     >
                                         캠페인 관리로 이동 <Megaphone size={16} />
@@ -224,16 +224,16 @@ export default function AdvertiserDashboard() {
                     <div className="mt-10">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Recent Campaigns</h2>
-                            <Link 
-                                href="/dashboard/advertiser/campaigns" 
+                            <Link
+                                href="/dashboard/advertiser/campaigns"
                                 className="text-gray-500 hover:text-gray-900 font-bold transition-colors text-sm"
                             >
                                 View All →
                             </Link>
                         </div>
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                            <CampaignDataTable 
-                                data={campaigns} 
+                            <CampaignDataTable
+                                data={campaigns}
                                 isLoading={loading}
                                 isAdmin={false}
                             />
@@ -248,11 +248,11 @@ export default function AdvertiserDashboard() {
                             </div>
                             <h3 className="text-2xl font-bold text-gray-900 mb-3">다온뷰에 오신 것을 환영합니다!</h3>
                             <p className="text-gray-500 mb-10 max-w-md mx-auto leading-relaxed">
-                                아직 등록된 캠페인이 없네요. <br/>
+                                아직 등록된 캠페인이 없네요. <br />
                                 지금 바로 첫 번째 캠페인을 등록하고 최고의 인플루언서들을 만나보세요.
                             </p>
-                            <Link 
-                                href="/dashboard/campaign/new" 
+                            <Link
+                                href="/dashboard/campaign/new"
                                 className="inline-flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1"
                             >
                                 <Plus size={24} /> 첫 캠페인 등록하기

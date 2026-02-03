@@ -59,10 +59,13 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
         const endDate = new Date(campaign.end_date);
         const today = new Date();
         const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const isAlways = campaign.is_always || campaign.recruit_count >= 999 || campaign.end_date?.startsWith('9999');
 
         let riskLevel: 'critical' | 'warning' | 'normal' = 'normal';
 
-        if (daysLeft <= 3 && applicationRate < 50) {
+        if (isAlways) {
+            riskLevel = 'normal'; // 상시는 시급성 부족
+        } else if (daysLeft <= 3 && applicationRate < 50) {
             riskLevel = 'critical';
         } else if (daysLeft <= 3 || applicationRate < 50) {
             riskLevel = 'warning';
@@ -73,7 +76,8 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             targetCount,
             applicationRate,
             daysLeft,
-            riskLevel
+            riskLevel,
+            isAlways
         };
     }
 
@@ -246,7 +250,11 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm">
-                                                    <div className="font-bold text-red-600">D-{analysis.daysLeft}</div>
+                                                    {analysis.isAlways ? (
+                                                        <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
+                                                    ) : (
+                                                        <div className="font-bold text-red-600">D-{analysis.daysLeft}</div>
+                                                    )}
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <Link
@@ -284,8 +292,12 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                         <div>
                                             <h3 className="font-bold text-gray-900 mb-1">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
-                                                신청 현황: {analysis.applicantCount}/{analysis.targetCount}명 ({Math.round(analysis.applicationRate)}%) |
-                                                <span className="ml-2 font-bold text-yellow-600">D-{analysis.daysLeft}</span>
+                                                신청 현황: {analysis.isAlways ? <span className="text-rose-500 font-extrabold">{analysis.applicantCount}</span> : `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)`} |
+                                                <span className="ml-2 font-bold text-yellow-600">
+                                                    {analysis.isAlways ? (
+                                                        <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
+                                                    ) : `D-${analysis.daysLeft}`}
+                                                </span>
                                             </div>
                                         </div>
                                         <Link href={`/campaigns/${campaign.id}`} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold">상세보기</Link>

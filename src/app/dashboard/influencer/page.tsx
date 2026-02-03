@@ -41,7 +41,7 @@ export default function InfluencerDashboard() {
 
     async function fetchDashboardData() {
         if (!user) return;
-        
+
         try {
             // Fetch applications with campaign details
             const { data: applicationsData } = await supabase
@@ -88,9 +88,10 @@ export default function InfluencerDashboard() {
                 links={[
                     { href: '/dashboard/influencer', label: '대시보드', active: true },
                     { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
+                    { href: '/dashboard/influencer/landing-pages', label: '나의 랜딩페이지' },
                     { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    { 
-                        href: '/profile/edit', 
+                    {
+                        href: '/profile/edit',
                         label: '계정 설정',
                         subLinks: [
                             { href: '/profile/edit?tab=basic', label: '기본 정보' },
@@ -112,8 +113,8 @@ export default function InfluencerDashboard() {
                             </h1>
                             <p className="text-gray-500 mt-2 font-medium">캠페인 활동과 리뷰 현황을 한눈에 관리하세요.</p>
                         </div>
-                        <Link 
-                            href="/campaigns" 
+                        <Link
+                            href="/campaigns"
                             className="bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1 active:translate-y-0 flex items-center gap-3"
                         >
                             <Megaphone size={20} /> 캠페인 찾아보기
@@ -130,18 +131,18 @@ export default function InfluencerDashboard() {
                                 <Clock className="w-6 h-6 text-primary" />
                                 최근 신청 내역
                             </h2>
-                            <Link 
-                                href="/dashboard/influencer/campaigns" 
+                            <Link
+                                href="/dashboard/influencer/campaigns"
                                 className="text-gray-500 hover:text-gray-900 font-bold transition-colors text-sm"
                             >
                                 전체 내역 보기 →
                             </Link>
                         </div>
-                        
+
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                            <DataTable 
-                                columns={influencerApplicationColumns} 
-                                data={applications} 
+                            <DataTable
+                                columns={influencerApplicationColumns}
+                                data={applications}
                                 isLoading={loading}
                                 emptyMessage="아직 신청한 캠페인이 없습니다."
                             />
@@ -156,8 +157,8 @@ export default function InfluencerDashboard() {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">새로운 캠페인을 시작해보세요!</h3>
                             <p className="text-gray-500 mb-8 max-w-md mx-auto">전국 팔도의 다양한 캠페인들이 인플루언서님의 참여를 기다리고 있습니다.</p>
-                            <Link 
-                                href="/campaigns" 
+                            <Link
+                                href="/campaigns"
                                 className="inline-flex items-center gap-2 text-primary font-bold hover:underline"
                             >
                                 추천 캠페인 보러가기 →

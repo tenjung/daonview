@@ -279,6 +279,7 @@ export default function CampaignRegistrationContainer() {
                 status: profile?.role === 'ADMIN' ? 'RECRUITING' : 'PENDING',
                 // 새로운 store_locations 컬럼에 매장 좌표 정보 저장 (API 호출 최적화)
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
+                option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
                 campaign_options: {
                     step1Data,
                     step2Data,

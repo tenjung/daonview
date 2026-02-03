@@ -46,9 +46,9 @@ export default function LandingBuilderPage() {
             </button>
           </div>
         </div>
-        <AuthGuardDialog 
-          isOpen={isAuthModalOpen} 
-          onClose={() => setIsAuthModalOpen(false)} 
+        <AuthGuardDialog
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
         />
       </>
     );
@@ -56,7 +56,7 @@ export default function LandingBuilderPage() {
 
   const handleGenerate = async (input: LandingPageInput) => {
     setIsGenerating(true);
-    
+
     try {
       const res = await fetch('/api/ai/generate-landing', {
         method: 'POST',
@@ -116,7 +116,7 @@ export default function LandingBuilderPage() {
 
       const data = await res.json();
       console.log('저장 성공:', data);
-      
+
       const slug = data.landingPage.slug;
 
       if (!slug) {
@@ -124,10 +124,10 @@ export default function LandingBuilderPage() {
       }
 
       toast.success(`랜딩페이지가 저장되었습니다!`);
-      
+
       // 다이얼로그 닫기
       setIsPreviewOpen(false);
-      
+
       // 짧은 지연 후 페이지 이동
       setTimeout(() => {
         console.log('페이지 이동:', `/lp/${slug}`);
@@ -146,30 +146,30 @@ export default function LandingBuilderPage() {
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* 헤더 */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="container py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="container py-4 md:py-6 px-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
               <button
                 onClick={() => router.push('/ai-service')}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-all"
+                className="p-2 rounded-lg hover:bg-gray-100 transition-all shrink-0"
               >
-                <ArrowLeft size={24} />
+                <ArrowLeft size={20} className="md:w-6 md:h-6" />
               </button>
-              <div>
-                <h1 className="text-2xl font-black tracking-tight">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-lg md:text-2xl font-black tracking-tight truncate">
                   <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                     AI 랜딩페이지 빌더
                   </span>
                 </h1>
-                <p className="text-sm text-text-secondary">
+                <p className="text-xs md:text-sm text-text-secondary hidden sm:block">
                   1분 안에 전문적인 랜딩페이지를 생성하세요
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 shrink-0">
               <Sparkles className="text-primary" size={16} />
-              <span className="text-sm font-bold text-primary">
+              <span className="text-sm font-bold text-primary whitespace-nowrap">
                 Powered by DAON AI
               </span>
             </div>
@@ -178,15 +178,15 @@ export default function LandingBuilderPage() {
       </div>
 
       {/* 메인 콘텐츠 - 단일 컬럼 레이아웃 */}
-      <div className="container py-12">
+      <div className="container py-6 md:py-12 px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200">
-            <div className="mb-8 text-center">
+          <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8 border border-gray-200">
+            <div className="mb-6 md:mb-8 text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
                 <span className="text-2xl font-black text-primary">1</span>
               </div>
-              <h2 className="text-2xl font-bold mb-2">정보 입력</h2>
-              <p className="text-text-secondary">
+              <h2 className="text-xl md:text-2xl font-bold mb-2">정보 입력</h2>
+              <p className="text-sm md:text-base text-text-secondary leading-relaxed">
                 인플루언서 또는 사업자 정보를 입력하면 AI가 자동으로 랜딩페이지를 생성합니다
               </p>
             </div>

@@ -6,7 +6,7 @@ import { LandingPageInput, AIGeneratedContent } from '@/types/landingPage';
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
-    
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
@@ -73,6 +73,21 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('랜딩페이지 저장 오류:', error);
       return NextResponse.json({ error: '랜딩페이지를 저장하는 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
+    // 알림 생성
+    try {
+      await supabase.from('notifications').insert({
+        user_id: user.id,
+        type: 'LANDING_PAGE_CREATED',
+        title: '🎉 AI 랜딩페이지가 생성되었습니다!',
+        content: `"${title}" 페이지가 성공적으로 저장되었습니다.`,
+        link: `/lp/${slug}`,
+        is_read: false,
+      });
+    } catch (notifError) {
+      console.error('알림 생성 오류:', notifError);
+      // 알림 생성 실패는 무시 (메인 기능에 영향 없음)
     }
 
     return NextResponse.json({ landingPage: data });

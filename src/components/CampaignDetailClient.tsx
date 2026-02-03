@@ -25,7 +25,8 @@ import {
     Phone,
     ExternalLink,
     ChevronDown,
-    CheckCircle2
+    CheckCircle2,
+    Info
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
 import CampaignCard, { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
@@ -410,12 +411,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
 
             console.log('Application successful:', data);
-            
+
             // 상태 즉시 업데이트
             setHasApplied(true);
             setApplicationStatus('PENDING');
             toast.success('캠페인 신청이 완료되었습니다!');
-            
+
             fetchCampaign();
 
             // 캠페인 생성자(광고주/관리자)에게 마일스톤 알림 발송
@@ -566,16 +567,16 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const options = getOptions();
 
     const getOptionConfig = () => {
-        // 1. Check direct option_config (DB column)
-        if (campaign.option_config) return campaign.option_config;
-
-        // 2. Check campaign_options (JSONB)
+        // [무결성] campaign_options 내의 데이터가 폼 상태와 더 밀접하므로 우선 순위 부여
         const rootOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
         if (rootOptions) {
-            if (rootOptions.option_config) return rootOptions.option_config;
             if (rootOptions.step1Data?.optionConfig) return rootOptions.step1Data.optionConfig;
             if (rootOptions.optionConfig) return rootOptions.optionConfig;
+            if (rootOptions.option_config) return rootOptions.option_config;
         }
+
+        // 2. Check direct option_config (DB column)
+        if (campaign.option_config) return campaign.option_config;
 
         return { mode: 'SINGLE', maxSelect: 1 };
     };
@@ -595,6 +596,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const missionGuide = campaign.mission_guide || step2Data.missionGuide || '';
     const blogTitleGuide = step2Data.blogTitleGuide || '';
     const blogContentGuide = step2Data.blogContentGuide || '';
+    const additionalNotes = step2Data.additionalNotes || '';
 
     // 키워드 추출 로직 개선 (메인/서브 분리)
     const mainKeywords = Array.isArray(step2Data.blogMainKeywords) && step2Data.blogMainKeywords.length > 0
@@ -653,7 +655,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     <div className="flex flex-wrap items-center justify-between gap-4">
                         <div className="flex flex-wrap items-center gap-2">
                             <TypeBadge type={campaign.type} />
-                            
+
                             {/* 배송형일 경우 includeReview, includeNaver, includeInstagram 체크하여 뱃지 표시 */}
                             {campaign.type?.toUpperCase() === 'DELIVERY' ? (
                                 <>
@@ -668,7 +670,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             ) : (
                                 <PlatformBadge platform={campaign.platform} />
                             )}
-                            
+
                             {campaign.type?.toUpperCase() === 'VISIT' && <RegionBadge region={campaign.region} />}
                             <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
                         </div>
@@ -1001,6 +1003,25 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* 추가 안내사항 (시안 A) */}
+                                    {additionalNotes && (
+                                        <div className="p-6 bg-indigo-50/40 rounded-3xl border border-indigo-100/60 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
+                                                    <Info size={16} strokeWidth={3} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Notice</p>
+                                                    <h4 className="text-sm font-black text-indigo-900">추가 안내사항</h4>
+                                                </div>
+                                            </div>
+                                            <div className="h-px bg-indigo-100/50 w-full" />
+                                            <p className="text-[14px] text-slate-600 leading-7 whitespace-pre-line font-medium pl-1">
+                                                {additionalNotes}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </section>
@@ -1155,7 +1176,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
                                             </p>
                                             <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                모집 정원: {campaign.recruit_count}명
+                                                모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
                                             </p>
                                         </div>
                                     </div>
@@ -1177,9 +1198,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             {options.length > 0 && (
                                                 <div className="space-y-4">
                                                     <div className="flex items-center justify-between py-1">
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
-                                                            {optionConfig.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
-                                                        </p>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                                                                {optionConfig.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
+                                                            </p>
+                                                            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border transition-all duration-300 ${selectedOptions.length === optionConfig.maxSelect ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-500'}`}>
+                                                                <span className={`w-1 h-1 rounded-full ${selectedOptions.length === optionConfig.maxSelect ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'}`} />
+                                                                <span className="text-[9px] font-black leading-none translate-y-[0.5px]">
+                                                                    {selectedOptions.length} / {optionConfig.maxSelect} {optionConfig.mode === 'RANKED' ? '지망' : '개'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
                                                         {selectedOptions.length > 0 && (
                                                             <button
                                                                 onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}

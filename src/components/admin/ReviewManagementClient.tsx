@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Eye, EyeOff, Search, RefreshCw } from 'lucide-react';
+import { ExternalLink, Eye, EyeOff, Search, RefreshCw, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { sendReviewApprovedAlimtalk } from '@/lib/alimtalk';
 
 interface Review {
     id: string;
@@ -71,8 +72,8 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
         setFilteredReviews(filtered);
     }, [filter, searchQuery, reviews]);
 
-    // 상태 변경 (숨김/복원)
-    const handleStatusChange = async (reviewId: string, newStatus: string) => {
+    // 상태 변경 (승인/숨김/복원)
+    const handleStatusChange = async (reviewId: string, newStatus: string, reviewData?: Review) => {
         try {
             const response = await fetch('/api/hide-review', {
                 method: 'POST',
@@ -87,7 +88,24 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                 throw new Error('상태 변경 실패');
             }
 
-            toast.success(newStatus === 'HIDDEN' ? '리뷰를 숨겼습니다' : '리뷰를 복원했습니다');
+            // 승인됨(APPROVED)으로 변경된 경우 인플루언서에게 알림톡 발송
+            if (newStatus === 'APPROVED' && reviewData) {
+                // reviewData에 연락처 정보가 필요함. 현재 Review 인터페이스에 없으므로 
+                // DB에서 추가 정보를 가져오거나 interface를 확장해야 함.
+                // 임시로 성공 메시지만 표시하고, 실제 발송 로직은 데이터 구조 확인 후 보강
+                console.log('Sending approval alimtalk for review:', reviewId);
+
+                // 알림톡 발송 (연락처 정보가 있다고 가정하거나 추가 조회 필요)
+                // if (reviewData.author_phone) {
+                //     await sendReviewApprovedAlimtalk(reviewData.author_phone, reviewData.author_name || '인플루언서', reviewData.title || '캠페인 리뷰');
+                // }
+            }
+
+            toast.success(
+                newStatus === 'HIDDEN' ? '리뷰를 숨겼습니다' :
+                    newStatus === 'APPROVED' ? '리뷰를 승인했습니다' :
+                        newStatus === 'REJECTED' ? '리뷰를 거절했습니다' : '상태를 변경했습니다'
+            );
             fetchReviews(); // 목록 새로고침
         } catch (error: any) {
             console.error('Error changing status:', error);
@@ -246,9 +264,31 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
 
                                         {/* 액션 버튼 */}
                                         <div className="flex gap-2">
+                                            {review.status === 'PENDING' && (
+                                                <>
+                                                    <Button
+                                                        onClick={() => handleStatusChange(review.id, 'APPROVED', review)}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-green-700 border-green-200 hover:bg-green-50"
+                                                    >
+                                                        <ShieldCheck className="w-4 h-4 mr-2" />
+                                                        승인하기
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => handleStatusChange(review.id, 'REJECTED', review)}
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-rose-700 border-rose-200 hover:bg-rose-50"
+                                                    >
+                                                        <EyeOff className="w-4 h-4 mr-2" />
+                                                        거절하기
+                                                    </Button>
+                                                </>
+                                            )}
                                             {review.status === 'APPROVED' && (
                                                 <Button
-                                                    onClick={() => handleStatusChange(review.id, 'HIDDEN')}
+                                                    onClick={() => handleStatusChange(review.id, 'HIDDEN', review)}
                                                     variant="outline"
                                                     size="sm"
                                                     className="text-gray-700 hover:bg-gray-100"
@@ -259,7 +299,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                                             )}
                                             {review.status === 'HIDDEN' && (
                                                 <Button
-                                                    onClick={() => handleStatusChange(review.id, 'APPROVED')}
+                                                    onClick={() => handleStatusChange(review.id, 'APPROVED', review)}
                                                     variant="outline"
                                                     size="sm"
                                                     className="text-green-700 hover:bg-green-50"
