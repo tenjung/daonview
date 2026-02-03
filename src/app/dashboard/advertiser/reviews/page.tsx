@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { useAuthStore } from '@/store/authStore';
+import { ADVERTISER_LINKS } from '@/constants/navigation';
 import ReviewManagementClient from '@/components/admin/ReviewManagementClient';
 import { Loader2, MessageSquare } from 'lucide-react';
 
@@ -68,22 +69,10 @@ export default function AdvertiserReviewsPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={[
-                    { href: '/dashboard/advertiser', label: '대시보드' },
-                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
-                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
-                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황', active: true },
-                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
-                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={ADVERTISER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/advertiser/reviews'
+                }))}
             />
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-[1600px] mx-auto">

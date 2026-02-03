@@ -4,13 +4,7 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
-
-interface SidebarLink {
-    href: string;
-    label: string;
-    active?: boolean;
-    subLinks?: SidebarLink[];
-}
+import { SidebarLink } from '@/constants/navigation';
 
 interface DashboardSidebarProps {
     userType: 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
@@ -32,17 +26,17 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                 // 서브링크 URL 파싱
                 const subUrl = new URL(sub.href, 'http://localhost');
                 const isPathMatch = pathname === subUrl.pathname;
-                
+
                 // 쿼리 파라미터가 있는 경우 쿼리까지 비교, 없는 경우 경로만 비교
                 if (subUrl.search) {
                     const subParams = subUrl.searchParams.toString();
                     const currentParams = searchParams.toString();
                     return isPathMatch && currentParams.includes(subParams);
                 }
-                
+
                 return isPathMatch;
             });
-            
+
             if (isAnySubActive || link.active) {
                 initialExpanded[link.label] = true;
             }
@@ -103,7 +97,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                     {links.map((link) => {
                         const hasSubLinks = link.subLinks && link.subLinks.length > 0;
                         const isExpanded = expandedMenus[link.label];
-                        
+
                         // 부모 메뉴 활성화 여부: 본인 active거나 하위 메뉴 중 활성화된 게 있을 때
                         const isAnySubActive = link.subLinks?.some(sub => {
                             const subUrl = new URL(sub.href, 'http://localhost');
@@ -127,6 +121,11 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                     >
                                         <div className="flex items-center gap-3">
                                             {link.label}
+                                            {link.tag && (
+                                                <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm animate-pulse">
+                                                    {link.tag}
+                                                </span>
+                                            )}
                                         </div>
                                         {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
                                     </button>
@@ -134,12 +133,19 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                     <Link
                                         href={link.href}
                                         onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${link.active
+                                        className={`flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all ${link.active
                                             ? 'bg-rose-50 text-primary'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                             }`}
                                     >
-                                        {link.label}
+                                        <div className="flex items-center gap-3">
+                                            {link.label}
+                                            {link.tag && (
+                                                <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
+                                                    {link.tag}
+                                                </span>
+                                            )}
+                                        </div>
                                     </Link>
                                 )}
 
@@ -174,8 +180,8 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                 </nav>
 
                 <div className="mt-auto pt-6 border-t border-slate-50">
-                    <Link 
-                        href="/" 
+                    <Link
+                        href="/"
                         className="flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 text-xs font-bold hover:bg-slate-100 transition-colors"
                     >
                         홈으로 돌아가기

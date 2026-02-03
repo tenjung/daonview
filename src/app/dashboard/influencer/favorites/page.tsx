@@ -9,6 +9,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { INFLUENCER_LINKS } from '@/constants/navigation';
 
 interface FavoriteCampaign {
     id: number;
@@ -38,7 +39,7 @@ export default function FavoritesPage() {
 
     async function fetchData() {
         if (!user) return;
-        
+
         try {
             // Fetch favorite campaigns with application counts
             const { data: favoritesData } = await supabase
@@ -71,20 +72,10 @@ export default function FavoritesPage() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={[
-                    { href: '/dashboard/influencer', label: '대시보드' },
-                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
-                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인', active: true },
-                    { 
-                        href: '/profile/edit', 
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
-                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={INFLUENCER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/influencer/favorites'
+                }))}
             />
 
             <main className="flex-1 px-4 md:px-10 py-10 overflow-y-auto">
@@ -94,33 +85,33 @@ export default function FavoritesPage() {
                         <Link href="/campaigns" className="btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
                     </div>
 
-                {favorites.length > 0 ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
-                        {favorites.map((fav) => {
-                            const cardData = mapCampaignToCard(fav.campaigns as any);
-                            return (
-                                <CampaignCard 
-                                    key={fav.id}
-                                    {...cardData}
-                                />
-                            );
-                        })}
-                        {/* Show skeletons only to fill up to 1 row (5 items) if favorites are fewer than 5 */}
-                        {favorites.length < 5 && (
-                            [...Array(5 - favorites.length)].map((_, i) => (
-                                <CampaignSkeleton key={`skel-fill-${i}`} variant="favorite" />
-                            ))
-                        )}
-                    </div>
-                ) : (
-                    <div className="bg-white border border-border rounded-xl p-12 text-center max-w-[800px] mx-auto">
-                        <p className="text-lg text-gray-500 mb-4">아직 관심 캠페인이 없습니다.</p>
-                        <p className="text-sm text-gray-400 mb-6">마음에 드는 캠페인을 찾아 저장해보세요!</p>
-                        <Link href="/campaigns" className="btn btn-primary inline-block">
-                            캠페인 둘러보기
-                        </Link>
-                    </div>
-                )}
+                    {favorites.length > 0 ? (
+                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+                            {favorites.map((fav) => {
+                                const cardData = mapCampaignToCard(fav.campaigns as any);
+                                return (
+                                    <CampaignCard
+                                        key={fav.id}
+                                        {...cardData}
+                                    />
+                                );
+                            })}
+                            {/* Show skeletons only to fill up to 1 row (5 items) if favorites are fewer than 5 */}
+                            {favorites.length < 5 && (
+                                [...Array(5 - favorites.length)].map((_, i) => (
+                                    <CampaignSkeleton key={`skel-fill-${i}`} variant="favorite" />
+                                ))
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-white border border-border rounded-xl p-12 text-center max-w-[800px] mx-auto">
+                            <p className="text-lg text-gray-500 mb-4">아직 관심 캠페인이 없습니다.</p>
+                            <p className="text-sm text-gray-400 mb-6">마음에 드는 캠페인을 찾아 저장해보세요!</p>
+                            <Link href="/campaigns" className="btn btn-primary inline-block">
+                                캠페인 둘러보기
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

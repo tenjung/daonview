@@ -14,6 +14,7 @@ import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check,
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import { ADVERTISER_LINKS, INFLUENCER_LINKS } from '@/constants/navigation';
 
 // 온보딩 모달과 동일한 상수 재사용
 const PLATFORMS = [
@@ -476,41 +477,14 @@ function ProfileEditContent() {
         <div className="flex min-h-screen bg-background">
             <DashboardSidebar
                 userType={profile?.role === 'ADVERTISER' ? 'ADVERTISER' : 'INFLUENCER'}
-                userName={profile?.role === 'ADVERTISER' 
+                userName={profile?.role === 'ADVERTISER'
                     ? (profile?.company_name || profile?.nickname || '광고주')
                     : (profile?.nickname || '사용자')
                 }
-                links={profile?.role === 'ADVERTISER' ? [
-                    { href: '/dashboard/advertiser', label: '대시보드' },
-                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
-                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
-                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
-                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
-                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        active: true,
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ] : [
-                    { href: '/dashboard/influencer', label: '대시보드' },
-                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
-                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
-                            { href: '/profile/edit?tab=payout', label: '배송/정산 관리' },
-                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={(profile?.role === 'ADVERTISER' ? ADVERTISER_LINKS : INFLUENCER_LINKS).map(link => ({
+                    ...link,
+                    active: link.href === '/profile/edit'
+                }))}
             />
 
             <main className="flex-1 p-6 md:p-10 overflow-y-auto bg-slate-50/50">
@@ -645,7 +619,7 @@ function ProfileEditContent() {
                                                 <div className="text-sm text-amber-800">
                                                     <p className="font-bold mb-1">수정 안내</p>
                                                     <p className="text-amber-700 leading-relaxed">
-                                                        사업자 정보는 보안상의 이유로 직접 수정할 수 없습니다. 
+                                                        사업자 정보는 보안상의 이유로 직접 수정할 수 없습니다.
                                                         변경이 필요하신 경우 <a href="/contact" className="underline font-bold hover:text-amber-900">1:1 문의</a>를 통해 관리자에게 요청해 주세요.
                                                     </p>
                                                 </div>

@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import { INFLUENCER_LINKS } from '@/constants/navigation';
 
 export default function SettingsPage() {
     const { user, profile, isLoading } = useAuthStore();
@@ -80,20 +81,10 @@ export default function SettingsPage() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={[
-                    { href: '/dashboard/influencer', label: '대시보드' },
-                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페' },
-                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    { 
-                        href: '/dashboard/influencer/settings', 
-                        label: '계정 설정',
-                        active: true,
-                        subLinks: [
-                            { href: '/dashboard/influencer/settings', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={INFLUENCER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/influencer/settings'
+                }))}
             />
 
             <main className="flex-1 p-10 overflow-y-auto">
@@ -167,8 +158,8 @@ export default function SettingsPage() {
 
                             {message && (
                                 <div className={`mb-6 p-4 rounded-lg ${message.includes('성공')
-                                        ? 'bg-green-50 text-green-700'
-                                        : 'bg-red-50 text-red-700'
+                                    ? 'bg-green-50 text-green-700'
+                                    : 'bg-red-50 text-red-700'
                                     }`}>
                                     {message}
                                 </div>

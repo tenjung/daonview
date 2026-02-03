@@ -9,9 +9,9 @@ import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
-import { 
-    MoreHorizontal, 
-    Eye, 
+import {
+    MoreHorizontal,
+    Eye,
     XCircle,
     ClipboardCheck,
     Truck,
@@ -31,6 +31,7 @@ import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { INFLUENCER_LINKS } from '@/constants/navigation';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -83,7 +84,7 @@ export default function MyCampaignsPage() {
 
     async function fetchData() {
         if (!user) return;
-        
+
         try {
             setLoading(true);
 
@@ -102,17 +103,17 @@ export default function MyCampaignsPage() {
             if (applicationsData) {
                 const apps = applicationsData as ApplicationWithCampaign[];
                 setApplications(apps);
-                
+
                 // 마감 기한 체크 및 알림 생성 (승인된 캠페인 대상)
                 const approvedApps = apps.filter(app => app.status === 'APPROVED');
                 for (const app of approvedApps) {
                     if (!app.campaigns?.end_date) continue;
-                    
+
                     const endDate = new Date(app.campaigns.end_date);
                     const now = new Date();
                     const diffTime = endDate.getTime() - now.getTime();
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                    
+
                     // 마감 3일 이내인 경우
                     if (diffDays <= 3 && diffDays > 0) {
                         const { count } = await supabase
@@ -237,7 +238,7 @@ export default function MyCampaignsPage() {
                                         <span>가이드 확인</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator className="bg-slate-50" />
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-rose-500 font-bold"
                                         onClick={() => setReviewModal({
                                             isOpen: true,
@@ -255,7 +256,7 @@ export default function MyCampaignsPage() {
                             {app.status === 'PENDING' && (
                                 <>
                                     <DropdownMenuSeparator className="bg-slate-50" />
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
                                         className="rounded-lg cursor-pointer flex items-center gap-2 py-2 text-red-500 focus:text-red-500 focus:bg-red-50"
                                     >
@@ -287,20 +288,10 @@ export default function MyCampaignsPage() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={[
-                    { href: '/dashboard/influencer', label: '대시보드' },
-                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페인', active: true },
-                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    { 
-                        href: '/profile/edit', 
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
-                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={INFLUENCER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/influencer/campaigns'
+                }))}
             />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
@@ -314,8 +305,8 @@ export default function MyCampaignsPage() {
                             </h1>
                             <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
                         </div>
-                        <Link 
-                            href="/campaigns" 
+                        <Link
+                            href="/campaigns"
                             className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1"
                         >
                             신규 캠페인 찾기
@@ -354,9 +345,9 @@ export default function MyCampaignsPage() {
 
                     {/* Table Section */}
                     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                        <DataTable 
-                            columns={columns} 
-                            data={applications} 
+                        <DataTable
+                            columns={columns}
+                            data={applications}
                             isLoading={loading}
                             emptyMessage="선택한 조건의 캠페인이 없습니다."
                         />

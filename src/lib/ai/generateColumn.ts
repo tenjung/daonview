@@ -134,45 +134,45 @@ export async function generateColumnThumbnail(description: string): Promise<stri
             return '';
         }
 
-        console.log('[Pexels] API Key 확인:', apiKey.substring(0, 10) + '...');
-
-        // 한글 키워드 → 영어 키워드 매핑
-        const keywordMap: Record<string, string> = {
-            '체험단': 'product review',
-            '리뷰': 'review writing',
-            '협찬': 'collaboration business',
-            '캠페인': 'marketing campaign',
-            '마케팅': 'digital marketing',
-            '인플루언서': 'social media influencer',
-            '광고주': 'business advertising',
-            '신청서': 'application form',
-            '작성': 'writing desk',
-            '예시': 'example presentation',
-            '분석': 'data analytics',
-            '전략': 'strategy planning',
-            '소통': 'communication team',
-            '혜택': 'benefits rewards',
-            '매장': 'retail store',
-            '상품': 'product display',
-            '블로그': 'blogging laptop',
-            '사진': 'photography camera',
-            '촬영': 'photoshoot studio',
-            '고객': 'customer service',
+        // 한글 키워드 → 영어 키워드 다변화 매핑
+        const keywordPool: Record<string, string[]> = {
+            '체험단': ['product review', 'unboxing', 'product testing', 'lifestyle blogger'],
+            '리뷰': ['review writing', 'customer evaluation', 'honest feedback', 'laptop review', 'writing paper'],
+            '협찬': ['brand collaboration', 'partnership', 'gifted product', 'sponsored post'],
+            '캠페인': ['marketing campaign', 'social media ad', 'promotion strategy', 'advertising'],
+            '마케팅': ['digital marketing', 'online strategy', 'market analysis', 'SEO optimization'],
+            '인플루언서': ['social media influencer', 'content creator', 'popular blogger', 'vlogger'],
+            '광고주': ['business meeting', 'advertising agency', 'brand manager', 'corporate marketing'],
+            '신청서': ['filling out form', 'application desk', 'checklist', 'planning notes'],
+            '작성': ['writing office', 'keyboard typing', 'creative writing', 'journaling'],
+            '분석': ['data charts', 'analytics', 'statistics', 'business growth'],
+            '소통': ['team meeting', 'networking', 'customer community', 'chatting'],
+            '매장': ['beautiful store', 'retail shop', 'reception desk', 'interior design'],
+            '상품': ['luxury products', 'cosmetics', 'package design', 'item display'],
+            '블로그': ['laptop lifestyle', 'blogging', 'typing on computer', 'workspace'],
+            '사진': ['camera lens', 'professional photography', 'taking photo', 'studio light'],
+            '촬영': ['camera tripod', 'photo shoot', 'filming scene', 'videography'],
         };
 
-        // 설명에서 키워드 추출
-        let query = 'business marketing';
-        for (const [korean, english] of Object.entries(keywordMap)) {
+        // 키워드 추출 및 매칭 (다중 매칭 시 무작위로 하나 선택)
+        const matchedKeywords: string[] = [];
+        for (const [korean, englishList] of Object.entries(keywordPool)) {
             if (description.includes(korean)) {
-                query = english;
-                break;
+                matchedKeywords.push(...englishList);
             }
         }
 
-        console.log(`[Pexels] 이미지 검색: "${description}" → "${query}"`);
+        // 매칭된 키워드가 없으면 기본 이미지 검색어 사용
+        let query = matchedKeywords.length > 0
+            ? matchedKeywords[Math.floor(Math.random() * matchedKeywords.length)]
+            : 'business marketing';
 
-        // Pexels API 호출
-        const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`;
+        console.log(`[Pexels] 이미지 검색: "${description}" → 검색어: "${query}"`);
+
+        // Pexels API 호출 (결과를 20개 가져와서 무작위로 하나 선택)
+        const perPage = 20;
+        const randomPage = Math.floor(Math.random() * 3) + 1; // 1~3페이지 중 무작위
+        const url = `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=${perPage}&page=${randomPage}&orientation=landscape`;
 
         const response = await fetch(url, {
             headers: {
@@ -193,21 +193,24 @@ export async function generateColumnThumbnail(description: string): Promise<stri
         const data = await response.json();
 
         if (!data.photos || data.photos.length === 0) {
-            console.warn(`[Pexels] "${query}" 검색 결과 없음, 기본 검색어 사용`);
-            // 검색 결과 없으면 기본 이미지 검색
+            console.warn(`[Pexels] "${query}" 결과 없음, 기본 검색어로 재시도`);
             const fallbackResponse = await fetch(
-                `https://api.pexels.com/v1/search?query=business&per_page=1&orientation=landscape`,
+                `https://api.pexels.com/v1/search?query=office&per_page=10&orientation=landscape`,
                 { headers: { 'Authorization': apiKey } }
             );
             const fallbackData = await fallbackResponse.json();
             if (fallbackData.photos && fallbackData.photos.length > 0) {
-                return fallbackData.photos[0].src.large;
+                const randomIdx = Math.floor(Math.random() * fallbackData.photos.length);
+                return fallbackData.photos[randomIdx].src.large;
             }
             throw new Error('이미지를 찾을 수 없습니다.');
         }
 
-        const imageUrl = data.photos[0].src.large;
-        console.log(`[Pexels] ✅ 이미지 가져오기 성공`);
+        // 검색된 리스트 중 무작위 선택
+        const randomIndex = Math.floor(Math.random() * data.photos.length);
+        const imageUrl = data.photos[randomIndex].src.large;
+
+        console.log(`[Pexels] ✅ 성공: ${data.photos.length}개 중 ${randomIndex + 1}번째 이미지 선택`);
 
         return imageUrl;
     } catch (error: any) {

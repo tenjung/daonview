@@ -9,6 +9,7 @@ import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { LayoutDashboard, Megaphone, FileText, CheckCircle, Clock } from 'lucide-react';
 import { InfluencerStatsCards } from '@/components/influencer/InfluencerStatsCards';
+import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
 
@@ -85,21 +86,10 @@ export default function InfluencerDashboard() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={[
-                    { href: '/dashboard/influencer', label: '대시보드', active: true },
-                    { href: '/dashboard/influencer/campaigns', label: '나의 캠페인' },
-                    { href: '/dashboard/influencer/landing-pages', label: '나의 랜딩페이지' },
-                    { href: '/dashboard/influencer/favorites', label: '관심 캠페인' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' },
-                            { href: '/profile/edit?tab=interests', label: '관심사 설정' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={INFLUENCER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/influencer'
+                }))}
             />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">

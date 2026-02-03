@@ -7,6 +7,7 @@ import { UnifiedAdvertiserCampaigns } from '@/components/admin/UnifiedAdvertiser
 import Link from 'next/link';
 import { Megaphone } from 'lucide-react';
 import UnifiedAdvertiserPage from './UnifiedAdvertiserPage';
+import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 export default function AdvertiserCampaignsPage() {
     const { profile } = useAuthStore();
@@ -16,22 +17,10 @@ export default function AdvertiserCampaignsPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={[
-                    { href: '/dashboard/advertiser', label: '대시보드' },
-                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리', active: true },
-                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
-                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
-                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
-                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={ADVERTISER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/advertiser/campaigns'
+                }))}
             />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
@@ -46,8 +35,8 @@ export default function AdvertiserCampaignsPage() {
                                 등록하신 모든 캠페인을 효율적으로 관리하세요.
                             </p>
                         </div>
-                        <Link 
-                            href="/dashboard/campaign/new" 
+                        <Link
+                            href="/dashboard/campaign/new"
                             className="bg-primary text-white px-5 py-3 rounded-2xl font-bold shadow-sm hover:shadow-lg transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0"
                         >
                             + 새 캠페인 등록

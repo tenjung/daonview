@@ -41,13 +41,13 @@ export default function CommunityBoardClient({
     }, [initialPosts]);
 
     const isAdmin = profile?.role === 'ADMIN';
-    
+
     // Logic for showing Write button
     // 1. Admin can write everywhere
     // 2. Logged in users can write in FREE, ACADEMY_ADVERTISER, ACADEMY_INFLUENCER, BLOG_INTRO
     const canWrite = isAdmin || (
-        !!profile && 
-        ['FREE', 'ACADEMY_ADVERTISER', 'ACADEMY_INFLUENCER', 'BLOG_INTRO'].includes(type)
+        !!profile &&
+        ['FREE', 'BLOG_INTRO'].includes(type)
     );
 
     const filteredPosts = posts.filter(post =>

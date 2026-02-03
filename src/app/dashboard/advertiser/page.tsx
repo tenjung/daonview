@@ -9,6 +9,7 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import { AdvertiserStatsCards } from '@/components/advertiser/AdvertiserStatsCards';
 import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
+import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 export default function AdvertiserDashboard() {
     const { user, profile, isLoading } = useAuthStore();
@@ -115,23 +116,10 @@ export default function AdvertiserDashboard() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={[
-                    { href: '/dashboard/advertiser', label: '대시보드', active: true },
-                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
-                    { href: '/dashboard/advertiser/landing-pages', label: '나의 랜딩페이지' },
-                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
-                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
-                    { href: '/dashboard/advertiser/verification', label: '사업자 인증' },
-                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={ADVERTISER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/advertiser'
+                }))}
             />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">

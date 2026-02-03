@@ -8,20 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { 
-    ShieldCheck, 
-    FileText, 
-    Upload, 
-    CheckCircle2, 
-    Clock, 
-    AlertCircle, 
-    Building2, 
+import {
+    ShieldCheck,
+    FileText,
+    Upload,
+    CheckCircle2,
+    Clock,
+    AlertCircle,
+    Building2,
     ArrowRight,
     XCircle,
     FileSearch
 } from 'lucide-react';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
 import DashboardSidebar from '@/components/DashboardSidebar';
+import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 export default function AdvertiserVerificationPage() {
     const { user, profile, fetchProfile } = useAuthStore();
@@ -83,7 +84,7 @@ export default function AdvertiserVerificationPage() {
                         })
                     });
                     const aiData = await aiRes.json();
-                    
+
                     if (aiData.autoApproved) {
                         isAutoApproved = true;
                         toast.success('AI 심사 결과 정보가 일치하여 즉시 승인되었습니다! 🎉');
@@ -112,7 +113,7 @@ export default function AdvertiserVerificationPage() {
                 const { data: { publicUrl } } = supabase.storage
                     .from('files')
                     .getPublicUrl(`biz-certificates/${fileName}`);
-                
+
                 certificateUrl = publicUrl;
             }
 
@@ -169,7 +170,7 @@ export default function AdvertiserVerificationPage() {
                     </div>
                     <h3 className="text-xl font-bold text-amber-900">심사 진행 중</h3>
                     <p className="text-amber-700 max-w-md mx-auto leading-relaxed">
-                        사업자 인증 심사가 진행 중입니다. <br/>
+                        사업자 인증 심사가 진행 중입니다. <br />
                         AI 분석이 완료되었으며, 현재 관리자가 최종 검토 중입니다.
                     </p>
                     <div className="pt-4">
@@ -189,7 +190,7 @@ export default function AdvertiserVerificationPage() {
                     </div>
                     <h3 className="text-xl font-bold text-emerald-900">인증 완료</h3>
                     <p className="text-emerald-700 max-w-md mx-auto leading-relaxed">
-                        비즈니스 인증이 성공적으로 완료되었습니다. <br/>
+                        비즈니스 인증이 성공적으로 완료되었습니다. <br />
                         이제 자유롭게 캠페인을 등록하고 인플루언서를 모집할 수 있습니다.
                     </p>
                     <div className="grid grid-cols-2 gap-4 mt-6 max-w-sm mx-auto">
@@ -214,7 +215,7 @@ export default function AdvertiserVerificationPage() {
                     </div>
                     <h3 className="text-xl font-bold text-rose-900">심사 반려 안내</h3>
                     <p className="text-rose-700 max-w-md mx-auto leading-relaxed">
-                        사업자 정보가 아래의 사유로 반려되었습니다. <br/>
+                        사업자 정보가 아래의 사유로 반려되었습니다. <br />
                         정보를 수정하여 다시 제출해 주세요.
                     </p>
                     <div className="bg-white p-5 rounded-2xl border border-rose-200 text-left mt-4 shadow-sm">
@@ -223,7 +224,7 @@ export default function AdvertiserVerificationPage() {
                             {profile?.biz_rejection_reason || '사유가 기재되지 않았습니다.'}
                         </p>
                     </div>
-                    <Button 
+                    <Button
                         onClick={() => window.scrollTo({ top: 1000, behavior: 'smooth' })}
                         variant="ghost"
                         className="text-rose-600 font-bold hover:bg-rose-100/50"
@@ -242,22 +243,10 @@ export default function AdvertiserVerificationPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={[
-                    { href: '/dashboard/advertiser', label: '대시보드' },
-                    { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리' },
-                    { href: '/dashboard/advertiser/applicants', label: '신청자 목록' },
-                    { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황' },
-                    { href: '/dashboard/advertiser/verification', label: '사업자 인증', active: true },
-                    { href: '/dashboard/advertiser/brands', label: '브랜드 관리' },
-                    {
-                        href: '/profile/edit',
-                        label: '계정 설정',
-                        subLinks: [
-                            { href: '/profile/edit?tab=basic', label: '기본 정보' }
-                        ]
-                    },
-                    { href: '/contact', label: '1:1 문의' }
-                ]}
+                links={ADVERTISER_LINKS.map(link => ({
+                    ...link,
+                    active: link.href === '/dashboard/advertiser/verification'
+                }))}
             />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
@@ -295,7 +284,7 @@ export default function AdvertiserVerificationPage() {
                                                 <Building2 size={16} className="text-gray-400" />
                                                 회사명 / 상호명
                                             </Label>
-                                            <Input 
+                                            <Input
                                                 value={companyName}
                                                 onChange={(e) => setCompanyName(e.target.value)}
                                                 placeholder="(주)다온컴퍼니"
@@ -308,7 +297,7 @@ export default function AdvertiserVerificationPage() {
                                                 <FileSearch size={16} className="text-gray-400" />
                                                 사업자 등록번호
                                             </Label>
-                                            <Input 
+                                            <Input
                                                 value={bizNumber}
                                                 onChange={(e) => setBizNumber(e.target.value)}
                                                 placeholder="000-00-00000"
@@ -323,22 +312,21 @@ export default function AdvertiserVerificationPage() {
                                             <FileText size={16} className="text-gray-400" />
                                             사업자 등록증 첨부
                                         </Label>
-                                        
+
                                         <div className="relative group">
-                                            <Input 
+                                            <Input
                                                 type="file"
                                                 onChange={handleFileChange}
                                                 accept="image/*,.pdf"
                                                 className="hidden"
                                                 id="biz-cert-upload"
                                             />
-                                            <label 
+                                            <label
                                                 htmlFor="biz-cert-upload"
-                                                className={`w-full h-64 border-2 border-dashed rounded-[32px] flex flex-col items-center justify-center cursor-pointer transition-all ${
-                                                    previewUrl 
-                                                        ? 'border-primary/30 bg-primary/5' 
+                                                className={`w-full h-64 border-2 border-dashed rounded-[32px] flex flex-col items-center justify-center cursor-pointer transition-all ${previewUrl
+                                                        ? 'border-primary/30 bg-primary/5'
                                                         : 'border-gray-200 hover:border-primary hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 {previewUrl ? (
                                                     <div className="relative w-full h-full p-4 flex flex-col items-center">
@@ -348,9 +336,9 @@ export default function AdvertiserVerificationPage() {
                                                                 <span className="font-bold text-lg">{file.name}</span>
                                                             </div>
                                                         ) : (
-                                                            <img 
-                                                                src={previewUrl} 
-                                                                alt="Preview" 
+                                                            <img
+                                                                src={previewUrl}
+                                                                alt="Preview"
                                                                 className="flex-1 h-full object-contain rounded-2xl shadow-lg"
                                                             />
                                                         )}
@@ -378,13 +366,13 @@ export default function AdvertiserVerificationPage() {
                                             <ShieldCheck className="text-gray-400 shrink-0 mt-1" />
                                             <div className="text-xs text-gray-500 leading-relaxed font-medium">
                                                 <p className="font-bold text-gray-700 mb-1">개인정보 수집 및 이용 안내</p>
-                                                입력하신 사업자 정보는 비즈니스 신원 확인을 위한 목적으로만 사용되며, <br/>
+                                                입력하신 사업자 정보는 비즈니스 신원 확인을 위한 목적으로만 사용되며, <br />
                                                 승인 완료 후 안전하게 보호됩니다. 허위 정보 기재 시 이용이 제한될 수 있습니다.
                                             </div>
                                         </div>
                                     </div>
 
-                                    <Button 
+                                    <Button
                                         type="submit"
                                         disabled={loading}
                                         className="w-full h-16 rounded-2xl bg-primary text-white text-lg font-black shadow-xl shadow-rose-200 hover:shadow-2xl transition-all transform active:scale-95 disabled:opacity-50 mt-4"

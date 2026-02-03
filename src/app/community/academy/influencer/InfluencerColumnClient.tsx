@@ -2,12 +2,16 @@
 
 import CommunityBoardClient from "@/components/community/CommunityBoardClient";
 import { Sparkles } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
 
 interface InfluencerColumnClientProps {
     initialPosts: any[];
 }
 
 export default function InfluencerColumnClient({ initialPosts }: InfluencerColumnClientProps) {
+    const { profile } = useAuthStore();
+    const isAdmin = profile?.role === 'ADMIN';
+
     const handleGenerateAI = async () => {
         if (!confirm('AI 칼럼을 생성하시겠습니까?')) return;
 
@@ -32,7 +36,7 @@ export default function InfluencerColumnClient({ initialPosts }: InfluencerColum
         }
     };
 
-    const extraActions = (
+    const extraActions = isAdmin ? (
         <button
             onClick={handleGenerateAI}
             className="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/20 gap-2 text-sm"
@@ -40,7 +44,7 @@ export default function InfluencerColumnClient({ initialPosts }: InfluencerColum
             <Sparkles size={18} />
             AI 칼럼 생성
         </button>
-    );
+    ) : null;
 
     return (
         <CommunityBoardClient
