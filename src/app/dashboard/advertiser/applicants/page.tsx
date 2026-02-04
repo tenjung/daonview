@@ -16,6 +16,8 @@ interface Applicant {
     campaign: {
         id: number;
         title: string;
+        type: string;
+        is_always: boolean;
     };
     user: {
         id: string;
@@ -367,7 +369,7 @@ export default function AdvertiserApplicantsPage() {
                                                     </div>
                                                 )}
 
-                                                {app.status === 'SELECTED' && (app.campaign as any).type === 'DELIVERY' && (
+                                                {app.status === 'SELECTED' && app.campaign.type === 'DELIVERY' && (
                                                     <button
                                                         onClick={() => setEditingTracking({
                                                             applicationId: app.id,
