@@ -1,19 +1,20 @@
 import nodemailer from 'nodemailer';
-import * as AWS from 'aws-sdk';
+import * as SESv2 from '@aws-sdk/client-sesv2';
 import { createAdminClient } from './supabase/admin';
 
-// AWS SES 설정
-const ses = new AWS.SES({
-  apiVersion: '2010-12-01',
+// AWS SESv2 설정
+const ses = new SESv2.SESv2({
   region: process.env.AWS_SES_REGION || 'ap-northeast-2',
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
 });
 
 // Nodemailer Transporter 생성
 const transporter = nodemailer.createTransport({
-  SES: { ses, aws: AWS },
-});
+  SES: { ses, aws: SESv2 },
+} as any);
 
 export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
 
@@ -176,11 +177,14 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
       // 안전하게 기본적으로는 진행 (또는 정책에 따라 차단)
     }
 
-    if (profile?.email_subscription_status === 'UNSUBSCRIBED' || 
-        profile?.email_subscription_status === 'BOUNCED' || 
-        profile?.email_subscription_status === 'COMPLAINED') {
-      console.log(`[EMAIL SKIPPED] User ${to} has status: ${profile.email_subscription_status}.`);
-      return { success: false, message: `User status is ${profile.email_subscription_status}` };
+    // 상태값 대문자 변환 후 비교 (데이터 무결성 규칙 준수)
+    const status = profile?.email_subscription_status ? String(profile.email_subscription_status).toUpperCase() : '';
+
+    if (status === 'UNSUBSCRIBED' || 
+        status === 'BOUNCED' || 
+        status === 'COMPLAINED') {
+      console.log(`[EMAIL SKIPPED] User ${to} has status: ${status}.`);
+      return { success: false, message: `User status is ${status}` };
     }
 
     // 2. 템플릿 생성 (params에 email 추가)
