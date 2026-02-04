@@ -28,11 +28,14 @@ export const RATING_TAGS: RatingTag[] = [
     { label: '리뷰 미작성', type: 'negative' },
 ];
 
+export type SatisfactionLevel = 'SATISFIED' | 'NORMAL' | 'DISSATISFIED';
+
 export interface InfluencerReview {
     id: number;
     influencer_id: string;
     reviewer_id: string;
     campaign_id?: number;
+    satisfaction?: SatisfactionLevel;
     rating_tags: string[];
     comment?: string;
     created_at: string;

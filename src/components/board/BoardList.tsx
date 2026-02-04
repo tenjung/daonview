@@ -26,6 +26,7 @@ interface BoardListProps {
     itemHrefPrefix?: string;
     showThumbnails?: boolean;
     hideBadge?: boolean;
+    className?: string;
 }
 
 export default function BoardList({
@@ -36,7 +37,8 @@ export default function BoardList({
     isStandalone = false,
     itemHrefPrefix,
     showThumbnails = false,
-    hideBadge = false
+    hideBadge = false,
+    className
 }: BoardListProps) {
     const formatDate = (dateStr: string) => {
         return new Date(dateStr)
@@ -50,7 +52,7 @@ export default function BoardList({
         : "py-10 md:py-20 bg-gradient-to-b from-white to-rose-50/30";
 
     return (
-        <section className={containerStyles}>
+        <section className={`${containerStyles} ${className || ''}`}>
             <div className={isStandalone ? "w-full" : "container max-w-[1200px] mx-auto px-0 sm:px-4 md:px-10"}>
                 <div className={`${isStandalone ? "bg-transparent sm:bg-white" : "bg-white sm:rounded-2xl sm:border sm:border-border sm:p-10 sm:shadow-sm"} p-4`}>
                     {/* Header */}
@@ -104,17 +106,24 @@ export default function BoardList({
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1 overflow-hidden">
                                                         {!hideBadge && (
-                                                            <div className={`px-2 py-0.5 text-[10px] rounded-lg font-bold flex-shrink-0 ${(item.type === 'EVENT' || item.type === '이벤트')
-                                                                ? 'bg-orange-100 text-orange-600'
-                                                                : (item.type === 'NOTICE' || item.type === '공지' || item.type === '업데이트')
-                                                                    ? 'bg-blue-100 text-blue-600'
-                                                                    : 'bg-slate-100 text-slate-500'
+                                                            <div className={`px-2 py-0.5 text-[10px] rounded-lg font-bold flex-shrink-0 ${
+                                                                (item.type?.toUpperCase() === 'EVENT' || item.type === '이벤트')
+                                                                    ? 'bg-orange-100 text-orange-600'
+                                                                    : (item.type?.toUpperCase() === 'NOTICE' || item.type === '공지' || item.type === '업데이트')
+                                                                        ? 'bg-blue-100 text-blue-600'
+                                                                        : (item.type?.toUpperCase() === 'ACADEMY_ADVERTISER')
+                                                                            ? 'bg-blue-100 text-blue-600'
+                                                                            : (item.type?.toUpperCase() === 'ACADEMY_INFLUENCER')
+                                                                                ? 'bg-rose-100 text-rose-600'
+                                                                                : 'bg-slate-100 text-slate-500'
                                                                 }`}>
-                                                                {item.type === 'NOTICE' || item.type === '공지' ? '공지' :
-                                                                    item.type === 'EVENT' || item.type === '이벤트' ? '이벤트' :
-                                                                        item.type === 'FREE' ? '자유' :
+                                                                {item.type?.toUpperCase() === 'NOTICE' || item.type === '공지' ? '공지' :
+                                                                    item.type?.toUpperCase() === 'EVENT' || item.type === '이벤트' ? '이벤트' :
+                                                                        item.type?.toUpperCase() === 'FREE' ? '자유' :
                                                                             item.type === '업데이트' ? '소식' :
-                                                                                item.type?.includes('ACADEMY') ? '정보' : '정보'}
+                                                                                item.type?.toUpperCase() === 'ACADEMY_ADVERTISER' ? '광고주' :
+                                                                                    item.type?.toUpperCase() === 'ACADEMY_INFLUENCER' ? '인플루언서' :
+                                                                                        item.type?.toUpperCase()?.includes('ACADEMY') ? '정보' : '정보'}
                                                             </div>
                                                         )}
                                                         {!showThumbnails && (

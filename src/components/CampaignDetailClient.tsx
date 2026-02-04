@@ -26,10 +26,12 @@ import {
     ExternalLink,
     ChevronDown,
     CheckCircle2,
-    Info
+    Info,
+    Camera
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
-import CampaignCard, { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/CampaignCard';
+import CampaignCard from '@/components/CampaignCard';
+import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/campaign/CampaignBadges';
 import NaverMap from '@/components/campaign/NaverMap';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -59,7 +61,14 @@ import {
     SheetHeader,
     SheetTitle,
 } from "@/components/ui/sheet";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
 import PhoneInputModal from '@/components/PhoneInputModal';
+import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 
 
 interface CampaignDetailClientProps {
@@ -93,6 +102,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [relatedApi, setRelatedApi] = useState<CarouselApi>();
     const [isApplying, setIsApplying] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [applicationId, setApplicationId] = useState<number>(0);
 
 
     // Sync modal carousel when it opens or external index changes
@@ -205,9 +216,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 .select('id, selected_option, application_message, status')
                 .eq('user_id', currentUser.id)
                 .eq('campaign_id', id)
+                .neq('status', 'CANCELLED')
                 .maybeSingle();
             if (appData) {
                 setHasApplied(true);
+                setApplicationId(appData.id);
                 setApplicationStatus(appData.status);
                 const optString = appData.selected_option || '';
                 if (optString.includes('|')) {
@@ -338,8 +351,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 return;
             }
 
-            // 🔥 전화번호 체크 (모든 캠페인 신청 시 필수)
-            if (!profile.phone_number) {
+            // 🔥 전화번호 체크 (모든 캠페인 신청 시 필수) - 공백 및 길이 검증 강화
+            if (!profile.phone_number || profile.phone_number.trim().length < 10) {
                 setShowPhoneModal(true);
                 return;
             }
@@ -653,7 +666,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 {/* Campaign Header Section */}
                 <div className="mb-6 mt-0 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
                             <TypeBadge type={campaign.type} />
 
                             {/* 배송형일 경우 includeReview, includeNaver, includeInstagram 체크하여 뱃지 표시 */}
@@ -685,7 +698,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 {/* Main Layout: Left Content + Right Sticky Aside */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 border-t border-slate-100">
                     {/* Left Content Area (Scrollable) */}
-                    <div className="lg:col-span-8 pb-10 pr-2.5">
+                    <div className="lg:col-span-8 pb-10 pr-2 md:pr-6">
                         {/* Main Image Slider */}
                         <div className="pt-4 mb-8">
                             <div className="w-full max-w-xl mx-auto">
@@ -811,7 +824,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </section>
 
                         {/* 체험 미션 Section */}
-                        <section className="py-10 border-t border-slate-100">
+                        <section id="guide" className="py-10 border-t border-slate-100">
                             <div className="flex items-center gap-4 mb-8">
                                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
                                     <Target className="w-5 h-5" strokeWidth={2.5} />
@@ -1143,7 +1156,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                     {/* Right Sticky Aside */}
                     <div className="lg:col-span-4 border-l border-slate-100 bg-slate-50/30 relative">
-                        <div className="lg:sticky lg:top-24 p-6 md:p-8">
+                        <div className="lg:sticky lg:top-24 p-5 md:p-6 text-left">
                             <div id="options-section" className="flex flex-col">
                                 {/* Campaign Info Summary */}
                                 <div className="space-y-4 mb-8">
@@ -1282,16 +1295,25 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                     <button
                                                                         key={idx}
                                                                         onClick={handleOptionClick}
-                                                                        className={`group relative w-full px-4 py-2.5 rounded-xl border-[1.5px] text-left transition-all flex items-center justify-between ${isSelected
+                                                                        className={`group relative w-full px-4 py-3 rounded-xl border-[1.5px] text-left transition-all flex items-start justify-between ${isSelected
                                                                             ? 'border-rose-500 bg-rose-50/50'
                                                                             : 'border-gray-50 bg-gray-50/50 hover:border-gray-100 hover:bg-gray-100'
                                                                             }`}
                                                                     >
-                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                                                                                <p className={`text-[13px] font-bold leading-tight truncate ${isSelected ? 'text-rose-600' : 'text-gray-700'}`}>
-                                                                                    {label}
-                                                                                </p>
+                                                                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                                                                            <div className="flex flex-col gap-1 flex-1 min-w-0">
+                                                                                <TooltipProvider delayDuration={300}>
+                                                                                    <Tooltip>
+                                                                                        <TooltipTrigger asChild>
+                                                                                            <p className={`text-[13px] font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                                                {label}
+                                                                                            </p>
+                                                                                        </TooltipTrigger>
+                                                                                        <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
+                                                                                            <p className="text-xs font-medium leading-relaxed">{label}</p>
+                                                                                        </TooltipContent>
+                                                                                    </Tooltip>
+                                                                                </TooltipProvider>
                                                                                 {typeof opt === 'object' && (opt.optionPrice || opt.recruitmentCount) && (
                                                                                     <div className="flex items-center gap-2">
                                                                                         {opt.optionPrice && opt.optionPrice !== '0' && (
@@ -1386,24 +1408,63 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     </div>
                                 ) : (
                                     <div className="flex-1 flex flex-col items-center justify-center py-10 space-y-6">
+                                        {/* Status Icon */}
                                         <div className="relative">
-                                            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center animate-bounce">
-                                                <CheckCircle2 size={40} className="text-emerald-500" />
+                                            <div className={`w-20 h-20 rounded-full flex items-center justify-center animate-bounce ${(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? 'bg-rose-50' : 'bg-emerald-50'}`}>
+                                                {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') 
+                                                    ? <Gift size={40} className="text-rose-500" />
+                                                    : <CheckCircle2 size={40} className="text-emerald-500" />
+                                                }
                                             </div>
                                             <div className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
                                                 <span className="text-[10px] text-white font-black">!</span>
                                             </div>
                                         </div>
+
+                                        {/* Status Message */}
                                         <div className="space-y-2 text-center">
-                                            <h3 className="text-xl font-black text-gray-900">신청이 완료되었습니다!</h3>
-                                            <p className="text-sm text-gray-500 leading-relaxed font-medium">
-                                                광고주님이 회원님의 채널을 검토 중입니다.<br />
-                                                선정 결과는 알림톡으로 보내드릴게요. ✨
-                                            </p>
+                                            {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? (
+                                                <>
+                                                    <h3 className="text-xl font-black text-rose-600">🎉 체험단 선정 완료!</h3>
+                                                    <p className="text-sm text-gray-500 leading-relaxed font-medium">
+                                                        축하합니다! 체험단에 선정되셨습니다.<br />
+                                                        미션 가이드를 확인하고 리뷰를 등록해 주세요.
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <h3 className="text-xl font-black text-gray-900">신청이 완료되었습니다!</h3>
+                                                    <p className="text-sm text-gray-500 leading-relaxed font-medium">
+                                                        광고주님이 회원님의 채널을 검토 중입니다.<br />
+                                                        선정 결과는 알림톡으로 보내드릴게요. ✨
+                                                    </p>
+                                                </>
+                                            )}
                                         </div>
-                                        <div className="w-full pt-4">
+
+                                        {/* Actions */}
+                                        <div className="w-full space-y-3 pt-4">
+                                            {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') && (
+                                                <button
+                                                    onClick={() => setIsReviewModalOpen(true)}
+                                                    className="w-full py-4 rounded-2xl bg-rose-500 text-white text-base font-black hover:bg-rose-600 transition-all shadow-xl shadow-rose-100 flex items-center justify-center gap-2"
+                                                >
+                                                    <Camera size={20} />
+                                                    리뷰 제출하기
+                                                </button>
+                                            )}
+                                            
                                             <button
-                                                onClick={() => setShowCancelDialog(true)}
+                                                onClick={() => {
+                                                    if (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') {
+                                                        toast.info('이미 선정된 캠페인의 예약 변경 및 신청 취소는 다온뷰 운영자에게 연락 부탁드립니다.', {
+                                                            duration: 4000,
+                                                            position: 'top-center'
+                                                        });
+                                                    } else {
+                                                        setShowCancelDialog(true);
+                                                    }
+                                                }}
                                                 className="w-full py-4 rounded-2xl bg-gray-50 text-gray-400 text-sm font-bold hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-[0.98] border border-transparent hover:border-rose-100"
                                             >
                                                 신청 취소하기
@@ -1533,9 +1594,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </div>
                 ) : (
                     <div className="flex items-center justify-between gap-3">
-                        <div className="px-5 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm flex-1 text-center">
-                            신청 완료 ✨
-                        </div>
+                        {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? (
+                            <button
+                                onClick={() => setIsReviewModalOpen(true)}
+                                className="px-5 py-3.5 bg-rose-500 text-white rounded-2xl font-black text-sm flex-1 text-center shadow-lg shadow-rose-100 flex items-center justify-center gap-2"
+                            >
+                                <Camera size={16} />
+                                리뷰 제출하기
+                            </button>
+                        ) : (
+                            <div className="px-5 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm flex-1 text-center">
+                                신청 완료 ✨
+                            </div>
+                        )}
                         <CampaignShare
                             campaignId={id}
                             title={displayTitle}
@@ -1544,7 +1615,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             variant="large"
                         />
                         <button
-                            onClick={() => setShowCancelDialog(true)}
+                            onClick={() => {
+                                if (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') {
+                                    toast.info('이미 선정된 캠페인은 다온뷰 운영자에게 예약 변경/취소 문의 부탁드립니다.', {
+                                        position: 'top-center'
+                                    });
+                                } else {
+                                    setShowCancelDialog(true);
+                                }
+                            }}
                             className="w-14 h-14 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"
                         >
                             <span className="text-[10px] font-black leading-none text-center">신청<br />취소</span>
@@ -1552,6 +1631,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     </div>
                 )}
             </div>
+
+            {/* ReviewSubmitModal 추가 */}
+            <ReviewSubmitModal
+                isOpen={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                applicationId={applicationId}
+                campaignId={parseInt(id)}
+                campaignTitle={campaign.title}
+                creatorId={campaign.created_by}
+                onSuccess={() => {
+                    checkUserStatus(user);
+                }}
+            />
 
             {/* Mobile Apply Sheet */}
             <Sheet open={isApplySheetOpen} onOpenChange={setIsApplySheetOpen}>
@@ -1602,11 +1694,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     : 'border-gray-50 bg-gray-50/50 active:bg-gray-100'
                                                     }`}
                                             >
-                                                <div className="flex items-center justify-between gap-4">
-                                                    <div className="flex-1">
-                                                        <p className={`text-sm font-bold leading-snug ${isSelected ? 'text-rose-600' : 'text-gray-700'}`}>
-                                                            {label}
-                                                        </p>
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 min-w-0">
+                                                         <TooltipProvider delayDuration={300}>
+                                                             <Tooltip>
+                                                                 <TooltipTrigger asChild>
+                                                                     <p className={`text-sm font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                         {label}
+                                                                     </p>
+                                                                 </TooltipTrigger>
+                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
+                                                                    <p className="text-xs font-medium leading-relaxed">{label}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
                                                         {typeof opt === 'object' && (opt.optionPrice !== '0' || opt.recruitmentCount !== '0') && (
                                                             <div className="flex items-center gap-2 mt-2">
                                                                 {opt.optionPrice && opt.optionPrice !== '0' && (

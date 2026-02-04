@@ -87,13 +87,15 @@ export async function sendInfluencerSelectedAlimtalk(
                 '캠페인명': campaignTitle,
                 '체험유형': typeText,
                 '마감일': endDate,
-                '제공내역': providedItems.length > 50 ? providedItems.substring(0, 47) + '...' : providedItems
+                '제공내역': providedItems.length > 50 ? providedItems.substring(0, 47) + '...' : providedItems,
+                '캠페인ID': campaignId.toString() // 템플릿의 #{캠페인ID} 변수 대응
             },
             buttons: [
                 {
-                    name: '캠페인 확인하기',
+                    name: '캠페인 확인하기', // 솔라피 템플릿과 일치하도록 복구
                     type: 'WL',
-                    url_mobile: campaignUrl
+                    url_mobile: campaignUrl,
+                    url_pc: campaignUrl
                 }
             ]
         };
@@ -179,6 +181,43 @@ export async function sendReviewApprovedAlimtalk(
             '인플루언서명': influencerName,
             '캠페인명': campaignTitle,
             '승인일': new Date().toLocaleDateString('ko-KR')
+        }
+    };
+
+    return sendAlimtalk(request);
+}
+
+/**
+ * 인플루언서 배송 시작 알림톡 발송
+ * @param to - 수신자 전화번호
+ * @param influencerName - 인플루언서 이름
+ * @param campaignTitle - 캠페인 제목
+ * @param trackingCompany - 택배사
+ * @param trackingNumber - 운송장 번호
+ */
+export async function sendShippingStartedAlimtalk(
+    to: string,
+    influencerName: string,
+    campaignTitle: string,
+    trackingCompany: string,
+    trackingNumber: string
+): Promise<AlimtalkResponse> {
+    if (!isValidPhoneNumber(to)) {
+        return {
+            success: false,
+            error: '유효하지 않은 전화번호입니다.'
+        };
+    }
+
+    const request: AlimtalkRequest = {
+        to: formatPhoneNumber(to),
+        templateCode: process.env.SOLAPI_TEMPLATE_SHIPPING_STARTED || 'SHIPPING_STARTED',
+        variables: {
+            '인플루언서명': influencerName,
+            '캠페인명': campaignTitle,
+            '택배사': trackingCompany,
+            '운송장번호': trackingNumber,
+            '안내문구': '체험 후 1주일 이내에 리뷰 작성을 꼭 완료해주세요!'
         }
     };
 

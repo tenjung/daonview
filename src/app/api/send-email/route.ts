@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
-// import { sendEmail, EmailType } from '@/lib/email';
+import { sendEmail, EmailType } from '@/lib/email';
 
 /**
- * 이메일 전송 API (임시 비활성화)
+ * 이메일 전송 API
  * POST /api/send-email
  * Body: { to: string, type: EmailType, params: any }
- * 
- * ⚠️ AWS SES 샌드박스 모드로 인해 임시 비활성화
- * ✅ AWS SES 프로덕션 승인 후 아래 주석을 해제하세요
  */
 export async function POST(request: Request) {
   try {
@@ -22,27 +19,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // ⚠️ 임시 비활성화: AWS SES 승인 대기 중
-    console.log('[EMAIL DISABLED] Would send email:', { to, type, params });
-
-    // 임시로 성공 응답 반환 (실제 발송은 안 됨)
-    return NextResponse.json({
-      success: true,
-      message: 'Email queued (AWS SES sandbox mode - not actually sent)',
-      messageId: `temp-${Date.now()}`
-    });
-
-    /* 
-    // ✅ AWS SES 프로덕션 승인 후 아래 주석 해제
-    // 2. 이메일 전송 실행
+    // 2. 이메일 전송 실행 (내부에서 수신 거부 체크함)
     const result = await sendEmail(to, type as EmailType, params);
 
     return NextResponse.json({
-      success: true,
-      message: 'Email sent successfully',
+      success: result.success,
+      message: result.message || 'Process completed',
       messageId: result.messageId
     });
-    */
 
   } catch (error: any) {
     console.error('Email API Error:', error);

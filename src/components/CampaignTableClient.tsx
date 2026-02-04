@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Check, X, Edit, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { PlatformBadge, TypeBadge } from '@/components/campaign/CampaignBadges';
 
 interface CampaignTableClientProps {
     initialCampaigns: any[];
@@ -130,59 +131,8 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col gap-1.5">
-                                        {/* 플랫폼 뱃지 */}
-                                        {(() => {
-                                            const p = (cam.platform || '').toUpperCase();
-                                            let label = '블로그';
-                                            let colorClass = 'bg-emerald-500 text-white';
-
-                                            if (p === 'INSTAGRAM' || p === 'REELS') {
-                                                label = '인스타그램';
-                                                colorClass = 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
-                                            } else if (p === 'YOUTUBE' || p === 'SHORTS') {
-                                                label = '유튜브';
-                                                colorClass = 'bg-red-500 text-white';
-                                            } else if (p === 'TIKTOK') {
-                                                label = '틱톡';
-                                                colorClass = 'bg-slate-900 text-white';
-                                            } else if (p === 'PURCHASE') {
-                                                label = '구매평';
-                                                colorClass = 'bg-orange-500 text-white';
-                                            } else if (p === 'OTHER') {
-                                                label = '기타';
-                                                colorClass = 'bg-orange-500 text-white';
-                                            }
-
-                                            return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium whitespace-nowrap ${colorClass}`}>
-                                                    {label}
-                                                </span>
-                                            );
-                                        })()}
-
-                                        {/* 유형 뱃지 */}
-                                        {(() => {
-                                            const t = (cam.type || '').toUpperCase();
-                                            let label = '방문';
-                                            let colorClass = 'bg-blue-100 text-blue-700 border-blue-200';
-
-                                            if (t === 'DELIVERY') {
-                                                label = '배송';
-                                                colorClass = 'bg-green-100 text-green-700 border-green-200';
-                                            } else if (t === 'PURCHASE') {
-                                                label = '구매';
-                                                colorClass = 'bg-orange-100 text-orange-700 border-orange-200';
-                                            } else if (t === 'PRESS') {
-                                                label = '기자단';
-                                                colorClass = 'bg-purple-100 text-purple-700 border-purple-200';
-                                            }
-
-                                            return (
-                                                <span className={`inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap ${colorClass}`}>
-                                                    {label}
-                                                </span>
-                                            );
-                                        })()}
+                                        <PlatformBadge platform={cam.platform || ''} />
+                                        <TypeBadge type={cam.type || ''} />
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">

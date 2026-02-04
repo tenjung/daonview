@@ -49,6 +49,7 @@ export default function InfluencerDashboard() {
                 .from('applications')
                 .select('*, campaigns(*)')
                 .eq('user_id', user.id)
+                .neq('status', 'CANCELLED')
                 .order('created_at', { ascending: false })
                 .limit(10);
 

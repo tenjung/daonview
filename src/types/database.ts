@@ -2,7 +2,7 @@ export type UserRole = 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
 export type CampaignTypeKey = 'VISIT' | 'DELIVERY' | 'PRESS' | 'PURCHASE';
 export type PlatformKey = 'BLOG' | 'INSTAGRAM' | 'YOUTUBE' | 'SHORTS' | 'REELS' | 'TIKTOK' | 'PURCHASE' | 'OTHER';
 export type CampaignStatus = 'PENDING' | 'RECRUITING' | 'ONGOING' | 'COMPLETED' | 'REJECTED' | 'DRAFT';
-export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED';
+export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'SELECTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 
 export interface Profile {
     id: string;
@@ -31,6 +31,7 @@ export interface Profile {
     biz_verification_status?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
     biz_verification_requested_at?: string;
     biz_rejection_reason?: string;
+    email_subscription_status?: 'SUBSCRIBED' | 'UNSUBSCRIBED' | 'BOUNCED' | 'COMPLAINED';
     [key: string]: any;
 }
 
@@ -127,6 +128,8 @@ export interface Application {
     message: string;
     campaign_id: number;
     user_id: string;
+    cancellation_reason?: string;
+    cancelled_at?: string;
 
     // Joins
     campaign?: Campaign;

@@ -76,7 +76,7 @@ export default async function Home() {
     // Fetch latest notices from database
     const { data: noticesData, error: noticeFetchError } = await supabase
         .from('notices')
-        .select('id, type, title, created_at')
+        .select('id, type, title, created_at, view_count')
         .order('created_at', { ascending: false })
         .limit(3);
 
@@ -166,7 +166,7 @@ export default async function Home() {
             <KakaoBanner />
 
             {/* Service Introduction */}
-            <section className="bg-white py-24 border-y border-gray-100 mt-8">
+            <section className="bg-white pt-24 pb-0 border-y border-gray-100 mt-8">
                 <div className="container px-4 md:px-0">
                     <div className="text-center mb-12 md:mb-16">
                         <h2 className="text-3xl md:text-5xl font-black mb-4 md:mb-6 leading-tight whitespace-pre-wrap md:whitespace-normal">
@@ -186,6 +186,7 @@ export default async function Home() {
                 icon="📢"
                 items={notices}
                 viewAllHref="/community/notice"
+                className="md:pt-12"
             />
         </div>
     );

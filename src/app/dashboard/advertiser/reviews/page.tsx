@@ -50,7 +50,8 @@ export default function AdvertiserReviewsPage() {
                     thumbnail_url, 
                     status, 
                     created_at,
-                    campaign_id
+                    campaign_id,
+                    user_id
                 `)
                 .in('campaign_id', campaignIds)
                 .order('created_at', { ascending: false });

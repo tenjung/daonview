@@ -101,15 +101,11 @@ export default function ReviewSubmitModal({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not found');
 
-            // 1. applications 테이블 업데이트 (리뷰 제출됨 표시)
+            // 1. applications 테이블 업데이트 (리뷰 제출됨 표시 및 완료 처리)
             const { error: appError } = await supabase
                 .from('applications')
                 .update({
-                    // status: 'COMPLETED', // 기존: 바로 완료 처리
-                    // 대신, 광고주/관리자가 승인할 때까지는 'ONGOING' 또는 별도 검토 상태 유지 가능
-                    // 현재 스키마상 'COMPLETED'가 유일한 최종 상태라면, 
-                    // 제출 직후에는 'IN_REVIEW' 또는 'SUBMITTED'와 같은 상태가 필요할 수 있음.
-                    // 여기서는 일단 기존 status를 유지하거나, 명시적으로 제출됨을 표시.
+                    status: 'COMPLETED',
                     review_submitted: true,
                     review_media_urls: mediaUrls
                 })

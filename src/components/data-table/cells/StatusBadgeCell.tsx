@@ -1,6 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 
-type StatusType = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED';
+type StatusType = 'PENDING' | 'APPROVED' | 'REJECTED' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'CANCELLED';
 
 interface StatusBadgeCellProps {
     status: string | null | undefined;
@@ -14,6 +14,7 @@ const defaultLabels: Record<string, string> = {
     ACTIVE: '활성',
     INACTIVE: '비활성',
     COMPLETED: '완료',
+    CANCELLED: '취소됨',
 };
 
 const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -23,6 +24,7 @@ const statusVariants: Record<string, 'default' | 'secondary' | 'destructive' | '
     ACTIVE: 'default',
     INACTIVE: 'secondary',
     COMPLETED: 'secondary',
+    CANCELLED: 'outline',
 };
 
 export function StatusBadgeCell({ status, customLabels }: StatusBadgeCellProps) {

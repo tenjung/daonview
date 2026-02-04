@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from 'sonner';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
+import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
 
 interface Applicant {
     id: number;
@@ -23,12 +24,24 @@ interface Applicant {
         instagram_url?: string;
         avatar_url?: string;
     };
+    tracking_company?: string;
+    tracking_number?: string;
+    extension_status?: 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+    extension_reason?: string;
+    review_deadline?: string;
+}
+
+interface TrackingForm {
+    applicationId: number;
+    company: string;
+    number: string;
 }
 
 export default function AdvertiserApplicantsPage() {
     const { user, profile, isLoading } = useAuthStore();
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
+    const [editingTracking, setEditingTracking] = useState<TrackingForm | null>(null);
 
     useEffect(() => {
         if (!isLoading && user) {
@@ -64,8 +77,13 @@ export default function AdvertiserApplicantsPage() {
                     created_at,
                     status,
                     message,
-                    campaign:campaign_id (id, title),
-                    user:user_id (id, nickname, blog_url, instagram_url, avatar_url)
+                    campaign:campaign_id (id, title, type, is_always),
+                    user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
+                    tracking_company,
+                    tracking_number,
+                    extension_status,
+                    extension_reason,
+                    review_deadline
                 `)
                 .in('campaign_id', campaignIds)
                 .order('created_at', { ascending: false });
@@ -88,25 +106,157 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
+    const handleExtensionAction = async (applicationId: number, action: 'APPROVED' | 'REJECTED') => {
+        try {
+            const applicant = applicants.find(a => a.id === applicationId);
+            let updateData: any = { extension_status: action };
+
+            if (action === 'APPROVED' && applicant?.review_deadline) {
+                const currentDeadline = new Date(applicant.review_deadline);
+                currentDeadline.setDate(currentDeadline.getDate() + 7); // 7일 연장
+                updateData.review_deadline = currentDeadline.toISOString();
+            }
+
+            const { error } = await supabase
+                .from('applications')
+                .update(updateData)
+                .eq('id', applicationId);
+
+            if (error) throw error;
+
+            toast.success(action === 'APPROVED' ? '연장 요청이 승인되었습니다.' : '연장 요청이 거절되었습니다.');
+            
+            setApplicants(prev => prev.map(app => 
+                app.id === applicationId 
+                    ? { ...app, extension_status: action, review_deadline: updateData.review_deadline || app.review_deadline } 
+                    : app
+            ));
+        } catch (error) {
+            console.error('Extension action error:', error);
+            toast.error('처리 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleTrackingSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingTracking) return;
+
+        try {
+            const now = new Date();
+            const deadline = new Date(now);
+            deadline.setDate(deadline.getDate() + 7); // 배송 시작 후 1주
+
+            const { error } = await supabase
+                .from('applications')
+                .update({
+                    tracking_company: editingTracking.company,
+                    tracking_number: editingTracking.number,
+                    shipped_at: now.toISOString(),
+                    review_deadline: deadline.toISOString()
+                })
+                .eq('id', editingTracking.applicationId);
+
+            if (error) throw error;
+
+            toast.success('운송장 정보가 등록되었습니다.');
+
+            // 알림톡 발송
+            const applicant = applicants.find(a => a.id === editingTracking.applicationId);
+            if (applicant && applicant.user.id) {
+                const { data: userData } = await supabase
+                    .from('profiles')
+                    .select('phone_number, nickname, name')
+                    .eq('id', applicant.user.id)
+                    .single();
+
+                if (userData?.phone_number) {
+                    await sendShippingStartedAlimtalk(
+                        userData.phone_number,
+                        userData.nickname || userData.name || '인플루언서',
+                        applicant.campaign.title,
+                        editingTracking.company,
+                        editingTracking.number
+                    );
+                }
+            }
+
+            // 목록 갱신
+            setApplicants(prev => prev.map(app =>
+                app.id === editingTracking.applicationId 
+                    ? { ...app, tracking_company: editingTracking.company, tracking_number: editingTracking.number } 
+                    : app
+            ));
+            setEditingTracking(null);
+
+        } catch (error) {
+            console.error('Tracking update error:', error);
+            toast.error('운송장 등록 중 오류가 발생했습니다.');
+        }
+    };
+
     const handleStatusChange = async (applicationId: number, newStatus: string, campaignId: number) => {
         try {
-            // 1. 신청 상태 업데이트
+            // 1. 신청 상태 업데이트 및 데이터 설정
+            const applicant = applicants.find(a => a.id === applicationId);
+            const isAlways = applicant?.campaign?.is_always;
+            const campaignType = applicant?.campaign?.type;
+            
+            let updateData: any = { 
+                status: newStatus 
+            };
+
+            if (newStatus === 'SELECTED') {
+                const now = new Date();
+                updateData.selected_at = now.toISOString();
+                
+                // 방문형(VISIT) 상시 모집인 경우 선정일로부터 14일 마감 설정
+                if (isAlways && campaignType === 'VISIT') {
+                    const deadline = new Date(now);
+                    deadline.setDate(deadline.getDate() + 14);
+                    updateData.review_deadline = deadline.toISOString();
+                }
+            }
+
             const { error: appError } = await supabase
                 .from('applications')
-                .update({ status: newStatus })
+                .update(updateData)
                 .eq('id', applicationId);
 
             if (appError) throw appError;
 
-            // 2. 선정(SELECTED)인 경우 캠페인의 모집 인원 카운트 증가 (RPC 호출)
+            // 2. 선정(SELECTED)인 경우 캠페인의 모집 인원 카운트 증가 (RPC 호출) 및 알림톡 발송
             if (newStatus === 'SELECTED') {
+                // RPC 호출
                 const { error: campaignError } = await supabase.rpc('increment_campaign_recruit_count', {
                     campaign_id: campaignId
                 });
 
                 if (campaignError) {
                     console.error('RPC Error:', campaignError);
-                    // RPC 실패 시에만 예외적으로 사용자에게 알림 (데이터 무결성 중요)
+                }
+
+                // 알림톡 발송
+                const applicant = applicants.find(a => a.id === applicationId);
+                if (applicant && applicant.user.id) {
+                    try {
+                        // 실제 발송을 위해 프로필에서 전화번호 가져오기
+                        const { data: userData } = await supabase
+                            .from('profiles')
+                            .select('phone_number, name, nickname')
+                            .eq('id', applicant.user.id)
+                            .single();
+
+                        if (userData?.phone_number) {
+                            await sendInfluencerSelectedAlimtalk(
+                                userData.phone_number,
+                                userData.nickname || userData.name || '인플루언서',
+                                applicant.campaign.title,
+                                campaignId
+                            );
+                        }
+                    } catch (error) {
+                        console.error('Alimtalk send error:', error);
+                    }
                 }
             }
 
@@ -184,10 +334,58 @@ export default function AdvertiserApplicantsPage() {
                                                 </button>
                                             </>
                                         ) : (
-                                            <span className={`px-3 py-1 rounded-full text-sm font-bold ${app.status === 'SELECTED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                                                }`}>
-                                                {app.status === 'SELECTED' ? '선정됨' : '거절됨'}
-                                            </span>
+                                            <div className="flex flex-col items-end gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    {app.extension_status === 'PENDING' && (
+                                                        <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded text-[10px] font-bold animate-pulse">
+                                                            연장 요청됨
+                                                        </span>
+                                                    )}
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${app.status === 'SELECTED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                                        }`}>
+                                                        {app.status === 'SELECTED' ? '선정됨' : '거절됨'}
+                                                    </span>
+                                                </div>
+                                                
+                                                {app.extension_status === 'PENDING' && (
+                                                    <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-1 max-w-[250px] text-right">
+                                                        <p className="text-xs text-orange-800 font-medium mb-2 italic">"{app.extension_reason}"</p>
+                                                        <div className="flex justify-end gap-2">
+                                                            <button 
+                                                                onClick={() => handleExtensionAction(app.id, 'APPROVED')}
+                                                                className="text-[10px] bg-orange-500 text-white px-2 py-1 rounded-md font-bold hover:bg-orange-600"
+                                                            >
+                                                                승인(+7일)
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleExtensionAction(app.id, 'REJECTED')}
+                                                                className="text-[10px] bg-gray-400 text-white px-2 py-1 rounded-md font-bold hover:bg-gray-500"
+                                                            >
+                                                                거절
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {app.status === 'SELECTED' && (app.campaign as any).type === 'DELIVERY' && (
+                                                    <button
+                                                        onClick={() => setEditingTracking({
+                                                            applicationId: app.id,
+                                                            company: app.tracking_company || '',
+                                                            number: app.tracking_number || ''
+                                                        })}
+                                                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
+                                                    >
+                                                        {app.tracking_number ? '운송장 수정' : '운송장 입력'}
+                                                    </button>
+                                                )}
+                                                
+                                                {app.review_deadline && (
+                                                    <div className="text-[10px] text-gray-400">
+                                                        마감: {new Date(app.review_deadline).toLocaleDateString()}
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
@@ -196,6 +394,54 @@ export default function AdvertiserApplicantsPage() {
                     )}
                 </div>
             </div>
+
+            {/* 운송장 입력 모달 (단순 구현) */}
+            {editingTracking && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                        <h2 className="text-xl font-bold mb-4">운송장 정보 입력</h2>
+                        <form onSubmit={handleTrackingSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">택배사</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editingTracking.company}
+                                    onChange={e => setEditingTracking({ ...editingTracking, company: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="예: CJ대한통운, 로젠택배"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">운송장 번호</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editingTracking.number}
+                                    onChange={e => setEditingTracking({ ...editingTracking, number: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    placeholder="하이픈(-) 없이 숫자만 입력"
+                                />
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                                <button
+                                    type="submit"
+                                    className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors"
+                                >
+                                    저장 및 알림톡 발송
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingTracking(null)}
+                                    className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-bold hover:bg-gray-50 transition-colors"
+                                >
+                                    취소
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

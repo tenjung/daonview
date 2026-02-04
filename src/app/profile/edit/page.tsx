@@ -247,6 +247,12 @@ function ProfileEditContent() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
+            if (!formData.phone_number || formData.phone_number.trim().length < 10) {
+                toast.error('올바른 연락처를 입력해주세요. 연락처는 필수 항목입니다.');
+                setSaving(false);
+                return;
+            }
+
             const updateData: any = {
                 nickname: formData.nickname,
                 name: formData.name,

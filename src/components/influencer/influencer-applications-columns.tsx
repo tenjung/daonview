@@ -53,6 +53,7 @@ export const influencerApplicationColumns: ColumnDef<any>[] = [
             const statusConfig: Record<string, { label: string; color: string }> = {
                 PENDING: { label: '심사중', color: 'bg-orange-100 text-orange-600' },
                 APPROVED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
+                SELECTED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
                 REJECTED: { label: '미선정', color: 'bg-red-100 text-red-600' },
                 COMPLETED: { label: '완료', color: 'bg-blue-100 text-blue-600' },
             };
@@ -70,7 +71,7 @@ export const influencerApplicationColumns: ColumnDef<any>[] = [
         header: "비고",
         cell: ({ row }) => {
             const status = row.original.status?.toUpperCase();
-            if (status === 'APPROVED') return <span className="text-xs text-primary font-bold">가이드 확인 필요</span>;
+            if (status === 'APPROVED' || status === 'SELECTED') return <span className="text-xs text-primary font-bold">가이드 확인 필요</span>;
             if (status === 'REJECTED') return <span className="text-xs text-gray-400">아쉽게도 선정되지 않았습니다.</span>;
             return <span className="text-gray-400">-</span>;
         }

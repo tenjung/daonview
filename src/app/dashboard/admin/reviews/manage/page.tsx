@@ -10,7 +10,7 @@ export default async function ManageReviewsPage() {
     const [reviewsRes, sidebarCounts] = await Promise.all([
         supabase
             .from('reviews')
-            .select('id, post_url, platform, title, author_name, thumbnail_url, status, created_at')
+            .select('id, post_url, platform, title, author_name, thumbnail_url, status, created_at, user_id')
             .order('created_at', { ascending: false }),
         fetchAdminCampaignCounts(supabase)
     ]);

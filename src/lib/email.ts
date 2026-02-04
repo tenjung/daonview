@@ -1,23 +1,19 @@
-/**
- * ⚠️ AWS SES 샌드박스 모드로 인해 임시 비활성화
- * ✅ AWS SES 프로덕션 승인 후 아래 주석을 해제하세요
- */
+import nodemailer from 'nodemailer';
+import * as AWS from 'aws-sdk';
+import { createAdminClient } from './supabase/admin';
 
-// import nodemailer from 'nodemailer';
-// import * as AWS from 'aws-sdk';
+// AWS SES 설정
+const ses = new AWS.SES({
+  apiVersion: '2010-12-01',
+  region: process.env.AWS_SES_REGION || 'ap-northeast-2',
+  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+});
 
-// // AWS SES 설정
-// const ses = new AWS.SES({
-//   apiVersion: '2010-12-01',
-//   region: process.env.AWS_SES_REGION || 'ap-northeast-2',
-//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-// });
-
-// // Nodemailer Transporter 생성
-// const transporter = nodemailer.createTransport({
-//   SES: { ses, aws: AWS },
-// });
+// Nodemailer Transporter 생성
+const transporter = nodemailer.createTransport({
+  SES: { ses, aws: AWS },
+});
 
 export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
 
@@ -28,6 +24,7 @@ interface EmailParams {
   trackingNumber?: string;
   deadlineDate?: string;
   link?: string;
+  email?: string; // 수신 거부 링크용
 }
 
 /**
@@ -62,6 +59,11 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
     border-radius: 12px;
     font-weight: 700;
     margin-top: 24px;
+  `;
+
+  const footerLinkStyle = `
+    color: #94a3b8;
+    text-decoration: underline;
   `;
 
   let subject = '';
@@ -123,6 +125,8 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       break;
   }
 
+  const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
+
   const html = `
     <!DOCTYPE html>
     <html>
@@ -138,6 +142,10 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
           <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
             <p>© 2026 다온뷰(Daonview). All rights reserved.</p>
             <p>본 메일은 발신전용으로 회신이 되지 않습니다.</p>
+            <p style="margin-top: 10px;">
+              더 이상 소식을 받고 싶지 않으시다면 
+              <a href="${unsubscribeUrl}" style="${footerLinkStyle}">수신거부</a>를 클릭해 주세요.
+            </p>
           </div>
         </div>
       </body>
@@ -148,20 +156,41 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
 };
 
 /**
- * 이메일 전송 함수 (임시 비활성화)
- * ⚠️ AWS SES 샌드박스 모드로 인해 임시 비활성화
- * ✅ AWS SES 프로덕션 승인 후 아래 주석을 해제하세요
+ * 이메일 전송 함수
+ * 수신 거부 상태를 확인하고 이메일을 발송합니다.
  */
 export const sendEmail = async (to: string, type: EmailType, params: EmailParams) => {
-  console.log('[EMAIL DISABLED] Would send email:', { to, type, params });
-  return { success: true, messageId: `temp-${Date.now()}` };
-};
-
-/*
-// ✅ AWS SES 프로덕션 승인 후 아래 주석 해제
-export const sendEmail = async (to: string, type: EmailType, params: EmailParams) => {
   try {
-    const { subject, html } = getEmailTemplate(type, params);
+    const supabase = createAdminClient();
+
+    // 1. 수신 거부 상태 확인
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email_subscription_status')
+      .eq('email', to)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching profile for email check:', profileError);
+      // 프로필이 없거나 오류가 나도 마케팅성 메일이 아니면 보낼 수도 있지만, 
+      // 안전하게 기본적으로는 진행 (또는 정책에 따라 차단)
+    }
+
+    if (profile?.email_subscription_status === 'UNSUBSCRIBED' || 
+        profile?.email_subscription_status === 'BOUNCED' || 
+        profile?.email_subscription_status === 'COMPLAINED') {
+      console.log(`[EMAIL SKIPPED] User ${to} has status: ${profile.email_subscription_status}.`);
+      return { success: false, message: `User status is ${profile.email_subscription_status}` };
+    }
+
+    // 2. 템플릿 생성 (params에 email 추가)
+    const { subject, html } = getEmailTemplate(type, { ...params, email: to });
+
+    // 3. AWS SES 샌드박스 체크 및 발송
+    if (process.env.NODE_ENV === 'development' || !process.env.AWS_ACCESS_KEY_ID) {
+      console.log('[EMAIL MOCK] Sending email:', { to, subject });
+      return { success: true, messageId: `mock-${Date.now()}` };
+    }
 
     const info = await transporter.sendMail({
       from: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
@@ -177,4 +206,3 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     throw error;
   }
 };
-*/

@@ -19,6 +19,7 @@ interface Review {
     thumbnail_url: string | null;
     status: string;
     created_at: string;
+    user_id: string;
 }
 
 interface ReviewManagementClientProps {
@@ -38,7 +39,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
         try {
             const { data, error } = await supabase
                 .from('reviews')
-                .select('id, post_url, platform, title, author_name, thumbnail_url, status, created_at')
+                .select('id, post_url, platform, title, author_name, thumbnail_url, status, created_at, user_id')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -89,16 +90,23 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
             }
 
             // 승인됨(APPROVED)으로 변경된 경우 인플루언서에게 알림톡 발송
-            if (newStatus === 'APPROVED' && reviewData) {
-                // reviewData에 연락처 정보가 필요함. 현재 Review 인터페이스에 없으므로 
-                // DB에서 추가 정보를 가져오거나 interface를 확장해야 함.
-                // 임시로 성공 메시지만 표시하고, 실제 발송 로직은 데이터 구조 확인 후 보강
+            if (newStatus === 'APPROVED' && reviewData && reviewData.user_id) {
                 console.log('Sending approval alimtalk for review:', reviewId);
 
-                // 알림톡 발송 (연락처 정보가 있다고 가정하거나 추가 조회 필요)
-                // if (reviewData.author_phone) {
-                //     await sendReviewApprovedAlimtalk(reviewData.author_phone, reviewData.author_name || '인플루언서', reviewData.title || '캠페인 리뷰');
-                // }
+                // 인플루언서 정보 조회
+                const { data: userData } = await supabase
+                    .from('profiles')
+                    .select('phone_number, nickname, name')
+                    .eq('id', reviewData.user_id)
+                    .single();
+
+                if (userData?.phone_number) {
+                    await sendReviewApprovedAlimtalk(
+                        userData.phone_number,
+                        userData.nickname || userData.name || '인플루언서',
+                        reviewData.title || '캠페인 리뷰'
+                    );
+                }
             }
 
             toast.success(
