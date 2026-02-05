@@ -7,12 +7,14 @@ import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from 'sonner';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
+import { ExternalLink } from 'lucide-react';
 
 interface Applicant {
     id: number;
     created_at: string;
     status: string;
-    message: string;
+    application_message: string;
+    selected_option?: string;
     campaign: {
         id: number;
         title: string;
@@ -78,7 +80,8 @@ export default function AdvertiserApplicantsPage() {
                     id,
                     created_at,
                     status,
-                    message,
+                    application_message,
+                    selected_option,
                     campaign:campaign_id (id, title, type, is_always),
                     user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
                     tracking_company,
@@ -304,17 +307,28 @@ export default function AdvertiserApplicantsPage() {
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
                                             {app.user.avatar_url ? <img src={app.user.avatar_url} className="w-full h-full rounded-full object-cover" /> : '👤'}
                                         </div>
-                                        <div>
+                                        <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-lg">{app.user.nickname}</span>{/* deploy trigger */}
-                                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                                                <span className="font-bold text-lg">{app.user.nickname}</span>
+                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
                                                     {app.campaign.title}
                                                 </span>
                                             </div>
-                                            <div className="text-sm text-gray-600 mb-2">{app.message || '지원 메시지가 없습니다.'}</div>
+                                            
+                                            {/* 옵션 및 메시지 표시부 */}
+                                            <div className="space-y-1.5 mb-2">
+                                                {app.selected_option && (
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 uppercase">Option</span>
+                                                        <span className="text-xs font-semibold text-blue-700">{app.selected_option}</span>
+                                                    </div>
+                                                )}
+                                                <div className="text-sm text-gray-600 line-clamp-2">{app.application_message || '지원 메시지가 없습니다.'}</div>
+                                            </div>
+
                                             <div className="flex gap-2 text-xs text-blue-600">
-                                                {app.user.blog_url && <a href={app.user.blog_url} target="_blank" className="hover:underline">블로그 보기</a>}
-                                                {app.user.instagram_url && <a href={app.user.instagram_url} target="_blank" className="hover:underline">인스타그램 보기</a>}
+                                                {app.user.blog_url && <a href={app.user.blog_url} target="_blank" className="hover:underline flex items-center gap-1">블로그 <ExternalLink size={10}/></a>}
+                                                {app.user.instagram_url && <a href={app.user.instagram_url} target="_blank" className="hover:underline flex items-center gap-1">인스타 <ExternalLink size={10}/></a>}
                                             </div>
                                         </div>
                                     </div>

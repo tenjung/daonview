@@ -1,18 +1,15 @@
-import nodemailer from 'nodemailer';
-import { SESv2Client } from '@aws-sdk/client-sesv2';
-import * as SESv2 from '@aws-sdk/client-sesv2';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { createAdminClient } from './supabase/admin';
 
-let transporter: nodemailer.Transporter | null = null;
-
 /**
- * Nodemailer Transporter 싱글톤 인스턴스 반환
- * 빌드 시점이 아닌, 실제 호출 시점에 생성하여 환경 변수 및 의존성 이슈 방지
+ * AWS SES 클라이언트 싱글톤 인스턴스
  */
-const getTransporter = (): nodemailer.Transporter => {
-  if (transporter) return transporter;
+let sesClient: SESClient | null = null;
 
-  const sesClient = new SESv2Client({
+const getSESClient = (): SESClient => {
+  if (sesClient) return sesClient;
+
+  sesClient = new SESClient({
     region: process.env.AWS_SES_REGION || 'ap-northeast-2',
     credentials: {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
@@ -20,14 +17,7 @@ const getTransporter = (): nodemailer.Transporter => {
     },
   });
 
-  transporter = nodemailer.createTransport({
-    SES: { 
-      ses: sesClient, 
-      aws: SESv2 
-    },
-  } as any);
-
-  return transporter!;
+  return sesClient;
 };
 
 export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
@@ -43,7 +33,78 @@ interface EmailParams {
 }
 
 /**
- * 이메일 타입별 동적 템플릿 생성
+ * DB에서 이메일 템플릿 로드 및 변수 치환
+ */
+export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParams) => {
+  try {
+    const supabase = createAdminClient();
+    
+    const { data: template, error } = await supabase
+      .from('email_templates')
+      .select('subject, html_content')
+      .eq('type', type)
+      .eq('is_active', true)
+      .single();
+
+    if (error || !template) {
+      console.error('Template not found in DB, using fallback:', error);
+      return getEmailTemplate(type, params); // Fallback to hardcoded template
+    }
+
+    // 변수 치환 ({{variable}} 형식)
+    let subject = template.subject;
+    let htmlContent = template.html_content;
+
+    Object.entries(params).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      subject = subject.replace(regex, value || '');
+      htmlContent = htmlContent.replace(regex, value || '');
+    });
+
+    // 푸터 추가 (로고, 카카오톡 문의, 수신거부)
+    const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
+    const kakaoInquiryUrl = 'https://pf.kakao.com/_xbxhDgn/chat';
+
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+        </head>
+        <body>
+          <div style="font-family: 'Pretendard', sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto; padding: 40px 20px; border: 1px solid #f1f5f9; border-radius: 20px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <img src="https://daonview.com/logo.png" alt="Daonview" style="height: 40px;">
+            </div>
+            ${htmlContent}
+            <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
+              <p style="margin-bottom: 12px;">
+                <a href="${kakaoInquiryUrl}" style="display: inline-block; padding: 10px 20px; background-color: #FEE500; color: #000000; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px;">
+                  💬 카카오톡 문의하기
+                </a>
+              </p>
+              <p style="font-size: 11px; color: #cbd5e1; margin-top: 8px;">궁금한 점이 있으시면 언제든지 카카오톡으로 문의해 주세요!</p>
+              <p style="margin-top: 20px;">© 2026 다온뷰(Daonview). All rights reserved.</p>
+              <p>본 메일은 발신전용으로 회신이 되지 않습니다.</p>
+              <p style="margin-top: 10px;">
+                더 이상 소식을 받고 싶지 않으시다면 
+                <a href="${unsubscribeUrl}" style="color: #94a3b8; text-decoration: underline;">수신거부</a>를 클릭해 주세요.
+              </p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `;
+
+    return { subject, html: fullHtml };
+  } catch (error) {
+    console.error('Error loading template from DB:', error);
+    return getEmailTemplate(type, params); // Fallback
+  }
+};
+
+/**
+ * 이메일 타입별 동적 템플릿 생성 (Fallback용)
  */
 export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
   const baseStyle = `
@@ -141,6 +202,7 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
   }
 
   const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
+  const kakaoInquiryUrl = 'https://pf.kakao.com/_xbxhDgn/chat';
 
   const html = `
     <!DOCTYPE html>
@@ -155,7 +217,13 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
           </div>
           ${content}
           <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
-            <p>© 2026 다온뷰(Daonview). All rights reserved.</p>
+            <p style="margin-bottom: 12px;">
+              <a href="${kakaoInquiryUrl}" style="display: inline-block; padding: 10px 20px; background-color: #FEE500; color: #000000; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 13px;">
+                💬 카카오톡 문의하기
+              </a>
+            </p>
+            <p style="font-size: 11px; color: #cbd5e1; margin-top: 8px;">궁금한 점이 있으시면 언제든지 카카오톡으로 문의해 주세요!</p>
+            <p style="margin-top: 20px;">© 2026 다온뷰(Daonview). All rights reserved.</p>
             <p>본 메일은 발신전용으로 회신이 되지 않습니다.</p>
             <p style="margin-top: 10px;">
               더 이상 소식을 받고 싶지 않으시다면 
@@ -171,7 +239,7 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
 };
 
 /**
- * 이메일 전송 함수
+ * AWS SES를 사용한 이메일 전송 함수
  * 수신 거부 상태를 확인하고 이메일을 발송합니다.
  */
 export const sendEmail = async (to: string, type: EmailType, params: EmailParams) => {
@@ -187,8 +255,6 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
 
     if (profileError) {
       console.error('Error fetching profile for email check:', profileError);
-      // 프로필이 없거나 오류가 나도 마케팅성 메일이 아니면 보낼 수도 있지만, 
-      // 안전하게 기본적으로는 진행 (또는 정책에 따라 차단)
     }
 
     // 상태값 대문자 변환 후 비교 (데이터 무결성 규칙 준수)
@@ -201,24 +267,40 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
       return { success: false, message: `User status is ${status}` };
     }
 
-    // 2. 템플릿 생성 (params에 email 추가)
-    const { subject, html } = getEmailTemplate(type, { ...params, email: to });
+    // 2. DB에서 템플릿 로드 (params에 email 추가)
+    const { subject, html } = await getEmailTemplateFromDB(type, { ...params, email: to });
 
-    // 3. AWS SES 샌드박스 체크 및 발송
+    // 3. 개발 환경 체크
     if (process.env.NODE_ENV === 'development' || !process.env.AWS_ACCESS_KEY_ID) {
       console.log('[EMAIL MOCK] Sending email:', { to, subject });
       return { success: true, messageId: `mock-${Date.now()}` };
     }
 
-    const info = await getTransporter().sendMail({
-      from: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
-      to,
-      subject,
-      html,
+    // 4. AWS SES로 이메일 전송
+    const client = getSESClient();
+    const command = new SendEmailCommand({
+      Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: 'UTF-8',
+        },
+        Body: {
+          Html: {
+            Data: html,
+            Charset: 'UTF-8',
+          },
+        },
+      },
     });
 
-    console.log(`Email sent: ${info.messageId}`);
-    return { success: true, messageId: info.messageId };
+    const response = await client.send(command);
+
+    console.log(`Email sent: ${response.MessageId}`);
+    return { success: true, messageId: response.MessageId };
   } catch (error) {
     console.error('Email send error:', error);
     throw error;

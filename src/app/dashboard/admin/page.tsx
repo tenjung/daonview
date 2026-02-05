@@ -1,11 +1,10 @@
 import Link from 'next/link';
-import AdminSidebar from '@/components/AdminSidebar';
 import { supabase } from '@/lib/supabaseClient';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
-import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
-import { LayoutDashboard, Megaphone, Plus } from 'lucide-react';
+import { LayoutDashboard } from 'lucide-react';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 
 export default async function AdminDashboard() {
     const today = new Date();
@@ -55,43 +54,32 @@ export default async function AdminDashboard() {
     const campaigns = campaignsRes.data || [];
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
-
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
-                <div className="max-w-[1600px] mx-auto">
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
-                                <LayoutDashboard className="w-10 h-10 text-primary" />
-                                Admin Insight
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">
-                                실시간 플랫폼 상태와 위험 요소를 한눈에 모니터링합니다.
-                            </p>
-                        </div>
-                        <Link
-                            href="/dashboard/campaign/new"
-                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
-                        >
-                            + 신규 캠페인 등록
-                        </Link>
-                    </div>
-
-                    {/* Section A: 통합 현황판 */}
-                    <DashboardStatsCards stats={statsData} />
-
-                    {/* Section B: 위젯 및 모니터링 */}
-                    <div className="space-y-12">
-                        <AdminDashboardClient initialCampaigns={campaigns} />
-
-                        {/* 
-                          [최적화] 전체 캠페인 테이블은 '캠페인 관리' 메뉴 전 전용 페이지가 있으므로 
-                          대시보드 메인에서는 제거하고 지능형 위젯(AdminDashboardClient)만 노출합니다.
-                        */}
-                    </div>
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
+            <div className="flex justify-between items-center mb-10">
+                <div>
+                    <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
+                        <LayoutDashboard className="w-10 h-10 text-primary" />
+                        Admin Insight
+                    </h1>
+                    <p className="text-gray-500 mt-2 font-medium">
+                        실시간 플랫폼 상태와 위험 요소를 한눈에 모니터링합니다.
+                    </p>
                 </div>
-            </main>
-        </div>
+                <Link
+                    href="/dashboard/campaign/new"
+                    className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
+                >
+                    + 신규 캠페인 등록
+                </Link>
+            </div>
+
+            {/* Section A: 통합 현황판 */}
+            <DashboardStatsCards stats={statsData} />
+
+            {/* Section B: 위젯 및 모니터링 */}
+            <div className="space-y-12">
+                <AdminDashboardClient initialCampaigns={campaigns} />
+            </div>
+        </AdminPageLayout>
     );
 }

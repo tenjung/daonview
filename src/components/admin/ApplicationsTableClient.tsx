@@ -24,6 +24,7 @@ interface ApplicationsTableClientProps {
     campaignId: string;
     campaignTitle: string;
     campaignCategory?: string;
+    campaignType?: string;
     recruitCount: number;
 }
 
@@ -36,6 +37,7 @@ export default function ApplicationsTableClient({
     campaignId,
     campaignTitle,
     campaignCategory,
+    campaignType,
     recruitCount
 }: ApplicationsTableClientProps) {
     const [applications, setApplications] = useState<Application[]>(initialApplications);
@@ -76,6 +78,7 @@ export default function ApplicationsTableClient({
         cancellations: number;
         satisfaction: SatisfactionLevel[];
     }>>(new Map());
+    const [reviewedInfluencerIds, setReviewedInfluencerIds] = useState<Set<string>>(new Set());
 
     const [confirmModal, setConfirmModal] = useState<{
         isOpen: boolean;
@@ -144,6 +147,16 @@ export default function ApplicationsTableClient({
             });
 
             setInfluencerStats(statsMap);
+
+            // 3. 현재 캠페인에 대해 평가 완료된 인플루언서 확인
+            const { data: currentReviews } = await supabase
+                .from('influencer_reviews')
+                .select('influencer_id')
+                .eq('campaign_id', campaignId);
+            
+            if (currentReviews) {
+                setReviewedInfluencerIds(new Set(currentReviews.map(r => r.influencer_id)));
+            }
         } catch (error) {
             console.error('Error loading influencer stats:', error);
         }
@@ -170,7 +183,16 @@ export default function ApplicationsTableClient({
                 title: '총 신청자',
                 value: `${total}명`,
                 icon: Users,
-                description: `모집 인원: ${recruitCount}명`
+                description: (
+                    <div className="flex items-center gap-1">
+                        <span>모집 인원:</span>
+                        {recruitCount >= 999 ? (
+                            <span className="text-indigo-600 font-black">∞</span>
+                        ) : (
+                            <span>{recruitCount}명</span>
+                        )}
+                    </div>
+                )
             },
             {
                 title: '대기중',
@@ -478,7 +500,8 @@ export default function ApplicationsTableClient({
             '이메일': app.user?.email || '',
             '전화번호': app.user?.phone_number || '',
             'SNS': app.user?.sns_url || '',
-            '신청메시지': app.message || '',
+            '신청 옵션': app.selected_option || '',
+            '신청메시지': app.application_message || '',
             '택배사': app.tracking_company || '',
             '송장번호': app.tracking_number || '',
             '상태': app.status || '',
@@ -501,7 +524,9 @@ export default function ApplicationsTableClient({
         onUpdateTracking: handleUpdateTracking,
         onHandleExtension: handleExtension,
         influencerStats: influencerStats,
-    }), [influencerStats, applications]);
+        reviewedInfluencerIds: reviewedInfluencerIds,
+        campaignType: campaignType,
+    }), [influencerStats, reviewedInfluencerIds, applications, campaignType]);
 
     // 필터별 개수
     const filterCounts = useMemo(() => ({

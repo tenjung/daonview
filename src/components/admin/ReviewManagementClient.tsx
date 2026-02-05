@@ -147,20 +147,8 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
     };
 
     return (
-        <div className="flex-1 bg-gray-50 py-12">
-            <div className="container max-w-6xl mx-auto px-4">
-                {/* 헤더 */}
-                <div className="mb-8">
-                    <Link
-                        href="/dashboard/admin"
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-                    >
-                        ← 관리자 대시보드
-                    </Link>
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 관리</h1>
-                    <p className="text-gray-500">등록된 리뷰를 관리하고 문제가 있는 리뷰를 숨길 수 있습니다</p>
-                </div>
-
+        <div className="flex-1">
+            <div className="mx-auto px-0">
                 {/* 필터 및 검색 */}
                 <div className="bg-white rounded-2xl border-2 border-gray-100 p-6 mb-6">
                     <div className="flex flex-col md:flex-row gap-4">

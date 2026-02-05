@@ -14,6 +14,7 @@ import {
   useReactTable,
 } from "@tanstack/react-table"
 import { ChevronDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -148,7 +149,17 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead 
+                      key={header.id}
+                      style={{ 
+                        width: header.column.columnDef.size !== 150 ? header.column.columnDef.size : undefined,
+                        minWidth: header.column.columnDef.size !== 150 ? header.column.columnDef.size : undefined 
+                      }}
+                      className={cn(
+                        "whitespace-nowrap",
+                        header.id === "actions" && "sticky right-0 z-20 bg-gray-50/95 backdrop-blur-sm shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] border-l border-gray-200"
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -178,9 +189,19 @@ export function DataTable<TData, TValue>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && "selected"}
+                  className="group hover:bg-gray-50/50 transition-colors"
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell 
+                      key={cell.id}
+                      style={{ 
+                        width: cell.column.columnDef.size !== 150 ? cell.column.columnDef.size : undefined,
+                        minWidth: cell.column.columnDef.size !== 150 ? cell.column.columnDef.size : undefined 
+                      }}
+                      className={cn(
+                        cell.column.id === "actions" && "sticky right-0 z-10 bg-white group-hover:bg-gray-50/80 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] border-l border-gray-100"
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

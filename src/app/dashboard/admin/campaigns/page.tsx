@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabaseClient';
-import AdminSidebar from '@/components/AdminSidebar';
 import { UnifiedAdminCampaigns } from '@/components/admin/UnifiedAdminCampaigns';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import Link from 'next/link';
 import { Megaphone } from 'lucide-react';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 
 // Next.js 캐싱 비활성화
 export const dynamic = 'force-dynamic';
@@ -33,35 +33,28 @@ export default async function AdminCampaignsPage() {
     const sidebarCounts = await fetchAdminCampaignCounts(supabase);
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
-
-            <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
-                <div className="max-w-[1600px] mx-auto">
-                    <div className="flex justify-between items-center mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-                                <Megaphone className="w-8 h-8 text-primary" />
-                                캠페인 통합 관리
-                            </h1>
-                            <p className="text-gray-500 mt-1">
-                                모든 상태의 캠페인을 한곳에서 쉽고 빠르게 관리하세요.
-                            </p>
-                        </div>
-                        <Link 
-                            href="/dashboard/campaign/new" 
-                            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
-                        >
-                            + 신규 캠페인 등록
-                        </Link>
-                    </div>
-
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                        <UnifiedAdminCampaigns initialData={campaignsRes || []} />
-                    </div>
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
+            <div className="flex justify-between items-center mb-8">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <Megaphone className="w-8 h-8 text-primary" />
+                        캠페인 통합 관리
+                    </h1>
+                    <p className="text-gray-500 mt-1">
+                        모든 상태의 캠페인을 한곳에서 쉽고 빠르게 관리하세요.
+                    </p>
                 </div>
+                <Link 
+                    href="/dashboard/campaign/new" 
+                    className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
+                >
+                    + 신규 캠페인 등록
+                </Link>
             </div>
-        </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <UnifiedAdminCampaigns initialData={campaignsRes || []} />
+            </div>
+        </AdminPageLayout>
     );
 }
-

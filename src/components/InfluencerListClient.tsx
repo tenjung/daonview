@@ -51,16 +51,16 @@ export default function InfluencerListClient({ initialInfluencers }: InfluencerL
             </div>
 
             {/* 리스트 테이블 */}
-            <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-                <table className="w-full">
+            <div className="bg-white rounded-xl border border-border shadow-sm overflow-x-auto overflow-y-hidden">
+                <table className="w-full min-w-[1000px]">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">인플루언서 정보</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">주요 채널</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">활동도 (신청/선정)</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">리뷰 이행률</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">가입일</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">관리</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[250px]">인플루언서 정보</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[120px]">주요 채널</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[180px]">활동도 (신청/선정)</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[150px]">리뷰 이행률</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[120px]">가입일</th>
+                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 w-[80px]">관리</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">

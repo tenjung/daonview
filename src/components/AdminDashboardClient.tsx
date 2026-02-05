@@ -245,7 +245,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                             </div>
                                                         </div>
                                                         <span className="text-sm font-bold text-red-600 whitespace-nowrap">
-                                                            {analysis.applicantCount}/{analysis.targetCount}명
+                                                            {analysis.applicantCount} / {analysis.targetCount >= 999 ? <span className="text-indigo-600 font-black text-base">∞</span> : `${analysis.targetCount}명`}
                                                         </span>
                                                     </div>
                                                 </td>

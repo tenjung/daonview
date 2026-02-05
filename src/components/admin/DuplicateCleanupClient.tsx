@@ -114,21 +114,8 @@ export default function DuplicateCleanupClient() {
     };
 
     return (
-        <div className="container max-w-4xl mx-auto px-4">
-            <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
-                {/* 헤더 */}
-                <div className="mb-8">
-                    <Link
-                        href="/dashboard/admin/reviews/manage"
-                        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors"
-                    >
-                        ← 리뷰 관리로
-                    </Link>
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">중복 URL 정리</h1>
-                    <p className="text-gray-500">
-                        같은 URL을 가진 중복 리뷰를 찾아서 최신 것만 남기고 삭제합니다
-                    </p>
-                </div>
+        <div className="mx-auto">
+            <div className="bg-white p-0">
 
                 {/* 통계 */}
                 {stats && (

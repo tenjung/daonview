@@ -56,16 +56,16 @@ export default function AdvertiserListClient({ initialAdvertisers }: AdvertiserL
             </div>
 
             {/* 리스트 테이블 */}
-            <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-                <table className="w-full">
+            <div className="bg-white rounded-xl border border-border shadow-sm overflow-x-auto overflow-y-hidden">
+                <table className="w-full min-w-[1000px]">
                     <thead className="bg-gray-50 border-b border-gray-200">
                         <tr>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">기업 정보</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">진행중 캠페인</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">누적 캠페인</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">결제 현황</th>
-                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600">가입일</th>
-                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600">관리</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[250px]">기업 정보</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[150px]">진행중 캠페인</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[120px]">누적 캠페인</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[150px]">결제 현황</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-gray-600 w-[120px]">가입일</th>
+                            <th className="px-6 py-4 text-center text-sm font-semibold text-gray-600 w-[80px]">관리</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">

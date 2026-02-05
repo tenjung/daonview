@@ -2,9 +2,17 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { Menu, X, ChevronDown, ChevronRight } from 'lucide-react';
+import { 
+    Menu, X, ChevronDown, ChevronRight, 
+    LayoutDashboard, Megaphone, Globe, Heart, UserCog, User, 
+    Truck, Tags, MessageSquare, Users, ClipboardCheck, 
+    ShieldCheck, Store, BarChart3, Image as ImageIcon, PieChart, 
+    Headset, ChevronLeft, PanelLeftClose, PanelLeftOpen
+} from 'lucide-react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { SidebarLink } from '@/constants/navigation';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface DashboardSidebarProps {
     userType: 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
@@ -12,28 +20,37 @@ interface DashboardSidebarProps {
     links: SidebarLink[];
 }
 
+const IconMap: Record<string, any> = {
+    LayoutDashboard, Megaphone, Globe, Heart, UserCog, User,
+    Truck, Tags, MessageSquare, Users, ClipboardCheck,
+    ShieldCheck, Store, BarChart3, Image: ImageIcon, PieChart,
+    Headset
+};
+
 export default function DashboardSidebar({ userType, userName, links }: DashboardSidebarProps) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(false);
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
-    // 초기 상태에서 현재 활성화된 메뉴의 부모를 펼침
+    // 초기 설정 및 로컬스토리지 상태 로드
     useEffect(() => {
+        const savedState = localStorage.getItem('sidebar-collapsed');
+        if (savedState !== null) {
+            setIsCollapsed(savedState === 'true');
+        }
+        setIsLoaded(true);
+
         const initialExpanded: Record<string, boolean> = {};
         links.forEach(link => {
             const isAnySubActive = link.subLinks?.some(sub => {
-                // 서브링크 URL 파싱
                 const subUrl = new URL(sub.href, 'http://localhost');
                 const isPathMatch = pathname === subUrl.pathname;
-
-                // 쿼리 파라미터가 있는 경우 쿼리까지 비교, 없는 경우 경로만 비교
                 if (subUrl.search) {
-                    const subParams = subUrl.searchParams.toString();
-                    const currentParams = searchParams.toString();
-                    return isPathMatch && currentParams.includes(subParams);
+                    return isPathMatch && searchParams.toString().includes(subUrl.searchParams.toString());
                 }
-
                 return isPathMatch;
             });
 
@@ -44,7 +61,17 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
         setExpandedMenus(prev => ({ ...prev, ...initialExpanded }));
     }, [links, pathname, searchParams]);
 
+    const toggleCollapse = () => {
+        const newState = !isCollapsed;
+        setIsCollapsed(newState);
+        localStorage.setItem('sidebar-collapsed', String(newState));
+    };
+
     const toggleMenu = (label: string) => {
+        if (isCollapsed) {
+            setIsCollapsed(false);
+            localStorage.setItem('sidebar-collapsed', 'false');
+        }
         setExpandedMenus(prev => ({
             ...prev,
             [label]: !prev[label]
@@ -56,6 +83,8 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
         ADVERTISER: 'ADVERTISER',
         ADMIN: 'ADMIN'
     };
+
+    if (!isLoaded) return <div className="w-[280px] lg:static fixed h-screen bg-white" />;
 
     return (
         <>
@@ -77,114 +106,151 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
             )}
 
             {/* Sidebar */}
-            <aside className={`
-        w-[280px] bg-white border-r border-slate-100 p-6 flex flex-col shrink-0
-        fixed lg:static top-0 left-0 h-screen z-40
-        transform transition-transform duration-500 ease-out shadow-xl lg:shadow-none
-        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-                <div className="mb-10 pl-2">
-                    <div className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em] mb-1">
-                        {userTypeLabel[userType]}
-                    </div>
-                    <div className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                        <span className="bg-rose-500 w-1.5 h-6 rounded-full"></span>
-                        {userName} <span className="text-slate-400 font-medium">님</span>
-                    </div>
+            <aside className={cn(
+                "bg-white border-r border-slate-100 flex flex-col shrink-0 fixed lg:static top-0 left-0 h-screen z-40 transition-all duration-300 ease-in-out shadow-xl lg:shadow-none",
+                isCollapsed ? "w-[88px]" : "w-[260px]",
+                mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+            )}>
+                {/* Collapse Toggle Button (Desktop) */}
+                <button
+                    onClick={toggleCollapse}
+                    className="hidden lg:flex absolute -right-3 top-10 w-6 h-6 bg-white border border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-primary transition-all z-50 shadow-sm"
+                >
+                    {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+                </button>
+
+                <div className={cn("mb-10 pl-2 pr-2 pt-8", isCollapsed ? "items-center" : "pl-6")}>
+                    {!isCollapsed ? (
+                        <>
+                            <div className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em] mb-1">
+                                {userTypeLabel[userType]}
+                            </div>
+                            <div className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                                <span className="bg-rose-500 w-1.5 h-6 rounded-full"></span>
+                                {userName} <span className="text-slate-400 font-medium">님</span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center gap-2 pt-2">
+                            <span className="bg-rose-500 w-1.5 h-6 rounded-full"></span>
+                        </div>
+                    )}
                 </div>
 
-                <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                    {links.map((link) => {
-                        const hasSubLinks = link.subLinks && link.subLinks.length > 0;
-                        const isExpanded = expandedMenus[link.label];
+                <TooltipProvider delayDuration={0}>
+                    <nav className={cn("flex flex-col gap-1.5 flex-1 overflow-y-auto custom-scrollbar px-3")}>
+                        {links.map((link) => {
+                            const Icon = link.icon ? IconMap[link.icon] : null;
+                            const hasSubLinks = link.subLinks && link.subLinks.length > 0;
+                            const isExpanded = expandedMenus[link.label];
+                            const isAnySubActive = link.subLinks?.some(sub => {
+                                const subUrl = new URL(sub.href, 'http://localhost');
+                                return pathname === subUrl.pathname;
+                            });
+                            const isActive = link.active || isAnySubActive;
 
-                        // 부모 메뉴 활성화 여부: 본인 active거나 하위 메뉴 중 활성화된 게 있을 때
-                        const isAnySubActive = link.subLinks?.some(sub => {
-                            const subUrl = new URL(sub.href, 'http://localhost');
-                            const isPathMatch = pathname === subUrl.pathname;
-                            if (subUrl.search) {
-                                return isPathMatch && searchParams.toString().includes(subUrl.searchParams.toString());
-                            }
-                            return isPathMatch;
-                        });
-                        const isActive = link.active || isAnySubActive;
-
-                        return (
-                            <div key={link.label} className="flex flex-col gap-1">
-                                {hasSubLinks ? (
-                                    <button
-                                        onClick={() => toggleMenu(link.label)}
-                                        className={`flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all ${isActive
-                                            ? 'bg-rose-50 text-primary'
-                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {link.label}
-                                            {link.tag && (
-                                                <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm animate-pulse">
-                                                    {link.tag}
-                                                </span>
+                            const content = (
+                                <div key={link.label} className="flex flex-col gap-1">
+                                    {hasSubLinks ? (
+                                        <button
+                                            onClick={() => toggleMenu(link.label)}
+                                            className={cn(
+                                                "flex items-center px-4 py-3 rounded-xl font-bold transition-all group",
+                                                isActive ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                                                isCollapsed && "justify-center px-0"
                                             )}
-                                        </div>
-                                        {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                                    </button>
-                                ) : (
-                                    <Link
-                                        href={link.href}
-                                        onClick={() => setMobileMenuOpen(false)}
-                                        className={`flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all ${link.active
-                                            ? 'bg-rose-50 text-primary'
-                                            : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {link.label}
-                                            {link.tag && (
-                                                <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
-                                                    {link.tag}
-                                                </span>
+                                        >
+                                            <div className={cn("flex items-center gap-3", isCollapsed && "gap-0")}>
+                                                {Icon && <Icon size={20} className={cn(isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-900")} />}
+                                                {!isCollapsed && (
+                                                    <>
+                                                        {link.label}
+                                                        {link.tag && (
+                                                            <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
+                                                                {link.tag}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                            {!isCollapsed && (isExpanded ? <ChevronDown size={14} className="ml-auto" /> : <ChevronRight size={14} className="ml-auto" />)}
+                                        </button>
+                                    ) : (
+                                        <Link
+                                            href={link.href}
+                                            onClick={() => setMobileMenuOpen(false)}
+                                            className={cn(
+                                                "flex items-center px-4 py-3 rounded-xl font-bold transition-all group",
+                                                link.active ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                                                isCollapsed && "justify-center px-0"
                                             )}
+                                        >
+                                            <div className={cn("flex items-center gap-3", isCollapsed && "gap-0")}>
+                                                {Icon && <Icon size={20} className={cn(link.active ? "text-primary" : "text-slate-400 group-hover:text-slate-900")} />}
+                                                {!isCollapsed && (
+                                                    <>
+                                                        {link.label}
+                                                        {link.tag && (
+                                                            <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
+                                                                {link.tag}
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    )}
+
+                                    {/* Sub Links */}
+                                    {hasSubLinks && isExpanded && !isCollapsed && (
+                                        <div className="flex flex-col gap-1 ml-6 pl-4 border-l border-slate-100 mt-1 mb-2 animate-in slide-in-from-top-2 duration-300">
+                                            {link.subLinks?.map((sub) => {
+                                                const subHrefUrl = new URL(sub.href, 'http://localhost');
+                                                const isParamMatch = subHrefUrl.searchParams.toString() === searchParams.toString();
+                                                const isSubActive = sub.active || (pathname === subHrefUrl.pathname && (!subHrefUrl.search || isParamMatch));
+
+                                                return (
+                                                    <Link
+                                                        key={sub.href}
+                                                        href={sub.href}
+                                                        onClick={() => setMobileMenuOpen(false)}
+                                                        className={cn(
+                                                            "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
+                                                            isSubActive ? 'text-primary' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50/50'
+                                                        )}
+                                                    >
+                                                        {sub.label}
+                                                    </Link>
+                                                );
+                                            })}
                                         </div>
-                                    </Link>
-                                )}
+                                    )}
+                                </div>
+                            );
 
-                                {/* Sub Links */}
-                                {hasSubLinks && isExpanded && (
-                                    <div className="flex flex-col gap-1 ml-4 pl-4 border-l-2 border-slate-50 mt-1 mb-2 animate-in slide-in-from-top-2 duration-300">
-                                        {link.subLinks?.map((sub) => {
-                                            const subHrefUrl = new URL(sub.href, 'http://localhost');
-                                            const currentSearch = searchParams.toString();
-                                            const isParamMatch = subHrefUrl.searchParams.toString() === currentSearch;
-                                            const isSubActive = sub.active || (pathname === subHrefUrl.pathname && (!subHrefUrl.search || isParamMatch));
+                            return isCollapsed ? (
+                                <Tooltip key={link.label}>
+                                    <TooltipTrigger asChild>
+                                        {content}
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="font-bold">
+                                        {link.label}
+                                    </TooltipContent>
+                                </Tooltip>
+                            ) : content;
+                        })}
+                    </nav>
+                </TooltipProvider>
 
-                                            return (
-                                                <Link
-                                                    key={sub.href}
-                                                    href={sub.href}
-                                                    onClick={() => setMobileMenuOpen(false)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${isSubActive
-                                                        ? 'text-primary'
-                                                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50/50'
-                                                        }`}
-                                                >
-                                                    {sub.label}
-                                                </Link>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        );
-                    })}
-                </nav>
-
-                <div className="mt-auto pt-6 border-t border-slate-50">
+                <div className={cn("mt-auto pt-6 border-t border-slate-50 pb-8 px-4", isCollapsed && "px-2 items-center")}>
                     <Link
                         href="/"
-                        className="flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 text-xs font-bold hover:bg-slate-100 transition-colors"
+                        className={cn(
+                            "flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 text-xs font-bold hover:bg-slate-100 transition-colors",
+                            isCollapsed && "p-2"
+                        )}
                     >
-                        홈으로 돌아가기
+                        {isCollapsed ? <X size={16} /> : "홈으로 돌아가기"}
                     </Link>
                 </div>
             </aside>

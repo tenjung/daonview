@@ -100,6 +100,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             ),
             enableSorting: false,
             enableHiding: false,
+            size: 50,
         },
         // 캠페인 정보
         {
@@ -107,6 +108,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             header: "캠페인 정보",
             cell: ({ row }) => <CampaignInfoCell campaign={row.original} isAdmin={context.isAdmin} />,
             enableSorting: false,
+            size: 350,
         },
     ];
 
@@ -129,6 +131,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                 );
             },
             enableSorting: false,
+            size: 200,
         });
     }
 
@@ -155,6 +158,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             );
         },
         enableSorting: false,
+        size: 150,
     });
 
     // 상태
@@ -173,6 +177,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             )
         },
         cell: ({ row }) => <CampaignStatusBadge status={row.getValue("status")} />,
+        size: 100,
     });
 
     // 등록일
@@ -191,6 +196,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             )
         },
         cell: ({ row }) => <DateCell date={row.getValue("created_at")} />,
+        size: 120,
     });
 
     // 진행 일정 (시안 3: 배지 레이블형)
@@ -224,6 +230,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             );
         },
         enableSorting: false,
+        size: 180,
     });
 
     // 관리 (액션 버튼)
@@ -306,6 +313,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         },
         enableSorting: false,
         enableHiding: false,
+        size: 160,
     });
 
     return columns;

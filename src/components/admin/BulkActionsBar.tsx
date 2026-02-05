@@ -22,8 +22,8 @@ export default function BulkActionsBar({
     }
 
     return (
-        <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40">
-            <div className="bg-white rounded-xl shadow-2xl border border-gray-200 px-6 py-4 flex items-center gap-4">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 px-6 py-4 flex items-center gap-6">
                 <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
                         {selectedCount}

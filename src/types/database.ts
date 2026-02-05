@@ -130,6 +130,8 @@ export interface Application {
     user_id: string;
     cancellation_reason?: string;
     cancelled_at?: string;
+    selected_option?: string;
+    application_message?: string;
 
     // Joins
     campaign?: Campaign;

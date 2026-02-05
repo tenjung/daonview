@@ -265,7 +265,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                     <DropdownMenuSeparator />
                     <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-gray-400 py-1">System</DropdownMenuLabel>
                     <DropdownMenuItem asChild>
-                      <Link href="/admin/users" className="flex items-center gap-2 text-violet-600 focus:text-violet-700">
+                      <Link href="/dashboard/admin/users" className="flex items-center gap-2 text-violet-600 focus:text-violet-700">
                         <ShieldCheck size={16} />
                         <span>회원 관리</span>
                       </Link>

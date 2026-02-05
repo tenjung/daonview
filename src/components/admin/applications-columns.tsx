@@ -5,6 +5,7 @@ import { ArrowUpDown, Check, X, Star, ExternalLink } from "lucide-react"
 import { Application } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import {
     UserInfoCell,
     PhoneCell,
@@ -28,7 +29,9 @@ interface ColumnContext {
         tags: string[];
         cancellations: number;
         satisfaction: SatisfactionLevel[];
-    }>
+    }>;
+    reviewedInfluencerIds?: Set<string>;
+    campaignType?: string;
 }
 
 export function createApplicationColumns(context: ColumnContext): ColumnDef<Application>[] {
@@ -52,6 +55,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
             ),
             enableSorting: false,
             enableHiding: false,
+            size: 50,
         },
         // 신청일시
         {
@@ -69,6 +73,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 )
             },
             cell: ({ row }) => <DateCell date={row.getValue("created_at")} showTime={true} />,
+            size: 160,
         },
         // 인플루언서 정보
         {
@@ -76,6 +81,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
             header: "인플루언서 정보",
             cell: ({ row }) => <UserInfoCell user={row.original.user} />,
             enableSorting: false,
+            size: 250,
         },
         {
             accessorKey: "user.phone_number",
@@ -88,6 +94,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 return <PhoneCell phone={phone} />;
             },
             enableSorting: false,
+            size: 130,
         },
         // SNS
         {
@@ -100,13 +107,69 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 />
             ),
             enableSorting: false,
+            size: 110,
+        },
+        // 신청 옵션
+        {
+            accessorKey: "selected_option",
+            header: "신청 옵션",
+            cell: ({ row }) => {
+                const option = row.getValue("selected_option") as string;
+                if (!option) return '-';
+
+                const options = option.split('|').map(s => s.trim());
+                
+                return (
+                    <TooltipProvider>
+                        <Tooltip delayDuration={0}>
+                            <TooltipTrigger asChild>
+                                <div className="max-w-[220px] flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 cursor-help">
+                                    <span className="flex-1 truncate">{options[0]}</span>
+                                    {options.length > 1 && (
+                                        <span className="shrink-0 text-[10px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full font-black leading-none">
+                                            +{options.length - 1}
+                                        </span>
+                                    )}
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent className="p-0 overflow-hidden border-2 border-blue-100 shadow-2xl rounded-2xl w-[320px]">
+                                <div className="bg-blue-600 px-3 py-2">
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
+                                        <div className="w-1 h-1 rounded-full bg-white animate-pulse" />
+                                        Selected Options
+                                    </span>
+                                </div>
+                                <div className="p-4 space-y-3 bg-white">
+                                    {options.map((opt, i) => (
+                                        <div key={i} className="flex gap-3 items-start group">
+                                            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[11px] font-black border border-blue-100 border-dashed group-hover:bg-blue-600 group-hover:text-white group-hover:border-transparent transition-all">
+                                                {i + 1}
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-[10px] font-bold text-blue-400 mb-0.5">
+                                                    {i + 1}순위 희망
+                                                </div>
+                                                <div className="text-[12px] font-semibold text-slate-700 leading-snug">
+                                                    {opt.replace(/^[1-9]지망:\s*/, '')}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                );
+            },
+            enableSorting: false,
+            size: 250,
         },
         // 신청 메시지
         {
-            accessorKey: "message",
+            accessorKey: "application_message",
             header: "신청 메시지",
             cell: ({ row }) => {
-                const message = row.getValue("message") as string;
+                const message = row.getValue("application_message") as string;
                 return (
                     <div className="max-w-[250px] truncate text-sm text-gray-700">
                         {message || '-'}
@@ -114,14 +177,15 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 );
             },
             enableSorting: false,
+            size: 300,
         },
-        // 송장 정보
-        {
+        // 송장 정보 (배송체험일 경우에만 표시)
+        ...(context.campaignType === 'DELIVERY' ? [{
             id: "tracking",
             header: "송장 정보",
-            cell: ({ row }) => {
+            cell: ({ row }: { row: any }) => {
                 const app = row.original;
-                const canEditTracking = (app.status?.toUpperCase() === 'APPROVED' || app.status?.toUpperCase() === 'SELECTED') && app.campaigns?.type === 'DELIVERY';
+                const isSelected = (app.status?.toUpperCase() === 'APPROVED' || app.status?.toUpperCase() === 'SELECTED');
                 
                 return (
                     <div className="flex flex-col gap-1 min-w-[100px]">
@@ -133,7 +197,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                         ) : (
                             <span className="text-xs text-gray-400 italic">미등록</span>
                         )}
-                        {canEditTracking && (
+                        {isSelected && (
                             <button 
                                 onClick={() => context.onUpdateTracking?.(app.id, app.tracking_company || '', app.tracking_number || '')}
                                 className="text-[10px] text-primary hover:underline w-fit"
@@ -145,7 +209,8 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 );
             },
             enableSorting: false,
-        },
+            size: 150,
+        }] : []),
         // 리뷰 마감/연장
         {
             id: "deadline",
@@ -182,6 +247,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 );
             },
             enableSorting: false,
+            size: 150,
         },
         // 평판 정보
         {
@@ -227,6 +293,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 );
             },
             enableSorting: false,
+            size: 100,
         },
         // 상태
         {
@@ -244,27 +311,29 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 )
             },
             cell: ({ row }) => <ApplicationStatusBadge status={row.getValue("status")} />,
+            size: 120,
         },
         // 관리
         {
             id: "actions",
-            header: "관리",
+            header: () => <div className="text-center w-full">관리</div>,
             cell: ({ row }) => {
                 const app = row.original;
                 const user = app.user;
                 const hasPhoneNumber = user?.phone_number && user.phone_number.trim().length >= 10;
                 const isPending = app.status?.toUpperCase() === 'PENDING';
                 const isSelected = app.status?.toUpperCase() === 'APPROVED' || app.status?.toUpperCase() === 'SELECTED';
+                const isReviewed = context.reviewedInfluencerIds?.has(app.user_id);
 
                 return (
-                    <div className="flex justify-center gap-1.5 flex-nowrap">
+                    <div className="flex justify-center items-center gap-1 flex-nowrap w-full">
                         {isPending ? (
                             <>
                                 <Button
                                     size="sm"
                                     disabled={!hasPhoneNumber}
                                     onClick={() => context.onApprove(app.id, user?.nickname || '사용자', user?.email || '')}
-                                    className={`whitespace-nowrap ${hasPhoneNumber ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
+                                    className={`whitespace-nowrap h-8 px-2.5 ${hasPhoneNumber ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
                                     title={!hasPhoneNumber ? "연락처가 등록되지 않은 유저는 승인할 수 없습니다." : ""}
                                 >
                                     <Check size={14} className="mr-1" /> 승인
@@ -273,43 +342,58 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                     size="sm"
                                     variant="outline"
                                     onClick={() => context.onReject(app.id, user?.nickname || '사용자')}
-                                    className="whitespace-nowrap"
+                                    className="whitespace-nowrap h-8 px-2.5"
                                 >
                                     <X size={14} className="mr-1" /> 거절
                                 </Button>
                             </>
                         ) : isSelected ? (
-                            <div className="flex gap-1.5">
-                                <Button
-                                    size="sm"
-                                    onClick={() => context.onOpenReview(app.user_id, user?.nickname || '인플루언서')}
-                                    className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap"
-                                >
-                                    <Star size={14} className="mr-1" /> 평가
-                                </Button>
+                            <div className="flex gap-1 items-center justify-center">
+                                {isReviewed ? (
+                                    <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
+                                        <div className="w-1 h-1 rounded-full bg-gray-400" />
+                                        평가완료
+                                    </div>
+                                ) : (
+                                    <Button
+                                        size="sm"
+                                        onClick={() => context.onOpenReview(app.user_id, user?.nickname || '인플루언서')}
+                                        className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap h-7 px-2 shadow-sm text-[11px]"
+                                    >
+                                        <Star size={12} className="mr-1 fill-white" /> 평가
+                                    </Button>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="outline"
                                     onClick={() => context.onCancel(app.id, user?.nickname || '인플루언서')}
-                                    className="border-orange-500 text-orange-600 hover:bg-orange-50 whitespace-nowrap"
+                                    className="border-orange-500 text-orange-600 hover:bg-orange-50 whitespace-nowrap h-7 px-2 text-[11px]"
                                 >
-                                    <X size={14} className="mr-1" /> 취소
+                                    <X size={12} className="mr-1" /> 취소
                                 </Button>
                             </div>
                         ) : (
-                            <Button
-                                size="sm"
-                                onClick={() => context.onOpenReview(app.user_id, user?.nickname || '인플루언서')}
-                                className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap"
-                            >
-                                <Star size={14} className="mr-1" /> 평가
-                            </Button>
+                            isReviewed ? (
+                                <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
+                                    <div className="w-1 h-1 rounded-full bg-gray-400" />
+                                    평가완료
+                                </div>
+                            ) : (
+                                <Button
+                                    size="sm"
+                                    onClick={() => context.onOpenReview(app.user_id, user?.nickname || '인플루언서')}
+                                    className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap h-8 px-2.5 shadow-sm"
+                                >
+                                    <Star size={14} className="mr-1 fill-white" /> 평가
+                                </Button>
+                            )
                         )}
                     </div>
                 );
             },
             enableSorting: false,
             enableHiding: false,
+            size: 130,
         },
     ];
 }

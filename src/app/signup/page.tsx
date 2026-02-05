@@ -230,7 +230,10 @@ function SignupForm() {
                             body: JSON.stringify({
                                 to: email,
                                 type: 'WELCOME',
-                                params: { nickname }
+                                params: { 
+                                    nickname,
+                                    email 
+                                }
                             })
                         }).catch(err => console.debug('Welcome email check failed (likely duplicate):', err));
 
@@ -311,7 +314,10 @@ function SignupForm() {
                 body: JSON.stringify({
                     to: email,
                     type: 'WELCOME',
-                    params: { nickname }
+                    params: { 
+                        nickname,
+                        email 
+                    }
                 })
             }).catch(err => console.error('Welcome email failed:', err));
 

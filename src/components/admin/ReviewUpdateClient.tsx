@@ -187,12 +187,8 @@ export default function ReviewUpdateClient() {
     };
 
     return (
-        <div className="container max-w-4xl mx-auto px-4">
-            <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
-                <h1 className="text-3xl font-black text-gray-900 mb-2">리뷰 데이터 업데이트</h1>
-                <p className="text-gray-500 mb-8">
-                    기존 리뷰의 닉네임과 썸네일을 자동으로 업데이트합니다
-                </p>
+        <div className="mx-auto">
+            <div className="bg-white p-0">
 
                 {isUpdating && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
