@@ -1,20 +1,34 @@
 import nodemailer from 'nodemailer';
+import { SESv2Client } from '@aws-sdk/client-sesv2';
 import * as SESv2 from '@aws-sdk/client-sesv2';
 import { createAdminClient } from './supabase/admin';
 
-// AWS SESv2 설정
-const ses = new SESv2.SESv2({
-  region: process.env.AWS_SES_REGION || 'ap-northeast-2',
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
-  },
-});
+let transporter: nodemailer.Transporter | null = null;
 
-// Nodemailer Transporter 생성
-const transporter = nodemailer.createTransport({
-  SES: { ses, aws: SESv2 },
-} as any);
+/**
+ * Nodemailer Transporter 싱글톤 인스턴스 반환
+ * 빌드 시점이 아닌, 실제 호출 시점에 생성하여 환경 변수 및 의존성 이슈 방지
+ */
+const getTransporter = (): nodemailer.Transporter => {
+  if (transporter) return transporter;
+
+  const sesClient = new SESv2Client({
+    region: process.env.AWS_SES_REGION || 'ap-northeast-2',
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    },
+  });
+
+  transporter = nodemailer.createTransport({
+    SES: { 
+      ses: sesClient, 
+      aws: SESv2 
+    },
+  } as any);
+
+  return transporter!;
+};
 
 export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
 
@@ -196,7 +210,7 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
       return { success: true, messageId: `mock-${Date.now()}` };
     }
 
-    const info = await transporter.sendMail({
+    const info = await getTransporter().sendMail({
       from: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
       to,
       subject,
