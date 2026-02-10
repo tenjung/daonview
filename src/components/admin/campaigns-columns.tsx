@@ -296,15 +296,13 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                                     </DropdownMenuItem>
                                 )}
 
-                                {!context.isAdmin && (
-                                    <DropdownMenuItem
-                                        onClick={() => context.onDelete?.(campaign.id, campaign.title)}
-                                        className="text-red-600 focus:text-red-600"
-                                    >
-                                        <Trash2 className="mr-2 h-4 w-4" />
-                                        <span>캠페인 삭제</span>
-                                    </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem
+                                    onClick={() => context.onDelete?.(campaign.id, campaign.title)}
+                                    className="text-red-600 focus:text-red-600"
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    <span>캠페인 삭제</span>
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
