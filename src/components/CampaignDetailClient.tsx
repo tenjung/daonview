@@ -880,13 +880,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                     {/* 사진/영상 조건 */}
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
                                             <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
                                             </p>
                                             <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
                                         </div>
-                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
                                             <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
                                                 <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
                                             </p>
@@ -1054,11 +1054,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                                             <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">🗓️ 방문 요일</p>
                                             <p className="font-black text-slate-900 text-base">{visitDays.length > 0 ? visitDays.join(', ') : '무관'}</p>
                                         </div>
-                                        <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100">
+                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
                                             <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">⏰ 방문 시간</p>
                                             <p className="font-black text-slate-900 text-base">
                                                 {visitTimeNegotiable ? '조율 가능' : (visitTime || '무관')}
@@ -1067,13 +1067,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     </div>
 
                                     {visitNotes && (
-                                        <div className="p-6 bg-amber-50/50 rounded-2xl border border-amber-100">
+                                        <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
                                             <p className="text-[11px] text-amber-700 font-bold mb-2 uppercase tracking-widest">💡 참고사항</p>
                                             <p className="text-sm text-slate-700 leading-7 whitespace-pre-line font-medium">{visitNotes}</p>
                                         </div>
                                     )}
 
-                                    <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+                                    <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
                                         <div className="flex-1">
                                             <p className="text-[10px] text-blue-500 font-black mb-1.5 uppercase tracking-widest">📞 예약 연락처</p>
                                             <div className="flex items-center gap-3">
@@ -1411,7 +1411,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         {/* Status Icon */}
                                         <div className="relative">
                                             <div className={`w-20 h-20 rounded-full flex items-center justify-center animate-bounce ${(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? 'bg-rose-50' : 'bg-emerald-50'}`}>
-                                                {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') 
+                                                {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED')
                                                     ? <Gift size={40} className="text-rose-500" />
                                                     : <CheckCircle2 size={40} className="text-emerald-500" />
                                                 }
@@ -1453,7 +1453,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     리뷰 제출하기
                                                 </button>
                                             )}
-                                            
+
                                             <button
                                                 onClick={() => {
                                                     if (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') {
@@ -1696,13 +1696,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             >
                                                 <div className="flex items-start justify-between gap-4">
                                                     <div className="flex-1 min-w-0">
-                                                         <TooltipProvider delayDuration={300}>
-                                                             <Tooltip>
-                                                                 <TooltipTrigger asChild>
-                                                                     <p className={`text-sm font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
-                                                                         {label}
-                                                                     </p>
-                                                                 </TooltipTrigger>
+                                                        <TooltipProvider delayDuration={300}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <p className={`text-sm font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                        {label}
+                                                                    </p>
+                                                                </TooltipTrigger>
                                                                 <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
                                                                     <p className="text-xs font-medium leading-relaxed">{label}</p>
                                                                 </TooltipContent>

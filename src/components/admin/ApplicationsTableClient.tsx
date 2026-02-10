@@ -138,7 +138,7 @@ export default function ApplicationsTableClient({
             influencerIds.forEach(id => {
                 const reviews = reviewsData?.filter(r => r.influencer_id === id) || [];
                 const cancels = cancelData?.filter(c => c.user_id === id).length || 0;
-                
+
                 statsMap.set(id, {
                     tags: reviews.flatMap(r => r.rating_tags),
                     cancellations: cancels,
@@ -153,7 +153,7 @@ export default function ApplicationsTableClient({
                 .from('influencer_reviews')
                 .select('influencer_id')
                 .eq('campaign_id', campaignId);
-            
+
             if (currentReviews) {
                 setReviewedInfluencerIds(new Set(currentReviews.map(r => r.influencer_id)));
             }
@@ -221,7 +221,7 @@ export default function ApplicationsTableClient({
             type: 'info',
             onConfirm: async () => {
                 const now = new Date();
-                let updateData: any = { 
+                let updateData: any = {
                     status: 'APPROVED',
                     selected_at: now.toISOString()
                 };
@@ -255,6 +255,27 @@ export default function ApplicationsTableClient({
                         );
                     } catch (err) {
                         console.error('Alimtalk send error:', err);
+                    }
+                }
+
+                // 이메일 발송
+                if (email) {
+                    try {
+                        await fetch('/api/send-email', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                to: email,
+                                type: 'CAMPAIGN_SELECTED',
+                                params: {
+                                    nickname: name,
+                                    campaignTitle: campaignTitle,
+                                    email: email
+                                }
+                            })
+                        });
+                    } catch (err) {
+                        console.error('Email send error:', err);
                     }
                 }
 
@@ -309,7 +330,7 @@ export default function ApplicationsTableClient({
 
         const { error } = await supabase
             .from('applications')
-            .update({ 
+            .update({
                 status: 'CANCELLED',
                 cancellation_reason: reason,
                 cancelled_at: new Date().toISOString()
@@ -361,18 +382,42 @@ export default function ApplicationsTableClient({
             return;
         }
 
-        // 일괄 알림톡 발송
+        // 일괄 알림톡 및 이메일 발송
         for (const app of selectedApplications) {
+            const userName = app.user?.nickname || app.user?.name || '인플루언서';
+
+            // 알림톡 발송
             if (app.user?.phone_number) {
                 try {
                     await sendInfluencerSelectedAlimtalk(
                         app.user.phone_number,
-                        app.user.nickname || app.user.name || '인플루언서',
+                        userName,
                         campaignTitle,
                         parseInt(campaignId)
                     );
                 } catch (err) {
                     console.error(`Alimtalk send error for app ${app.id}:`, err);
+                }
+            }
+
+            // 이메일 발송
+            if (app.user?.email) {
+                try {
+                    await fetch('/api/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            to: app.user.email,
+                            type: 'CAMPAIGN_SELECTED',
+                            params: {
+                                nickname: userName,
+                                campaignTitle: campaignTitle,
+                                email: app.user.email
+                            }
+                        })
+                    });
+                } catch (err) {
+                    console.error(`Email send error for app ${app.id}:`, err);
                 }
             }
         }
@@ -449,9 +494,9 @@ export default function ApplicationsTableClient({
                 );
             }
 
-            setApplications(prev => prev.map(a => 
-                a.id === trackingModal.appId 
-                    ? { ...a, tracking_company: trackingModal.company, tracking_number: trackingModal.number, review_deadline: deadline.toISOString() } 
+            setApplications(prev => prev.map(a =>
+                a.id === trackingModal.appId
+                    ? { ...a, tracking_company: trackingModal.company, tracking_number: trackingModal.number, review_deadline: deadline.toISOString() }
                     : a
             ));
             setTrackingModal(prev => ({ ...prev, isOpen: false }));
@@ -481,9 +526,9 @@ export default function ApplicationsTableClient({
             if (error) throw error;
 
             toast.success(action === 'APPROVED' ? '연장 승인되었습니다.' : '연장 거절되었습니다.');
-            setApplications(prev => prev.map(a => 
-                a.id === id 
-                    ? { ...a, extension_status: action, review_deadline: updateData.review_deadline || a.review_deadline } 
+            setApplications(prev => prev.map(a =>
+                a.id === id
+                    ? { ...a, extension_status: action, review_deadline: updateData.review_deadline || a.review_deadline }
                     : a
             ));
         } catch (error) {
