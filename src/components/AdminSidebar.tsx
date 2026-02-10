@@ -358,8 +358,8 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                     href="/dashboard/admin/notifications/email"
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all text-sm",
-                                        pathname === '/dashboard/admin/notifications/email' 
-                                            ? 'bg-rose-50 text-primary' 
+                                        pathname === '/dashboard/admin/notifications/email'
+                                            ? 'bg-rose-50 text-primary'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                     )}
                                 >
@@ -370,8 +370,8 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                     href="/dashboard/admin/notifications/kakao"
                                     className={cn(
                                         "flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all text-sm",
-                                        pathname === '/dashboard/admin/notifications/kakao' 
-                                            ? 'bg-rose-50 text-primary' 
+                                        pathname === '/dashboard/admin/notifications/kakao'
+                                            ? 'bg-rose-50 text-primary'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                                     )}
                                 >
@@ -408,17 +408,17 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
 
                     {/* 고객센터 관리 */}
                     <Link
-                        href="/contact"
+                        href="/dashboard/admin/contact"
                         className={cn(
                             "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
-                            pathname === '/contact' ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                            pathname.includes('/dashboard/admin/contact') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
                     >
                         {isCollapsed ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Headset size={20} className={pathname === '/contact' ? "text-primary" : "text-slate-400 group-hover:text-slate-900"} />
+                                    <Headset size={20} className={pathname.includes('/dashboard/admin/contact') ? "text-primary" : "text-slate-400 group-hover:text-slate-900"} />
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="font-bold">고객센터</TooltipContent>
                             </Tooltip>
