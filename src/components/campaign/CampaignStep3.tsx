@@ -184,6 +184,11 @@ export default function CampaignStep3({
                     ? Number(formData.currentCampaignId) 
                     : 0,
             });
+            
+            // 결제 실패/취소 시 중단 (response.code가 있으면 실패)
+            if (response?.code != null) {
+                return;
+            }
 
             console.log('Payment request successful:', response);
 
@@ -347,9 +352,18 @@ export default function CampaignStep3({
 
                 <div className="mt-6 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
                     <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
-                    <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
-                        <strong className="font-bold">안내:</strong> 캠페인이 승인되면 결제가 진행됩니다. 승인 전까지는 실제 결제가 이루어지지 않으니 안심하고 등록하세요.
-                    </p>
+                    <div className="space-y-2">
+                        <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                            <strong className="font-bold">서비스 제공 기간:</strong> 결제 완료 후 즉시 캠페인 등록 및 이용이 가능합니다.<br />
+                            (단, 캠페인은 운영진 승인 후 오픈되며 통상 인플루언서 모집 1주일, 후기 등록 1주일의 기간이 소요됩니다.)
+                        </p>
+                        <div className="pt-2 border-t border-indigo-100/60">
+                            <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                <strong className="font-bold">취소 및 환불 기준:</strong> 매칭 전 100% 환불, 모집 미달 시 차액 환불<br />
+                                <strong className="font-bold">환불 불가 및 제한:</strong> 매칭 후(이행 시작 시) 환불 제한, 단순 변심 환불 불가
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </section>
 

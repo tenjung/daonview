@@ -71,8 +71,13 @@ export const usePortonePayment = () => {
 
             // 결과 처리
             if (response?.code != null) {
-                toast.error(response.message || '결제에 실패했습니다.');
-                throw new Error(response.message);
+                // 사용자가 취소한 경우는 에러 토스트를 띄우지 않거나 경고 정도로 표시
+                if (response.message?.includes('취소')) {
+                    toast.warning(response.message);
+                } else {
+                    toast.error(response.message || '결제에 실패했습니다.');
+                }
+                return response; // 에러가 있어도 response 반환 (throw 하지 않음)
             }
 
             return response;

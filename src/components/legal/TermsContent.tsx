@@ -147,6 +147,25 @@ export default function TermsContent() {
                         ② 회사는 회원이 본 약관의 의무를 위반하거나 서비스의 정상적인 운영을 방해한 경우, 경고, 일시정지, 영구이용정지 등으로 서비스 이용을 단계적으로 제한할 수 있습니다.
                     </p>
                 </div>
+
+                <div className="mb-8">
+                    <h3 className="text-lg font-bold text-text-main mb-3">제10조 (캠페인 취소 및 환불)</h3>
+                    <p className="text-text-secondary leading-relaxed mb-2 font-bold italic">
+                        1. 캠페인 취소 및 환불 기준
+                    </p>
+                    <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4 mb-4">
+                        <li><strong>인플루언서 매칭 전:</strong> 결제 후 캠페인 진행을 위한 인플루언서 매칭이 시작되기 전에는 언제든지 100% 환불이 가능합니다.</li>
+                        <li><strong>모집 미달 시:</strong> 캠페인 진행 결과 목표 인원이 모집되지 않았을 경우, 미모집 인원에 비례하여 차액을 환불해 드립니다.</li>
+                    </ul>
+
+                    <p className="text-text-secondary leading-relaxed mb-2 font-bold italic">
+                        2. 환불 불가 및 제한 사항
+                    </p>
+                    <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
+                        <li><strong>인플루언서 매칭 후:</strong> 매칭이 완료되어 콘텐츠 제작이 시작된 경우, 서비스 이행이 시작된 것으로 간주하여 취소 및 환불이 제한될 수 있습니다.</li>
+                        <li><strong>결과물 불만족:</strong> 광고주 승인을 거친 콘텐츠의 단순 변심에 의한 환불은 불가합니다.</li>
+                    </ul>
+                </div>
             </section>
 
             {/* 부칙 */}
