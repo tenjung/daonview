@@ -48,7 +48,6 @@ interface AdvertiserStatsCardsProps {
   stats: {
     activeCampaigns: number
     totalApplications: number
-    pointBalance: number
   }
 }
 
@@ -70,13 +69,6 @@ export function AdvertiserStatsCards({ stats }: AdvertiserStatsCardsProps) {
         icon={<Users size={20} />}
         color="bg-blue-500"
         href="/dashboard/advertiser/campaigns"
-      />
-      <StatCard
-        title="포인트 잔액"
-        value={stats.pointBalance.toLocaleString() + ' P'}
-        description="캠페인 등록 가능 잔액"
-        icon={<CreditCard size={20} />}
-        color="bg-emerald-500"
       />
     </div>
   )

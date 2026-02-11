@@ -98,7 +98,7 @@ export const saveDraft = async (userId: string, campaignData: {
             campaign_options: campaignOptions, // jsonb 객체
             recruit_count: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
             total_recruitment: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
-            reward_per_person: Number(campaignData.step1Data?.rewardPerPerson || 0),
+
             is_always: campaignData.step1Data?.scheduleType === 'always',
             category: campaignData.step1Data?.category || null,
             region: campaignData.step1Data?.region || null,
@@ -189,7 +189,7 @@ const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
         campaignTitle: dbData.title || options.step1Data?.campaignTitle || dbData.product_name,
         experienceDetails: dbData.experience_details || options.step1Data?.experienceDetails,
         totalRecruitment: dbData.total_recruitment?.toString() || dbData.recruit_count?.toString() || options.step1Data?.totalRecruitment || '0',
-        rewardPerPerson: dbData.reward_per_person || options.step1Data?.rewardPerPerson || 0,
+
         category: dbData.category || options.step1Data?.category,
         region: dbData.region || options.step1Data?.region,
         campaignType: (dbData.type || options.step1Data?.campaignType || 'VISIT').toUpperCase(),

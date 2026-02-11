@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image, ShieldCheck, ChevronLeft, Headset, BarChart3, ClipboardCheck, MessageSquare, PieChart, Star, LogOut, X, Menu, Bell, Mail, MessageCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image, ShieldCheck, ChevronLeft, Headset, BarChart3, ClipboardCheck, MessageSquare, PieChart, Star, LogOut, X, Menu, Bell, Mail, MessageCircle, Ticket } from 'lucide-react';
 import { useState, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
@@ -28,7 +28,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
     const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
     const [reviewMenuOpen, setReviewMenuOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(true);
-    const [notificationMenuOpen, setNotificationMenuOpen] = useState(true);
+    const [notificationMenuOpen, setNotificationMenuOpen] = useState(false);
     const [counts, setCounts] = useState<CampaignCounts>(initialCounts || {
         pending: 0,
         upcoming: 0,
@@ -139,12 +139,12 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
             </div>
 
             <TooltipProvider delayDuration={0}>
-                <nav className="flex flex-col gap-1.5 flex-1 overflow-y-auto px-4 custom-scrollbar">
+                <nav className="flex flex-col gap-1 flex-1 overflow-y-auto px-4 custom-scrollbar">
                     {/* 대시보드 */}
                     <Link
                         href="/dashboard/admin"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             isActive('/dashboard/admin') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -168,7 +168,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/campaigns"
                         className={cn(
-                            "flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center justify-between px-4 py-2 rounded-xl font-bold transition-all group",
                             isInCampaignSection ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -205,7 +205,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/reviews"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             pathname.includes('/dashboard/admin/reviews') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -231,7 +231,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/users"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             pathname.includes('/dashboard/admin/users') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -255,7 +255,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/verifications"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             pathname.includes('/dashboard/admin/verifications') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -279,7 +279,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/banners"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             isActive('/dashboard/admin/banners') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -303,7 +303,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/community"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             pathname.includes('/dashboard/admin/community') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -328,7 +328,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                         <button
                             onClick={() => setNotificationMenuOpen(!notificationMenuOpen)}
                             className={cn(
-                                "w-full flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all group",
+                                "w-full flex items-center justify-between px-4 py-2 rounded-xl font-bold transition-all group",
                                 pathname.includes('/dashboard/admin/notifications') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                                 isCollapsed && "justify-center px-0"
                             )}
@@ -357,7 +357,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                 <Link
                                     href="/dashboard/admin/notifications/email"
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all text-sm",
+                                        "flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-all text-sm",
                                         pathname === '/dashboard/admin/notifications/email'
                                             ? 'bg-rose-50 text-primary'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -369,7 +369,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                 <Link
                                     href="/dashboard/admin/notifications/kakao"
                                     className={cn(
-                                        "flex items-center gap-3 px-4 py-2.5 rounded-lg font-medium transition-all text-sm",
+                                        "flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-all text-sm",
                                         pathname === '/dashboard/admin/notifications/kakao'
                                             ? 'bg-rose-50 text-primary'
                                             : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -386,7 +386,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/stats"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             isActive('/dashboard/admin/stats') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -410,7 +410,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                     <Link
                         href="/dashboard/admin/contact"
                         className={cn(
-                            "flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all group",
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
                             pathname.includes('/dashboard/admin/contact') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
                             isCollapsed && "justify-center px-0"
                         )}
@@ -429,16 +429,19 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                             </>
                         )}
                     </Link>
-
                     {/* 결제 관리 */}
-                    <div className={cn(
-                        "flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 font-bold transition-all hover:bg-rose-50 hover:text-primary cursor-pointer group",
-                        isCollapsed && "justify-center px-0"
-                    )}>
+                    <Link
+                        href="/dashboard/admin/payments"
+                        className={cn(
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
+                            pathname.includes('/dashboard/admin/payments') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                            isCollapsed && "justify-center px-0"
+                        )}
+                    >
                         {isCollapsed ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <CreditCard size={20} className="text-slate-400 group-hover:text-primary" />
+                                    <CreditCard size={20} className={pathname.includes('/dashboard/admin/payments') ? "text-primary" : "text-slate-400 group-hover:text-slate-900"} />
                                 </TooltipTrigger>
                                 <TooltipContent side="right" className="font-bold">결제 관리</TooltipContent>
                             </Tooltip>
@@ -448,7 +451,31 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                                 <span>결제 관리</span>
                             </>
                         )}
-                    </div>
+                    </Link>
+
+                    {/* 쿠폰 관리 */}
+                    <Link
+                        href="/dashboard/admin/coupons"
+                        className={cn(
+                            "flex items-center gap-3 px-4 py-2 rounded-xl font-bold transition-all group",
+                            pathname.includes('/dashboard/admin/coupons') ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                            isCollapsed && "justify-center px-0"
+                        )}
+                    >
+                        {isCollapsed ? (
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Ticket size={20} className={pathname.includes('/dashboard/admin/coupons') ? "text-primary" : "text-slate-400 group-hover:text-slate-900"} />
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="font-bold">쿠폰 관리</TooltipContent>
+                            </Tooltip>
+                        ) : (
+                            <>
+                                <Ticket size={20} />
+                                <span>쿠폰 관리</span>
+                            </>
+                        )}
+                    </Link>
 
                     {/* 홈으로 돌아가기 버튼을 메뉴 리스트 바로 아래로 이동 */}
                     <div className={cn("mt-6 pt-6 border-t border-slate-50 mb-8", isCollapsed && "px-0")}>

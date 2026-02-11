@@ -126,36 +126,36 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             {/* 위험 신호등 */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <div
-                    className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all"
+                    className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all"
                     onClick={() => document.getElementById('critical-section')?.scrollIntoView({ behavior: 'smooth' })}
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <AlertTriangle className="w-6 h-6 text-red-600" />
-                        <h3 className="font-bold text-red-900">🔴 위험 (모집 미달 D-3)</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                        <AlertTriangle className="w-5 h-5 text-red-600" />
+                        <h3 className="font-bold text-red-900 text-sm">🔴 위험 (모집 미달 D-3)</h3>
                     </div>
-                    <div className="text-4xl font-bold text-red-600">{criticalCampaigns.length}건</div>
-                    <p className="text-sm text-red-700 mt-2">즉시 조치 필요</p>
+                    <div className="text-2xl font-bold text-red-600">{criticalCampaigns.length}건</div>
+                    <p className="text-[10px] text-red-700 mt-1">즉시 조치 필요</p>
                 </div>
 
                 <div
-                    className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-xl p-6 cursor-pointer hover:shadow-lg transition-all"
+                    className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all"
                     onClick={() => document.getElementById('warning-section')?.scrollIntoView({ behavior: 'smooth' })}
                 >
-                    <div className="flex items-center gap-3 mb-2">
-                        <Clock className="w-6 h-6 text-yellow-600" />
-                        <h3 className="font-bold text-yellow-900">🟡 주의 (마감 임박)</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                        <Clock className="w-5 h-5 text-yellow-600" />
+                        <h3 className="font-bold text-yellow-900 text-sm">🟡 주의 (마감 임박)</h3>
                     </div>
-                    <div className="text-4xl font-bold text-yellow-600">{warningCampaigns.length}건</div>
-                    <p className="text-sm text-yellow-700 mt-2">모니터링 필요</p>
+                    <div className="text-2xl font-bold text-yellow-600">{warningCampaigns.length}건</div>
+                    <p className="text-[10px] text-yellow-700 mt-1">모니터링 필요</p>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-xl p-6">
-                    <div className="flex items-center gap-3 mb-2">
-                        <span className="text-2xl">⚖️</span>
-                        <h3 className="font-bold text-purple-900">법적 대응</h3>
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">⚖️</span>
+                        <h3 className="font-bold text-purple-900 text-sm">법적 대응</h3>
                     </div>
-                    <div className="text-4xl font-bold text-purple-600">0건</div>
-                    <p className="text-sm text-purple-700 mt-2">먹튀/미제출</p>
+                    <div className="text-2xl font-bold text-purple-600">0건</div>
+                    <p className="text-[10px] text-purple-700 mt-1">먹튀/미제출</p>
                 </div>
             </div>
 
@@ -163,14 +163,14 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             {criticalCampaigns.length > 0 && (
                 <div id="critical-section" className="mb-8">
                     <div className="bg-white rounded-xl border-2 border-red-300 overflow-hidden shadow-sm">
-                        <div className="bg-gradient-to-r from-red-50 to-red-100 p-6 border-b-2 border-red-200">
+                        <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 border-b-2 border-red-200">
                             <div className="flex justify-between items-center">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-red-900 flex items-center gap-2">
-                                        <AlertTriangle className="w-6 h-6" />
+                                    <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
+                                        <AlertTriangle className="w-5 h-5" />
                                         🔴 모집 미달 구조대
                                     </h2>
-                                    <p className="text-red-700 mt-1">마감 3일 이내 + 신청률 50% 미만 - 즉시 조치 필요</p>
+                                    <p className="text-red-700 mt-0.5 text-xs">마감 3일 이내 + 신청률 50% 미만 - 즉시 조치 필요</p>
                                 </div>
                                 {selectedCampaigns.length > 0 && (
                                     <button
@@ -278,19 +278,19 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             {warningCampaigns.length > 0 && (
                 <div id="warning-section" className="mb-8">
                     <div className="bg-white rounded-xl border-2 border-yellow-300 overflow-hidden shadow-sm">
-                        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-6 border-b-2 border-yellow-200">
-                            <h2 className="text-2xl font-bold text-yellow-900 flex items-center gap-2">
-                                <Clock className="w-6 h-6" />
+                        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 border-b-2 border-yellow-200">
+                            <h2 className="text-lg font-bold text-yellow-900 flex items-center gap-2">
+                                <Clock className="w-5 h-5" />
                                 🟡 주의: 마감 임박 / 신청률 저조
                             </h2>
                         </div>
-                        <div className="p-6 grid gap-4">
+                        <div className="p-4 grid gap-3">
                             {warningCampaigns.map((campaign) => {
                                 const analysis = analyzeCampaignRisk(campaign);
                                 return (
-                                    <div key={campaign.id} className="border border-yellow-200 rounded-lg p-4 hover:bg-yellow-50 transition-colors flex justify-between items-center">
+                                    <div key={campaign.id} className="border border-yellow-200 rounded-lg p-3 hover:bg-yellow-50 transition-colors flex justify-between items-center">
                                         <div>
-                                            <h3 className="font-bold text-gray-900 mb-1">{campaign.title}</h3>
+                                            <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
                                                 신청 현황: {analysis.isAlways ? <span className="text-rose-500 font-extrabold">{analysis.applicantCount}</span> : `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)`} |
                                                 <span className="ml-2 font-bold text-yellow-600">

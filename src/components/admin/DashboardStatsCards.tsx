@@ -18,15 +18,15 @@ function StatCard({ title, value, description, icon, color, href }: StatCardProp
   const content = (
     <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group">
       <CardContent className="p-0">
-        <div className="flex items-stretch h-32">
+        <div className="flex items-stretch h-24">
           <div className={`w-2 ${color}`} />
-          <div className="flex-1 p-6 flex flex-col justify-between">
+          <div className="flex-1 p-4 flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium text-gray-500">{title}</p>
-                <h3 className="text-3xl font-bold mt-1 group-hover:scale-105 transition-transform origin-left">{value}</h3>
+                <h3 className="text-xl font-bold mt-0.5 group-hover:scale-105 transition-transform origin-left">{value}</h3>
               </div>
-              <div className={`p-3 rounded-2xl ${color.replace('bg-', 'bg-opacity-10 bg-')} ${color.replace('bg-', 'text-')}`}>
+              <div className={`p-2 rounded-xl ${color.replace('bg-', 'bg-opacity-10 bg-')} ${color.replace('bg-', 'text-')}`}>
                 {icon}
               </div>
             </div>

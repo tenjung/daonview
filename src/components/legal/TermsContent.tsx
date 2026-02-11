@@ -22,6 +22,30 @@ export default function TermsContent() {
                         <li><strong>"인플루언서"</strong>란 캠페인에 참여하여 리뷰 및 콘텐츠를 작성하는 회원을 말합니다.</li>
                         <li><strong>"광고주"</strong>란 캠페인을 등록하고 인플루언서를 모집하는 회원을 말합니다.</li>
                         <li><strong>"캠페인"</strong>이란 광고주가 등록한 체험단 모집 건을 의미합니다.</li>
+                        <li><strong>"원고료"</strong>란 인플루언서가 콘텐츠 제작에 대한 대가로 받는 정산금(용역비)을 의미합니다.</li>
+                    </ul>
+                </div>
+
+                <div className="mb-8">
+                    <h3 className="text-lg font-bold text-text-main mb-3">제2조의2 (플랫폼의 역할)</h3>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ① 다온뷰는 광고주와 인플루언서를 연결하여 <strong>광고 콘텐츠의 품질을 확인하고 중개</strong>하는 전문 플랫폼입니다.
+                    </p>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ② 광고주는 <strong>캠페인 대행 수수료 및 인플루언서 원고료</strong>를 예치하며, 예치금은 캠페인 완료 시까지 회사가 안전하게 보관합니다.
+                    </p>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ③ 인플루언서는 <strong>콘텐츠 제작에 대한 정산금(용역비)</strong>를 받습니다. 정산금은 <strong>캠페인 완료 보고서 승인 후</strong> 지급됩니다.
+                    </p>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ④ 회사는 콘텐츠 품질을 검증하여 광고주와 인플루언서 모두를 보호하며, 다음과 같은 정산 프로세스를 따릅니다:
+                    </p>
+                    <ul className="list-decimal list-inside space-y-2 text-text-secondary ml-4">
+                        <li>인플루언서의 콘텐츠 제작 완료</li>
+                        <li>회사의 품질 확인 및 광고주 승인</li>
+                        <li>캠페인 완료 보고서 생성</li>
+                        <li>인플루언서의 정산 신청</li>
+                        <li>사업소득세(3.3%) 공제 후 지급</li>
                     </ul>
                 </div>
 
@@ -76,7 +100,6 @@ export default function TermsContent() {
                     <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
                         <li>체험단 캠페인 매칭 서비스</li>
                         <li>리뷰 작성 및 관리 서비스</li>
-                        <li>포인트 적립 및 환급 서비스</li>
                         <li>커뮤니티 서비스</li>
                         <li>AI 기반 콘텐츠 작성 지원 서비스</li>
                         <li>서비스 이용과 관련된 이메일 및 알림톡 발송 서비스</li>

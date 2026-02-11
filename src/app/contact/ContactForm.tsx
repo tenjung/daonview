@@ -92,7 +92,7 @@ export default function ContactForm() {
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
                     <option value="EXPERIENCE">체험단 관련 문의</option>
-                    <option value="POINT">포인트/정산 문의</option>
+                    <option value="CAMPAIGN">정산 문의</option>
                     <option value="ERROR">사이트 이용 오류</option>
                     <option value="AD_PARTNERSHIP">제휴/광고 문의</option>
                 </select>

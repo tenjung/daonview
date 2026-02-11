@@ -81,17 +81,6 @@ function AdvertiserSidebarContent() {
                     리뷰 작업 현황
                 </Link>
 
-                {/* 결제/포인트 */}
-                <Link
-                    href="/dashboard/advertiser/payments"
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${isActive('/dashboard/advertiser/payments')
-                        ? 'bg-rose-50 text-primary'
-                        : 'text-gray-500 hover:bg-rose-50 hover:text-primary'
-                        }`}
-                >
-                    결제/포인트
-                </Link>
-
                 {/* 브랜드 관리 */}
                 <Link
                     href="/dashboard/advertiser/brands"

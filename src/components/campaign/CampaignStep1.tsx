@@ -70,7 +70,7 @@ interface Step1Data {
     experienceDetails: string;
     officialPrice: string;
     totalRecruitment: string;
-    rewardPerPerson: number;
+
     scheduleType: 'recommended' | 'custom' | 'always';
     recruitmentStartDate: string;
     firstSelectionDate: string;
@@ -217,13 +217,28 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         }
     }, [submitTrigger]);
 
+    // 초기 로드 시 모집 시작일이 없으면 오늘 날짜로 설정
+    useEffect(() => {
+        if (!formData.recruitmentStartDate) {
+            const today = getTodayDate();
+            campaignStore.setField('recruitmentStartDate', today);
+            
+            // 추천 일정인 경우 다른 날짜들도 연동해서 설정
+            if (formData.scheduleType === 'recommended') {
+                campaignStore.updateFields({
+                    firstSelectionDate: getOneWeekLater(today),
+                    reviewDeadline: getOneWeekLater(getOneWeekLater(today))
+                });
+            }
+        }
+    }, []);
+
     const { user } = useAuthStore();
 
-    // 스마트 기본값: 내일 날짜
-    const getTomorrowDate = () => {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return tomorrow.toISOString().split('T')[0];
+    // 스마트 기본값: 오늘 날짜
+    const getTodayDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
     };
 
     // 스마트 기본값: 1주일 뒤 날짜
@@ -460,11 +475,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
     const setAllDays = () => {
         updateField('visitDays', ['월', '화', '수', '목', '금', '토', '일']);
-    };
-
-    // 리워드 조정
-    const adjustReward = (amount: number) => {
-        campaignStore.setField('rewardPerPerson', Math.max(0, formData.rewardPerPerson + amount));
     };
 
     // 입력 도우미: 전화번호 자동 포맷팅
@@ -706,7 +716,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 reviewDeadline: ''
             });
         } else {
-            const startDate = formData.recruitmentStartDate || getTomorrowDate();
+            const startDate = formData.recruitmentStartDate || getTodayDate();
             campaignStore.updateFields({
                 scheduleType: type,
                 recruitmentStartDate: startDate,
@@ -1752,55 +1762,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 </div>
                             </div>
                         </div>
-
-                        {/* 미션 완료 리워드 */}
-                        <div className="space-y-3">
-                            <label className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
-                                미션 완료 리워드 (1인당) <span className="text-muted-foreground font-normal">(선택)</span>
-                            </label>
-                            <p className="text-[11px] text-muted-foreground mb-1">
-                                💡 참여자에게는 매칭 프로모션 서비스료 10%를 제외한 포인트가 지급됩니다.
-                            </p>
-
-                            <div className="flex items-center gap-2">
-                                <div className="relative flex-1 max-w-[200px]">
-                                    <Input
-                                        type="text"
-                                        value={formData.rewardPerPerson.toLocaleString()}
-                                        readOnly
-                                        className="bg-muted font-bold text-lg h-11 text-right pr-12 focus-visible:ring-0"
-                                    />
-                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">포인트</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
-                                    onClick={() => adjustReward(5000)}
-                                >
-                                    + 5,000
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="secondary"
-                                    className="flex-1 h-11 font-bold bg-cyan-50 hover:bg-cyan-100 text-cyan-700 border-none active:scale-95 transition-transform"
-                                    onClick={() => adjustReward(10000)}
-                                >
-                                    + 10,000
-                                </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="h-11 px-4 text-muted-foreground active:scale-95 transition-transform"
-                                    onClick={() => campaignStore.setField('rewardPerPerson', 0)}
-                                >
-                                    초기화
-                                </Button>
-                            </div>
-                        </div>
                     </div>
 
                     {/* 오른쪽: 모집 일정 */}
@@ -1892,7 +1853,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     />
                                     <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
                                 </div>
-                                <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 내일 날짜</p>
+                                <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 오늘 날짜</p>
                             </div>
 
                             {formData.scheduleType !== 'always' && (

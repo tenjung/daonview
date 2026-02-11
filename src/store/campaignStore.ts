@@ -51,7 +51,7 @@ export interface CampaignState {
     experienceDetails: string;
     officialPrice: string;
     totalRecruitment: string;
-    rewardPerPerson: number;
+
     scheduleType: 'recommended' | 'custom' | 'always';
     recruitmentStartDate: string;
     firstSelectionDate: string;
@@ -86,8 +86,12 @@ export interface CampaignState {
 
     // Step 3: 등록 확인
     paymentMethod: 'card' | 'transfer' | 'free' | null;
+    depositorName: string;
+    promotionType: 'COUPON' | 'EXTERNAL' | null;
+    couponCode: string;
+    externalOrderNumber: string;
     agreeToTerms: boolean;
-    agreeToRefund: boolean;
+
 
     // Orchestration
     currentStep: number;
@@ -137,7 +141,7 @@ const initialState: CampaignState = {
     experienceDetails: '',
     officialPrice: '0',
     totalRecruitment: '0',
-    rewardPerPerson: 0,
+
     scheduleType: 'recommended',
     recruitmentStartDate: '',
     firstSelectionDate: '',
@@ -168,8 +172,12 @@ const initialState: CampaignState = {
     instagramPhotoGuide: '',
     instagramReelsRequired: false,
     paymentMethod: null,
+    depositorName: '',
+    promotionType: null,
+    couponCode: '',
+    externalOrderNumber: '',
     agreeToTerms: false,
-    agreeToRefund: false,
+
     currentStep: 1,
     isEdit: false,
     currentCampaignId: null,
@@ -213,7 +221,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     region: campaign.region || s1.region || '',
                     subRegion: s1.subRegion || '',
                     totalRecruitment: (campaign.total_recruitment || campaign.recruit_count || s1.totalRecruitment || '0').toString(),
-                    rewardPerPerson: campaign.reward_per_person || s1.rewardPerPerson || 0,
+
 
                     includeReview: s1.includeReview || false,
                     includeNaver: s1.includeNaver || false,
@@ -268,8 +276,12 @@ export const useCampaignStore = create<CampaignStore>()(
 
                     // Step 3 normalization
                     paymentMethod: s3.paymentMethod || null,
+                    depositorName: s3.depositorName || '',
+                    promotionType: s3.promotionType || null,
+                    couponCode: s3.couponCode || '',
+                    externalOrderNumber: s3.externalOrderNumber || '',
                     agreeToTerms: s3.agreeToTerms || false,
-                    agreeToRefund: s3.agreeToRefund || false,
+
                 });
             }
         }),

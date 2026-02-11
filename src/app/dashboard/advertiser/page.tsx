@@ -107,8 +107,7 @@ export default function AdvertiserDashboard() {
 
     const statsData = {
         activeCampaigns: campaigns.length,
-        totalApplications: campaigns.reduce((acc, curr) => acc + (curr.applications?.[0]?.count || 0), 0),
-        pointBalance: 0
+        totalApplications: campaigns.reduce((acc, curr) => acc + (curr.applications?.[0]?.count || 0), 0)
     };
 
     return (

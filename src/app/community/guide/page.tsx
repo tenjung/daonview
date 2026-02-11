@@ -32,12 +32,6 @@ export default function GuidePage() {
             title: "리뷰 작성 & 등록",
             desc: "가이드라인에 맞춰 정성스러운 리뷰를 작성하고 미션을 완료해주세요.",
             icon: "✍️"
-        },
-        {
-            num: "06",
-            title: "포인트 지급",
-            desc: "미션 완료 확인 후 포인트가 지급됩니다. 현금으로 출금도 가능해요!",
-            icon: "💰"
         }
     ];
 

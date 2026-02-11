@@ -53,6 +53,29 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
           console.error(error)
         } else {
           toast.success("캠페인이 승인되었습니다.")
+          
+          // [추가] 캠페인 승인 알림 생성
+          try {
+            // 캠페인 생성자 정보 조회
+            const { data: campaignData, error: campaignError } = await supabase
+              .from("campaigns")
+              .select("created_by")
+              .eq("id", id)
+              .single();
+            
+            if (!campaignError && campaignData?.created_by) {
+              await supabase.from("notifications").insert([{
+                user_id: campaignData.created_by,
+                type: 'CAMPAIGN_APPROVED',
+                title: '캠페인 승인 완료',
+                content: `"${title}" 캠페인이 승인되어 모집이 시작되었습니다.`,
+                link: '/dashboard/advertiser/campaigns'
+              }]);
+            }
+          } catch (notiError) {
+            console.error("Notification Error:", notiError);
+          }
+
           // 로컬 상태 업데이트
           setData(prev => prev.map(c => c.id === id ? { ...c, status: "RECRUITING" } : c))
         }

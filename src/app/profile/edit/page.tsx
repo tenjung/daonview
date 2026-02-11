@@ -1006,7 +1006,7 @@ function ProfileEditContent() {
                                                     <CreditCard className="w-5 h-5 text-rose-500" />
                                                     정산 계좌 정보 수정
                                                 </CardTitle>
-                                                <CardDescription className="text-slate-400">페이백 등 현금성 보상이 지급되는 계좌입니다.</CardDescription>
+                                                <CardDescription className="text-slate-400">캠페인 보상금(용역비)이 지급되는 계좌입니다.</CardDescription>
                                             </CardHeader>
                                             <CardContent className="p-8 space-y-8">
                                                 <div className="grid gap-4">

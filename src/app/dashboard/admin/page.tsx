@@ -55,19 +55,19 @@ export default async function AdminDashboard() {
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <div className="flex justify-between items-center mb-10">
+            <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
-                        <LayoutDashboard className="w-10 h-10 text-primary" />
+                    <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
+                        <LayoutDashboard className="w-7 h-7 text-primary" />
                         Admin Insight
                     </h1>
-                    <p className="text-gray-500 mt-2 font-medium">
+                    <p className="text-gray-500 mt-1 font-medium text-sm">
                         실시간 플랫폼 상태와 위험 요소를 한눈에 모니터링합니다.
                     </p>
                 </div>
                 <Link
                     href="/dashboard/campaign/new"
-                    className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
+                    className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
                 >
                     + 신규 캠페인 등록
                 </Link>
@@ -77,7 +77,7 @@ export default async function AdminDashboard() {
             <DashboardStatsCards stats={statsData} />
 
             {/* Section B: 위젯 및 모니터링 */}
-            <div className="space-y-12">
+            <div className="space-y-6">
                 <AdminDashboardClient initialCampaigns={campaigns} />
             </div>
         </AdminPageLayout>

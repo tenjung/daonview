@@ -11,6 +11,7 @@ import CampaignStep3 from '@/components/campaign/CampaignStep3';
 import { CampaignActionButtons } from '@/components/campaign/CampaignActionButtons';
 import FloatingActionWrapper from '@/components/campaign/FloatingActionWrapper';
 import CampaignLoader from '@/components/campaign/CampaignLoader';
+import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
 
@@ -26,6 +27,8 @@ export default function CampaignRegistrationContainer() {
     const { currentStep, currentCampaignId, isSubmitting } = store;
 
     const [nextTrigger, setNextTrigger] = useState(0);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [lastResult, setLastResult] = useState<any>(null);
 
     // --- 캠페인 데이터 로드 로직 ---
     useEffect(() => {
@@ -117,7 +120,7 @@ export default function CampaignRegistrationContainer() {
                     experienceDetails: store.experienceDetails,
                     officialPrice: store.officialPrice,
                     totalRecruitment: store.totalRecruitment,
-                    rewardPerPerson: store.rewardPerPerson,
+
                     scheduleType: store.scheduleType,
                     recruitmentStartDate: store.recruitmentStartDate,
                     firstSelectionDate: store.firstSelectionDate,
@@ -180,6 +183,30 @@ export default function CampaignRegistrationContainer() {
             const now = new Date().toISOString().split('T')[0];
             const endDate = store.reviewDeadline || store.recruitmentStartDate || now;
 
+            const calculateCosts = () => {
+                const recruitmentCount = (store.totalRecruitment === '무제한' || store.totalRecruitment === '999') 
+                    ? 0 
+                    : (parseInt(store.totalRecruitment) || 0);
+
+                let reviewCostPerPerson = 0;
+                if (store.campaignType === 'DELIVERY') {
+                    if (store.includeReview) reviewCostPerPerson += 3000;
+                    if (store.includeNaver) reviewCostPerPerson += 5000;
+                    if (store.includeInstagram) reviewCostPerPerson += 5000;
+                } else {
+                    reviewCostPerPerson = 10000;
+                }
+
+                const totalReviewCost = recruitmentCount * reviewCostPerPerson;
+                const subtotal = totalReviewCost;
+                const vat = Math.floor(subtotal * 0.1);
+                const totalCost = subtotal + vat;
+
+                return { totalCost };
+            };
+
+            const costs = calculateCosts();
+
             const step1Data = {
                 campaignType: store.campaignType,
                 includeReview: store.includeReview,
@@ -211,7 +238,7 @@ export default function CampaignRegistrationContainer() {
                 experienceDetails: store.experienceDetails,
                 officialPrice: store.officialPrice,
                 totalRecruitment: store.totalRecruitment,
-                rewardPerPerson: store.rewardPerPerson,
+
                 scheduleType: store.scheduleType,
                 recruitmentStartDate: store.recruitmentStartDate,
                 firstSelectionDate: store.firstSelectionDate,
@@ -245,8 +272,12 @@ export default function CampaignRegistrationContainer() {
 
             const step3Data = {
                 paymentMethod: store.paymentMethod,
+                depositorName: store.depositorName,
+                promotionType: store.promotionType,
+                couponCode: store.couponCode,
+                externalOrderNumber: store.externalOrderNumber,
                 agreeToTerms: store.agreeToTerms,
-                agreeToRefund: store.agreeToRefund,
+
             };
 
             // 매장 데이터 정리 (클라이언트 사이드에서 좌표 처리가 완료되므로 서버 API 호출 제거)
@@ -271,7 +302,7 @@ export default function CampaignRegistrationContainer() {
                 recruit_count: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
                     ? 999999
                     : parseInt(store.totalRecruitment) || 0,
-                reward_per_person: Number(store.rewardPerPerson || 0),
+
                 campaign_images: store.campaignImages || [],
                 thumbnail_url: store.campaignImages?.[0] || null,
                 experience_details: store.experienceDetails || null,
@@ -281,10 +312,12 @@ export default function CampaignRegistrationContainer() {
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
                 option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
                 campaign_options: {
-                    step1Data,
-                    step2Data,
                     step3Data,
                     currentStep: 3,
+                    payment_method: store.paymentMethod,
+                    promotion_type: store.promotionType,
+                    coupon_code: store.couponCode,
+                    external_order_number: store.externalOrderNumber,
                     contact_phone: store.contactPhone,
                     contact_method: store.contactMethod,
                     official_price: store.officialPrice,
@@ -329,12 +362,38 @@ export default function CampaignRegistrationContainer() {
                 toast.success('캠페인이 성공적으로 등록되었습니다.');
             }
 
+            // [추가] 쿠폰 사용 처리
+            if (store.paymentMethod === 'free' && store.promotionType === 'COUPON' && store.couponCode) {
+                await supabase
+                    .from('coupons')
+                    .update({
+                        status: 'USED',
+                        used_at: new Date().toISOString(),
+                        used_by: user.id,
+                        campaign_id: result.id
+                    })
+                    .eq('code', store.couponCode);
+            }
+
+            // [추가] 무통장 입금인 경우 알림 생성
+            if (store.paymentMethod === 'transfer') {
+                const totalAmount = costs.totalCost;
+                await supabase.from('notifications').insert([{
+                    user_id: user.id,
+                    type: 'PAYMENT_GUIDE',
+                    title: '캠페인 입금 안내',
+                    content: `카카오뱅크 3333-36-4120453 (신지호)로 ${totalAmount.toLocaleString()}원을 입금해 주세요.`,
+                    link: '/dashboard/advertiser/campaigns'
+                }]);
+            }
+
             // 스토어 초기화
             store.resetStore();
 
-            setTimeout(() => {
-                router.push(profile?.role === 'ADMIN' ? '/dashboard/admin/campaigns' : '/dashboard/advertiser');
-            }, 1000);
+            // 성공 상태로 전환
+            setLastResult(result);
+            setIsSuccess(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
 
         } catch (error: any) {
             console.error('Save Error:', error);
@@ -416,42 +475,58 @@ export default function CampaignRegistrationContainer() {
                 )}
 
                 <div className="mt-8 transition-all duration-500">
-                    {currentStep === 1 && (
-                        <CampaignStep1
-                            onNext={() => goToStep(2)}
-                            onSaveDraft={handleSaveDraft}
-                            submitTrigger={nextTrigger}
+                    {isSuccess ? (
+                        <CampaignSuccess
+                            campaignTitle={lastResult?.title || store.campaignTitle || '제목 없음'}
+                            brandName={lastResult?.brand_name || store.brandName || '브랜드 없음'}
+                            totalAmount={lastResult?.campaign_options?.step1Data?.productPrice 
+                                ? Number(lastResult.campaign_options.step1Data.productPrice.replace(/,/g, '')) 
+                                : 0} // 실제 기획에 따라 totalCost 또는 subtotal 등 표시 가능
+                            paymentMethod={lastResult?.campaign_options?.payment_method || store.paymentMethod}
+                            isAdmin={profile?.role === 'ADMIN'}
                         />
-                    )}
-                    {currentStep === 2 && (
-                        <CampaignStep2
-                            onNext={() => isEdit ? handleFinalSubmit() : goToStep(3)}
-                            onPrev={() => goToStep(1)}
-                            onSaveDraft={handleSaveDraft}
-                            isEdit={isEdit}
-                            submitTrigger={nextTrigger}
-                        />
-                    )}
-                    {currentStep === 3 && (
-                        <CampaignStep3
-                            onSubmit={handleFinalSubmit}
-                            onPrev={() => goToStep(2)}
-                            onSaveDraft={handleSaveDraft}
-                            submitTrigger={nextTrigger}
-                        />
+                    ) : (
+                        <>
+                            {currentStep === 1 && (
+                                <CampaignStep1
+                                    onNext={() => goToStep(2)}
+                                    onSaveDraft={handleSaveDraft}
+                                    submitTrigger={nextTrigger}
+                                />
+                            )}
+                            {currentStep === 2 && (
+                                <CampaignStep2
+                                    onNext={() => isEdit ? handleFinalSubmit() : goToStep(3)}
+                                    onPrev={() => goToStep(1)}
+                                    onSaveDraft={handleSaveDraft}
+                                    isEdit={isEdit}
+                                    submitTrigger={nextTrigger}
+                                />
+                            )}
+                            {currentStep === 3 && (
+                                <CampaignStep3
+                                    onSubmit={handleFinalSubmit}
+                                    onPrev={() => goToStep(2)}
+                                    onSaveDraft={handleSaveDraft}
+                                    submitTrigger={nextTrigger}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
 
-                <FloatingActionWrapper>
-                    <CampaignActionButtons
-                        onPrev={currentStep > 1 ? () => goToStep(currentStep - 1) : undefined}
-                        onNext={() => setNextTrigger(t => t + 1)}
-                        onSaveDraft={handleSaveDraft}
-                        nextLabel={getNextLabel()}
-                        isSubmitting={isSubmitting}
-                        showCheckIcon={isEdit || currentStep === 3}
-                    />
-                </FloatingActionWrapper>
+                {!isSuccess && (
+                    <FloatingActionWrapper>
+                        <CampaignActionButtons
+                            onPrev={currentStep > 1 ? () => goToStep(currentStep - 1) : undefined}
+                            onNext={() => setNextTrigger(t => t + 1)}
+                            onSaveDraft={handleSaveDraft}
+                            nextLabel={getNextLabel()}
+                            isSubmitting={isSubmitting}
+                            showCheckIcon={isEdit || currentStep === 3}
+                        />
+                    </FloatingActionWrapper>
+                )}
             </div>
         </div>
     );
