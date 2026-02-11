@@ -249,36 +249,62 @@ export default function AdvertiserVerificationPage() {
                 }))}
             />
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+            <main className="flex-1 p-4 md:p-6 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-3xl mx-auto">
-                    <div className="mb-10 flex items-center justify-between">
+                    <div className="mb-6 flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-                                <ShieldCheck className="w-8 h-8 text-primary" />
+                            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
+                                <ShieldCheck className="w-7 h-7 text-primary" />
                                 비즈니스 인증
                             </h1>
-                            <p className="text-gray-500 mt-2 font-medium">AI 자동 시스템을 통해 사업자 정보를 즉시 인증받으세요.</p>
+                            <p className="text-gray-500 mt-1 font-medium text-xs">AI 자동 시스템을 통해 사업자 정보를 즉시 인증받으세요.</p>
                         </div>
                     </div>
 
                     {renderStatus()}
 
                     {(profile?.biz_verification_status === 'NONE' || profile?.biz_verification_status === 'REJECTED') && (
-                        <Card className="border-none shadow-2xl shadow-gray-200/50 rounded-[32px] overflow-hidden bg-white mt-8">
-                            <CardHeader className="bg-gray-900 text-white p-8">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-gray-800 rounded-2xl flex items-center justify-center text-primary">
-                                        <Building2 size={24} />
+                        <>
+                            {/* 본인 인증 섹션 (임시/추가) */}
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden bg-white mb-4">
+                                <CardContent className="p-4 md:p-6">
+                                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
+                                                <ShieldCheck size={20} />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-gray-900">대표자 본인인증</h3>
+                                                <p className="text-[11px] text-gray-500 font-medium leading-tight">사업자 인증 전, 대표자님의 본인 확인이 선행되어야 합니다.</p>
+                                            </div>
+                                        </div>
+                                        <Button 
+                                            variant="outline"
+                                            className="w-full md:w-auto px-6 h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-xs"
+                                            onClick={() => toast.info('본인인증 모듈 준비 중입니다.')}
+                                        >
+                                            <ShieldCheck size={14} className="mr-2" />
+                                            휴대폰 본인인증 하기
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden bg-white">
+                            <CardHeader className="bg-gray-900 text-white p-5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center text-primary">
+                                        <Building2 size={20} />
                                     </div>
                                     <div>
-                                        <CardTitle className="text-xl">사업자 정보 입력</CardTitle>
-                                        <CardDescription className="text-gray-400">AI가 서류 정보를 분석하여 일치할 경우 즉시 승인합니다.</CardDescription>
+                                        <CardTitle className="text-lg">사업자 정보 입력</CardTitle>
+                                        <CardDescription className="text-gray-400 text-xs text-balance">AI가 서류 정보를 분석하여 일치할 경우 즉시 승인합니다.</CardDescription>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="p-10">
-                                <form onSubmit={handleSubmit} className="space-y-8">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <CardContent className="p-6">
+                                <form onSubmit={handleSubmit} className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
                                             <Label className="text-sm font-bold text-gray-700 pl-1 flex items-center gap-2">
                                                 <Building2 size={16} className="text-gray-400" />
@@ -288,7 +314,7 @@ export default function AdvertiserVerificationPage() {
                                                 value={companyName}
                                                 onChange={(e) => setCompanyName(e.target.value)}
                                                 placeholder="(주)다온컴퍼니"
-                                                className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary transition-all font-medium"
+                                                className="h-11 rounded-xl border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary transition-all font-medium text-sm"
                                                 required
                                             />
                                         </div>
@@ -301,7 +327,7 @@ export default function AdvertiserVerificationPage() {
                                                 value={bizNumber}
                                                 onChange={(e) => setBizNumber(e.target.value)}
                                                 placeholder="000-00-00000"
-                                                className="h-14 rounded-2xl border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary transition-all font-medium"
+                                                className="h-11 rounded-xl border-gray-100 bg-gray-50/50 focus:bg-white focus:border-primary transition-all font-medium text-sm"
                                                 required
                                             />
                                         </div>
@@ -323,7 +349,7 @@ export default function AdvertiserVerificationPage() {
                                             />
                                             <label
                                                 htmlFor="biz-cert-upload"
-                                                className={`w-full h-64 border-2 border-dashed rounded-[32px] flex flex-col items-center justify-center cursor-pointer transition-all ${previewUrl
+                                                className={`w-full h-40 border-2 border-dashed rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all ${previewUrl
                                                         ? 'border-primary/30 bg-primary/5'
                                                         : 'border-gray-200 hover:border-primary hover:bg-gray-50'
                                                     }`}
@@ -348,12 +374,12 @@ export default function AdvertiserVerificationPage() {
                                                     </div>
                                                 ) : (
                                                     <>
-                                                        <div className="w-20 h-20 bg-gray-100 text-gray-400 rounded-3xl flex items-center justify-center group-hover:scale-110 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 mb-4">
-                                                            <Upload size={32} />
+                                                        <div className="w-14 h-14 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center group-hover:scale-105 group-hover:bg-primary/10 group-hover:text-primary transition-all duration-500 mb-2">
+                                                            <Upload size={24} />
                                                         </div>
                                                         <div className="text-center">
-                                                            <p className="font-bold text-gray-700 text-lg">클릭하여 파일 업로드</p>
-                                                            <p className="text-sm text-gray-400 mt-2 font-medium">JPG, PNG, PDF (최대 10MB)</p>
+                                                            <p className="font-bold text-gray-700 text-base">클릭하여 파일 업로드</p>
+                                                            <p className="text-[11px] text-gray-400 mt-1 font-medium">JPG, PNG, PDF (최대 10MB)</p>
                                                         </div>
                                                     </>
                                                 )}
@@ -361,11 +387,11 @@ export default function AdvertiserVerificationPage() {
                                         </div>
                                     </div>
 
-                                    <div className="pt-6 pointer-events-none opacity-50 select-none">
-                                        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 flex gap-4">
-                                            <ShieldCheck className="text-gray-400 shrink-0 mt-1" />
-                                            <div className="text-xs text-gray-500 leading-relaxed font-medium">
-                                                <p className="font-bold text-gray-700 mb-1">개인정보 수집 및 이용 안내</p>
+                                    <div className="pt-2 pointer-events-none opacity-50 select-none">
+                                        <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex gap-3">
+                                            <ShieldCheck size={16} className="text-gray-400 shrink-0 mt-0.5" />
+                                            <div className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                                <p className="font-bold text-gray-700 mb-0.5">개인정보 수집 및 이용 안내</p>
                                                 입력하신 사업자 정보는 비즈니스 신원 확인을 위한 목적으로만 사용되며, <br />
                                                 승인 완료 후 안전하게 보호됩니다. 허위 정보 기재 시 이용이 제한될 수 있습니다.
                                             </div>
@@ -375,22 +401,23 @@ export default function AdvertiserVerificationPage() {
                                     <Button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full h-16 rounded-2xl bg-primary text-white text-lg font-black shadow-xl shadow-rose-200 hover:shadow-2xl transition-all transform active:scale-95 disabled:opacity-50 mt-4"
+                                        className="w-full h-12 rounded-xl bg-primary text-white text-base font-black shadow-lg shadow-rose-200 hover:shadow-xl transition-all transform active:scale-95 disabled:opacity-50 mt-2"
                                     >
                                         {loading ? (
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                            <div className="flex items-center gap-2 text-sm">
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                                                 {isAiVerifying ? 'AI 서류 정밀 분석 중...' : '인증 요청 처리 중...'}
                                             </div>
                                         ) : (
-                                            <div className="flex items-center gap-3 uppercase tracking-tight">
-                                                인증 요청 제출하기 <CheckCircle2 size={24} />
+                                            <div className="flex items-center gap-2 uppercase tracking-tight">
+                                                인증 요청 제출하기 <CheckCircle2 size={20} />
                                             </div>
                                         )}
                                     </Button>
                                 </form>
                             </CardContent>
                         </Card>
+                        </>
                     )}
                 </div>
             </main>

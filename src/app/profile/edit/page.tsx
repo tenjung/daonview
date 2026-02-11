@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck } from 'lucide-react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -807,6 +807,31 @@ function ProfileEditContent() {
                             </form>
                         ) : activeTab === 'payout' ? (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {/* 본인인증 섹션 */}
+                                <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden bg-white">
+                                    <CardContent className="p-4 md:p-6">
+                                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
+                                                    <ShieldCheck size={20} />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-black text-gray-900">본인 실명확인</h3>
+                                                    <p className="text-[11px] text-gray-500 font-medium leading-tight">정확한 정산 및 본인 확인을 위해 휴대폰 본인인증이 필요합니다.</p>
+                                                </div>
+                                            </div>
+                                            <Button 
+                                                variant="outline"
+                                                className="w-full md:w-auto px-6 h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-xs"
+                                                onClick={() => toast.info('본인인증 모듈 준비 중입니다.')}
+                                            >
+                                                <ShieldCheck size={14} className="mr-2" />
+                                                본인인증 하기
+                                            </Button>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+ 
                                 {!isEditingPayout && profile?.bank_name ? (
                                     /* 요약 카드 모드 (조회 모드) */
                                     <div className="space-y-6">
