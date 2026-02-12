@@ -108,6 +108,20 @@ export default function TermsContent() {
                 </div>
 
                 <div className="mb-8">
+                    <h3 className="text-lg font-bold text-text-main mb-3">제6조의2 (서비스 제공 기간)</h3>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ① 회사가 제공하는 서비스의 제공 기간(이용 가능 시점)은 다음과 같습니다:
+                    </p>
+                    <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
+                        <li><strong>온라인 서비스 및 콘텐츠 이용:</strong> 결제 완료 후 즉시 이용 가능</li>
+                        <li><strong>체험단 캠페인 등록 및 모집:</strong> 결제 완료 및 운영진 승인 후 통상 1영업일 이내에 모집이 개시됩니다.</li>
+                    </ul>
+                    <p className="text-text-secondary leading-relaxed mb-4">
+                        ② 캠페인 진행 단계별 상세 일정은 개별 캠페인 상세 페이지에서 확인할 수 있습니다.
+                    </p>
+                </div>
+
+                <div className="mb-8">
                     <h3 className="text-lg font-bold text-text-main mb-3">제7조 (서비스의 중단)</h3>
                     <p className="text-text-secondary leading-relaxed mb-4">
                         ① 회사는 컴퓨터 등 정보통신설비의 보수점검, 교체 및 고장, 통신의 두절 등의 사유가 발생한 경우에는 서비스의 제공을 일시적으로 중단할 수 있습니다.
