@@ -494,15 +494,45 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     {editingId === banner.id ? (
-                                        <div className="space-y-2">
-                                            <input className="w-full px-3 py-2 bg-gray-50 border rounded-lg text-sm font-bold" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} />
-                                            <input className="w-full px-3 py-2 bg-gray-50 border rounded-lg text-xs" value={editForm.subtitle} onChange={e => setEditForm({ ...editForm, subtitle: e.target.value })} />
-                                            <div className="pt-1">
+                                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">배너 제목</label>
+                                                <input 
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:border-primary focus:bg-white outline-none transition-all" 
+                                                    value={editForm.title} 
+                                                    onChange={e => setEditForm({ ...editForm, title: e.target.value })} 
+                                                    placeholder="제목 입력"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight flex items-center gap-1">
+                                                    <LinkIcon size={10} /> 링크 URL
+                                                </label>
+                                                <input 
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:border-primary focus:bg-white outline-none transition-all" 
+                                                    value={editForm.link_url || ''} 
+                                                    onChange={e => setEditForm({ ...editForm, link_url: e.target.value })} 
+                                                    placeholder="예: /campaigns"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">배너 설명</label>
+                                                <input 
+                                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:border-primary focus:bg-white outline-none transition-all" 
+                                                    value={editForm.subtitle || ''} 
+                                                    onChange={e => setEditForm({ ...editForm, subtitle: e.target.value })} 
+                                                    placeholder="설명 입력"
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
                                                 <button
                                                     onClick={() => setEditForm({ ...editForm, show_content: !editForm.show_content })}
-                                                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all border ${editForm.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-100 text-gray-400 border-gray-200'}`}
+                                                    className={`w-full h-[38px] flex items-center justify-center gap-2 px-3 rounded-xl text-[10px] font-bold transition-all border shadow-sm ${editForm.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
                                                 >
-                                                    메인 슬라이드 제목 노출: {editForm.show_content ? 'ON' : 'OFF'}
+                                                    <div className={`w-3 h-3 rounded-full flex items-center justify-center ${editForm.show_content ? 'bg-primary text-white' : 'bg-gray-300 text-white'}`}>
+                                                        {editForm.show_content ? <Check size={8} /> : <X size={8} />}
+                                                    </div>
+                                                    슬라이드 제목 노출: {editForm.show_content ? 'ON' : 'OFF'}
                                                 </button>
                                             </div>
                                         </div>

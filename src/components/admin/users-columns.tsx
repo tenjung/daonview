@@ -25,15 +25,16 @@ interface UserColumnContext {
 
 // 등급 Badge
 function RoleBadge({ role }: { role: string }) {
+    const baseClass = "px-1.5 py-0 rounded text-[10px] font-black border whitespace-nowrap uppercase";
     switch (role?.toUpperCase()) {
         case 'ADMIN':
-            return <span className="bg-violet-100 text-violet-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-violet-200 whitespace-nowrap uppercase">관리자</span>;
+            return <span className={`${baseClass} bg-violet-100 text-violet-700 border-violet-200`}>관리자</span>;
         case 'ADVERTISER':
-            return <span className="bg-blue-100 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-blue-200 whitespace-nowrap uppercase">광고주</span>;
+            return <span className={`${baseClass} bg-blue-100 text-blue-700 border-blue-200`}>광고주</span>;
         case 'INFLUENCER':
-            return <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-rose-200 whitespace-nowrap uppercase">인플루언서</span>;
+            return <span className={`${baseClass} bg-rose-100 text-rose-700 border-rose-200`}>인플루언서</span>;
         default:
-            return <span className="bg-gray-100 text-gray-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-gray-200 whitespace-nowrap uppercase">{role}</span>;
+            return <span className={`${baseClass} bg-gray-100 text-gray-700 border-gray-200`}>{role}</span>;
     }
 }
 
@@ -54,12 +55,6 @@ function UserInfoCell({ user }: { user: Profile }) {
                     <Mail size={12} className="text-gray-400" />
                     {user.email}
                 </span>
-                {user.role === 'ADVERTISER' && user.company_name && (
-                    <span className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded mt-1 font-bold flex items-center gap-1 w-fit">
-                        <Building2 size={10} />
-                        {user.company_name}
-                    </span>
-                )}
             </div>
         </div>
     );
@@ -98,7 +93,21 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             accessorKey: "role",
             header: "역할/등급",
-            cell: ({ row }) => <RoleBadge role={row.getValue("role")} />,
+            cell: ({ row }) => {
+                const user = row.original;
+                const role = row.getValue("role") as string;
+                return (
+                    <div className="flex flex-col gap-1 items-start min-h-[38px] justify-center">
+                        <RoleBadge role={role} />
+                        {role?.toUpperCase() === 'ADVERTISER' && user.company_name && (
+                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 ml-0.5 mt-0.5">
+                                <Building2 size={10} className="opacity-70" />
+                                {user.company_name}
+                            </span>
+                        )}
+                    </div>
+                );
+            },
         },
         // 연락처
         {

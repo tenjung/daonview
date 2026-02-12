@@ -293,19 +293,19 @@ function WritePageContent() {
                 // 신규 작성
                 if (isNoticeTable) {
                     // notices 테이블에 저장 (공지, 이벤트)
-                    const { error } = await supabase.from('notices').insert({
+                    const { data: insertedNotice, error } = await supabase.from('notices').insert({
                         type: dbType,
                         title,
                         content,
                         author_id: user.id,
                         is_pinned: false,
                         view_count: 0
-                    });
+                    }).select().single();
 
                     if (error) throw error;
 
                     // 공지사항 알림 전파 (NOTICE 타입일 때만)
-                    if (dbType === '공지') {
+                    if (dbType === '공지' && insertedNotice) {
                         // 모든 프로필 ID 조회
                         const { data: usersData } = await supabase
                             .from('profiles')
@@ -317,7 +317,7 @@ function WritePageContent() {
                                 type: 'NOTICE',
                                 title: '📢 전사 공지사항 안내',
                                 content: `[공지] ${title}`,
-                                link: `/community/notice`
+                                link: `/community/notice/${insertedNotice.id}`
                             }));
 
                             // 대량 인서트 (배치 처리)
