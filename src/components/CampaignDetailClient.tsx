@@ -104,6 +104,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [applicationId, setApplicationId] = useState<number>(0);
+    const [mainApi, setMainApi] = useState<CarouselApi>();
 
 
     // Sync modal carousel when it opens or external index changes
@@ -119,6 +120,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             setCurrentImageIndex(modalApi.selectedScrollSnap());
         });
     }, [modalApi]);
+
+    // Update current index when main carousel scrolls
+    useEffect(() => {
+        if (!mainApi) return;
+        mainApi.on("select", () => {
+            setCurrentImageIndex(mainApi.selectedScrollSnap());
+        });
+    }, [mainApi]);
 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
@@ -705,90 +714,102 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 <div className="w-full h-auto rounded-2xl overflow-hidden shadow-sm relative group bg-slate-50 border border-slate-100 aspect-square">
                                     {images.length > 0 ? (
                                         <>
-                                            <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
-                                                <DialogTrigger asChild>
-                                                    <div className="relative w-full h-full cursor-zoom-in">
-                                                        <img
-                                                            src={images[currentImageIndex]}
-                                                            alt={displayTitle}
-                                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                                                        />
-                                                        {/* Hover Overlay Removed as per user request */}
-                                                    </div>
-                                                </DialogTrigger>
-                                                <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 overflow-hidden border-none bg-black/60 backdrop-blur-md shadow-none flex flex-col items-center justify-center outline-none z-[100]">
-                                                    <style dangerouslySetInnerHTML={{
-                                                        __html: `
-                                                        [data-radix-portal] > div[data-state='open'] { background-color: rgba(0, 0, 0, 0.4) !important; }
-                                                    `}} />
-                                                    <DialogHeader className="sr-only">
-                                                        <DialogTitle>{displayTitle} 이미지 확대</DialogTitle>
-                                                    </DialogHeader>
+                                            <Carousel 
+                                                setApi={setMainApi} 
+                                                className="w-full h-full"
+                                                opts={{
+                                                    loop: true,
+                                                    align: "start",
+                                                }}
+                                            >
+                                                <CarouselContent className="h-full ml-0">
+                                                    {images.map((img, index) => (
+                                                        <CarouselItem key={index} className="pl-0 h-full">
+                                                            <div className="relative w-full h-full cursor-zoom-in" onClick={() => setIsImageModalOpen(true)}>
+                                                                <img
+                                                                    src={img}
+                                                                    alt={`${displayTitle} - ${index + 1}`}
+                                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                                />
+                                                            </div>
+                                                        </CarouselItem>
+                                                    ))}
+                                                </CarouselContent>
+                                                
+                                                {/* Full Screen Modal Integrated with Dialog */}
+                                                <Dialog open={isImageModalOpen} onOpenChange={setIsImageModalOpen}>
+                                                    <DialogContent className="max-w-[100vw] w-full h-[100vh] p-0 overflow-hidden border-none bg-black/60 backdrop-blur-md shadow-none flex flex-col items-center justify-center outline-none z-[100]">
+                                                        <style dangerouslySetInnerHTML={{
+                                                            __html: `
+                                                            [data-radix-portal] > div[data-state='open'] { background-color: rgba(0, 0, 0, 0.4) !important; }
+                                                        `}} />
+                                                        <DialogHeader className="sr-only">
+                                                            <DialogTitle>{displayTitle} 이미지 확대</DialogTitle>
+                                                        </DialogHeader>
 
-                                                    <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/40 to-transparent z-50 flex items-center justify-end px-6 pointer-events-none">
-                                                        <button
-                                                            onClick={() => setIsImageModalOpen(false)}
-                                                            className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm font-bold transition-all border border-white/10"
+                                                        <div className="absolute top-0 inset-x-0 h-16 bg-gradient-to-b from-black/40 to-transparent z-50 flex items-center justify-end px-6 pointer-events-none">
+                                                            <button
+                                                                onClick={() => setIsImageModalOpen(false)}
+                                                                className="pointer-events-auto bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm font-bold transition-all border border-white/10"
+                                                            >
+                                                                닫기
+                                                            </button>
+                                                        </div>
+
+                                                        <div
+                                                            className="w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center py-10 px-4 md:px-0 scrollbar-hide"
+                                                            onClick={(e) => {
+                                                                if (e.target === e.currentTarget) setIsImageModalOpen(false);
+                                                            }}
                                                         >
-                                                            닫기
+                                                            <img
+                                                                src={images[currentImageIndex]}
+                                                                alt={`${displayTitle} - Expanded`}
+                                                                className="w-full max-w-3xl h-auto object-contain shadow-2xl rounded-sm"
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            />
+                                                        </div>
+                                                    </DialogContent>
+                                                </Dialog>
+
+                                                {/* Navigation Arrows for Main View */}
+                                                {images.length > 1 && (
+                                                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                mainApi?.scrollPrev();
+                                                            }}
+                                                            className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                        >
+                                                            <ChevronLeft size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                mainApi?.scrollNext();
+                                                            }}
+                                                            className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                        >
+                                                            <ChevronRight size={18} />
                                                         </button>
                                                     </div>
+                                                )}
 
-                                                    <div
-                                                        className="w-full h-full overflow-y-auto overflow-x-hidden flex flex-col items-center py-10 px-4 md:px-0 scrollbar-hide"
-                                                        onClick={(e) => {
-                                                            if (e.target === e.currentTarget) setIsImageModalOpen(false);
-                                                        }}
-                                                    >
-                                                        <img
-                                                            src={images[currentImageIndex]}
-                                                            alt={`${displayTitle} - Expanded`}
-                                                            className="w-full max-w-3xl h-auto object-contain shadow-2xl rounded-sm"
-                                                            onClick={(e) => e.stopPropagation()}
-                                                        />
+                                                {/* Indicator Dots */}
+                                                {images.length > 1 && (
+                                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none z-10">
+                                                        {images.map((_, i) => (
+                                                            <div key={i} className={`h-1.5 rounded-full transition-all shadow-sm ${i === currentImageIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`} />
+                                                        ))}
                                                     </div>
-                                                </DialogContent>
-                                            </Dialog>
-
-                                            {/* Navigation Arrows for Main View */}
-                                            {images.length > 1 && (
-                                                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-                                                        }}
-                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
-                                                    >
-                                                        <ChevronLeft size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            setCurrentImageIndex((prev) => (prev + 1) % images.length);
-                                                        }}
-                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
-                                                    >
-                                                        <ChevronRight size={18} />
-                                                    </button>
-                                                </div>
-                                            )}
-
-                                            {/* Indicator Dots */}
-                                            {images.length > 1 && (
-                                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
-                                                    {images.map((_, i) => (
-                                                        <div key={i} className={`h-1.5 rounded-full transition-all shadow-sm ${i === currentImageIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/60'}`} />
-                                                    ))}
-                                                </div>
-                                            )}
+                                                )}
+                                            </Carousel>
                                         </>
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold text-lg">NO IMAGE</div>
                                     )}
                                 </div>
-
-                                {/* Thumbnail Strip Removed as per user request */}
                             </div>
                         </div>
 

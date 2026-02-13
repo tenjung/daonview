@@ -17,6 +17,13 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
+
 interface UserColumnContext {
     onRoleChange?: (id: string, newRole: string) => void
     onDelete?: (id: string, email: string) => void
@@ -25,7 +32,7 @@ interface UserColumnContext {
 
 // 등급 Badge
 function RoleBadge({ role }: { role: string }) {
-    const baseClass = "px-1.5 py-0 rounded text-[10px] font-black border whitespace-nowrap uppercase";
+    const baseClass = "px-1.5 py-0 rounded text-[10px] font-black border whitespace-nowrap uppercase cursor-default";
     switch (role?.toUpperCase()) {
         case 'ADMIN':
             return <span className={`${baseClass} bg-violet-100 text-violet-700 border-violet-200`}>관리자</span>;
@@ -96,15 +103,25 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
             cell: ({ row }) => {
                 const user = row.original;
                 const role = row.getValue("role") as string;
+                const isAdvertiser = role?.toUpperCase() === 'ADVERTISER';
+
                 return (
                     <div className="flex flex-col gap-1 items-start min-h-[38px] justify-center">
-                        <RoleBadge role={role} />
-                        {role?.toUpperCase() === 'ADVERTISER' && user.company_name && (
-                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1 ml-0.5 mt-0.5">
-                                <Building2 size={10} className="opacity-70" />
-                                {user.company_name}
-                            </span>
-                        )}
+                        <TooltipProvider delayDuration={0}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <div className="inline-flex">
+                                        <RoleBadge role={role} />
+                                    </div>
+                                </TooltipTrigger>
+                                {isAdvertiser && user.company_name && (
+                                    <TooltipContent side="bottom" className="flex items-center gap-1.5 font-bold py-1 px-2 text-[11px]">
+                                        <Building2 size={12} className="text-blue-500" />
+                                        <span>{user.company_name}</span>
+                                    </TooltipContent>
+                                )}
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 );
             },

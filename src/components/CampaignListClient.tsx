@@ -111,7 +111,16 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 const match = selectedRegions.some(r => item.region.includes(r));
                 if (!match) return false;
             } else if (selectedMajorRegion && item.region) {
-                if (!item.region.includes(selectedMajorRegion)) return false;
+                // 광역 지역 키워드 매핑 (경상 -> 경북/경남 등)
+                const regionKeywordMap: Record<string, string[]> = {
+                    '경상': ['경상', '경북', '경남'],
+                    '충청': ['충청', '충북', '충남'],
+                    '전라': ['전라', '전북', '전남']
+                };
+                
+                const searchKeywords = regionKeywordMap[selectedMajorRegion] || [selectedMajorRegion];
+                const match = searchKeywords.some(k => item.region.includes(k));
+                if (!match) return false;
             }
 
             return true;

@@ -7,39 +7,43 @@ interface BadgeProps {
 }
 
 const BadgeBase = ({ className, children }: BadgeProps) => (
-    <div className={`inline-flex items-center justify-center gap-1 px-2.5 h-[1.5rem] rounded-xl text-[10.5px] font-bold leading-none transition-all border shrink-0 ${className}`}>
+    <div className={`inline-flex items-center justify-center gap-1 sm:gap-1 px-2 sm:px-2.5 h-[22px] rounded-lg text-[10.5px] font-bold leading-none transition-all border shrink-0 ${className}`}>
         {children}
     </div>
 );
 
 export const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform?.toUpperCase() || '';
-    let icon = <PenTool size={11} />;
+    let icon = (
+        <div className="w-[11px] h-[11px] flex items-center justify-center overflow-hidden">
+            <span className="font-black text-[11.5px] leading-none tracking-tighter translate-y-[0.2px]">N</span>
+        </div>
+    );
     let label = "블로그";
-    let colorClass = "bg-emerald-50 text-emerald-600 border-emerald-100"; // Default Naver
+    let colorClass = "bg-emerald-50 text-emerald-600 border-emerald-100"; // Naver Green Light
 
     if (p === 'INSTAGRAM' || p === 'REELS') {
-        icon = <Instagram size={11} />;
+        icon = <Instagram size={11} strokeWidth={3} />;
         label = "인스타그램";
-        colorClass = "bg-pink-50 text-pink-600 border-pink-100";
+        colorClass = "bg-pink-50 text-pink-600 border-pink-100"; // Insta Pink Light
     } else if (p === 'YOUTUBE' || p === 'SHORTS') {
-        icon = <Youtube size={11} />;
+        icon = <Youtube size={11} fill="currentColor" />;
         label = "유튜브";
-        colorClass = "bg-red-50 text-red-600 border-red-100";
+        colorClass = "bg-red-50 text-red-600 border-red-100"; // YouTube Red Light
     } else if (p === 'TIKTOK') {
-        icon = <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
+        icon = <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z" /></svg>;
         label = "틱톡";
-        colorClass = "bg-slate-900 text-white border-slate-900";
+        colorClass = "bg-slate-100 text-slate-800 border-slate-200";
     } else if (p === 'PURCHASE' || p === 'OTHER' || p === '기타') {
-        icon = <ShoppingBag size={11} />;
+        icon = <ShoppingBag size={11} strokeWidth={3} />;
         label = "구매평";
-        colorClass = "bg-orange-50 text-orange-600 border-orange-100";
+        colorClass = "bg-orange-50 text-orange-600 border-orange-100"; // Purchase Orange Light
     }
 
     return (
-        <BadgeBase className={colorClass}>
-            <span className="flex-shrink-0 flex items-center translate-y-[0.3px]">{icon}</span>
-            <span className="translate-y-[1px]">{label}</span>
+        <BadgeBase className={`${colorClass}`}>
+            <div className="flex-shrink-0 flex items-center justify-center w-[11px] h-[11px]">{icon}</div>
+            <span className="hidden sm:inline translate-y-[0.5px] ml-0.5 whitespace-nowrap">{label}</span>
         </BadgeBase>
     );
 };
@@ -69,14 +73,14 @@ export const TypeBadge = ({ type }: { type?: string }) => {
     return (
         <BadgeBase className={colorClass}>
             <span className="flex-shrink-0 flex items-center translate-y-[0.3px]">{icon}</span>
-            <span className="translate-y-[1px]">{label}</span>
+            <span className="hidden sm:inline translate-y-[1px]">{label}</span>
         </BadgeBase>
     );
 };
 
 export const RegionBadge = ({ region }: { region?: string | null }) => {
     return (
-        <BadgeBase className="bg-slate-50 text-slate-600 border-slate-200">
+        <BadgeBase className="bg-slate-50 text-slate-600 border-slate-200 !px-2.5 !gap-1">
             <span className="flex-shrink-0 flex items-center translate-y-[0.3px]"><MapPin size={11} /></span>
             <span className="translate-y-[1px]">{region || '전국'}</span>
         </BadgeBase>
