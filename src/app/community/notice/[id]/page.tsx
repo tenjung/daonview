@@ -65,6 +65,24 @@ export default async function NoticeDetailPage({ params }: PageProps) {
             createdAt={new Date(notice.created_at).toLocaleDateString()}
             viewCount={(notice.view_count || 0) + 1}
         >
+            {/* JSON-LD for Structured Data */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "NewsArticle",
+                        "headline": notice.title,
+                        "description": notice.content.replace(/<[^>]*>?/gm, '').substring(0, 160).trim(),
+                        "datePublished": notice.created_at,
+                        "author": {
+                            "@type": "Organization",
+                            "name": "다온뷰"
+                        }
+                    })
+                }}
+            />
+
             <div
                 className="prose prose-xs md:prose-sm max-w-none prose-slate prose-img:rounded-lg leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: notice.content }}

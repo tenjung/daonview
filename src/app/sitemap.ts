@@ -35,12 +35,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  // 3. 정적 페이지들
+  // 3. 커뮤니티 게시글(Posts) 가져오기 (다온뷰 인사이트 등)
+  const { data: communityPosts } = await supabase
+    .from('posts')
+    .select('id, created_at')
+    .order('created_at', { ascending: false });
+
+  const communityUrls = (communityPosts || []).map((post) => ({
+    url: `${baseUrl}/community/${post.id}`,
+    lastModified: new Date(post.created_at),
+    changeFrequency: 'weekly' as const,
+    priority: 0.6,
+  }));
+
+  // 4. 정적 페이지들
   const staticPages = [
     { url: '', priority: 1.0, changeFrequency: 'daily' as const },
     { url: '/intro', priority: 0.9, changeFrequency: 'monthly' as const },
     { url: '/campaigns', priority: 0.9, changeFrequency: 'daily' as const },
     { url: '/community/notice', priority: 0.7, changeFrequency: 'daily' as const },
+    { url: '/community/free', priority: 0.7, changeFrequency: 'daily' as const },
+    { url: '/community/academy', priority: 0.8, changeFrequency: 'daily' as const },
     { url: '/ai-service/writing-assistant', priority: 0.8, changeFrequency: 'monthly' as const },
   ].map((page) => ({
     url: `${baseUrl}${page.url}`,
@@ -49,5 +64,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: page.priority,
   }));
 
-  return [...staticPages, ...campaignUrls, ...noticeUrls];
+  return [...staticPages, ...campaignUrls, ...noticeUrls, ...communityUrls];
 }

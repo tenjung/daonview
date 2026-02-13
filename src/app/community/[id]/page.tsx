@@ -3,8 +3,38 @@ import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
 import PostActions from '@/components/community/PostActions';
 
+import { Metadata } from 'next';
+
 interface PageProps {
     params: Promise<{ id: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+    const { id } = await params;
+    const supabase = await createServerClient();
+
+    const { data: post } = await supabase
+        .from('posts')
+        .select('title, content, type, created_at')
+        .eq('id', id)
+        .single();
+
+    if (!post) return {};
+
+    const cleanDescription = post.content.replace(/<[^>]*>?/gm, '').substring(0, 160).trim();
+    const siteTitle = '다온뷰 인사이트';
+    
+    return {
+        title: `${post.title} | ${siteTitle}`,
+        description: cleanDescription,
+        openGraph: {
+            title: post.title,
+            description: cleanDescription,
+            url: `/community/${id}`,
+            type: 'article',
+            publishedTime: post.created_at,
+        },
+    };
 }
 
 export default async function PostDetailPage({ params }: PageProps) {
@@ -59,6 +89,24 @@ export default async function PostDetailPage({ params }: PageProps) {
                 />
             }
         >
+            {/* JSON-LD for Structured Data */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "BlogPosting",
+                        "headline": post.title,
+                        "description": post.content.replace(/<[^>]*>?/gm, '').substring(0, 160).trim(),
+                        "datePublished": post.created_at,
+                        "author": {
+                            "@type": "Organization",
+                            "name": "다온뷰"
+                        }
+                    })
+                }}
+            />
+
             <div
                 className="prose prose-xs md:prose-sm max-w-none prose-slate prose-img:rounded-lg leading-relaxed"
                 dangerouslySetInnerHTML={{ __html: post.content }}

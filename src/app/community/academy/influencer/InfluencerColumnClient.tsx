@@ -50,8 +50,8 @@ export default function InfluencerColumnClient({ initialPosts }: InfluencerColum
         <CommunityBoardClient
             initialPosts={initialPosts}
             type="ACADEMY_INFLUENCER"
-            title="인플루언서 칼럼"
-            description="인플루언서 성장을 위한 꿀팁과 노하우"
+            title="인플루언서 성장 노하우"
+            description="팔로워를 사로잡는 컨텐츠 제작부터 수익화 단계까지의 핵심 비법"
             viewAllHref="/community/academy/influencer"
             itemHrefPrefix="/community"
             extraActions={extraActions}

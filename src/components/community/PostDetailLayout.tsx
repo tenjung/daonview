@@ -45,8 +45,8 @@ export default function PostDetailLayout({
                 {extraHeader && <div className="flex-shrink-0">{extraHeader}</div>}
             </div>
 
-            {/* Main Content Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Main Content Area */}
+            <div className="bg-white md:rounded-2xl md:shadow-sm md:border md:border-gray-100 overflow-hidden">
                 {/* Header Section */}
                 <div className="px-5 py-5 md:px-7 md:py-6 pb-0">
                     <div className="flex items-center gap-2 mb-2">

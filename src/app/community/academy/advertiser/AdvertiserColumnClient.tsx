@@ -50,8 +50,8 @@ export default function AdvertiserColumnClient({ initialPosts }: AdvertiserColum
         <CommunityBoardClient
             initialPosts={initialPosts}
             type="ACADEMY_ADVERTISER"
-            title="광고주 칼럼"
-            description="광고주를 위한 마케팅 인사이트와 전략"
+            title="비즈니스 전략 가이드"
+            description="효율적인 마케팅 집행과 성공적인 비즈니스를 위한 필승 전략"
             viewAllHref="/community/academy/advertiser"
             itemHrefPrefix="/community"
             extraActions={extraActions}
