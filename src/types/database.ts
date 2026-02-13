@@ -51,6 +51,8 @@ export interface BaseCampaign {
     first_selection_date?: string;
     review_deadline?: string;
     is_always?: boolean;
+    region?: string;
+    sub_region?: string;
 
     // Classification
     category?: string;

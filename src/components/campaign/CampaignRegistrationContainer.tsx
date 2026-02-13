@@ -294,6 +294,7 @@ export default function CampaignRegistrationContainer() {
                 platform: mappedPlatform.toUpperCase(),
                 category: store.category,
                 region: store.region,
+                sub_region: store.subRegion,
                 end_date: store.scheduleType === 'always' ? '9999-12-31' : endDate,
                 is_always: store.scheduleType === 'always',
                 total_recruitment: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')

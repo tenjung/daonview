@@ -45,6 +45,7 @@ const REGION_HIERARCHY = [
     { name: "광주", value: "광주" },
     { name: "대전", value: "대전" },
     { name: "울산", value: "울산" },
+    { name: "세종", value: "세종" },
     { name: "강원", value: "강원" },
     { name: "충청", value: "충청" },
     { name: "전라", value: "전라" },
@@ -102,15 +103,22 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
 
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
-                const match = item.title?.toLowerCase().includes(q) || item.region?.toLowerCase().includes(q);
+                const match = 
+                    item.title?.toLowerCase().includes(q) || 
+                    item.region?.toLowerCase().includes(q) ||
+                    item.sub_region?.toLowerCase().includes(q);
                 if (!match) return false;
             }
 
             if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(item.platform)) return false;
-            if (selectedRegions.length > 0 && item.region) {
-                const match = selectedRegions.some(r => item.region.includes(r));
+
+            if (selectedRegions.length > 0) {
+                const match = selectedRegions.some(r => 
+                    (item.region && item.region.includes(r)) || 
+                    (item.sub_region && item.sub_region.includes(r))
+                );
                 if (!match) return false;
-            } else if (selectedMajorRegion && item.region) {
+            } else if (selectedMajorRegion && (item.region || item.sub_region)) {
                 // 광역 지역 키워드 매핑 (경상 -> 경북/경남 등)
                 const regionKeywordMap: Record<string, string[]> = {
                     '경상': ['경상', '경북', '경남'],
@@ -119,7 +127,10 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 };
                 
                 const searchKeywords = regionKeywordMap[selectedMajorRegion] || [selectedMajorRegion];
-                const match = searchKeywords.some(k => item.region.includes(k));
+                const match = searchKeywords.some(k => 
+                    (item.region && item.region.includes(k)) || 
+                    (item.sub_region && item.sub_region.includes(k))
+                );
                 if (!match) return false;
             }
 
@@ -267,9 +278,8 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                                         setSelectedMajorRegion("");
                                                     } else {
                                                         setSelectedMajorRegion(r.value);
-                                                        if (!r.children) {
-                                                            toggleFilter(r.value, selectedRegions, setSelectedRegions);
-                                                        }
+                                                        // 광역 지역 클릭 시 상세 지역 선택은 초기화하여 키워드 맵핑 검색이 작동하도록 함
+                                                        setSelectedRegions([]);
                                                     }
                                                 }}
                                                 className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedMajorRegion === r.value || (r.value === "" && selectedRegions.length === 0) ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}

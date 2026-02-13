@@ -66,6 +66,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     dday: (campaign.is_always || (campaign.recruit_count && campaign.recruit_count >= 999)) ? "상시" : formatDDay(campaign.end_date),
     category: campaign.category,
     region: (campaign as any).region || null,
+    sub_region: (campaign as any).sub_region || null,
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
     end_date: campaign.end_date,

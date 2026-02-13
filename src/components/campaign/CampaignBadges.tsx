@@ -78,11 +78,12 @@ export const TypeBadge = ({ type }: { type?: string }) => {
     );
 };
 
-export const RegionBadge = ({ region }: { region?: string | null }) => {
+export const RegionBadge = ({ region, sub_region }: { region?: string | null, sub_region?: string | null }) => {
+    const displayRegion = [region, sub_region].filter(Boolean).join(' ');
     return (
         <BadgeBase className="bg-slate-50 text-slate-600 border-slate-200 !px-2.5 !gap-1">
             <span className="flex-shrink-0 flex items-center translate-y-[0.3px]"><MapPin size={11} /></span>
-            <span className="translate-y-[1px]">{region || '전국'}</span>
+            <span className="translate-y-[1px]">{displayRegion || '전국'}</span>
         </BadgeBase>
     );
 };

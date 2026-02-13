@@ -22,11 +22,11 @@ interface CampaignProps {
     includeReview?: boolean;
     includeNaver?: boolean;
     includeInstagram?: boolean;
+    sub_region?: string | null;
 }
 
 
-
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, includeReview, includeNaver, includeInstagram }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -151,7 +151,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     )}
 
                     {isVisit && (
-                        <RegionBadge region={region} />
+                        <RegionBadge region={region} sub_region={sub_region} />
                     )}
                 </div>
 
