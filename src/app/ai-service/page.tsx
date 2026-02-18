@@ -11,7 +11,11 @@ export default function AIServicePage() {
   const { user } = useAuthStore();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const handleServiceClick = (path: string) => {
+  const handleServiceClick = (path: string, isComingSoon?: boolean) => {
+    if (isComingSoon) {
+      return;
+    }
+
     if (!user) {
       setIsAuthModalOpen(true);
     } else {
@@ -23,6 +27,7 @@ export default function AIServicePage() {
     {
       title: "내 포스팅 분석",
       desc: "작성한 포스팅의 품질과 성과를 AI가 정밀하게 분석해드립니다. 누락 여부, 키워드 적합성, 이미지 품질 등을 확인해보세요.",
+      mobileDesc: "포스팅 품질, 누락, 키워드/이미지 적합성을 AI가 빠르게 분석합니다.",
       icon: LineChart,
       path: "/ai-service/analysis",
       color: "bg-blue-500/10 text-blue-600",
@@ -31,6 +36,7 @@ export default function AIServicePage() {
     {
       title: "AI 키워드 글작성 도우미",
       desc: "키워드만 입력하면 AI가 최적화된 글 구조와 내용을 제안합니다. 빠르고 효과적인 포스팅 작성을 경험해보세요.",
+      mobileDesc: "키워드 입력만으로 AI가 글 구조와 핵심 문장을 제안합니다.",
       icon: PenTool,
       path: "/ai-service/writing-assistant",
       color: "bg-primary/10 text-primary",
@@ -39,10 +45,21 @@ export default function AIServicePage() {
     {
       title: "1분 랜딩페이지 생성기",
       desc: "인플루언서 포트폴리오나 사업 아이템을 입력하면 AI가 즉시 배포 가능한 전문적인 웹페이지를 생성합니다.",
+      mobileDesc: "포트폴리오/사업 정보를 입력하면 랜딩페이지를 빠르게 생성합니다.",
       icon: Wand2,
       path: "/ai-service/landing-builder",
       color: "bg-purple-500/10 text-purple-600",
       gradient: "from-purple-500/20 to-pink-500/20",
+    },
+    {
+      title: "영상 제작 도우미",
+      desc: "원고와 이미지를 기반으로 AI가 영상 제작 흐름을 빠르게 구성할 수 있도록 지원합니다.",
+      mobileDesc: "원고와 이미지 기반으로 영상 제작 흐름을 빠르게 구성합니다.",
+      icon: Wand2,
+      path: "/ai-service/video-assistant",
+      color: "bg-emerald-500/10 text-emerald-600",
+      gradient: "from-emerald-500/20 to-teal-500/20",
+      isComingSoon: true,
     }
   ];
 
@@ -78,39 +95,51 @@ export default function AIServicePage() {
           </p>
         </div>
 
-        {/* --- 서비스 그리드 --- */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 max-w-7xl mx-auto px-4">
-          {services.map((service, idx) => (
-            <div 
+        {/* --- 서비스 리스트 --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-5 max-w-6xl mx-auto px-3 sm:px-4">
+          {services.map((service) => (
+            <div
               key={service.path}
-              onClick={() => handleServiceClick(service.path)}
-              className="group relative"
+              onClick={() => handleServiceClick(service.path, service.isComingSoon)}
+              className={`group relative rounded-3xl border border-white/60 bg-white/80 backdrop-blur-xl p-4 md:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.02)] transition-all duration-300 overflow-hidden ${
+                service.isComingSoon
+                  ? "cursor-not-allowed opacity-90"
+                  : "cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_16px_40px_rgba(235,2,112,0.08)]"
+              }`}
             >
-              {/* 카드 호버 시 뒤에서 비치는 빛 효과 */}
-              <div className={`absolute -inset-1 bg-gradient-to-r ${service.gradient} rounded-[2rem] blur-xl opacity-0 group-hover:opacity-100 transition duration-700`} />
-              
-              <div className="relative bg-white/70 backdrop-blur-xl border border-white/40 rounded-[2rem] p-10 h-full flex flex-col shadow-[0_8px_30px_rgb(0,0,0,0.02)] hover:shadow-[0_20px_50px_rgba(235,2,112,0.1)] hover:scale-[1.02] transition-all duration-500 cursor-pointer overflow-hidden border-t-white/60">
-                {/* 배경 패턴 살짝 추가 */}
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-125 transition-transform duration-700">
-                  <service.icon size={120} />
+              <div className={`absolute inset-0 bg-gradient-to-r ${service.gradient} opacity-0 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none`} />
+
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+                <div className={`${service.color} w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-inner shrink-0`}>
+                  <service.icon size={26} />
                 </div>
 
-                <div className={`${service.color} w-20 h-20 rounded-2xl flex items-center justify-center mb-10 shadow-inner group-hover:rotate-6 transition-all duration-500`}>
-                  <service.icon size={40} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 mb-2">
+                    <h2 className="text-lg md:text-2xl leading-tight font-black text-text-main tracking-tight">
+                      {service.title}
+                    </h2>
+                    {service.isComingSoon && (
+                      <span className="w-fit text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                        (개발중)
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm md:text-base text-text-secondary/75 leading-relaxed font-medium">
+                    <span className="md:hidden">{service.mobileDesc ?? service.desc}</span>
+                    <span className="hidden md:inline">{service.desc}</span>
+                  </p>
                 </div>
-                
-                <h2 className="text-3xl font-black mb-5 text-text-main tracking-tight group-hover:text-primary transition-colors flex items-center gap-3">
-                  {service.title}
-                  <ArrowRight size={24} className="opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-500 text-primary" />
-                </h2>
-                
-                <p className="text-text-secondary/70 text-lg leading-relaxed mb-10 flex-grow font-medium">
-                  {service.desc}
-                </p>
 
-                <div className="inline-flex items-center text-base font-bold text-primary group-hover:gap-3 transition-all duration-300 bg-primary/5 self-start px-6 py-3 rounded-full group-hover:bg-primary group-hover:text-white">
-                  시작하기
-                  <ArrowRight size={18} />
+                <div className="w-full sm:w-auto sm:ml-2">
+                  <div className={`inline-flex w-full justify-center sm:w-auto items-center whitespace-nowrap text-sm md:text-base font-bold px-4 md:px-5 py-2.5 rounded-full transition-all duration-300 ${
+                    service.isComingSoon
+                      ? "text-slate-500 bg-slate-100 border border-slate-200"
+                      : "text-primary bg-primary/5 group-hover:bg-primary group-hover:text-white"
+                  }`}>
+                    {service.isComingSoon ? "개발중" : "시작하기"}
+                    {!service.isComingSoon && <ArrowRight size={16} className="ml-1.5" />}
+                  </div>
                 </div>
               </div>
             </div>
