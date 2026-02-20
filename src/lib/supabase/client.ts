@@ -6,3 +6,6 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
+
+// Browser singleton (preferred import for client components/stores)
+export const supabase = createClient()

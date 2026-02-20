@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image, ShieldCheck, ChevronLeft, Headset, BarChart3, ClipboardCheck, MessageSquare, PieChart, Star, LogOut, X, Menu, Bell, Mail, MessageCircle, Ticket } from 'lucide-react';
 import { useState, Suspense, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 

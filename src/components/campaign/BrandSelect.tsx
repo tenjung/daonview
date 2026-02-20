@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Check, Building2, Loader2, Search, Edit2, Trash2, Megaphone } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,

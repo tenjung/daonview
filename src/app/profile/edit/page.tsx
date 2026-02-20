@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';

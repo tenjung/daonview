@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { UnifiedAdminCampaigns } from '@/components/admin/UnifiedAdminCampaigns';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import Link from 'next/link';

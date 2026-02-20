@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { X, Star, MessageSquare, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 import { RATING_TAGS, InfluencerReview, SatisfactionLevel } from '@/types/review';

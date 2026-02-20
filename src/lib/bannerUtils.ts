@@ -1,9 +1,11 @@
-import { supabase } from './supabaseClient';
+import { unstable_cache } from 'next/cache';
+import { getPublicServerClient } from './supabase/publicServer';
 import { mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
 
-export async function fetchAllBannerData(): Promise<BannerItem[]> {
+const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> => {
     try {
+        const supabase = getPublicServerClient();
         // 1. Fetch banner configuration from site_settings (with fallback)
         let newCount = 4;
         let hotCount = 4;
@@ -25,13 +27,41 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
 
         // 2. Parallel Fetch with optimized limits
         const [bannersRes, latestRes, popularRes, steadyRes] = await Promise.all([
-            supabase.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).order('created_at', { ascending: false }).limit(newCount),
+            supabase
+                .from('banners')
+                .select('id, title, subtitle, image_url, link_url, show_content')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true }),
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .in('status', ['RECRUITING', 'ONGOING'])
+                .order('created_at', { ascending: false })
+                .limit(newCount),
             // Optimized: Only fetch what we need (hotCount + buffer for sorting)
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(hotCount + 2),
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .in('status', ['RECRUITING', 'ONGOING'])
+                .order('created_at', { ascending: false })
+                .limit(hotCount + 2),
             // Always fetching some always-open campaigns
-            supabase.from('campaigns').select('*, applications(count)').eq('is_always', true).in('status', ['RECRUITING', 'ONGOING']).limit(4)
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .eq('is_always', true)
+                .in('status', ['RECRUITING', 'ONGOING'])
+                .limit(4)
         ]);
+
+        if (bannersRes.error || latestRes.error || popularRes.error || steadyRes.error) {
+            console.error('[fetchAllBannerData] query errors', {
+                banners: bannersRes.error?.message,
+                latest: latestRes.error?.message,
+                popular: popularRes.error?.message,
+                steady: steadyRes.error?.message,
+            });
+        }
 
         // 3. Process Admin Banners
         const adminItems: BannerItem[] = (bannersRes.data || []).map(b => ({
@@ -117,4 +147,8 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
         console.error('Error in fetchAllBannerData:', err);
         return [];
     }
+}, ['home-banner-data-v2'], { revalidate: 60, tags: ['home-banner-data'] });
+
+export async function fetchAllBannerData(): Promise<BannerItem[]> {
+    return fetchAllBannerDataCached();
 }

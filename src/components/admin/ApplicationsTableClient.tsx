@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Users, Clock, CheckCircle, XCircle, Download, Truck } from 'lucide-react';
 import { Application, InfluencerReview } from '@/types/database';

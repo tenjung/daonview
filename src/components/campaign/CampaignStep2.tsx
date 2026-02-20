@@ -5,7 +5,7 @@ import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin,
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 
 // @dnd-kit imports
 import {

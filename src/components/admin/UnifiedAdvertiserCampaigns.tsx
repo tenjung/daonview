@@ -3,7 +3,7 @@
 import * as React from "react"
 import { Campaign } from "@/types/database"
 import { CampaignDataTable } from "./CampaignDataTable"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import ConfirmDialog from "@/components/ConfirmDialog"
 import { useRouter } from "next/navigation"

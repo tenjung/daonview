@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { LayoutDashboard, Megaphone, Plus, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
 import DashboardSidebar from '@/components/DashboardSidebar';

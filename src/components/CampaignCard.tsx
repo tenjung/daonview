@@ -4,7 +4,7 @@ import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart,
 import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from './campaign/CampaignBadges';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 interface CampaignProps {

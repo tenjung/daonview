@@ -1,18 +1,35 @@
 import Link from 'next/link';
-import { Puzzle, Rocket, Shield, BarChart3 } from 'lucide-react';
-import CampaignCard from '@/components/CampaignCard';
+import { unstable_cache } from 'next/cache';
 import InteractiveRollingBanner from '@/components/InteractiveRollingBanner';
 import StaticPromoBanners from '@/components/StaticPromoBanners';
-import { supabase } from '@/lib/supabaseClient';
-import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { getPublicServerClient } from '@/lib/supabase/publicServer';
 import { fetchAllBannerData } from '@/lib/bannerUtils';
-import CampaignSkeleton from '@/components/CampaignSkeleton';
 import CampaignCarousel from '@/components/CampaignCarousel';
 import KakaoBanner from '@/components/KakaoBanner';
 import BoardList from '@/components/board/BoardList';
 import FeaturesCarousel from '@/components/FeaturesCarousel';
 
 export const revalidate = 60; // ISR: 1분마다 재생성
+
+const fetchLatestNotices = unstable_cache(
+    async () => {
+        const supabase = getPublicServerClient();
+        const { data, error } = await supabase
+            .from('notices')
+            .select('id, type, title, created_at, view_count')
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+        if (error) {
+            console.error('[Home] Notice Fetch Error:', error);
+            return [];
+        }
+
+        return data ?? [];
+    },
+    ['home-notice-data-v1'],
+    { revalidate: 60, tags: ['home-notices'] }
+);
 
 export default async function Home() {
     // Fetch banner items for SSR (includes campaign data)
@@ -73,18 +90,7 @@ export default async function Home() {
             created_at: ''
         }));
 
-    // Fetch latest notices from database
-    const { data: noticesData, error: noticeFetchError } = await supabase
-        .from('notices')
-        .select('id, type, title, created_at, view_count')
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-    if (noticeFetchError) {
-        console.error('[Home] Notice Fetch Error:', noticeFetchError);
-    }
-
-    const notices = noticesData || [];
+    const notices = await fetchLatestNotices();
 
     return (
         <div className="bg-background">

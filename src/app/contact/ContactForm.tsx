@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 const inquirySchema = z.object({
@@ -19,7 +19,6 @@ type InquiryForm = z.infer<typeof inquirySchema>;
 export default function ContactForm() {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const supabase = createClient();
 
     const {
         register,

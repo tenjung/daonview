@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useAuthStore } from "@/store/authStore"
-import { supabase } from "@/lib/supabaseClient"
+import { supabase } from "@/lib/supabase/client"
 import { UnifiedAdvertiserCampaigns } from "@/components/admin/UnifiedAdvertiserCampaigns"
 
 export default function UnifiedAdvertiserPage() {

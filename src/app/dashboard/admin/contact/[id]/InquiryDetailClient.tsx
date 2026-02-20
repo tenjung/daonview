@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -27,12 +27,10 @@ interface InquiryDetail {
 
 export default function InquiryDetailClient() {
     const params = useParams();
-    const router = useRouter();
     const [inquiry, setInquiry] = useState<InquiryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [answerText, setAnswerText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const supabase = createClient();
 
     useEffect(() => {
         const fetchInquiry = async () => {
