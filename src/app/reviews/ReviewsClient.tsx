@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, use } from 'react';
+import { useState, useEffect, useRef, Suspense, use, useMemo } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -189,15 +189,17 @@ function GridSkeleton() {
 // 실제 랜덤 셔플 및 그리드 아이템 렌더링 컴포넌트
 function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promise<Review[]>, filter: string }) {
     const reviews = use(reviewsPromise);
-    const [shuffledReviews, setShuffledReviews] = useState<Review[]>([]);
     const [displayedCount, setDisplayedCount] = useState(12);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const loadMoreRef = useRef<HTMLDivElement>(null);
 
-    // 최초 로드 시 랜덤 섞기
-    useEffect(() => {
-        const shuffled = [...reviews].sort(() => Math.random() - 0.5);
-        setShuffledReviews(shuffled);
+    const shuffledReviews = useMemo(() => {
+        const shuffled = [...reviews];
+        for (let i = shuffled.length - 1; i > 0; i -= 1) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
     }, [reviews]);
 
     // 필터링
@@ -231,10 +233,6 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
     useEffect(() => {
         setDisplayedCount(12);
     }, [filter]);
-
-    if (shuffledReviews.length === 0 && reviews.length > 0) {
-        return <GridSkeleton />;
-    }
 
     if (displayedReviews.length === 0) {
         return (

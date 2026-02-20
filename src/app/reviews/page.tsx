@@ -1,16 +1,16 @@
-import { createClient as createServerClient } from '@/lib/supabase/server';
-import { cookies } from 'next/headers';
+import { getPublicServerClient } from '@/lib/supabase/publicServer';
+import { unstable_cache } from 'next/cache';
 import ReviewsClient from './ReviewsClient';
 
-export const revalidate = 60; // ISR: 1분마다 재생성
+const WEEKLY_REVALIDATE_SECONDS = 60 * 60 * 24 * 7;
 
-// 리뷰 데이터를 가져오는 비동기 함수
-async function getReviews() {
-    const supabase = await createServerClient();
+const getWeeklyReviewSnapshot = unstable_cache(async () => {
+    const supabase = getPublicServerClient();
     const { data: reviews, error } = await supabase
         .from('reviews')
         .select('id, post_url, platform, title, description, thumbnail_url, author_name, author_profile_url, is_featured, view_count, like_count, created_at')
         .eq('status', 'APPROVED')
+        .order('created_at', { ascending: false })
         .limit(1000);
 
     if (error) {
@@ -18,11 +18,13 @@ async function getReviews() {
         return [];
     }
     return reviews || [];
-}
+}, ['reviews-weekly-snapshot-v1'], {
+    revalidate: WEEKLY_REVALIDATE_SECONDS,
+    tags: ['reviews-snapshot'],
+});
 
 export default async function ReviewsPage() {
-    // Promise를 시작하되 await 하지 않고 클라이언트에 전달 (Streaming 가능하게)
-    const reviewsPromise = getReviews();
+    const reviewsPromise = getWeeklyReviewSnapshot();
 
     return <ReviewsClient reviewsPromise={reviewsPromise} />;
 }
