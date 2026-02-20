@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -27,20 +26,18 @@ interface UserManagementClientProps {
 }
 
 export default function UserManagementClient({ initialUsers, initialStats }: UserManagementClientProps) {
-    const searchParams = useSearchParams();
     const [users, setUsers] = useState<Profile[]>(initialUsers);
     const [stats, setStats] = useState(initialStats);
-    const [currentTab, setCurrentTab] = useState<TabType>(
-        (searchParams.get('tab') as TabType) || 'all'
-    );
+    const [currentTab, setCurrentTab] = useState<TabType>('all');
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const tab = searchParams.get('tab') as TabType;
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get('tab') as TabType | null;
         if (tab && ['all', 'INFLUENCER', 'ADVERTISER', 'ADMIN'].includes(tab)) {
             setCurrentTab(tab);
         }
-    }, [searchParams]);
+    }, []);
 
     const fetchUsers = async () => {
         setLoading(true);

@@ -1,7 +1,62 @@
 'use client';
 
-import PortOne from '@portone/browser-sdk/v2';
 import { toast } from 'sonner';
+
+interface PortOnePaymentResponse {
+    code?: string | number | null;
+    message?: string;
+    [key: string]: unknown;
+}
+
+interface PortOneBrowserSDK {
+    requestPayment: (request: Record<string, unknown>) => Promise<PortOnePaymentResponse>;
+}
+
+declare global {
+    interface Window {
+        PortOne?: PortOneBrowserSDK;
+    }
+}
+
+const PORTONE_SDK_URL = 'https://cdn.portone.io/v2/browser-sdk.js';
+let portOneSdkPromise: Promise<PortOneBrowserSDK> | null = null;
+
+const loadPortOneSdk = async (): Promise<PortOneBrowserSDK> => {
+    if (typeof window === 'undefined') {
+        throw new Error('브라우저 환경에서만 결제를 진행할 수 있습니다.');
+    }
+
+    if (window.PortOne) {
+        return window.PortOne;
+    }
+
+    if (!portOneSdkPromise) {
+        portOneSdkPromise = new Promise((resolve, reject) => {
+            const existingScript = document.querySelector<HTMLScriptElement>('script[data-portone-sdk="v2"]');
+            if (existingScript) {
+                existingScript.addEventListener('load', () => {
+                    if (window.PortOne) resolve(window.PortOne);
+                    else reject(new Error('포트원 SDK 로드에 실패했습니다.'));
+                });
+                existingScript.addEventListener('error', () => reject(new Error('포트원 SDK 스크립트 로딩 실패')));
+                return;
+            }
+
+            const script = document.createElement('script');
+            script.src = PORTONE_SDK_URL;
+            script.async = true;
+            script.dataset.portoneSdk = 'v2';
+            script.onload = () => {
+                if (window.PortOne) resolve(window.PortOne);
+                else reject(new Error('포트원 SDK 초기화에 실패했습니다.'));
+            };
+            script.onerror = () => reject(new Error('포트원 SDK 스크립트 로딩 실패'));
+            document.head.appendChild(script);
+        });
+    }
+
+    return portOneSdkPromise;
+};
 
 interface PaymentRequest {
     paymentId: string;
@@ -67,7 +122,8 @@ export const usePortonePayment = () => {
             console.log(JSON.stringify(requestObject, null, 2));
 
             // 공식 가이드 기반 + 필수 고객 정보 포함
-            const response = await PortOne.requestPayment(requestObject as any);
+            const portOne = await loadPortOneSdk();
+            const response = await portOne.requestPayment(requestObject);
 
             // 결과 처리
             if (response?.code != null) {

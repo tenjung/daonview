@@ -1,19 +1,17 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 export default function PaymentCallbackPage() {
     const router = useRouter();
-    const searchParams = useSearchParams();
 
     useEffect(() => {
         const handlePaymentResult = async () => {
+            const searchParams = new URLSearchParams(window.location.search);
             const paymentId = searchParams.get('paymentId');
-            const code = searchParams.get('code');
-            const message = searchParams.get('message');
 
             if (!paymentId) {
                 toast.error('결제 정보가 없습니다.');
@@ -55,7 +53,7 @@ export default function PaymentCallbackPage() {
         };
 
         handlePaymentResult();
-    }, [searchParams, router]);
+    }, [router]);
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">

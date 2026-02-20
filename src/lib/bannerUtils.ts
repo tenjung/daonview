@@ -4,6 +4,20 @@ import { mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
+type BannerRow = {
+    id: number | string;
+    title?: string;
+    subtitle?: string;
+    image_url?: string;
+    link_url?: string;
+    show_content?: boolean;
+};
+
+type CampaignRow = {
+    id: number | string;
+    [key: string]: unknown;
+};
+
 const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> => {
     try {
         const supabase = getPublicServerClient();
@@ -18,9 +32,15 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                 .eq('key', 'banner_config')
                 .single();
 
-            if (!configError && configData?.value) {
-                newCount = (configData.value as any).new_count || 4;
-                hotCount = (configData.value as any).hot_count || 4;
+            const configValue = (configData as { value?: unknown } | null)?.value;
+            if (!configError && configValue && typeof configValue === 'object') {
+                const parsed = configValue as { new_count?: unknown; hot_count?: unknown };
+                if (typeof parsed.new_count === 'number') {
+                    newCount = parsed.new_count;
+                }
+                if (typeof parsed.hot_count === 'number') {
+                    hotCount = parsed.hot_count;
+                }
             }
         } catch (configErr) {
             console.warn('Failed to fetch banner config, using defaults');
@@ -64,13 +84,18 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
             });
         }
 
+        const bannerRows = (bannersRes.data ?? []) as BannerRow[];
+        const latestRows = (latestRes.data ?? []) as CampaignRow[];
+        const popularRows = (popularRes.data ?? []) as CampaignRow[];
+        const steadyRows = (steadyRes.data ?? []) as CampaignRow[];
+
         // 3. Process Admin Banners
-        const adminItems: BannerItem[] = (bannersRes.data || []).map(b => ({
+        const adminItems: BannerItem[] = bannerRows.map(b => ({
             id: `admin-${b.id}`,
             type: 'ADMIN',
-            title: b.title,
+            title: b.title || '다온 추천 캠페인',
             subtitle: b.subtitle,
-            image_url: b.image_url,
+            image_url: b.image_url || 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=800&h=600&fit=crop',
             link_url: b.link_url || '#',
             badge: 'SPECIAL',
             label: '다온 PICK',
@@ -78,7 +103,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
         }));
 
         // 4. Process Latest Campaigns
-        const newItems: BannerItem[] = (latestRes.data || [])
+        const newItems: BannerItem[] = latestRows
             .map(c => {
                 const mapped = mapCampaignToCard(c as any);
                 return {
@@ -98,7 +123,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
             .filter(item => item.image_url && item.title);
 
         // 5. Process Popular Campaigns
-        const popularItems: BannerItem[] = (popularRes.data || [])
+        const popularItems: BannerItem[] = popularRows
             .map(c => mapCampaignToCard(c as any))
             .sort((a, b) => (b.applicants || 0) - (a.applicants || 0))
             .slice(0, hotCount)
@@ -124,7 +149,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
             .filter(item => item.image_url && item.title);
 
         // 6. Process Steady (Always) Campaigns
-        const steadyItems: BannerItem[] = (steadyRes.data || [])
+        const steadyItems: BannerItem[] = steadyRows
             .map(c => {
                 const mapped = mapCampaignToCard(c as any);
                 return {
