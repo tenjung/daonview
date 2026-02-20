@@ -5,16 +5,9 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronRight, LayoutDashboard, Megaphone, Users, CreditCard, Globe, Image, ShieldCheck, ChevronLeft, Headset, BarChart3, ClipboardCheck, MessageSquare, PieChart, Star, LogOut, X, Menu, Bell, Mail, MessageCircle, Ticket } from 'lucide-react';
 import { useState, Suspense, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { fetchAdminCampaignCounts, type CampaignCounts } from '@/lib/adminUtils';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-
-interface CampaignCounts {
-    pending: number;
-    upcoming: number;
-    active: number;
-    completed: number;
-    draft: number;
-}
 
 interface AdminSidebarProps {
     initialCounts?: CampaignCounts;
@@ -23,8 +16,12 @@ interface AdminSidebarProps {
 function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
-    const [isCollapsed, setIsCollapsed] = useState(false);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+        return localStorage.getItem('admin-sidebar-collapsed') === 'true';
+    });
     const [campaignMenuOpen, setCampaignMenuOpen] = useState(true);
     const [reviewMenuOpen, setReviewMenuOpen] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(true);
@@ -39,47 +36,10 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
 
     // 로컬스토리지 상태 로드
     useEffect(() => {
-        const savedState = localStorage.getItem('admin-sidebar-collapsed');
-        if (savedState !== null) {
-            setIsCollapsed(savedState === 'true');
-        }
-        setIsLoaded(true);
-
         const fetchCounts = async () => {
             try {
-                const today = new Date().toISOString().split('T')[0];
-                const [pendingRes, recruitingRes, completedRes, draftRes] = await Promise.all([
-                    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
-                    supabase.from('campaigns').select('id, recruitment_start_date, created_at, status')
-                        .in('status', ['RECRUITING', 'ONGOING']),
-                    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
-                    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'DRAFT')
-                ]);
-
-                const recruitingCampaigns = recruitingRes.data || [];
-                let upcomingCount = 0;
-                let activeCount = 0;
-
-                recruitingCampaigns.forEach(cam => {
-                    if (cam.status === 'ONGOING') {
-                        activeCount++;
-                        return;
-                    }
-                    if (cam.status === 'RECRUITING') {
-                        const startDateStr = cam.recruitment_start_date || cam.created_at;
-                        const startDate = startDateStr.split('T')[0];
-                        if (startDate > today) upcomingCount++;
-                        else activeCount++;
-                    }
-                });
-
-                setCounts({
-                    pending: pendingRes.count || 0,
-                    upcoming: upcomingCount,
-                    active: activeCount,
-                    completed: completedRes.count || 0,
-                    draft: draftRes.count || 0
-                });
+                const nextCounts = await fetchAdminCampaignCounts(supabase);
+                setCounts(nextCounts);
             } catch (error) {
                 console.error('Error fetching campaign counts:', error);
             }
@@ -106,8 +66,6 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
         pathname.includes('/dashboard/admin/campaigns') ||
         pathname.includes('/dashboard/campaign/new') ||
         pathname.match(/\/dashboard\/admin\/campaigns\/\d+/);
-
-    if (!isLoaded) return <aside className="w-[260px] bg-white border-r h-screen" />;
 
     return (
         <aside className={cn(
@@ -502,5 +460,3 @@ export default function AdminSidebar({ initialCounts }: AdminSidebarProps) {
         </Suspense>
     );
 }
-
-

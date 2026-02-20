@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache';
 import { getPublicServerClient } from './supabase/publicServer';
 import { mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
 const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> => {
     try {
@@ -35,14 +36,14 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
             supabase
                 .from('campaigns')
                 .select('*, applications(count)')
-                .in('status', ['RECRUITING', 'ONGOING'])
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
                 .order('created_at', { ascending: false })
                 .limit(newCount),
             // Optimized: Only fetch what we need (hotCount + buffer for sorting)
             supabase
                 .from('campaigns')
                 .select('*, applications(count)')
-                .in('status', ['RECRUITING', 'ONGOING'])
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
                 .order('created_at', { ascending: false })
                 .limit(hotCount + 2),
             // Always fetching some always-open campaigns
@@ -50,7 +51,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                 .from('campaigns')
                 .select('*, applications(count)')
                 .eq('is_always', true)
-                .in('status', ['RECRUITING', 'ONGOING'])
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
                 .limit(4)
         ]);
 

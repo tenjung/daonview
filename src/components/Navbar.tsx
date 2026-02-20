@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
 import BrandLogo from '@/components/BrandLogo';
 import NotificationCenter from '@/components/NotificationCenter';
+import { getRoleDashboardPath, getRoleLabel as getRoleLabelByRole } from '@/constants/role';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,22 +104,12 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
 
   const getUserDashboardLink = () => {
     if (!profile) return '/';
-    switch (profile.role) {
-      case 'ADMIN': return '/dashboard/admin';
-      case 'ADVERTISER': return '/dashboard/advertiser';
-      case 'INFLUENCER': return '/dashboard/influencer';
-      default: return '/dashboard/influencer';
-    }
+    return getRoleDashboardPath(profile.role);
   };
 
   const getRoleLabel = () => {
     if (!profile) return '';
-    switch (profile.role) {
-      case 'ADMIN': return '관리자';
-      case 'ADVERTISER': return '광고주';
-      case 'INFLUENCER': return '인플루언서';
-      default: return '사용자';
-    }
+    return getRoleLabelByRole(profile.role);
   };
 
   return (

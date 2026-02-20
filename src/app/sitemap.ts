@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
 // Supabase 클라이언트를 직접 노출하지 않고 환경변수로 생성
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -13,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { data: campaigns } = await supabase
     .from('campaigns')
     .select('id, updated_at')
-    .in('status', ['RECRUITING', 'ONGOING']);
+    .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[]);
 
   const campaignUrls = (campaigns || []).map((campaign) => ({
     url: `${baseUrl}/campaigns/${campaign.id}`,
