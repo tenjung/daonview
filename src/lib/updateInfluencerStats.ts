@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase/client';
 
 /**
  * 인플루언서 통계 업데이트 함수
