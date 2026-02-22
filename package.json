@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:kakao-auth": "node scripts/check-kakao-auth.js",
     "update-types": "npx supabase gen types typescript --project-id whpyftpktolpaspeuocg > src/types/database.generated.ts"
   },
   "dependencies": {

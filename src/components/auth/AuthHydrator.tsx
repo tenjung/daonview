@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
 interface AuthHydratorProps {
-    user: any | null;
-    profile: any | null;
+    user: Record<string, unknown> | null;
+    profile: Record<string, unknown> | null;
 }
 
 /**
@@ -15,19 +15,12 @@ interface AuthHydratorProps {
  */
 export default function AuthHydrator({ user, profile }: AuthHydratorProps) {
     const hydrate = useAuthStore((state) => state.hydrate);
-    const hasHydrated = useRef(false);
-
-    // 렌더링 단계에서 하이드레이션을 시도합니다. (useEffect보다 빠르게 적용)
-    if (!hasHydrated.current) {
+    
+    useEffect(() => {
         if (user) {
             hydrate(user, profile);
-        } else {
-            // 로그인 상태가 아님을 즉시 반영
-            useAuthStore.setState({ isLoading: false });
-            (useAuthStore.getState() as any).__initialized = true;
         }
-        hasHydrated.current = true;
-    }
+    }, [user, profile, hydrate]);
 
     return null; // UI는 렌더링하지 않음
 }
