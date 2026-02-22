@@ -10,16 +10,72 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuthStore } from '@/store/authStore';
-import { useNotificationStore } from '@/store/notificationStore';
+import { useNotificationStore, type Notification } from '@/store/notificationStore';
 import { formatTimeAgo } from '@/lib/utils';
 import Link from 'next/link';
 
-type TabType = 'all' | 'campaign' | 'system';
+type UserRole = 'ADMIN' | 'ADVERTISER' | 'INFLUENCER';
+
+interface RoleTab {
+  key: string;
+  label: string;
+  match: (notification: Notification) => boolean;
+}
+
+const isCampaignNotification = (notification: Notification) =>
+  notification.type.startsWith('CAMPAIGN') || notification.entity_type === 'campaign';
+
+const isNoticeNotification = (notification: Notification) =>
+  notification.type === 'SYSTEM' ||
+  notification.type === 'NOTICE' ||
+  notification.entity_type === 'system' ||
+  notification.entity_type === 'notice';
+
+const isAdminRiskNotification = (notification: Notification) =>
+  ['ADMIN_CAMPAIGN_CRITICAL', 'CAMPAIGN_CRITICAL', 'CAMPAIGN_WARNING', 'CAMPAIGN_DEADLINE'].includes(notification.type);
+
+const isAdvertiserSelectionNotification = (notification: Notification) =>
+  ['CAMPAIGN_NEW_APPLICANT', 'CAMPAIGN_SELECTED', 'CAMPAIGN_REJECTED'].includes(notification.type);
+
+const isAdvertiserOperationNotification = (notification: Notification) =>
+  ['CAMPAIGN_REVIEW_SUBMITTED', 'CAMPAIGN_REVIEW_RECEIVED', 'CAMPAIGN_SHIPPING', 'CAMPAIGN_MILESTONE', 'CAMPAIGN_DEADLINE'].includes(notification.type);
+
+const isInfluencerSelectionNotification = (notification: Notification) =>
+  ['CAMPAIGN_SELECTED', 'CAMPAIGN_APPROVED', 'CAMPAIGN_REJECTED'].includes(notification.type);
+
+const isInfluencerScheduleNotification = (notification: Notification) =>
+  ['CAMPAIGN_SHIPPING', 'CAMPAIGN_DEADLINE', 'CAMPAIGN_MILESTONE'].includes(notification.type);
+
+const ROLE_TAB_CONFIG: Record<UserRole, RoleTab[]> = {
+  ADMIN: [
+    { key: 'all', label: '전체', match: () => true },
+    { key: 'risk', label: '리스크', match: isAdminRiskNotification },
+    { key: 'campaign', label: '캠페인', match: isCampaignNotification },
+    { key: 'notice', label: '공지', match: isNoticeNotification },
+  ],
+  ADVERTISER: [
+    { key: 'all', label: '전체', match: () => true },
+    { key: 'selection', label: '신청·선정', match: isAdvertiserSelectionNotification },
+    { key: 'operation', label: '리뷰·운영', match: isAdvertiserOperationNotification },
+    { key: 'notice', label: '공지', match: isNoticeNotification },
+  ],
+  INFLUENCER: [
+    { key: 'all', label: '전체', match: () => true },
+    { key: 'selection', label: '선정', match: isInfluencerSelectionNotification },
+    { key: 'schedule', label: '배송·마감', match: isInfluencerScheduleNotification },
+    { key: 'notice', label: '공지', match: isNoticeNotification },
+  ],
+};
 
 export default function NotificationCenter() {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
-  const [activeTab, setActiveTab] = useState<TabType>('all');
+  const [activeTab, setActiveTab] = useState<string>('all');
+  const [newThreshold] = useState(() => Date.now() - 24 * 60 * 60 * 1000);
+
+  const rawRole = typeof profile?.role === 'string' ? profile.role.toUpperCase() : '';
+  const role: UserRole = rawRole === 'ADMIN' || rawRole === 'ADVERTISER' ? rawRole : 'INFLUENCER';
+  const roleTabs = ROLE_TAB_CONFIG[role];
 
   useEffect(() => {
     if (user) {
@@ -31,17 +87,37 @@ export default function NotificationCenter() {
     }
   }, [user, fetchNotifications]);
 
+  const resolvedActiveTab = roleTabs.some((tab) => tab.key === activeTab) ? activeTab : roleTabs[0].key;
+
   const handleMarkAllAsRead = () => {
     if (user) {
       markAllAsRead(user.id);
     }
   };
 
-  const filteredNotifications = notifications.filter(n => {
-    if (activeTab === 'all') return true;
-    if (activeTab === 'campaign') return n.type.startsWith('CAMPAIGN');
-    if (activeTab === 'system') return n.type === 'SYSTEM' || n.type === 'NOTICE';
-    return true;
+  const isNewNotification = (createdAt: string, isRead: boolean) => {
+    if (isRead) return false;
+    const created = new Date(createdAt).getTime();
+    return created >= newThreshold;
+  };
+
+  const getPriority = (notification: (typeof notifications)[number]) => {
+    if (typeof notification.priority === 'number') return notification.priority;
+    if (notification.type === 'ADMIN_CAMPAIGN_CRITICAL' || notification.type === 'CAMPAIGN_CRITICAL') return 2;
+    if (notification.type === 'CAMPAIGN_WARNING' || notification.type === 'NOTICE') return 1;
+    return 0;
+  };
+
+  const sortedNotifications = [...notifications].sort((a, b) => {
+    if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+    const priorityDiff = getPriority(b) - getPriority(a);
+    if (priorityDiff !== 0) return priorityDiff;
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  const filteredNotifications = sortedNotifications.filter(n => {
+    const currentTab = roleTabs.find((tab) => tab.key === resolvedActiveTab) || roleTabs[0];
+    return currentTab.match(n);
   });
 
   const getIcon = (type: string) => {
@@ -63,6 +139,11 @@ export default function NotificationCenter() {
       case 'SYSTEM': return <Info className="w-4 h-4 text-amber-500" />;
       default: return <Bell className="w-4 h-4 text-slate-400" />;
     }
+  };
+
+  const handleRead = async (notification: (typeof notifications)[number]) => {
+    if (!user) return;
+    await markAsRead(notification, user.id);
   };
 
   return (
@@ -101,16 +182,16 @@ export default function NotificationCenter() {
 
           {/* Simple Tabs */}
           <div className="flex px-5 border-b border-slate-100 gap-6">
-            {(['all', 'campaign', 'system'] as TabType[]).map((tab) => (
+            {roleTabs.map((tab) => (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
                 className={`pb-3 text-[13px] font-black transition-all relative ${
-                  activeTab === tab ? 'text-rose-500' : 'text-slate-400 hover:text-slate-600'
+                  resolvedActiveTab === tab.key ? 'text-rose-500' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
-                {tab === 'all' ? '전체' : tab === 'campaign' ? '캠페인' : '공지'}
-                {activeTab === tab && (
+                {tab.label}
+                {resolvedActiveTab === tab.key && (
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-500 rounded-full" />
                 )}
               </button>
@@ -122,38 +203,55 @@ export default function NotificationCenter() {
             {filteredNotifications.length > 0 ? (
               <div className="divide-y divide-slate-100">
                 {filteredNotifications.map((notification) => (
+                  (() => {
+                    const isSeenCampaign = notification.entity_type === 'campaign' && !!notification.seen_at;
+                    const isNew = isNewNotification(notification.created_at, notification.is_read);
+                    const isUrgent = getPriority(notification) >= 2;
+
+                    return (
                   <div 
                     key={notification.id}
-                    className={`p-5 hover:bg-slate-50/50 transition-all relative group cursor-pointer ${!notification.is_read ? 'bg-rose-50/20' : ''}`}
-                    onClick={() => markAsRead(notification.id)}
+                    className={`p-5 hover:bg-slate-50/50 transition-all relative group cursor-pointer ${
+                      isNew ? 'bg-rose-50/20' : isSeenCampaign ? 'bg-slate-50/70' : ''
+                    }`}
+                    onClick={() => handleRead(notification)}
                   >
                     <div className="flex gap-4">
                       <div className={`shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm border ${
-                        !notification.is_read ? 'bg-white border-rose-100' : 'bg-slate-50 border-slate-100'
+                        isNew ? 'bg-white border-rose-100' : 'bg-slate-50 border-slate-100'
                       }`}>
                         {getIcon(notification.type)}
                       </div>
                       <div className="flex-1 space-y-1.5 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className={`text-[13px] leading-snug break-all ${!notification.is_read ? 'font-bold text-slate-900' : 'text-slate-600 font-medium'}`}>
+                          <p className={`text-[13px] leading-snug break-all ${
+                            isNew ? 'font-bold text-slate-900' : isSeenCampaign ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'
+                          }`}>
                             {notification.title}
                           </p>
-                          {!notification.is_read && (
-                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 mt-1.5 shadow-sm shadow-rose-200" />
-                          )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isUrgent && <Badge className="bg-red-100 text-red-600 border-red-200 hover:bg-red-100 text-[9px] px-1.5 py-0">긴급</Badge>}
+                            {isNew && <Badge className="bg-rose-100 text-rose-600 border-rose-200 hover:bg-rose-100 text-[9px] px-1.5 py-0">신규</Badge>}
+                            {!notification.is_read && !isNew && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shadow-sm shadow-rose-200" />
+                            )}
+                          </div>
                         </div>
-                        <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
+                        <p className={`text-xs line-clamp-2 leading-relaxed font-medium ${isSeenCampaign ? 'text-slate-400' : 'text-slate-500'}`}>
                           {notification.content}
                         </p>
                         <div className="flex items-center justify-between pt-1">
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                          <p className={`text-[10px] font-bold uppercase tracking-wider ${isSeenCampaign ? 'text-slate-300' : 'text-slate-400'}`}>
                             {formatTimeAgo(notification.created_at)}
                           </p>
                           {notification.link && (
                             <Link 
                               href={notification.link}
                               className="text-[11px] font-black text-rose-500 flex items-center gap-0.5 hover:scale-105 transition-transform origin-right"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleRead(notification);
+                              }}
                             >
                               이동하기 <ExternalLink size={12} strokeWidth={3} />
                             </Link>
@@ -162,6 +260,8 @@ export default function NotificationCenter() {
                       </div>
                     </div>
                   </div>
+                    );
+                  })()
                 ))}
               </div>
             ) : (
