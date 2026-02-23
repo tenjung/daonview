@@ -48,7 +48,7 @@ interface Brand {
 }
 
 export default function BrandManagementPage() {
-    const { user, profile } = useAuthStore();
+    const { user, profile, isLoading: authLoading } = useAuthStore();
     const [brands, setBrands] = useState<Brand[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [viewType, setViewType] = useState<'grid' | 'list'>('grid');
@@ -68,10 +68,12 @@ export default function BrandManagementPage() {
     });
 
     useEffect(() => {
-        if (user) {
+        if (user?.id) {
             fetchBrands();
+        } else if (!authLoading) {
+            setIsLoading(false);
         }
-    }, [user]);
+    }, [user?.id, authLoading]);
 
     const fetchBrands = async () => {
         setIsLoading(true);
