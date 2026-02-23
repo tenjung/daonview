@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { Suspense, useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from 'sonner';
@@ -280,14 +280,16 @@ export default function AdvertiserApplicantsPage() {
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS.map(link => ({
-                    ...link,
-                    active: link.href === '/dashboard/advertiser/applicants'
-                }))}
-            />
+            <Suspense fallback={<div className="w-[280px] lg:static fixed h-screen bg-white" />}>
+                <DashboardSidebar
+                    userType="ADVERTISER"
+                    userName={profile?.company_name || profile?.nickname || '광고주'}
+                    links={ADVERTISER_LINKS.map(link => ({
+                        ...link,
+                        active: link.href === '/dashboard/advertiser/applicants'
+                    }))}
+                />
+            </Suspense>
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">신청자 목록</h1>

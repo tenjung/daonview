@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
+import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface Inquiry {
     id: string;
@@ -20,7 +21,6 @@ interface Inquiry {
 export default function InquiryListClient() {
     const [inquiries, setInquiries] = useState<Inquiry[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const supabase = createClient();
 
     useEffect(() => {
         fetchInquiries();
@@ -52,16 +52,6 @@ export default function InquiryListClient() {
         }
     };
 
-    const getCategoryLabel = (category: string) => {
-        const categories: Record<string, string> = {
-            'EXPERIENCE': '체험단 문의',
-            'POINT': '포인트/정산',
-            'ERROR': '오류 신고',
-            'AD_PARTNERSHIP': '제휴/광고',
-        };
-        return categories[category] || category;
-    };
-
     if (isLoading) return <div className="p-8 text-center text-slate-500">로딩중...</div>;
 
     return (
@@ -90,15 +80,15 @@ export default function InquiryListClient() {
                             inquiries.map((inquiry) => (
                                 <tr key={inquiry.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-6 py-4">
-                                        <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${inquiry.status === 'ANSWERED'
+                                        <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${isInquiryAnswered(inquiry.status)
                                             ? 'bg-blue-100 text-blue-600'
                                             : 'bg-slate-100 text-slate-500'
                                             }`}>
-                                            {inquiry.status === 'ANSWERED' ? '답변완료' : '접수대기'}
+                                            {getInquiryStatusLabel(inquiry.status)}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">
-                                        {getCategoryLabel(inquiry.category)}
+                                        {getInquiryCategoryLabel(inquiry.category)}
                                     </td>
                                     <td className="px-6 py-4">
                                         <Link

@@ -1,9 +1,26 @@
-import { supabase } from './supabaseClient';
+import { unstable_cache } from 'next/cache';
+import { getPublicServerClient } from './supabase/publicServer';
 import { mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
-export async function fetchAllBannerData(): Promise<BannerItem[]> {
+type BannerRow = {
+    id: number | string;
+    title?: string;
+    subtitle?: string;
+    image_url?: string;
+    link_url?: string;
+    show_content?: boolean;
+};
+
+type CampaignRow = {
+    id: number | string;
+    [key: string]: unknown;
+};
+
+const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> => {
     try {
+        const supabase = getPublicServerClient();
         // 1. Fetch banner configuration from site_settings (with fallback)
         let newCount = 4;
         let hotCount = 4;
@@ -15,9 +32,15 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
                 .eq('key', 'banner_config')
                 .single();
 
-            if (!configError && configData?.value) {
-                newCount = (configData.value as any).new_count || 4;
-                hotCount = (configData.value as any).hot_count || 4;
+            const configValue = (configData as { value?: unknown } | null)?.value;
+            if (!configError && configValue && typeof configValue === 'object') {
+                const parsed = configValue as { new_count?: unknown; hot_count?: unknown };
+                if (typeof parsed.new_count === 'number') {
+                    newCount = parsed.new_count;
+                }
+                if (typeof parsed.hot_count === 'number') {
+                    hotCount = parsed.hot_count;
+                }
             }
         } catch (configErr) {
             console.warn('Failed to fetch banner config, using defaults');
@@ -25,21 +48,54 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
 
         // 2. Parallel Fetch with optimized limits
         const [bannersRes, latestRes, popularRes, steadyRes] = await Promise.all([
-            supabase.from('banners').select('*').eq('is_active', true).order('display_order', { ascending: true }),
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).order('created_at', { ascending: false }).limit(newCount),
+            supabase
+                .from('banners')
+                .select('id, title, subtitle, image_url, link_url, show_content')
+                .eq('is_active', true)
+                .order('display_order', { ascending: true }),
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                .order('created_at', { ascending: false })
+                .limit(newCount),
             // Optimized: Only fetch what we need (hotCount + buffer for sorting)
-            supabase.from('campaigns').select('*, applications(count)').in('status', ['RECRUITING', 'ONGOING']).limit(hotCount + 2),
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                .order('created_at', { ascending: false })
+                .limit(hotCount + 2),
             // Always fetching some always-open campaigns
-            supabase.from('campaigns').select('*, applications(count)').eq('is_always', true).in('status', ['RECRUITING', 'ONGOING']).limit(4)
+            supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .eq('is_always', true)
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                .limit(4)
         ]);
 
+        if (bannersRes.error || latestRes.error || popularRes.error || steadyRes.error) {
+            console.error('[fetchAllBannerData] query errors', {
+                banners: bannersRes.error?.message,
+                latest: latestRes.error?.message,
+                popular: popularRes.error?.message,
+                steady: steadyRes.error?.message,
+            });
+        }
+
+        const bannerRows = (bannersRes.data ?? []) as BannerRow[];
+        const latestRows = (latestRes.data ?? []) as CampaignRow[];
+        const popularRows = (popularRes.data ?? []) as CampaignRow[];
+        const steadyRows = (steadyRes.data ?? []) as CampaignRow[];
+
         // 3. Process Admin Banners
-        const adminItems: BannerItem[] = (bannersRes.data || []).map(b => ({
+        const adminItems: BannerItem[] = bannerRows.map(b => ({
             id: `admin-${b.id}`,
             type: 'ADMIN',
-            title: b.title,
+            title: b.title || '다온 추천 캠페인',
             subtitle: b.subtitle,
-            image_url: b.image_url,
+            image_url: b.image_url || 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=800&h=600&fit=crop',
             link_url: b.link_url || '#',
             badge: 'SPECIAL',
             label: '다온 PICK',
@@ -47,7 +103,7 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
         }));
 
         // 4. Process Latest Campaigns
-        const newItems: BannerItem[] = (latestRes.data || [])
+        const newItems: BannerItem[] = latestRows
             .map(c => {
                 const mapped = mapCampaignToCard(c as any);
                 return {
@@ -67,7 +123,7 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
             .filter(item => item.image_url && item.title);
 
         // 5. Process Popular Campaigns
-        const popularItems: BannerItem[] = (popularRes.data || [])
+        const popularItems: BannerItem[] = popularRows
             .map(c => mapCampaignToCard(c as any))
             .sort((a, b) => (b.applicants || 0) - (a.applicants || 0))
             .slice(0, hotCount)
@@ -93,7 +149,7 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
             .filter(item => item.image_url && item.title);
 
         // 6. Process Steady (Always) Campaigns
-        const steadyItems: BannerItem[] = (steadyRes.data || [])
+        const steadyItems: BannerItem[] = steadyRows
             .map(c => {
                 const mapped = mapCampaignToCard(c as any);
                 return {
@@ -117,4 +173,8 @@ export async function fetchAllBannerData(): Promise<BannerItem[]> {
         console.error('Error in fetchAllBannerData:', err);
         return [];
     }
+}, ['home-banner-data-v2'], { revalidate: 60, tags: ['home-banner-data'] });
+
+export async function fetchAllBannerData(): Promise<BannerItem[]> {
+    return fetchAllBannerDataCached();
 }

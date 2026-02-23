@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import InquiryListClient from './InquiryListClient';

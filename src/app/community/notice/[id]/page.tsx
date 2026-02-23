@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
 import { Metadata } from 'next';

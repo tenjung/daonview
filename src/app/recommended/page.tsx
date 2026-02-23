@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { isRole, USER_ROLES } from '@/constants/role';
 
 const REGION_MAP: Record<string, string> = {
   seoul: '서울', gyeonggi: '경기', incheon: '인천', busan: '부산',
@@ -42,7 +44,7 @@ export default function RecommendedCampaigns() {
     }
 
     // 인플루언서가 아닌 경우 리다이렉트
-    if (profile && profile.role !== 'INFLUENCER') {
+    if (profile && !isRole(profile.role, USER_ROLES.INFLUENCER)) {
       router.push('/');
       return;
     }
@@ -55,7 +57,7 @@ export default function RecommendedCampaigns() {
         const { data: campaignData, error: campaignError } = await supabase
           .from('campaigns')
           .select('*')
-          .in('status', ['RECRUITING', 'ONGOING'])
+          .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
           .order('created_at', { ascending: false });
 
         if (campaignError) throw campaignError;

@@ -5,7 +5,7 @@ import {
     CarouselContent, 
     CarouselItem 
 } from "@/components/ui/carousel";
-import { Sparkles, Gem, Zap, Activity, LucideIcon } from 'lucide-react';
+import { FilePenLine, Search, ShieldCheck, Clapperboard, LucideIcon } from 'lucide-react';
 
 interface Feature {
     icon: LucideIcon;
@@ -22,7 +22,7 @@ interface Feature {
 
 const features: Feature[] = [
     {
-        icon: Sparkles,
+        icon: FilePenLine,
         title: 'AI 자동 원고 생성',
         subtitle: 'Efficiency',
         description: '"사진만 보내주세요." 상황과 문맥을 분석해 AI가 3분 만에 최적화된 포스팅 원고를 대신 써드립니다.',
@@ -32,7 +32,7 @@ const features: Feature[] = [
         borderColor: 'border-slate-100 group-hover:border-blue-200'
     },
     {
-        icon: Gem,
+        icon: Search,
         title: '황금 키워드 발굴',
         subtitle: 'Strategy',
         description: '아무리 써도 노출이 안 되나요? 경쟁은 적고 검색량은 폭발적인 \'황금 키워드\'를 쏙쏙 골라 떠먹여 드립니다.',
@@ -44,7 +44,7 @@ const features: Feature[] = [
         highlight: true
     },
     {
-        icon: Zap,
+        icon: ShieldCheck,
         title: '콘텐츠 누락 판별기',
         subtitle: 'Risk Control',
         description: '"내 리뷰가 보이지 않는다면?" 정성껏 만든 콘텐츠가 검색에서 누락되었는지, 1초 만에 상태를 진단해 드립니다.',
@@ -54,10 +54,10 @@ const features: Feature[] = [
         borderColor: 'border-slate-100 group-hover:border-rose-200'
     },
     {
-        icon: Activity,
-        title: '채널 정밀 진단',
-        subtitle: 'Growth',
-        description: '내 채널은 상위 몇 %일까요? 지수, 영향력 상태, 성장 가능성까지 한눈에 파악하고 처방전을 받으세요.',
+        icon: Clapperboard,
+        title: '영상 제작 도우미',
+        subtitle: 'Production',
+        description: '원고 / 이미지 기반으로 영상 생성까지 한 번에 연결해 제작 시간을 크게 줄여드립니다.',
         gradient: 'from-emerald-500/20 to-teal-600/20',
         glowColor: 'group-hover:shadow-emerald-500/10',
         iconColor: 'text-emerald-500',

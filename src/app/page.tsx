@@ -1,18 +1,34 @@
-import Link from 'next/link';
-import { Puzzle, Rocket, Shield, BarChart3 } from 'lucide-react';
-import CampaignCard from '@/components/CampaignCard';
+import { unstable_cache } from 'next/cache';
 import InteractiveRollingBanner from '@/components/InteractiveRollingBanner';
 import StaticPromoBanners from '@/components/StaticPromoBanners';
-import { supabase } from '@/lib/supabaseClient';
-import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { getPublicServerClient } from '@/lib/supabase/publicServer';
 import { fetchAllBannerData } from '@/lib/bannerUtils';
-import CampaignSkeleton from '@/components/CampaignSkeleton';
-import CampaignCarousel from '@/components/CampaignCarousel';
+import CampaignSection from '@/components/home/CampaignSection';
 import KakaoBanner from '@/components/KakaoBanner';
 import BoardList from '@/components/board/BoardList';
 import FeaturesCarousel from '@/components/FeaturesCarousel';
 
 export const revalidate = 60; // ISR: 1분마다 재생성
+
+const fetchLatestNotices = unstable_cache(
+    async () => {
+        const supabase = getPublicServerClient();
+        const { data, error } = await supabase
+            .from('notices')
+            .select('id, type, title, created_at, view_count')
+            .order('created_at', { ascending: false })
+            .limit(3);
+
+        if (error) {
+            console.error('[Home] Notice Fetch Error:', error);
+            return [];
+        }
+
+        return data ?? [];
+    },
+    ['home-notice-data-v1'],
+    { revalidate: 60, tags: ['home-notices'] }
+);
 
 export default async function Home() {
     // Fetch banner items for SSR (includes campaign data)
@@ -73,18 +89,7 @@ export default async function Home() {
             created_at: ''
         }));
 
-    // Fetch latest notices from database
-    const { data: noticesData, error: noticeFetchError } = await supabase
-        .from('notices')
-        .select('id, type, title, created_at, view_count')
-        .order('created_at', { ascending: false })
-        .limit(3);
-
-    if (noticeFetchError) {
-        console.error('[Home] Notice Fetch Error:', noticeFetchError);
-    }
-
-    const notices = noticesData || [];
+    const notices = await fetchLatestNotices();
 
     return (
         <div className="bg-background">
@@ -94,73 +99,41 @@ export default async function Home() {
             {/* Static Promotional Banners */}
             <StaticPromoBanners />
 
-            {/* New Campaigns Section (4 items) */}
-            <section className="bg-gradient-to-b from-white to-rose-50 pt-8 pb-8">
-                <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
-                    <div className="flex justify-between items-end mb-8">
-                        <div>
-                            <span className="inline-block bg-pink-100 text-primary px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">NEW ARRIVALS</span>
-                            <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
-                                따끈따끈 신규 캠페인 <span className="text-primary">🔥</span>
-                            </h2>
-                        </div>
-                        <Link href="/campaigns?sort=new" className="text-sm font-bold text-gray-400 hover:text-primary transition-colors flex items-center gap-1 group">
-                            전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
-                        </Link>
-                    </div>
-                    <CampaignCarousel
-                        campaigns={latestCampaigns}
-                        maxItems={4}
-                        showNavigation={false}
-                    />
-                </div>
-            </section>
+            <CampaignSection
+                badge="NEW ARRIVALS"
+                badgeClassName="bg-pink-100 text-primary"
+                title="따끈따끈 신규 캠페인"
+                titleEmoji="🔥"
+                sectionClassName="bg-gradient-to-b from-white to-rose-50 pt-8 pb-8"
+                viewAllHref="/campaigns?sort=new"
+                viewAllClassName="text-gray-400 hover:text-primary"
+                campaigns={latestCampaigns}
+            />
 
             {/* Steady (Always Open) Campaigns Section */}
             {steadyCampaigns.length > 0 && (
-                <section className="bg-gradient-to-b from-rose-50 to-indigo-50 pb-8 pt-8">
-                    <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
-                        <div className="flex justify-between items-end mb-8">
-                            <div>
-                                <span className="inline-block bg-indigo-100 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">ALWAYS OPEN</span>
-                                <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
-                                    언제든지 신청 가능한 꿀 캠페인 <span className="text-indigo-500">♾️</span>
-                                </h2>
-                            </div>
-                            <Link href="/campaigns?sort=steady" className="text-sm font-bold text-gray-400 hover:text-indigo-600 transition-colors flex items-center gap-1 group">
-                                전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
-                            </Link>
-                        </div>
-                        <CampaignCarousel
-                            campaigns={steadyCampaigns}
-                            maxItems={4}
-                            showNavigation={false}
-                        />
-                    </div>
-                </section>
+                <CampaignSection
+                    badge="ALWAYS OPEN"
+                    badgeClassName="bg-indigo-100 text-indigo-600"
+                    title="언제든지 신청 가능한 꿀 캠페인"
+                    titleEmoji="♾️"
+                    sectionClassName="bg-gradient-to-b from-rose-50 to-indigo-50 pb-8 pt-8"
+                    viewAllHref="/campaigns?sort=steady"
+                    viewAllClassName="text-gray-400 hover:text-indigo-600"
+                    campaigns={steadyCampaigns}
+                />
             )}
 
-            {/* Popular Campaigns Section (4 items) */}
-            <section className="bg-gradient-to-b from-indigo-50 to-white pb-16 pt-8 border-b border-rose-100">
-                <div className="w-full max-w-[1200px] mx-auto px-4 md:px-10">
-                    <div className="flex justify-between items-end mb-8">
-                        <div>
-                            <span className="inline-block bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider">HOT & POPULAR</span>
-                            <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
-                                인기 폭발! 베스트 체험단 <span className="text-amber-400">🏆</span>
-                            </h2>
-                        </div>
-                        <Link href="/campaigns?sort=popular" className="text-sm font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1 group">
-                            전체보기 <span className="group-hover:translate-x-1 transition-transform">&gt;</span>
-                        </Link>
-                    </div>
-                    <CampaignCarousel
-                        campaigns={popularCampaigns}
-                        maxItems={4}
-                        showNavigation={false}
-                    />
-                </div>
-            </section>
+            <CampaignSection
+                badge="HOT & POPULAR"
+                badgeClassName="bg-blue-100 text-blue-600"
+                title="인기 폭발! 베스트 체험단"
+                titleEmoji="🏆"
+                sectionClassName="bg-gradient-to-b from-indigo-50 to-white pb-16 pt-8 border-b border-rose-100"
+                viewAllHref="/campaigns?sort=popular"
+                viewAllClassName="text-gray-400 hover:text-blue-600"
+                campaigns={popularCampaigns}
+            />
 
             {/* KakaoTalk Channel Banner */}
             <KakaoBanner />

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Handshake, CreditCard, Building2, Info, Check, ChevronRight, ChevronLeft, Gift, ShoppingBag, Search, Loader2, CheckCircle2 } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { useAuthStore } from '@/store/authStore';

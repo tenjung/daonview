@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';

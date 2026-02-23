@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
 export interface CampaignCounts {
     pending: number;
@@ -22,7 +23,7 @@ export async function fetchAdminCampaignCounts(supabase: SupabaseClient): Promis
 
             // RECRUITING 및 ONGOING 상태 (날짜 필터링용)
             supabase.from('campaigns').select('id, recruitment_start_date, created_at, status')
-                .in('status', ['RECRUITING', 'ONGOING']),
+                .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[]),
 
             // 완료 (COMPLETED)
             supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED'),

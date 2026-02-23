@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 
 const PLATFORMS = [
   { id: 'BLOG', name: '블로거', icon: '📝', color: 'bg-emerald-500' },

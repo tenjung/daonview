@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { useAuthStore } from '@/store/authStore';
 import { ADVERTISER_LINKS } from '@/constants/navigation';

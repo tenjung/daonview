@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useParams } from 'next/navigation';
+import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
+import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface InquiryDetail {
     id: string;
@@ -27,12 +28,10 @@ interface InquiryDetail {
 
 export default function InquiryDetailClient() {
     const params = useParams();
-    const router = useRouter();
     const [inquiry, setInquiry] = useState<InquiryDetail | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [answerText, setAnswerText] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const supabase = createClient();
 
     useEffect(() => {
         const fetchInquiry = async () => {
@@ -106,16 +105,6 @@ export default function InquiryDetailClient() {
         }
     };
 
-    const getCategoryLabel = (category: string) => {
-        const categories: Record<string, string> = {
-            'EXPERIENCE': '체험단 문의',
-            'POINT': '포인트/정산',
-            'ERROR': '오류 신고',
-            'AD_PARTNERSHIP': '제휴/광고',
-        };
-        return categories[category] || category;
-    };
-
     if (isLoading) return <div className="p-8 text-center text-slate-500">로딩중...</div>;
     if (!inquiry) return <div className="p-8 text-center text-slate-500">문의를 찾을 수 없습니다.</div>;
 
@@ -127,13 +116,13 @@ export default function InquiryDetailClient() {
                     목록으로 돌아가기
                 </Link>
                 <div className="flex items-center gap-3 mb-3">
-                    <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${inquiry.status === 'ANSWERED'
+                    <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${isInquiryAnswered(inquiry.status)
                         ? 'bg-blue-100 text-blue-600'
                         : 'bg-slate-100 text-slate-500'
                         }`}>
-                        {inquiry.status === 'ANSWERED' ? '답변완료' : '접수대기'}
+                        {getInquiryStatusLabel(inquiry.status)}
                     </span>
-                    <span className="text-sm text-primary font-bold">{getCategoryLabel(inquiry.category)}</span>
+                    <span className="text-sm text-primary font-bold">{getInquiryCategoryLabel(inquiry.category)}</span>
                     <span className="text-sm text-slate-400 ml-auto font-medium">
                         {format(new Date(inquiry.created_at), 'yyyy.MM.dd HH:mm')}
                     </span>
@@ -166,7 +155,7 @@ export default function InquiryDetailClient() {
                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-lg">
                     <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-black">A</span>
                     관리자 답변
-                    {inquiry.status === 'ANSWERED' && (
+                    {isInquiryAnswered(inquiry.status) && (
                         <span className="text-xs font-normal text-slate-400 ml-auto">
                             최종 처리: {inquiry.answered_at && format(new Date(inquiry.answered_at), 'yyyy.MM.dd HH:mm')}
                         </span>
@@ -184,7 +173,7 @@ export default function InquiryDetailClient() {
                         disabled={isSubmitting}
                         className="btn btn-primary px-8 py-3 font-bold text-base shadow-lg shadow-primary/20"
                     >
-                        {isSubmitting ? '처리 중...' : (inquiry.status === 'ANSWERED' ? '답변 수정하기' : '답변 등록하기')}
+                        {isSubmitting ? '처리 중...' : (isInquiryAnswered(inquiry.status) ? '답변 수정하기' : '답변 등록하기')}
                     </button>
                 </div>
             </div>

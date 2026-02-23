@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Download, Trash2, Edit, Calendar } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
-import { supabase } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 interface CampaignLoaderProps {

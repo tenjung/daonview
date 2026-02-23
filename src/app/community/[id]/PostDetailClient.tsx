@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabase/client";
 import { useAuthStore } from "@/store/authStore";
 import { User, MessageSquare, Send, Trash2, Edit2, Loader2 } from "lucide-react";
 import { toast } from "sonner";

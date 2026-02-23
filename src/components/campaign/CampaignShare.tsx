@@ -26,7 +26,7 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [kakaoLoaded, setKakaoLoaded] = useState(false);
-    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/campaigns/${campaignId}` : '';
+    const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/c/${campaignId}` : '';
 
     const handleKakaoInit = () => {
         if (typeof window !== 'undefined' && (window as any).Kakao) {

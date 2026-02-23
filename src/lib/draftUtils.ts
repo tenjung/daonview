@@ -1,6 +1,6 @@
 // 임시저장 캠페인 관리 유틸리티
 
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase/client';
 
 export interface DraftCampaign {
     id: string;

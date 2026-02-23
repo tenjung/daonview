@@ -9,7 +9,7 @@ import {
     ShieldCheck, Store, BarChart3, Image as ImageIcon, PieChart, 
     Headset, ChevronLeft, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { SidebarLink } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -32,7 +32,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const pathname = usePathname();
-    const searchParams = useSearchParams();
+    const [searchParamsString, setSearchParamsString] = useState('');
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
 
     // 초기 설정 및 로컬스토리지 상태 로드
@@ -42,6 +42,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
             setIsCollapsed(savedState === 'true');
         }
         setIsLoaded(true);
+        setSearchParamsString(window.location.search.replace(/^\?/, ''));
 
         const initialExpanded: Record<string, boolean> = {};
         links.forEach(link => {
@@ -49,7 +50,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                 const subUrl = new URL(sub.href, 'http://localhost');
                 const isPathMatch = pathname === subUrl.pathname;
                 if (subUrl.search) {
-                    return isPathMatch && searchParams.toString().includes(subUrl.searchParams.toString());
+                    return isPathMatch && searchParamsString.includes(subUrl.searchParams.toString());
                 }
                 return isPathMatch;
             });
@@ -59,7 +60,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
             }
         });
         setExpandedMenus(prev => ({ ...prev, ...initialExpanded }));
-    }, [links, pathname, searchParams]);
+    }, [links, pathname, searchParamsString]);
 
     const toggleCollapse = () => {
         const newState = !isCollapsed;
@@ -206,7 +207,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                         <div className="flex flex-col gap-1 ml-6 pl-4 border-l border-slate-100 mt-1 mb-2 animate-in slide-in-from-top-2 duration-300">
                                             {link.subLinks?.map((sub) => {
                                                 const subHrefUrl = new URL(sub.href, 'http://localhost');
-                                                const isParamMatch = subHrefUrl.searchParams.toString() === searchParams.toString();
+                                                const isParamMatch = subHrefUrl.searchParams.toString() === searchParamsString;
                                                 const isSubActive = sub.active || (pathname === subHrefUrl.pathname && (!subHrefUrl.search || isParamMatch));
 
                                                 return (

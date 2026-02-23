@@ -1,6 +1,6 @@
 // 테스트용 신청자 데이터 생성 스크립트
 // 사용법: 브라우저 콘솔에서 실행하거나, Node.js 환경에서 실행
-import { supabase } from '../src/lib/supabaseClient.ts';
+import { supabase } from '../src/lib/supabase/client.ts';
 
 console.log('🌱 Starting to seed applications...');
 
