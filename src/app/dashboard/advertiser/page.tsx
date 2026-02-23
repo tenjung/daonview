@@ -17,12 +17,12 @@ export default function AdvertiserDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isLoading && user) {
+        if (user?.id) {
             fetchCampaigns();
-        } else if (!isLoading && !user) {
+        } else if (!isLoading) {
             setLoading(false);
         }
-    }, [isLoading, user]);
+    }, [user?.id, isLoading]);
 
     async function fetchCampaigns() {
         if (!user) return;

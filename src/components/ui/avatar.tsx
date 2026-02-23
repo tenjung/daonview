@@ -17,7 +17,7 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
       <div
         ref={ref}
         className={cn(
-          "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-slate-100",
+          "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full bg-white border border-gray-200 shadow-sm",
           className
         )}
         {...props}

@@ -11,12 +11,12 @@ export default function UnifiedAdvertiserPage() {
     const [loading, setLoading] = React.useState(true)
 
     React.useEffect(() => {
-        if (!authLoading && user) {
+        if (user?.id) {
             fetchCampaigns()
-        } else if (!authLoading && !user) {
+        } else if (!authLoading) {
             setLoading(false)
         }
-    }, [authLoading, user])
+    }, [user?.id, authLoading])
 
     const fetchCampaigns = async () => {
         if (!user) return

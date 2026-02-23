@@ -29,16 +29,16 @@ export default function InfluencerDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!authLoading && user) {
+        if (user?.id) {
             if (profile?.role === 'ADVERTISER') {
                 router.replace('/dashboard/advertiser');
                 return;
             }
             fetchDashboardData();
-        } else if (!authLoading && !user) {
+        } else if (!authLoading) {
             setLoading(false);
         }
-    }, [authLoading, user, profile, router]);
+    }, [user?.id, profile?.role, authLoading, router]);
 
     async function fetchDashboardData() {
         if (!user) return;
