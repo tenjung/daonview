@@ -513,10 +513,32 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         updateField(field, formatted);
     };
 
-    // 플랫폼 토글 (하이브리드 지원 및 타입별 동기화)
+    // 플랫폼 토글 (타입별 분기: 방문/기자단=단일선택, 배송체험단=다중선택)
     const toggleDeliveryPlatform = (plat: 'review' | 'naver' | 'instagram') => {
-        const { includeReview, includeNaver, includeInstagram, campaignType } = formData;
-        
+        const { campaignType } = formData;
+
+        // ✅ 방문체험단 / 기자단: 라디오 버튼 방식 (단일 선택)
+        if (campaignType === 'VISIT' || campaignType === 'PRESS') {
+            if (plat === 'naver') {
+                updateFields({
+                    includeNaver: true,
+                    includeInstagram: false,
+                    includeReview: false,
+                    platform: 'BLOG'
+                });
+            } else if (plat === 'instagram') {
+                updateFields({
+                    includeInstagram: true,
+                    includeNaver: false,
+                    includeReview: false,
+                    platform: 'INSTAGRAM'
+                });
+            }
+            return;
+        }
+
+        // ✅ 배송체험단: 구매평 토글 자유 / 네이버↔인스타 상호 배타 (동시선택 불가)
+        const { includeReview, includeNaver, includeInstagram } = formData;
         let newReview = includeReview;
         let newNaver = includeNaver;
         let newInstagram = includeInstagram;
@@ -524,26 +546,18 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         if (plat === 'review') {
             newReview = !includeReview;
         } else if (plat === 'naver') {
-            if (!includeNaver && includeInstagram) {
-                toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n인스타그램을 먼저 해제해주세요.');
-                return;
-            }
             newNaver = !includeNaver;
+            if (newNaver) newInstagram = false; // 네이버 선택 시 인스타 자동 해제
         } else if (plat === 'instagram') {
-            if (!includeInstagram && includeNaver) {
-                toast.error('네이버와 인스타그램은 동시에 선택할 수 없습니다.\n네이버를 먼저 해제해주세요.');
-                return;
-            }
             newInstagram = !includeInstagram;
+            if (newInstagram) newNaver = false; // 인스타 선택 시 네이버 자동 해제
         }
 
         // 주 플랫폼 결정 로직 (DB 저장용)
         let primaryPlatform = formData.platform;
-        if (campaignType === 'DELIVERY') {
-            if (newNaver) primaryPlatform = 'BLOG';
-            else if (newInstagram) primaryPlatform = 'INSTAGRAM';
-            else if (newReview) primaryPlatform = 'PURCHASE';
-        }
+        if (newNaver) primaryPlatform = 'BLOG';
+        else if (newInstagram) primaryPlatform = 'INSTAGRAM';
+        else if (newReview) primaryPlatform = 'PURCHASE';
 
         updateFields({
             includeReview: newReview,
@@ -855,17 +869,21 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                     </button>
                 </div>
             </section>
-            {/* 배송체험단/방문체험단/기자단 - 플랫폼 토글 선택 (하이브리드 지원) */}
+            {/* 배송체험단/방문체험단/기자단 - 플랫폼 선택 */}
             {formData.campaignType && (
                 <section id="platform-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 outline-none" tabIndex={-1}>
                     <h2 className="text-xl font-bold text-gray-900 mb-4">진행 방식 및 플랫폼 선택</h2>
                     <p className="text-sm text-gray-600 mb-4">
-                        원하는 리뷰 플랫폼을 선택하세요. {formData.campaignType === 'DELIVERY' ? '구매평 단독, 네이버/인스타 단독, 또는 구매평+SNS 조합이 가능합니다.' : '네이버 블로그 또는 인스타그램을 선택할 수 있습니다.'}
+                        {formData.campaignType === 'DELIVERY'
+                            ? '원하는 리뷰 플랫폼을 선택하세요. 구매평 단독, 네이버/인스타 단독, 또는 구매평+SNS 조합이 가능합니다.'
+                            : '리뷰를 작성할 플랫폼을 하나만 선택하세요.'
+                        }
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {/* 구매평 토글 (배송형만) */}
-                        {formData.campaignType === 'DELIVERY' && (
+                    {/* ✅ 배송체험단: 다중선택 (기존 방식) */}
+                    {formData.campaignType === 'DELIVERY' && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {/* 구매평 토글 */}
                             <button
                                 onClick={() => toggleDeliveryPlatform('review')}
                                 className={`p-4 rounded-lg border-2 transition-all ${formData.includeReview
@@ -885,50 +903,109 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 </div>
                                 <p className="text-sm text-gray-600">쇼핑몰 구매평 작성</p>
                             </button>
-                        )}
 
-                        {/* 네이버 블로그 토글 */}
-                        <button
-                            onClick={() => toggleDeliveryPlatform('naver')}
-                            className={`p-4 rounded-lg border-2 transition-all ${formData.includeNaver
-                                ? 'border-green-500 bg-green-50'
-                                : 'border-gray-200 hover:border-green-300'
-                                }`}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold">네이버 블로그</h3>
-                                {formData.includeNaver && (
-                                    <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
-                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600">네이버 블로그 포스팅</p>
-                        </button>
+                            {/* 네이버 블로그 토글 */}
+                            <button
+                                onClick={() => toggleDeliveryPlatform('naver')}
+                                className={`p-4 rounded-lg border-2 transition-all ${formData.includeNaver
+                                    ? 'border-green-500 bg-green-50'
+                                    : 'border-gray-200 hover:border-green-300'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-semibold">네이버 블로그</h3>
+                                    {formData.includeNaver && (
+                                        <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600">네이버 블로그 포스팅</p>
+                            </button>
 
-                        {/* 인스타그램 토글 */}
-                        <button
-                            onClick={() => toggleDeliveryPlatform('instagram')}
-                            className={`p-4 rounded-lg border-2 transition-all ${formData.includeInstagram
-                                ? 'border-pink-500 bg-pink-50'
-                                : 'border-gray-200 hover:border-pink-300'
+                            {/* 인스타그램 토글 */}
+                            <button
+                                onClick={() => toggleDeliveryPlatform('instagram')}
+                                className={`p-4 rounded-lg border-2 transition-all ${formData.includeInstagram
+                                    ? 'border-pink-500 bg-pink-50'
+                                    : 'border-gray-200 hover:border-pink-300'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between mb-2">
+                                    <h3 className="font-semibold">인스타그램</h3>
+                                    {formData.includeInstagram && (
+                                        <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
+                                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600">인스타그램 포스팅</p>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ✅ 방문체험단 / 기자단: 단일선택 (라디오 방식) */}
+                    {(formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 네이버 블로그 - 라디오 */}
+                            <button
+                                onClick={() => toggleDeliveryPlatform('naver')}
+                                className={`p-5 rounded-xl border-2 transition-all text-left ${
+                                    formData.platform === 'BLOG'
+                                        ? 'border-green-500 bg-green-50 shadow-sm'
+                                        : 'border-gray-200 hover:border-green-300 hover:bg-green-50/30'
                                 }`}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-semibold">인스타그램</h3>
-                                {formData.includeInstagram && (
-                                    <div className="w-5 h-5 bg-pink-500 rounded-full flex items-center justify-center">
-                                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* 라디오 인디케이터 */}
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                        formData.platform === 'BLOG'
+                                            ? 'border-green-500 bg-green-500'
+                                            : 'border-gray-300'
+                                    }`}>
+                                        {formData.platform === 'BLOG' && (
+                                            <div className="w-2 h-2 rounded-full bg-white" />
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600">인스타그램 포스팅</p>
-                        </button>
-                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">네이버 블로그</h3>
+                                        <p className="text-sm text-gray-500 mt-0.5">네이버 블로그 포스팅</p>
+                                    </div>
+                                </div>
+                            </button>
+
+                            {/* 인스타그램 - 라디오 */}
+                            <button
+                                onClick={() => toggleDeliveryPlatform('instagram')}
+                                className={`p-5 rounded-xl border-2 transition-all text-left ${
+                                    formData.platform === 'INSTAGRAM'
+                                        ? 'border-pink-500 bg-pink-50 shadow-sm'
+                                        : 'border-gray-200 hover:border-pink-300 hover:bg-pink-50/30'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    {/* 라디오 인디케이터 */}
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                                        formData.platform === 'INSTAGRAM'
+                                            ? 'border-pink-500 bg-pink-500'
+                                            : 'border-gray-300'
+                                    }`}>
+                                        {formData.platform === 'INSTAGRAM' && (
+                                            <div className="w-2 h-2 rounded-full bg-white" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-900">인스타그램</h3>
+                                        <p className="text-sm text-gray-500 mt-0.5">인스타그램 포스팅</p>
+                                    </div>
+                                </div>
+                            </button>
+                        </div>
+                    )}
 
                     {/* 선택된 조합 표시 */}
                     {(formData.includeReview || formData.includeNaver || formData.includeInstagram) && (
@@ -980,19 +1057,22 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl flex items-start gap-3">
-                                <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <p className="font-bold text-indigo-950 mb-2 text-[14px]">
-                                        1석2조 혜택! 구매평과 SNS를 함께 진행하세요
-                                    </p>
-                                    <ul className="text-[13px] text-indigo-700 space-y-1.5 font-medium">
-                                        <li>• 제품비용 절약: 한 번의 제품 제공으로 2가지 리뷰 진행</li>
-                                        <li>• 시간 효율: 동시 진행으로 캠페인 기간 단축</li>
-                                        <li>• 다양한 노출: 쇼핑몰 + SNS 채널 동시 마케팅</li>
-                                    </ul>
+                            {/* 1석2조 안내: 배송체험단 전용 */}
+                            {formData.campaignType === 'DELIVERY' && (
+                                <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl flex items-start gap-3">
+                                    <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="font-bold text-indigo-950 mb-2 text-[14px]">
+                                            1석2조 혜택! 구매평과 SNS를 함께 진행하세요
+                                        </p>
+                                        <ul className="text-[13px] text-indigo-700 space-y-1.5 font-medium">
+                                            <li>• 제품비용 절약: 한 번의 제품 제공으로 2가지 리뷰 진행</li>
+                                            <li>• 시간 효율: 동시 진행으로 캠페인 기간 단축</li>
+                                            <li>• 다양한 노출: 쇼핑몰 + SNS 채널 동시 마케팅</li>
+                                        </ul>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     )}
                 </section>

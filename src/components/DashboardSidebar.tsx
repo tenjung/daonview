@@ -7,7 +7,8 @@ import {
     LayoutDashboard, Megaphone, Globe, Heart, UserCog, User, 
     Truck, Tags, MessageSquare, Users, ClipboardCheck, 
     ShieldCheck, Store, BarChart3, Image as ImageIcon, PieChart, 
-    Headset, ChevronLeft, PanelLeftClose, PanelLeftOpen
+    Headset, ChevronLeft, PanelLeftClose, PanelLeftOpen,
+    CreditCard, Receipt
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { SidebarLink } from '@/constants/navigation';
@@ -24,7 +25,7 @@ const IconMap: Record<string, any> = {
     LayoutDashboard, Megaphone, Globe, Heart, UserCog, User,
     Truck, Tags, MessageSquare, Users, ClipboardCheck,
     ShieldCheck, Store, BarChart3, Image: ImageIcon, PieChart,
-    Headset
+    Headset, CreditCard, Receipt
 };
 
 export default function DashboardSidebar({ userType, userName, links }: DashboardSidebarProps) {
