@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -33,7 +33,7 @@ const FEATURES = [
     '전담 담당자 매칭',
 ];
 
-export default function UnlimitedPaymentPage() {
+function UnlimitedPaymentContent() {
     const { profile } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -315,5 +315,17 @@ export default function UnlimitedPaymentPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function UnlimitedPaymentPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen bg-background items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+            </div>
+        }>
+            <UnlimitedPaymentContent />
+        </Suspense>
     );
 }
