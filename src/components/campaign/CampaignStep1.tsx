@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronRight, Plus, X, Users, Calendar, Save, GripVertical, Building2, Infinity, Info, Megaphone, ChevronDown } from 'lucide-react';
+import { ChevronRight, Plus, X, Users, Calendar as CalendarIcon, Save, GripVertical, Building2, Infinity, Info, Megaphone, ChevronDown } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,13 @@ import BrandSelect from './BrandSelect';
 import { useAuthStore } from '@/store/authStore';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { useCampaignStore } from '@/store/campaignStore';
+import { useSubscription } from '@/hooks/useSubscription';
 import NaverMap from './NaverMap';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 import {
     DndContext,
     closestCenter,
@@ -207,6 +213,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     // Zustand 스토어 사용
     const campaignStore = useCampaignStore();
     const formData = campaignStore; // 스토어 자체가 데이터를 포함하고 있음
+
+    // 무제한 이용권 구독 상태
+    const { isUnlimited } = useSubscription();
 
     // HUD 연동 트리거 감시
     const lastTrigger = useRef(submitTrigger);
@@ -1041,18 +1050,27 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
                                     {/* 진행비용 */}
                                     <div className="text-right ml-4">
-                                        <p className="text-2xl font-bold text-blue-600">
-                                            {(() => {
-                                                if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
-                                                    return '10,000원';
-                                                }
-                                                // 배송체험단 (DELIVERY)
-                                                if (formData.includeReview && !formData.includeNaver && !formData.includeInstagram) return '5,000원';
-                                                if (!formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '5,000원';
-                                                if (formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '9,000원';
-                                                return '0원';
-                                            })()}
-                                        </p>
+                                        {isUnlimited ? (
+                                            <div className="flex flex-col items-end gap-1">
+                                                <p className="text-2xl font-bold text-purple-600">0원</p>
+                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-bold">
+                                                    ∞ 무제한 이용권 혜택적용
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <p className="text-2xl font-bold text-blue-600">
+                                                {(() => {
+                                                    if (formData.campaignType === 'VISIT' || formData.campaignType === 'PRESS') {
+                                                        return '10,000원';
+                                                    }
+                                                    // 배송체험단 (DELIVERY)
+                                                    if (formData.includeReview && !formData.includeNaver && !formData.includeInstagram) return '5,000원';
+                                                    if (!formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '5,000원';
+                                                    if (formData.includeReview && (formData.includeNaver || formData.includeInstagram)) return '9,000원';
+                                                    return '0원';
+                                                })()}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -1767,7 +1785,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 {/* 가로 구분선 */}
                 <div className="border-t border-gray-200 mb-6"></div>
 
-                <div className="grid grid-cols-2 gap-8">
+                <div className="flex flex-col gap-10">
                     {/* 왼쪽: 모집 정보 */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 mb-4">
@@ -1847,7 +1865,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                     {/* 오른쪽: 모집 일정 */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2 mb-4">
-                            <Calendar size={20} className="text-blue-600" />
+                            <CalendarIcon size={20} className="text-blue-600" />
                             <h3 className="text-lg font-semibold text-gray-800">모집 일정</h3>
                         </div>
 
@@ -1913,130 +1931,219 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             </div>
                         </div>
 
-                        {/* 날짜 입력 섹션 */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                                    모집 시작일 <span className="text-rose-500">*</span>
-                                    {formData.recruitmentStartDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                </label>
-                                <div className="relative group">
-                                    <input
-                                        id="start-date"
-                                        type="date"
-                                        value={formData.recruitmentStartDate || ''}
-                                        onChange={(e) => {
-                                            campaignStore.setField('recruitmentStartDate', e.target.value);
-                                            validateField('recruitmentStartDate', e.target.value);
-                                        }}
-                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
-                                    />
-                                    <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
+                        {/* 날짜 입력 섹션 (좌/우 2단 레이아웃 분리) */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                            {/* 좌측: 모집 및 선정 일정 */}
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                        모집 시작일 <span className="text-rose-500">*</span>
+                                        {formData.recruitmentStartDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                    </label>
+                                    <div className="relative group">
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <button
+                                                    type="button"
+                                                    id="start-date"
+                                                    className={cn(
+                                                        "w-full flex justify-between items-center px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none transition-all hover:border-gray-300",
+                                                        !formData.recruitmentStartDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {formData.recruitmentStartDate ? format(new Date(formData.recruitmentStartDate), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
+                                                    <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                                                </button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={formData.recruitmentStartDate ? new Date(formData.recruitmentStartDate) : undefined}
+                                                    onSelect={(date) => {
+                                                        if (date) {
+                                                            const formatted = format(date, 'yyyy-MM-dd');
+                                                            campaignStore.setField('recruitmentStartDate', formatted);
+                                                            validateField('recruitmentStartDate', formatted);
+                                                        }
+                                                    }}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 오늘 날짜</p>
                                 </div>
-                                <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 오늘 날짜</p>
+
+                                {formData.scheduleType !== 'always' && (
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
+                                                선정 발표일 <span className="text-rose-500">*</span>
+                                                {formData.firstSelectionDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
+                                            </label>
+                                            <div className="relative group">
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className={cn(
+                                                                "w-full flex justify-between items-center px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none transition-all hover:border-gray-300",
+                                                                !formData.firstSelectionDate && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {formData.firstSelectionDate ? format(new Date(formData.firstSelectionDate), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
+                                                            <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={formData.firstSelectionDate ? new Date(formData.firstSelectionDate) : undefined}
+                                                            onSelect={(date) => {
+                                                                if (date) {
+                                                                    campaignStore.setField('firstSelectionDate', format(date, 'yyyy-MM-dd'));
+                                                                }
+                                                            }}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
+                                            </div>
+                                        </div>
+
+                                        {/* 맞춤 설정일 경우 빠른 설정 버튼 및 안내 문구 노출 */}
+                                        {formData.scheduleType === 'custom' && (
+                                            <div className="space-y-2 mt-2">
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFirstSelectionDateByWeeks(1)}
+                                                        className="flex-1 px-3 py-3 text-sm font-medium bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                                                    >
+                                                        1주일 뒤
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFirstSelectionDateByWeeks(2)}
+                                                        className="flex-1 px-3 py-3 text-sm font-medium bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
+                                                    >
+                                                        2주일 뒤
+                                                    </button>
+                                                </div>
+                                                <p className="text-[11px] text-gray-400 mt-1">
+                                                    선정이 완료되지 않으면, 모집 기간이 자동으로 7일 연장됩니다.
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
-                            {formData.scheduleType !== 'always' && (
-                                <>
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                                            선정 발표일 <span className="text-rose-500">*</span>
-                                            {formData.firstSelectionDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                        </label>
-                                        <div className="relative group">
-                                            <input
-                                                type="date"
-                                                value={formData.firstSelectionDate || ''}
-                                                onChange={(e) => campaignStore.setField('firstSelectionDate', e.target.value)}
-                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all pr-10 hover:border-gray-300"
-                                            />
-                                            <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 group-hover:text-gray-600 transition-colors pointer-events-none" size={18} />
-                                        </div>
-                                    </div>
-
-                                    <div className="md:col-span-2 bg-indigo-50/30 rounded-2xl border border-indigo-100 overflow-hidden">
-                                        <div className="p-6">
-                                            <label className="text-sm font-black flex items-center gap-1.5 text-indigo-900 mb-3">
+                            {/* 우측: 리뷰 관련 일정 (또는 상시 모집 안내문) */}
+                            {formData.scheduleType !== 'always' ? (
+                                <div className="h-full">
+                                    <div className="bg-indigo-50/40 rounded-2xl border border-indigo-100 p-6 h-full flex flex-col gap-6">
+                                        <div className="space-y-4">
+                                            <label className="text-sm font-black flex items-center gap-1.5 text-indigo-900">
                                                 리뷰 마감일 <span className="text-rose-500">*</span>
                                                 {formData.reviewDeadline && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
                                             </label>
                                             <div className="relative group">
-                                                <input
-                                                    type="date"
-                                                    value={formData.reviewDeadline || ''}
-                                                    onChange={(e) => campaignStore.setField('reviewDeadline', e.target.value)}
-                                                    className="w-full h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all pr-10"
-                                                />
-                                                <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" size={18} />
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <button
+                                                            type="button"
+                                                            className={cn(
+                                                                "w-full flex justify-between items-center h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all",
+                                                                !formData.reviewDeadline && "text-muted-foreground"
+                                                            )}
+                                                        >
+                                                            {formData.reviewDeadline ? format(new Date(formData.reviewDeadline), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
+                                                            <CalendarIcon className="h-4 w-4 text-indigo-400" />
+                                                        </button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-auto p-0" align="start">
+                                                        <Calendar
+                                                            mode="single"
+                                                            selected={formData.reviewDeadline ? new Date(formData.reviewDeadline) : undefined}
+                                                            onSelect={(date) => {
+                                                                if (date) {
+                                                                    campaignStore.setField('reviewDeadline', format(date, 'yyyy-MM-dd'));
+                                                                }
+                                                            }}
+                                                            initialFocus
+                                                        />
+                                                    </PopoverContent>
+                                                </Popover>
                                             </div>
-                                            <p className="text-[11px] text-indigo-500 font-bold mt-2.5 flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
+                                            <p className="text-[11px] text-indigo-500 font-bold flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
                                         </div>
+
+                                        {formData.scheduleType === 'custom' && (
+                                            <div className="space-y-2 pt-6 border-t border-indigo-200/50 mt-auto">
+                                                <label className="block text-sm font-bold text-indigo-900 mb-1">
+                                                    리뷰 제출 마감일
+                                                </label>
+                                                {formData.campaignType === 'DELIVERY' ? (
+                                                    <select
+                                                        value={formData.reviewDeadlineDays || '7'}
+                                                        onChange={(e) => campaignStore.setField('reviewDeadlineDays', e.target.value)}
+                                                        className="w-full h-12 px-4 bg-white border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm outline-none transition-all font-bold text-indigo-900"
+                                                    >
+                                                        <option value="5">제품 배송 완료 후 5일 이내</option>
+                                                        <option value="7">제품 배송 완료 후 7일 이내</option>
+                                                        <option value="10">제품 배송 완료 후 10일 이내</option>
+                                                    </select>
+                                                ) : (
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className={cn(
+                                                                    "w-full flex justify-between items-center h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-indigo-900",
+                                                                    !formData.reviewDeadline && "text-muted-foreground"
+                                                                )}
+                                                            >
+                                                                {formData.reviewDeadline ? format(new Date(formData.reviewDeadline), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
+                                                                <CalendarIcon className="h-4 w-4 text-indigo-400" />
+                                                            </button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={formData.reviewDeadline ? new Date(formData.reviewDeadline) : undefined}
+                                                                onSelect={(date) => {
+                                                                    if (date) {
+                                                                        campaignStore.setField('reviewDeadline', format(date, 'yyyy-MM-dd'));
+                                                                    }
+                                                                }}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
-                                </>
+                                </div>
+                            ) : (
+                                <div className="h-full hidden md:block">
+                                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl border border-emerald-100/60 p-6 h-full flex flex-col justify-center gap-2">
+                                        <div className="flex items-center gap-2.5 mb-1">
+                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                </svg>
+                                            </div>
+                                            <h4 className="text-sm font-black text-emerald-900">원할 때 언제든, 빠른 캠페인 진행!</h4>
+                                        </div>
+                                        <p className="text-[13px] text-emerald-700 font-medium leading-relaxed">
+                                            상시 모집은 대기 시간 없이 <strong className="text-emerald-800">빠른 모집-선정-리뷰</strong>가 가능합니다. 마음에 드는 인플루언서를 발견하면 즉시 선정하여 캠페인을 매끄럽게 진행해 보세요.
+                                        </p>
+                                    </div>
+                                </div>
                             )}
                         </div>
-
-                        {formData.scheduleType === 'custom' && (
-                            <>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        1차 선정 마감일
-                                    </label>
-                                    <div className="space-y-2">
-                                        <input
-                                            type="date"
-                                            value={formData.firstSelectionDate || ''}
-                                            onChange={(e) => campaignStore.setField('firstSelectionDate', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                        {/* 빠른 선택 버튼 */}
-                                        <div className="flex gap-2">
-                                            <button
-                                                type="button"
-                                                onClick={() => setFirstSelectionDateByWeeks(1)}
-                                                className="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                                            >
-                                                1주일 뒤
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFirstSelectionDateByWeeks(2)}
-                                                className="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
-                                            >
-                                                2주일 뒤
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        선정이 완료되지 않으면, 모집 기간이 자동으로 7일 연장됩니다.
-                                    </p>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        리뷰 제출 마감일
-                                    </label>
-                                    {formData.campaignType === 'DELIVERY' ? (
-                                        <select
-                                            value={formData.reviewDeadlineDays || '7'}
-                                            onChange={(e) => campaignStore.setField('reviewDeadlineDays', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        >
-                                            <option value="5">제품 배송 완료 후 5일 이내</option>
-                                            <option value="7">제품 배송 완료 후 7일 이내</option>
-                                            <option value="10">제품 배송 완료 후 10일 이내</option>
-                                        </select>
-                                    ) : (
-                                        <input
-                                            type="date"
-                                            value={formData.reviewDeadline || ''}
-                                            onChange={(e) => campaignStore.setField('reviewDeadline', e.target.value)}
-                                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                        />
-                                    )}
-                                </div>
-                            </>
-                        )}
                     </div>
                 </div>
             </section>

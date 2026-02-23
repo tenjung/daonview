@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Handshake, CreditCard, Building2, Info, Check, ChevronRight, ChevronLeft, Gift, ShoppingBag, Search, Loader2, CheckCircle2 } from 'lucide-react';
+import { Handshake, CreditCard, Building2, Info, Check, ChevronRight, ChevronLeft, Gift, ShoppingBag, Search, Loader2, CheckCircle2, Infinity } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
+import { useSubscription } from '@/hooks/useSubscription';
 
 interface Step3Data {
     paymentMethod: 'card' | 'transfer' | 'free' | null;
@@ -46,10 +47,27 @@ export default function CampaignStep3({
     const { user } = useAuthStore();
     const isAdmin = user?.user_metadata?.role === 'admin';
     const { requestPayment } = usePortonePayment();
+    const { isUnlimited } = useSubscription();
+
+    // 무제한 이용권 자동 선택
+    useEffect(() => {
+        if (isUnlimited && !formData.paymentMethod) {
+            store.updateFields({
+                paymentMethod: 'free',
+                promotionType: 'UNLIMITED'
+            });
+        }
+    }, [isUnlimited, formData.paymentMethod, store.updateFields]);
 
     // 비용 계산
     const calculateCosts = () => {
         const recruitmentCount = parseInt(formData.totalRecruitment) || 0;
+
+        // 선택된 플랫폼 이름 배열
+        const selectedPlatformNames = [];
+        if (formData.includeReview) selectedPlatformNames.push('구매평');
+        if (formData.includeNaver) selectedPlatformNames.push('네이버');
+        if (formData.includeInstagram) selectedPlatformNames.push('인스타');
 
         // 선택된 플랫폼 개수 확인
         const selectedPlatforms = [
@@ -57,6 +75,26 @@ export default function CampaignStep3({
             formData.includeNaver,
             formData.includeInstagram
         ].filter(Boolean).length;
+
+        // 무제한 이용권 구독자는 진행비 0원
+        if (isUnlimited) {
+            const productPayment = parseInt(formData.productPrice?.replace(/,/g, '') || '0') || 0;
+            const subtotal = productPayment;
+            const vat = Math.floor(subtotal * 0.1);
+            const totalCost = subtotal + vat;
+
+            return {
+                recruitmentCount,
+                reviewCostPerPerson: 0,
+                totalReviewCost: 0,
+                productPayment,
+                subtotal,
+                vat,
+                totalCost,
+                selectedPlatformNames,
+                isUnlimitedFree: true,
+            };
+        }
 
         // 플랫폼별 가격 계산
         let reviewCostPerPerson = 0;
@@ -83,12 +121,6 @@ export default function CampaignStep3({
 
         // 총 결제 금액
         const totalCost = subtotal + vat;
-
-        // 선택된 플랫폼 이름 배열
-        const selectedPlatformNames = [];
-        if (formData.includeReview) selectedPlatformNames.push('구매평');
-        if (formData.includeNaver) selectedPlatformNames.push('네이버');
-        if (formData.includeInstagram) selectedPlatformNames.push('인스타');
 
         return {
             recruitmentCount,
@@ -311,13 +343,30 @@ export default function CampaignStep3({
 
                 <div className="space-y-4">
                     <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                        <span className="text-gray-700">
-                            {costs.selectedPlatformNames.join('+')} 비용 ({costs.recruitmentCount}명 × {costs.reviewCostPerPerson.toLocaleString()}원)
-                        </span>
-                        <span className="font-medium text-gray-900">
-                            {costs.totalReviewCost.toLocaleString()}원
+                        <div className="flex flex-col gap-1">
+                            <span className="text-gray-700">
+                                {costs.selectedPlatformNames.join('+')} 비용 ({costs.recruitmentCount}명 × {costs.reviewCostPerPerson.toLocaleString()}원)
+                            </span>
+                            {isUnlimited && (
+                                <span className="text-[11px] font-bold text-purple-600 flex items-center gap-1">
+                                    <Infinity size={12} /> 무제한 이용권 혜택 (전액 할인)
+                                </span>
+                            )}
+                        </div>
+                        <span className={`font-medium ${isUnlimited ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                            {isUnlimited 
+                                ? (costs.recruitmentCount * (formData.campaignType === 'DELIVERY' ? 5000 : 10000)).toLocaleString() + '원'
+                                : costs.totalReviewCost.toLocaleString() + '원'
+                            }
                         </span>
                     </div>
+
+                    {isUnlimited && (
+                        <div className="flex justify-between items-center pb-3 border-b border-gray-200 text-purple-700 font-bold bg-purple-50/50 px-3 py-2 rounded-lg">
+                            <span className="text-sm">무제한 이용권 할인</span>
+                            <span className="text-sm">-{isUnlimited ? (costs.recruitmentCount * (formData.campaignType === 'DELIVERY' ? 5000 : 10000)).toLocaleString() : 0}원</span>
+                        </div>
+                    )}
 
                     {costs.productPayment > 0 && (
                         <div className="flex justify-between items-center pb-3 border-b border-gray-200">
@@ -344,7 +393,7 @@ export default function CampaignStep3({
 
                     <div className="flex justify-between items-center pt-3">
                         <span className="text-lg font-bold text-gray-900">총 결제 금액</span>
-                        <span className="text-2xl font-bold text-blue-600">
+                        <span className={`text-2xl font-bold ${isUnlimited && costs.totalCost === 0 ? 'text-purple-600' : 'text-blue-600'}`}>
                             {costs.totalCost.toLocaleString()}원
                         </span>
                     </div>
@@ -370,21 +419,42 @@ export default function CampaignStep3({
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">결제 방법</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* 무제한 이용권 결제 (구독자용) */}
+                    {isUnlimited && (
+                        <button
+                            onClick={() => {
+                                store.updateFields({
+                                    paymentMethod: 'free',
+                                    promotionType: 'UNLIMITED'
+                                });
+                            }}
+                            className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.promotionType === 'UNLIMITED' && formData.paymentMethod === 'free'
+                                ? 'border-purple-500 bg-purple-50'
+                                : 'border-gray-200 hover:border-purple-300'
+                                }`}
+                        >
+                            <Infinity className={`mb-3 ${formData.promotionType === 'UNLIMITED' ? 'text-purple-500' : 'text-gray-400'}`} size={28} />
+                            <h3 className="font-bold text-base mb-1">무제한 이용권</h3>
+                            <p className="text-[11px] text-gray-500 mt-1 font-medium">자동 혜택 적용</p>
+                        </button>
+                    )}
+
                     {/* 제휴 및 프로모션 */}
                     <button
                         onClick={() => {
                             store.setField('paymentMethod', 'free');
-                            if (!formData.promotionType) store.setField('promotionType', 'COUPON');
+                            if (formData.promotionType === 'UNLIMITED') store.setField('promotionType', 'COUPON');
+                            else if (!formData.promotionType) store.setField('promotionType', 'COUPON');
                         }}
-                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'free'
+                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED'
                             ? 'border-rose-500 bg-rose-50'
                             : 'border-gray-200 hover:border-rose-300'
                             }`}
                     >
-                        <Handshake className={`mb-3 ${formData.paymentMethod === 'free' ? 'text-rose-500' : 'text-gray-400'}`} size={28} />
+                        <Handshake className={`mb-3 ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED' ? 'text-rose-500' : 'text-gray-400'}`} size={28} />
                         <h3 className="font-bold text-base mb-1">제휴 및 프로모션</h3>
-                        <p className="text-[11px] text-gray-500 mt-1 font-medium">별도 협의된 무료 진행</p>
+                        <p className="text-[11px] text-gray-500 mt-1 font-medium">쿠폰 또는 주문번호</p>
                     </button>
 
                     {/* 카드 결제 */}
@@ -410,7 +480,7 @@ export default function CampaignStep3({
                     >
                         <Building2 className={`mb-3 ${formData.paymentMethod === 'transfer' ? 'text-blue-500' : 'text-gray-400'}`} size={28} />
                         <h3 className="font-bold text-base">계좌이체</h3>
-                        <p className="text-xs text-gray-500 mt-1">입금 확인 후 승인됩니다</p>
+                        <p className="text-xs text-gray-500 mt-1">입금 확인 후 승인된다</p>
                     </button>
                 </div>
 
@@ -515,6 +585,24 @@ export default function CampaignStep3({
                                         <Info size={12} />
                                         운영진이 주문번호 대조 후 최종 승인 처리해 드립니다.
                                     </p>
+                                </div>
+                            )}
+                            {/* 무제한 이용권 혜택 안내 */}
+                            {formData.promotionType === 'UNLIMITED' && (
+                                <div className="p-6 bg-purple-50 border-2 border-purple-200 rounded-2xl flex items-center justify-between group animate-in zoom-in-95 duration-300">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 group-hover:scale-110 transition-transform">
+                                            <Infinity size={24} />
+                                        </div>
+                                        <div>
+                                            <p className="text-base font-black text-purple-900 leading-tight">무제한 이용권 혜택이 적용되었습니다</p>
+                                            <p className="text-[11px] text-purple-600 font-bold mt-1">캠페인 진행 비용이 100% 면제됩니다.</p>
+                                        </div>
+                                    </div>
+                                    <div className="hidden md:flex flex-col items-end gap-1">
+                                        <span className="text-[10px] font-black bg-purple-600 text-white px-2 py-1 rounded-full shadow-sm">ACTIVE PLAN</span>
+                                        <span className="text-[10px] text-purple-400 font-bold">Benefit Applied</span>
+                                    </div>
                                 </div>
                             )}
                         </div>

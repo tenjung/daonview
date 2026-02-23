@@ -45,3 +45,56 @@ UI 표시: DB 값을 직접 노출하지 않고 Label/Badge로 매핑하여 표�
 명령어 제공: 설치, 복사 등 30초 이상 소요되는 작업은 직접 수행하지 않고 코드 블록(bash)으로 명령어를 제공하여 사용자가 실행하게 한다.
 
 SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 최우선으로 적용한다.
+
+---
+
+## 6. 📋 캠페인 등록 비즈니스 규칙 (Campaign Registration Rules)
+
+### 플랫폼 선택 규칙 (`CampaignStep1.tsx` → `toggleDeliveryPlatform`)
+
+---
+
+#### 🚚 배송체험단 (`DELIVERY`) — 토글형 (제한 있음)
+
+허용 조합 3가지만 가능:
+
+| 조합 | 허용 |
+|---|---|
+| 구매평 단독 | ✅ |
+| 구매평 + 네이버 블로그 | ✅ |
+| 구매평 + 인스타그램 | ✅ |
+| 네이버 + 인스타그램 (구매평 유무 무관) | ❌ 절대 불가 |
+
+**핵심 규칙 — 네이버↔인스타 상호 배타:**
+- 네이버 클릭 → 인스타그램 자동 OFF
+- 인스타그램 클릭 → 네이버 자동 OFF
+- 구매평은 독립 토글 (어떤 조합과도 자유롭게 on/off)
+- 오류 토스트 없이 자동 전환 (UX 친화적)
+
+**DB 플랫폼 값 매핑 (platform 필드):**
+- `includeNaver = true` → `platform = 'BLOG'`
+- `includeInstagram = true` → `platform = 'INSTAGRAM'`
+- `includeReview = true` 단독 → `platform = 'PURCHASE'`
+
+---
+
+#### 🏪 방문체험단 (`VISIT`) / ✍️ 기자단 (`PRESS`) — 라디오형 단일선택
+
+| 선택지 | 동작 |
+|---|---|
+| 네이버 블로그 클릭 | `platform = 'BLOG'`, 인스타 자동 OFF |
+| 인스타그램 클릭 | `platform = 'INSTAGRAM'`, 네이버 자동 OFF |
+
+**핵심 규칙:**
+- 반드시 1개만 선택 가능. 클릭 즉시 상대방 자동 해제.
+- UI: 라디오 버튼 스타일 (원형 인디케이터 ◉), 2열 그리드
+- 구매평 버튼 없음 (방문/기자단에서는 구매평 미해당)
+- `includeNaver` / `includeInstagram` 플래그 동기화 → Step2/Step3에서도 참조
+
+---
+
+#### ⚠️ 수정 시 주의사항
+- `toggleDeliveryPlatform` 함수 하나로 전 타입을 처리. 타입 분기(`DELIVERY` vs `VISIT/PRESS`)를 반드시 유지할 것.
+- 배송체험단 구매평 버튼 추가/제거 시 위 허용 조합 테이블 재검토 필요.
+- `platform` 필드는 DB 저장 기준값 → 반드시 `BLOG` / `INSTAGRAM` / `PURCHASE` 대문자 사용.
+- 이 규칙을 변경할 경우 반드시 이 섹션도 함께 업데이트할 것.

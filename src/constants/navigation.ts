@@ -32,14 +32,8 @@ export const ADVERTISER_LINKS: SidebarLink[] = [
     { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황', icon: 'ClipboardCheck' },
     { href: '/dashboard/advertiser/verification', label: '사업자 인증', icon: 'ShieldCheck' },
     { href: '/dashboard/advertiser/brands', label: '브랜드 관리', icon: 'Store' },
-    {
-        href: '/dashboard/advertiser/billing',
-        label: '결제 관리',
-        icon: 'CreditCard',
-        subLinks: [
-            { href: '/dashboard/advertiser/billing', label: '이용요금 안내', icon: 'Receipt' }
-        ]
-    },
+    { href: '/dashboard/advertiser/billing', label: '결제 관리', icon: 'CreditCard' },
+    { href: '/dashboard/advertiser/pricing', label: '이용요금 안내', icon: 'Receipt', tag: 'HOT' },
     {
         href: '/profile/edit',
         label: '계정 설정',
