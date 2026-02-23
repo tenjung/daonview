@@ -150,9 +150,10 @@ function LoginForm() {
             };
 
             if (provider === 'kakao') {
-                options.scopes = 'account_email profile_nickname talk_message';
+                // profile_image는 "선택 동의" 항목 — scope에 포함하되 null 가능
+                options.scopes = 'account_email profile_nickname profile_image';
                 options.queryParams = {
-                    scope: 'account_email profile_nickname talk_message'
+                    scope: 'account_email profile_nickname profile_image'
                 };
             }
 
