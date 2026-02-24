@@ -25,6 +25,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { resolveCampaignPlatformState } from '@/lib/campaignUtils';
 import {
     DndContext,
     closestCenter,
@@ -562,17 +563,26 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             if (newInstagram) newNaver = false; // 인스타 선택 시 네이버 자동 해제
         }
 
-        // 주 플랫폼 결정 로직 (DB 저장용)
-        let primaryPlatform = formData.platform;
-        if (newNaver) primaryPlatform = 'BLOG';
-        else if (newInstagram) primaryPlatform = 'INSTAGRAM';
-        else if (newReview) primaryPlatform = 'PURCHASE';
+        const resolved = resolveCampaignPlatformState({
+            type: 'DELIVERY',
+            platform: formData.platform,
+            step1Data: {
+                includeReview: newReview,
+                includeNaver: newNaver,
+                includeInstagram: newInstagram,
+                platform: formData.platform,
+            },
+        });
 
         updateFields({
-            includeReview: newReview,
-            includeNaver: newNaver,
-            includeInstagram: newInstagram,
-            platform: primaryPlatform
+            includeReview: resolved.includeReview,
+            includeNaver: resolved.includeNaver,
+            includeInstagram: resolved.includeInstagram,
+            platform: resolved.resolvedPlatform === 'INSTAGRAM'
+                ? 'INSTAGRAM'
+                : resolved.resolvedPlatform === 'BLOG'
+                    ? 'BLOG'
+                    : 'PURCHASE'
         });
     };
 

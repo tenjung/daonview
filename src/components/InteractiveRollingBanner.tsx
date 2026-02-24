@@ -30,6 +30,11 @@ export interface BannerItem {
     applicants?: number; // 신청자 수
     total?: number; // 모집 인원
     dday?: string; // 마감 임박 표시
+    platform?: string;
+    campaignType?: string;
+    includeReview?: boolean;
+    includeNaver?: boolean;
+    includeInstagram?: boolean;
 }
 
 interface BannerProps {

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart, Store } from 'lucide-react';
-import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from './campaign/CampaignBadges';
+import { TypeBadge, RegionBadge, DDayBadge } from './campaign/CampaignBadges';
+import CampaignPlatformBadges from './campaign/CampaignPlatformBadges';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
@@ -135,20 +136,13 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 <div className="flex items-center gap-1.5 flex-wrap">
                     <TypeBadge type={type} />
 
-                    {/* 배송형일 경우 명시적인 include 플래그 사용 */}
-                    {type?.toUpperCase() === 'DELIVERY' ? (
-                        <>
-                            {includeReview && <PlatformBadge platform="PURCHASE" />}
-                            {includeNaver && <PlatformBadge platform="BLOG" />}
-                            {includeInstagram && <PlatformBadge platform="INSTAGRAM" />}
-                            {/* 플래그 정보가 하나도 없을 때만 기본 platform 표시 (하위 호환) */}
-                            {!includeReview && !includeNaver && !includeInstagram && (
-                                <PlatformBadge platform={platform} />
-                            )}
-                        </>
-                    ) : (
-                        <PlatformBadge platform={platform} />
-                    )}
+                    <CampaignPlatformBadges
+                        type={type}
+                        platform={platform}
+                        includeReview={includeReview}
+                        includeNaver={includeNaver}
+                        includeInstagram={includeInstagram}
+                    />
 
                     {isVisit && (
                         <RegionBadge region={region} sub_region={sub_region} />
@@ -160,12 +154,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     {title}
                 </h3>
 
-                {/* 3. Provision */}
+                {/* 3. Benefit (public-safe label) */}
                 <div className="flex flex-col gap-1 text-[11px] text-gray-500 items-start">
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
-                        제공내역
+                        체험단 혜택
                     </span>
-                    <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">{provision || '제공내역 정보가 없습니다.'}</span>
+                    <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">체험단 혜택 제공</span>
                 </div>
 
                 {/* Spacer to push bottom section down */}

@@ -117,7 +117,12 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
                     applicants: mapped.applicants || 0,
                     total: mapped.total || 0,
-                    dday: mapped.dday
+                    dday: mapped.dday,
+                    platform: mapped.platform,
+                    campaignType: mapped.type,
+                    includeReview: mapped.includeReview,
+                    includeNaver: mapped.includeNaver,
+                    includeInstagram: mapped.includeInstagram,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -143,7 +148,12 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     extra_badge: isVisit ? '방문' : '배송',
                     applicants: mapped.applicants || 0,
                     total: mapped.total || 0,
-                    dday: mapped.dday
+                    dday: mapped.dday,
+                    platform: mapped.platform,
+                    campaignType: mapped.type,
+                    includeReview: mapped.includeReview,
+                    includeNaver: mapped.includeNaver,
+                    includeInstagram: mapped.includeInstagram,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -163,7 +173,12 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
                     applicants: mapped.applicants || 0,
                     total: mapped.total || 0,
-                    dday: mapped.dday
+                    dday: mapped.dday,
+                    platform: mapped.platform,
+                    campaignType: mapped.type,
+                    includeReview: mapped.includeReview,
+                    includeNaver: mapped.includeNaver,
+                    includeInstagram: mapped.includeInstagram,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -173,7 +188,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
         console.error('Error in fetchAllBannerData:', err);
         return [];
     }
-}, ['home-banner-data-v2'], { revalidate: 60, tags: ['home-banner-data'] });
+}, ['home-banner-data-v3'], { revalidate: 60, tags: ['home-banner-data'] });
 
 export async function fetchAllBannerData(): Promise<BannerItem[]> {
     return fetchAllBannerDataCached();

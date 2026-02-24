@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense, use, useMemo } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { normalizeCampaignPlatform } from '@/lib/campaignUtils';
 
 interface Review {
     id: string;
@@ -64,8 +65,7 @@ const platformConfig = {
 };
 
 const normalizePlatform = (platform: string | null | undefined) => {
-    const normalized = String(platform || '').toUpperCase();
-    return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
+    return normalizeCampaignPlatform(platform, 'OTHER');
 };
 
 // 네이버 블로그 ID 추출 함수

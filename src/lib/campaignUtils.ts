@@ -1,5 +1,93 @@
 import { Campaign } from '@/types/database';
 
+export type NormalizedCampaignType = 'DELIVERY' | 'VISIT' | 'PRESS' | 'PURCHASE';
+export type NormalizedPlatform = 'BLOG' | 'INSTAGRAM' | 'PURCHASE' | 'OTHER';
+
+export function normalizeCampaignType(rawType: unknown): NormalizedCampaignType {
+  const value = String(rawType || '').toUpperCase();
+  if (value === 'DELIVERY' || value === '배송형') return 'DELIVERY';
+  if (value === 'PRESS' || value === '기자단') return 'PRESS';
+  if (value === 'PURCHASE' || value === '구매평') return 'PURCHASE';
+  return 'VISIT';
+}
+
+export function normalizeCampaignPlatform(rawPlatform: unknown, fallback: NormalizedPlatform = 'BLOG'): NormalizedPlatform {
+  const value = String(rawPlatform || '').toUpperCase();
+  if (value === 'BLOG' || value === 'NAVER_BLOG' || value === '블로그') return 'BLOG';
+  if (value === 'INSTAGRAM' || value === '인스타' || value === '인스타그램') return 'INSTAGRAM';
+  if (value === 'PURCHASE' || value === '구매평') return 'PURCHASE';
+  if (value === 'OTHER' || value === '기타') return 'OTHER';
+  return fallback;
+}
+
+export interface CampaignPlatformState {
+  normalizedType: NormalizedCampaignType;
+  resolvedPlatform: NormalizedPlatform;
+  includeReview: boolean;
+  includeNaver: boolean;
+  includeInstagram: boolean;
+}
+
+export function resolveCampaignPlatformState(input: {
+  type?: unknown;
+  platform?: unknown;
+  step1Data?: {
+    campaignType?: unknown;
+    platform?: unknown;
+    includeReview?: unknown;
+    includeNaver?: unknown;
+    includeInstagram?: unknown;
+  } | null;
+}): CampaignPlatformState {
+  const step1Data = input.step1Data || {};
+  const normalizedType = normalizeCampaignType(input.type || step1Data.campaignType || 'VISIT');
+  const defaultPlatformByType: NormalizedPlatform = normalizedType === 'DELIVERY' ? 'PURCHASE' : 'BLOG';
+  const normalizedTopPlatform = normalizeCampaignPlatform(
+    input.platform || step1Data.platform || defaultPlatformByType,
+    defaultPlatformByType
+  );
+
+  let includeReview = Boolean(step1Data.includeReview);
+  let includeNaver = Boolean(step1Data.includeNaver);
+  let includeInstagram = Boolean(step1Data.includeInstagram);
+  const hasIncludeFlagKeys =
+    Object.prototype.hasOwnProperty.call(step1Data, 'includeReview') ||
+    Object.prototype.hasOwnProperty.call(step1Data, 'includeNaver') ||
+    Object.prototype.hasOwnProperty.call(step1Data, 'includeInstagram');
+
+  if (normalizedType === 'DELIVERY') {
+    if (!hasIncludeFlagKeys || (!includeReview && !includeNaver && !includeInstagram)) {
+      includeReview = normalizedTopPlatform === 'PURCHASE';
+      includeNaver = normalizedTopPlatform === 'BLOG';
+      includeInstagram = normalizedTopPlatform === 'INSTAGRAM';
+    }
+
+    // DELIVERY: NAVER and INSTAGRAM must be mutually exclusive.
+    if (includeNaver && includeInstagram) {
+      if (normalizedTopPlatform === 'INSTAGRAM') includeNaver = false;
+      else includeInstagram = false;
+    }
+  } else {
+    includeReview = false;
+    // VISIT/PRESS: exactly one platform is selected (BLOG fallback).
+    includeNaver = normalizedTopPlatform !== 'INSTAGRAM';
+    includeInstagram = normalizedTopPlatform === 'INSTAGRAM';
+  }
+
+  const resolvedPlatform: NormalizedPlatform =
+    normalizedType === 'DELIVERY'
+      ? (includeNaver ? 'BLOG' : includeInstagram ? 'INSTAGRAM' : 'PURCHASE')
+      : (includeNaver ? 'BLOG' : includeInstagram ? 'INSTAGRAM' : normalizedTopPlatform);
+
+  return {
+    normalizedType,
+    resolvedPlatform,
+    includeReview,
+    includeNaver,
+    includeInstagram,
+  };
+}
+
 export const formatDDay = (endDate: string) => {
   const end = new Date(endDate);
   const now = new Date();
@@ -25,44 +113,29 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     applicants = campaign.applications.count || 0;
   }
 
-  // DB의 한글 데이터를 UI용 영문 키로 변환 (역호환성 유지)
-  const typeMap: Record<string, string> = {
-    '배송형': 'DELIVERY',
-    '방문형': 'VISIT',
-    '기자단': 'PRESS',
-    '구매평': 'PURCHASE',
-    'DELIVERY': 'DELIVERY',
-    'VISIT': 'VISIT',
-    'PRESS': 'PRESS',
-    'PURCHASE': 'PURCHASE'
-  };
-
-  const platformMap: Record<string, string> = {
-    '블로그': 'BLOG',
-    'NAVER_BLOG': 'BLOG',
-    '인스타': 'INSTAGRAM',
-    '기타': 'OTHER',
-    '구매평': 'PURCHASE',
-    'BLOG': 'BLOG',
-    'INSTAGRAM': 'INSTAGRAM',
-    'OTHER': 'OTHER',
-    'PURCHASE': 'PURCHASE'
-  };
-
   // 캠페인 옵션에서 데이터 추출 시도 (임시저장 데이터 대응)
   const options = Array.isArray((campaign as any).campaign_options) ? (campaign as any).campaign_options[0] : (campaign as any).campaign_options;
   const provision = campaign.provision || (campaign as any).experience_details || options?.step1Data?.experienceDetails || '';
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
-  const rawPlatform = campaign.platform || 'BLOG';
-  const normalizedRawPlatform = typeof rawPlatform === 'string' ? rawPlatform.toUpperCase() : 'BLOG';
-  const rawType = campaign.type || 'VISIT';
+  const step1Data = options?.step1Data || {};
+  const {
+    normalizedType,
+    resolvedPlatform,
+    includeReview,
+    includeNaver,
+    includeInstagram,
+  } = resolveCampaignPlatformState({
+    type: campaign.type,
+    platform: campaign.platform,
+    step1Data,
+  });
 
   return {
     id: campaign.id,
     title: campaign.title || productName,
-    platform: platformMap[normalizedRawPlatform] || normalizedRawPlatform,
-    type: typeMap[rawType] || (typeof rawType === 'string' ? rawType.toUpperCase() : 'VISIT'),
+    platform: resolvedPlatform,
+    type: normalizedType,
     applicants: applicants,
     total: campaign.recruit_count || 0,
     dday: (campaign.is_always || (campaign.recruit_count && campaign.recruit_count >= 999)) ? "상시" : formatDDay(campaign.end_date),
@@ -73,8 +146,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     provision: provision,
     end_date: campaign.end_date,
     created_at: campaign.created_at,
-    includeReview: options?.step1Data?.includeReview ?? false,
-    includeNaver: options?.step1Data?.includeNaver ?? false,
-    includeInstagram: options?.step1Data?.includeInstagram ?? false,
+    includeReview,
+    includeNaver,
+    includeInstagram,
   };
 };

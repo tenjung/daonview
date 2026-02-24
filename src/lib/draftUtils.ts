@@ -57,7 +57,12 @@ export const saveDraft = async (userId: string, campaignData: {
         }
 
         // 2. 유형(type) 및 플랫폼(platform) 매핑 (유저 정의 구조 반영)
-        const mappedType = campaignData.campaignType === 'DELIVERY' ? 'DELIVERY' : 'VISIT';
+        const rawCampaignType = String(campaignData.campaignType || 'VISIT').toUpperCase();
+        const mappedType = rawCampaignType === 'DELIVERY'
+            ? 'DELIVERY'
+            : rawCampaignType === 'PRESS'
+                ? 'PRESS'
+                : 'VISIT';
 
         let mappedPlatform = 'PURCHASE';
         if (campaignData.campaignType === 'DELIVERY') {
@@ -93,7 +98,7 @@ export const saveDraft = async (userId: string, campaignData: {
             product_name: campaignData.step1Data?.productName || null,
             experience_details: campaignData.step1Data?.experienceDetails || null,
             platform: mappedPlatform.toUpperCase(),
-            type: (campaignData.campaignType || 'VISIT').toUpperCase(),
+            type: mappedType,
             end_date: campaignData.step1Data?.scheduleType === 'always' ? '9999-12-31' : endDate,
             campaign_options: campaignOptions, // jsonb 객체
             recruit_count: parseInt(campaignData.step1Data?.totalRecruitment) || 0,

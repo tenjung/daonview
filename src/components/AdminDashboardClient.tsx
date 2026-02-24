@@ -7,6 +7,13 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface AdminDashboardClientProps {
     initialCampaigns: CampaignRow[];
@@ -48,7 +55,6 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([]);
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [isBulkExtending, setIsBulkExtending] = useState(false);
-    const [quickExtendOpenId, setQuickExtendOpenId] = useState<number | null>(null);
     const [quickExtendingId, setQuickExtendingId] = useState<number | null>(null);
     const { user } = useAuthStore();
 
@@ -238,7 +244,6 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 )
             );
             toast.success(`캠페인을 ${days}일 연장했습니다.`);
-            setQuickExtendOpenId(null);
         } catch (error) {
             console.error(`캠페인(${campaignId}) 즉시 연장 오류:`, error);
             const message = error instanceof Error ? error.message : '알 수 없는 오류';
@@ -291,7 +296,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             {/* 🔴 긴급: 모집 미달 구조대 */}
             {criticalCampaigns.length > 0 && (
                 <div id="critical-section" className="mb-8">
-                    <div className="bg-white rounded-xl border-2 border-red-300 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-xl border-2 border-red-300 overflow-visible shadow-sm">
                         <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 border-b-2 border-red-200">
                             <div className="flex justify-between items-center">
                                 <div>
@@ -388,39 +393,36 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
                                                     <div className="relative inline-flex items-center gap-2">
-                                                        <button
-                                                            type="button"
-                                                            disabled={quickExtendingId !== null}
-                                                            onClick={() => setQuickExtendOpenId((prev) => (prev === campaign.id ? null : campaign.id))}
-                                                            className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-bold disabled:opacity-60"
-                                                        >
-                                                            {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
-                                                        </button>
+                                                        <DropdownMenu>
+                                                            <DropdownMenuTrigger asChild>
+                                                                <button
+                                                                    type="button"
+                                                                    disabled={quickExtendingId !== null}
+                                                                    className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-bold disabled:opacity-60"
+                                                                >
+                                                                    {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
+                                                                </button>
+                                                            </DropdownMenuTrigger>
+                                                            <DropdownMenuContent align="end" className="z-[80] min-w-[170px]">
+                                                                <DropdownMenuLabel className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
+                                                                {[3, 7, 14].map((days) => (
+                                                                    <DropdownMenuItem
+                                                                        key={days}
+                                                                        disabled={quickExtendingId !== null}
+                                                                        onSelect={() => handleQuickExtend(campaign.id, days)}
+                                                                        className="px-2 py-1.5 text-xs rounded-md bg-red-50 text-red-700 focus:bg-red-100 font-bold cursor-pointer"
+                                                                    >
+                                                                        +{days}일
+                                                                    </DropdownMenuItem>
+                                                                ))}
+                                                            </DropdownMenuContent>
+                                                        </DropdownMenu>
                                                         <Link
                                                             href={`/dashboard/campaign/new?id=${campaign.id}`}
                                                             className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-bold"
                                                         >
                                                             공고 수정
                                                         </Link>
-
-                                                        {quickExtendOpenId === campaign.id && (
-                                                            <div className="absolute right-0 top-10 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[170px]">
-                                                                <div className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</div>
-                                                                <div className="grid grid-cols-3 gap-1">
-                                                                    {[3, 7, 14].map((days) => (
-                                                                        <button
-                                                                            key={days}
-                                                                            type="button"
-                                                                            disabled={quickExtendingId !== null}
-                                                                            onClick={() => handleQuickExtend(campaign.id, days)}
-                                                                            className="px-2 py-1.5 text-xs rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-bold disabled:opacity-60"
-                                                                        >
-                                                                            +{days}일
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -436,7 +438,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             {/* 🟡 주의: 마감 임박 */}
             {warningCampaigns.length > 0 && (
                 <div id="warning-section" className="mb-8">
-                    <div className="bg-white rounded-xl border-2 border-yellow-300 overflow-hidden shadow-sm">
+                    <div className="bg-white rounded-xl border-2 border-yellow-300 overflow-visible shadow-sm">
                         <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 border-b-2 border-yellow-200">
                             <h2 className="text-lg font-bold text-yellow-900 flex items-center gap-2">
                                 <Clock className="w-5 h-5" />
@@ -460,34 +462,31 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                             </div>
                                         </div>
                                         <div className="relative flex items-center gap-2">
-                                            <button
-                                                type="button"
-                                                disabled={quickExtendingId !== null}
-                                                onClick={() => setQuickExtendOpenId((prev) => (prev === campaign.id ? null : campaign.id))}
-                                                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold disabled:opacity-60"
-                                            >
-                                                {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
-                                            </button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button
+                                                        type="button"
+                                                        disabled={quickExtendingId !== null}
+                                                        className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold disabled:opacity-60"
+                                                    >
+                                                        {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
+                                                    </button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="z-[80] min-w-[190px]">
+                                                    <DropdownMenuLabel className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
+                                                    {[3, 7, 14].map((days) => (
+                                                        <DropdownMenuItem
+                                                            key={days}
+                                                            disabled={quickExtendingId !== null}
+                                                            onSelect={() => handleQuickExtend(campaign.id, days)}
+                                                            className="px-2 py-1.5 text-xs rounded-md bg-yellow-50 text-yellow-700 focus:bg-yellow-100 font-bold cursor-pointer"
+                                                        >
+                                                            +{days}일
+                                                        </DropdownMenuItem>
+                                                    ))}
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                             <Link href={`/campaigns/${campaign.id}`} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold">상세보기</Link>
-
-                                            {quickExtendOpenId === campaign.id && (
-                                                <div className="absolute right-0 top-11 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[190px]">
-                                                    <div className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</div>
-                                                    <div className="grid grid-cols-3 gap-1">
-                                                        {[3, 7, 14].map((days) => (
-                                                            <button
-                                                                key={days}
-                                                                type="button"
-                                                                disabled={quickExtendingId !== null}
-                                                                onClick={() => handleQuickExtend(campaign.id, days)}
-                                                                className="px-2 py-1.5 text-xs rounded-md bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold disabled:opacity-60"
-                                                            >
-                                                                +{days}일
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            )}
                                         </div>
                                     </div>
                                 );

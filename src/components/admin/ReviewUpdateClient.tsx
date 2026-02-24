@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Loader2, RefreshCw } from 'lucide-react';
+import { normalizeCampaignPlatform } from '@/lib/campaignUtils';
 
 export default function ReviewUpdateClient() {
     const [isUpdating, setIsUpdating] = useState(false);
@@ -16,8 +17,7 @@ export default function ReviewUpdateClient() {
     };
 
     const normalizePlatform = (platform: string | null | undefined) => {
-        const normalized = String(platform || '').toUpperCase();
-        return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
+        return normalizeCampaignPlatform(platform, 'OTHER');
     };
 
     const updateAllReviews = async () => {

@@ -7,7 +7,7 @@ import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 import { isRole, USER_ROLES } from '@/constants/role';
@@ -28,10 +28,8 @@ const DISPLAY_NAME_MAP: Record<string, string> = {
   TIKTOK: '틱톡'
 };
 
-const normalizePlatform = (value: string | null | undefined) => {
-  const normalized = String(value || '').toUpperCase();
-  return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
-};
+const normalizePlatform = (value: string | null | undefined) =>
+  normalizeCampaignPlatform(value, 'BLOG');
 
 export default function RecommendedCampaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);

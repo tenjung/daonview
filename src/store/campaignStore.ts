@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { resolveCampaignPlatformState } from '@/lib/campaignUtils';
 
 // --- Types ---
 
@@ -203,6 +204,24 @@ export const useCampaignStore = create<CampaignStore>()(
                 const s1 = options.step1Data || {};
                 const s2 = options.step2Data || {};
                 const s3 = options.step3Data || {};
+                const resolvedPlatformState = resolveCampaignPlatformState({
+                    type: campaign.type,
+                    platform: campaign.platform,
+                    step1Data: s1,
+                });
+                const normalizedCampaignType = resolvedPlatformState.normalizedType === 'DELIVERY'
+                    ? 'DELIVERY'
+                    : resolvedPlatformState.normalizedType === 'PRESS'
+                        ? 'PRESS'
+                        : 'VISIT';
+                const defaultPlatformByType = normalizedCampaignType === 'DELIVERY' ? 'PURCHASE' : 'BLOG';
+                const normalizedPlatform = resolvedPlatformState.resolvedPlatform === 'INSTAGRAM'
+                    ? 'INSTAGRAM'
+                    : resolvedPlatformState.resolvedPlatform === 'PURCHASE'
+                        ? 'PURCHASE'
+                        : resolvedPlatformState.resolvedPlatform === 'BLOG'
+                            ? 'BLOG'
+                            : defaultPlatformByType;
 
                 set({
                     // Basic Metadata
@@ -211,21 +230,21 @@ export const useCampaignStore = create<CampaignStore>()(
                     isEdit: true,
 
                     // Step 1 normalization
-                    campaignType: (campaign.type || s1.campaignType || 'VISIT').toUpperCase(),
+                    campaignType: normalizedCampaignType,
                     brandId: campaign.brand_id || s1.brandId || null,
                     brandName: campaign.brand_name || s1.brandName || '',
                     productName: campaign.product_name || s1.productName || '',
                     campaignTitle: campaign.title || s1.campaignTitle || campaign.product_name || '',
-                    platform: (campaign.platform || s1.platform || 'BLOG').toUpperCase(),
+                    platform: normalizedPlatform,
                     category: campaign.category || s1.category || '',
                     region: campaign.region || s1.region || '',
                     subRegion: s1.subRegion || '',
-                    totalRecruitment: (campaign.total_recruitment || campaign.recruit_count || s1.totalRecruitment || '0').toString(),
+                    totalRecruitment: (campaign.total_recruitment ?? campaign.recruit_count ?? s1.totalRecruitment ?? '0').toString(),
 
 
-                    includeReview: s1.includeReview || false,
-                    includeNaver: s1.includeNaver || false,
-                    includeInstagram: s1.includeInstagram || false,
+                    includeReview: resolvedPlatformState.includeReview,
+                    includeNaver: resolvedPlatformState.includeNaver,
+                    includeInstagram: resolvedPlatformState.includeInstagram,
                     productUrl: campaign.product_url || s1.productUrl || '',
                     productUrlPrivate: s1.productUrlPrivate || false,
                     productUrlIndividual: s1.productUrlIndividual || false,

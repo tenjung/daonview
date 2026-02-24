@@ -24,18 +24,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step2Data = campaignOptions?.step2Data || {};
-    const step1Data = campaignOptions?.step1Data || {};
 
     const title = step2Data.campaignTitle || campaign.title;
-    const description = campaign.description || campaign.experience_details || step1Data.experienceDetails || '';
+    const description = '다온뷰 체험단 혜택 및 참여 가이드를 확인해보세요.';
     const thumbnail = campaign.thumbnail_url;
 
     return {
         title: `${title} | 다온뷰`,
-        description: description.substring(0, 160),
+        description,
         openGraph: {
             title: title,
-            description: description.substring(0, 160),
+            description,
             images: thumbnail ? [{ url: thumbnail }] : [],
             url: `https://daonview.com/campaigns/${id}`,
             type: 'website',
@@ -43,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         twitter: {
             card: 'summary_large_image',
             title: title,
-            description: description.substring(0, 160),
+            description,
             images: thumbnail ? [thumbnail] : [],
         },
         alternates: {

@@ -5,10 +5,11 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Eye, EyeOff, Search, RefreshCw, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { sendReviewApprovedAlimtalk } from '@/lib/alimtalk';
+import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
+import { REVIEW_STATUS_LABELS, REVIEW_STATUS_VARIANTS } from '@/constants/status';
 
 interface Review {
     id: string;
@@ -58,7 +59,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
 
         // 상태 필터
         if (filter !== 'ALL') {
-            filtered = filtered.filter(r => r.status === filter);
+            filtered = filtered.filter(r => String(r.status || '').toUpperCase() === String(filter).toUpperCase());
         }
 
         // 검색
@@ -131,21 +132,6 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
             case 'YOUTUBE': return '🎥';
             case 'TIKTOK': return '🎵';
             default: return '🔗';
-        }
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'APPROVED':
-                return <Badge className="bg-green-500">✅ 승인됨</Badge>;
-            case 'HIDDEN':
-                return <Badge className="bg-gray-500">🚫 숨김</Badge>;
-            case 'PENDING':
-                return <Badge className="bg-yellow-500">⏳ 대기중</Badge>;
-            case 'REJECTED':
-                return <Badge className="bg-red-500">❌ 거부됨</Badge>;
-            default:
-                return <Badge>{status}</Badge>;
         }
     };
 
@@ -244,7 +230,11 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                                                     {new Date(review.created_at).toLocaleDateString('ko-KR')}
                                                 </span>
                                             </div>
-                                            {getStatusBadge(review.status)}
+                                            <StatusBadgeCell
+                                                status={review.status}
+                                                customLabels={REVIEW_STATUS_LABELS}
+                                                customVariants={REVIEW_STATUS_VARIANTS}
+                                            />
                                         </div>
 
                                         <h3 className="text-lg font-bold text-gray-900 mb-2 truncate">

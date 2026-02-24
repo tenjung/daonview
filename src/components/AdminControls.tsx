@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Settings } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { USER_ROLES, normalizeRole } from '@/constants/role';
 
 export default function AdminControls({ campaignId, createdBy }: { campaignId: string | number, createdBy?: string }) {
     const { user, profile, isLoading } = useAuthStore();
@@ -14,11 +15,17 @@ export default function AdminControls({ campaignId, createdBy }: { campaignId: s
     }, []);
 
     // 1. 하이드레이션 완료 전이거나 로딩 중이면 표시하지 않음
-    if (!mounted || isLoading || !profile) return null;
+    if (!mounted || isLoading) return null;
 
-    // 2. 권한 체크 (ADMIN 또는 캠페인 작성자 본인)
-    const isAdmin = profile.role === 'ADMIN';
-    const isOwner = profile.role === 'ADVERTISER' && user?.id === createdBy;
+    // 2. 권한 체크 (관리자=전체, 광고주=본인 캠페인만)
+    const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
+    const isAdmin =
+        normalizedRole === USER_ROLES.ADMIN ||
+        normalizedRole === 'MASTER' ||
+        normalizedRole === 'SUPER_ADMIN';
+    const isOwner =
+        normalizedRole === USER_ROLES.ADVERTISER &&
+        String(user?.id || '') === String(createdBy || '');
 
     if (!isAdmin && !isOwner) return null;
 

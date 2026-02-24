@@ -8,9 +8,6 @@ import {
     Plus, 
     Search, 
     Calendar, 
-    CheckCircle2, 
-    XCircle, 
-    Clock, 
     Copy, 
     RefreshCcw,
     Trash2,
@@ -18,6 +15,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
+import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
+import { COUPON_STATUS_LABELS, COUPON_STATUS_VARIANTS } from '@/constants/status';
 
 interface Coupon {
     id: string;
@@ -131,19 +130,6 @@ export default function CouponManagementClient() {
         toast.success('쿠폰 코드가 복사되었습니다.');
     };
 
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'AVAILABLE':
-                return <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold">사용 가능</span>;
-            case 'USED':
-                return <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full text-[11px] font-bold">사용 완료</span>;
-            case 'EXPIRED':
-                return <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-[11px] font-bold">만료됨</span>;
-            default:
-                return null;
-        }
-    };
-
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8">
             {/* Header */}
@@ -202,7 +188,12 @@ export default function CouponManagementClient() {
                                 coupons.map((coupon) => (
                                     <tr key={coupon.id} className="hover:bg-slate-50/50 transition-colors group">
                                         <td className="px-6 py-5 text-center">
-                                            {getStatusBadge(coupon.status)}
+                                            <StatusBadgeCell
+                                                status={coupon.status}
+                                                customLabels={COUPON_STATUS_LABELS}
+                                                customVariants={COUPON_STATUS_VARIANTS}
+                                                className="text-[11px] font-bold"
+                                            />
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-2">

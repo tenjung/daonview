@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import {
     Dialog,
     DialogContent,
@@ -23,6 +24,7 @@ interface ReviewSubmitModalProps {
     campaignId: number;
     campaignTitle: string;
     creatorId: string;
+    isPurchaseExperience?: boolean;
     onSuccess: () => void;
 }
 
@@ -33,14 +35,46 @@ export default function ReviewSubmitModal({
     campaignId,
     campaignTitle,
     creatorId,
+    isPurchaseExperience = false,
     onSuccess
 }: ReviewSubmitModalProps) {
+    const router = useRouter();
     const [reviewUrl, setReviewUrl] = useState('');
     const [reviewContent, setReviewContent] = useState('');
     const [mediaUrls, setMediaUrls] = useState<string[]>([]);
+    const [purchaseAmountProofUrl, setPurchaseAmountProofUrl] = useState('');
+    const [purchaseReviewProofUrl, setPurchaseReviewProofUrl] = useState('');
+    const [bankName, setBankName] = useState('');
+    const [accountHolder, setAccountHolder] = useState('');
+    const [accountNumber, setAccountNumber] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const paymentProofInputRef = useRef<HTMLInputElement>(null);
+    const reviewProofInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const loadProfilePayoutInfo = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('bank_name, account_holder, account_number')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                setBankName(profile.bank_name || '');
+                setAccountHolder(profile.account_holder || '');
+                setAccountNumber(profile.account_number || '');
+            }
+        };
+
+        loadProfilePayoutInfo();
+    }, [isOpen]);
 
     const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -90,10 +124,61 @@ export default function ReviewSubmitModal({
         setMediaUrls(prev => prev.filter(u => u !== url));
     };
 
+    const uploadSingleProof = async (
+        e: React.ChangeEvent<HTMLInputElement>,
+        slot: 'PAYMENT' | 'REVIEW'
+    ) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const fileName = `${Date.now()}_${slot.toLowerCase()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+            const filePath = `reviews/${campaignId}/${user.id}/${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('campaign-images')
+                .upload(filePath, file);
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('campaign-images')
+                .getPublicUrl(filePath);
+
+            if (slot === 'PAYMENT') setPurchaseAmountProofUrl(publicUrl);
+            else setPurchaseReviewProofUrl(publicUrl);
+            toast.success('증빙 이미지가 업로드되었습니다.');
+        } catch (error) {
+            console.error('Single proof upload error:', error);
+            toast.error('증빙 업로드 중 오류가 발생했습니다.');
+        } finally {
+            setIsUploading(false);
+            e.target.value = '';
+        }
+    };
+
     const handleSubmit = async () => {
         if (!reviewUrl.trim()) {
             toast.error('리뷰 주소(URL)를 입력해주세요.');
             return;
+        }
+
+        if (isPurchaseExperience) {
+            if (!purchaseAmountProofUrl || !purchaseReviewProofUrl) {
+                toast.error('구매금액 스샷과 구매평 스샷을 각각 업로드해주세요.');
+                return;
+            }
+            if (!bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
+                toast.error('페이백 정산을 위해 계좌정보(은행/예금주/계좌번호)를 입력해주세요.');
+                return;
+            }
         }
 
         setIsSubmitting(true);
@@ -101,13 +186,30 @@ export default function ReviewSubmitModal({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('User not found');
 
+            if (isPurchaseExperience) {
+                const { error: payoutError } = await supabase
+                    .from('profiles')
+                    .update({
+                        bank_name: bankName.trim(),
+                        account_holder: accountHolder.trim(),
+                        account_number: accountNumber.trim(),
+                    })
+                    .eq('id', user.id);
+
+                if (payoutError) throw payoutError;
+            }
+
+            const proofUrls = isPurchaseExperience
+                ? [purchaseAmountProofUrl, purchaseReviewProofUrl].filter(Boolean)
+                : mediaUrls;
+
             // 1. applications 테이블 업데이트 (리뷰 제출됨 표시 및 완료 처리)
             const { error: appError } = await supabase
                 .from('applications')
                 .update({
                     status: 'COMPLETED',
                     review_submitted: true,
-                    review_media_urls: mediaUrls
+                    review_media_urls: proofUrls
                 })
                 .eq('id', applicationId);
 
@@ -121,7 +223,7 @@ export default function ReviewSubmitModal({
                     campaign_id: campaignId,
                     post_url: reviewUrl,
                     description: reviewContent,
-                    thumbnail_url: mediaUrls[0] || null,
+                    thumbnail_url: proofUrls[0] || null,
                     status: 'PENDING', // 관리자 승출 대기
                     platform: 'LINK' // 도메인에 따라 유추 가능하지만 일단 LINK로 저장
                 });
@@ -187,6 +289,11 @@ export default function ReviewSubmitModal({
             setReviewUrl('');
             setReviewContent('');
             setMediaUrls([]);
+            setPurchaseAmountProofUrl('');
+            setPurchaseReviewProofUrl('');
+            setBankName('');
+            setAccountHolder('');
+            setAccountNumber('');
         } catch (error: any) {
             console.error('Submission error:', error);
             toast.error('리뷰 등록 중 오류가 발생했습니다.');
@@ -230,47 +337,172 @@ export default function ReviewSubmitModal({
                         />
                     </div>
 
-                    <div className="space-y-3">
-                        <Label className="text-sm font-black text-slate-700 flex items-center justify-between">
-                            <span>리뷰 사진/영상 첨부 (최대 5개)</span>
-                            <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{mediaUrls.length} / 5</span>
-                        </Label>
+                    {isPurchaseExperience ? (
+                        <div className="space-y-3">
+                            <Label className="text-sm font-black text-slate-700">구매평 증빙 업로드 (필수)</Label>
 
-                        <div className="grid grid-cols-5 gap-2">
-                            {mediaUrls.map((url, index) => (
-                                <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
-                                    <img src={url} alt={`media-${index}`} className="w-full h-full object-cover" />
-                                    <button
-                                        onClick={() => removeMedia(url)}
-                                        className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                        <X size={12} />
-                                    </button>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <p className="text-xs font-black text-slate-800">1) 구매금액 스샷</p>
+                                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">
+                                            주의
+                                        </span>
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                                        실제 결제한 구매금액과 성함(주문자명)이 한 화면에서 명확하게 보이게 업로드해 주세요.
+                                    </p>
+                                    <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
+                                        금액/성함 식별이 어려우면 페이백 검수에서 반려될 수 있습니다.
+                                    </p>
+                                    {purchaseAmountProofUrl ? (
+                                        <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 group">
+                                            <img src={purchaseAmountProofUrl} alt="구매금액 증빙" className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setPurchaseAmountProofUrl('')}
+                                                className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => paymentProofInputRef.current?.click()}
+                                            disabled={isUploading}
+                                            className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:border-rose-400 hover:text-rose-500 transition-all bg-white"
+                                        >
+                                            {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+                                            <span className="text-[11px] font-bold mt-1">구매금액 스샷 업로드</span>
+                                        </button>
+                                    )}
                                 </div>
-                            ))}
-                            {mediaUrls.length < 5 && (
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={isUploading}
-                                    className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-rose-400 hover:text-rose-400 transition-all bg-slate-50/50"
-                                >
-                                    {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-                                    <span className="text-[10px] font-bold mt-1">추가</span>
-                                </button>
-                            )}
+
+                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                                    <p className="text-xs font-black text-slate-800">2) 구매평 스샷</p>
+                                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                                        쇼핑몰에 작성한 구매평 내용이 잘 보이도록 캡처해 주세요.
+                                    </p>
+                                    {purchaseReviewProofUrl ? (
+                                        <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 group">
+                                            <img src={purchaseReviewProofUrl} alt="구매평 증빙" className="w-full h-full object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setPurchaseReviewProofUrl('')}
+                                                className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X size={12} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            type="button"
+                                            onClick={() => reviewProofInputRef.current?.click()}
+                                            disabled={isUploading}
+                                            className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:border-rose-400 hover:text-rose-500 transition-all bg-white"
+                                        >
+                                            {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
+                                            <span className="text-[11px] font-bold mt-1">구매평 스샷 업로드</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={paymentProofInputRef}
+                                onChange={(e) => uploadSingleProof(e, 'PAYMENT')}
+                            />
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                ref={reviewProofInputRef}
+                                onChange={(e) => uploadSingleProof(e, 'REVIEW')}
+                            />
                         </div>
-                        <input
-                            type="file"
-                            multiple
-                            accept="image/*,video/*"
-                            className="hidden"
-                            ref={fileInputRef}
-                            onChange={handleMediaUpload}
-                        />
-                        <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                            ※ 증빙용 사진 및 영상을 업로드해 주세요. (관리자 확인용)
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="space-y-3">
+                            <Label className="text-sm font-black text-slate-700 flex items-center justify-between">
+                                <span>리뷰 사진/영상 첨부 (최대 5개)</span>
+                                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{mediaUrls.length} / 5</span>
+                            </Label>
+
+                            <div className="grid grid-cols-5 gap-2">
+                                {mediaUrls.map((url, index) => (
+                                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
+                                        <img src={url} alt={`media-${index}`} className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeMedia(url)}
+                                            className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {mediaUrls.length < 5 && (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploading}
+                                        className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-rose-400 hover:text-rose-400 transition-all bg-slate-50/50"
+                                    >
+                                        {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
+                                        <span className="text-[10px] font-bold mt-1">추가</span>
+                                    </button>
+                                )}
+                            </div>
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*,video/*"
+                                className="hidden"
+                                ref={fileInputRef}
+                                onChange={handleMediaUpload}
+                            />
+                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                                ※ 증빙용 사진 및 영상을 업로드해 주세요. (관리자 확인용)
+                            </p>
+                        </div>
+                    )}
+
+                    {isPurchaseExperience && (
+                        <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                            <Label className="text-sm font-black text-amber-900">페이백 정산 계좌 정보 (필수)</Label>
+                            <Input
+                                placeholder="은행명 (예: 카카오뱅크)"
+                                value={bankName}
+                                onChange={(e) => setBankName(e.target.value)}
+                                className="h-11 rounded-xl bg-white border-amber-200"
+                            />
+                            <Input
+                                placeholder="예금주"
+                                value={accountHolder}
+                                onChange={(e) => setAccountHolder(e.target.value)}
+                                className="h-11 rounded-xl bg-white border-amber-200"
+                            />
+                            <Input
+                                placeholder="계좌번호 ('-' 없이 입력 권장)"
+                                value={accountNumber}
+                                onChange={(e) => setAccountNumber(e.target.value)}
+                                className="h-11 rounded-xl bg-white border-amber-200"
+                            />
+                            <p className="text-[11px] text-amber-800 font-medium">
+                                입력한 계좌정보는 프로필 정산 정보로 저장됩니다.
+                            </p>
+                            <button
+                                type="button"
+                                onClick={() => router.push('/profile/edit?tab=payout')}
+                                className="text-[11px] font-bold text-amber-900 underline"
+                            >
+                                프로필에서 계좌정보 입력/수정하기
+                            </button>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter className="p-6 bg-slate-50 flex items-center gap-3">

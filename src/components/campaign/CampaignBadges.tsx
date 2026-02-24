@@ -16,7 +16,7 @@ export const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform?.toUpperCase() || '';
     let icon = (
         <div className="w-[11px] h-[11px] flex items-center justify-center overflow-hidden">
-            <span className="font-black text-[11.5px] leading-none tracking-tighter translate-y-[0.2px]">N</span>
+            <span className="font-black text-[11.5px] leading-none tracking-tighter">N</span>
         </div>
     );
     let label = "블로그";
@@ -42,8 +42,8 @@ export const PlatformBadge = ({ platform }: { platform: string }) => {
 
     return (
         <BadgeBase className={`${colorClass}`}>
-            <div className="flex-shrink-0 flex items-center justify-center w-[11px] h-[11px]">{icon}</div>
-            <span className="hidden sm:inline translate-y-[0.5px] ml-0.5 whitespace-nowrap">{label}</span>
+            <span className="flex-shrink-0 inline-flex items-center justify-center w-[11px] h-[11px]">{icon}</span>
+            <span className="hidden sm:inline leading-none ml-0.5 whitespace-nowrap">{label}</span>
         </BadgeBase>
     );
 };
@@ -72,8 +72,8 @@ export const TypeBadge = ({ type }: { type?: string }) => {
 
     return (
         <BadgeBase className={colorClass}>
-            <span className="flex-shrink-0 flex items-center translate-y-[0.3px]">{icon}</span>
-            <span className="hidden sm:inline translate-y-[1px]">{label}</span>
+            <span className="flex-shrink-0 inline-flex items-center justify-center w-[11px] h-[11px]">{icon}</span>
+            <span className="hidden sm:inline leading-none">{label}</span>
         </BadgeBase>
     );
 };
@@ -82,8 +82,8 @@ export const RegionBadge = ({ region, sub_region }: { region?: string | null, su
     const displayRegion = [region, sub_region].filter(Boolean).join(' ');
     return (
         <BadgeBase className="bg-slate-50 text-slate-600 border-slate-200 !px-2.5 !gap-1">
-            <span className="flex-shrink-0 flex items-center translate-y-[0.3px]"><MapPin size={11} /></span>
-            <span className="translate-y-[1px]">{displayRegion || '전국'}</span>
+            <span className="flex-shrink-0 inline-flex items-center justify-center w-[11px] h-[11px]"><MapPin size={11} /></span>
+            <span className="leading-none">{displayRegion || '전국'}</span>
         </BadgeBase>
     );
 };
@@ -101,5 +101,3 @@ export const DDayBadge = ({ dday }: { dday: string }) => {
         </span>
     );
 };
-
-

@@ -170,13 +170,28 @@ export default function CampaignRegistrationContainer() {
         store.setField('isSubmitting', true);
 
         try {
+            const normalizedCampaignType = (store.campaignType || 'VISIT').toUpperCase() as 'DELIVERY' | 'VISIT' | 'PRESS';
+            let normalizedIncludeReview = normalizedCampaignType === 'DELIVERY' ? Boolean(store.includeReview) : false;
+            let normalizedIncludeNaver = normalizedCampaignType === 'DELIVERY'
+                ? Boolean(store.includeNaver)
+                : (String(store.platform || '').toUpperCase() === 'BLOG');
+            let normalizedIncludeInstagram = normalizedCampaignType === 'DELIVERY'
+                ? Boolean(store.includeInstagram)
+                : (String(store.platform || '').toUpperCase() === 'INSTAGRAM');
+
+            if (normalizedCampaignType === 'DELIVERY' && !normalizedIncludeReview && !normalizedIncludeNaver && !normalizedIncludeInstagram) {
+                const fallbackPlatform = String(store.platform || 'PURCHASE').toUpperCase();
+                normalizedIncludeReview = fallbackPlatform === 'PURCHASE';
+                normalizedIncludeNaver = fallbackPlatform === 'BLOG';
+                normalizedIncludeInstagram = fallbackPlatform === 'INSTAGRAM';
+            }
+
             // 플랫폼 매핑 (배송형은 복수 선택 가능하므로 주 플랫폼 결정)
-            let mappedPlatform = store.platform || 'BLOG';
-            if (store.campaignType === 'DELIVERY') {
-                if (store.includeNaver) mappedPlatform = 'BLOG';
-                else if (store.includeInstagram) mappedPlatform = 'INSTAGRAM';
-                else if (store.includeReview) mappedPlatform = 'PURCHASE';
-                else mappedPlatform = 'PURCHASE'; // 기본값
+            let mappedPlatform = (store.platform || (normalizedCampaignType === 'DELIVERY' ? 'PURCHASE' : 'BLOG')).toUpperCase();
+            if (normalizedCampaignType === 'DELIVERY') {
+                if (normalizedIncludeNaver) mappedPlatform = 'BLOG';
+                else if (normalizedIncludeInstagram) mappedPlatform = 'INSTAGRAM';
+                else mappedPlatform = 'PURCHASE';
             }
 
             // 날짜 계산
@@ -189,10 +204,10 @@ export default function CampaignRegistrationContainer() {
                     : (parseInt(store.totalRecruitment) || 0);
 
                 let reviewCostPerPerson = 0;
-                if (store.campaignType === 'DELIVERY') {
-                    if (store.includeReview) reviewCostPerPerson += 3000;
-                    if (store.includeNaver) reviewCostPerPerson += 5000;
-                    if (store.includeInstagram) reviewCostPerPerson += 5000;
+                if (normalizedCampaignType === 'DELIVERY') {
+                    if (normalizedIncludeReview) reviewCostPerPerson += 3000;
+                    if (normalizedIncludeNaver) reviewCostPerPerson += 5000;
+                    if (normalizedIncludeInstagram) reviewCostPerPerson += 5000;
                 } else {
                     reviewCostPerPerson = 10000;
                 }
@@ -208,10 +223,10 @@ export default function CampaignRegistrationContainer() {
             const costs = calculateCosts();
 
             const step1Data = {
-                campaignType: store.campaignType,
-                includeReview: store.includeReview,
-                includeNaver: store.includeNaver,
-                includeInstagram: store.includeInstagram,
+                campaignType: normalizedCampaignType,
+                includeReview: normalizedIncludeReview,
+                includeNaver: normalizedIncludeNaver,
+                includeInstagram: normalizedIncludeInstagram,
                 productUrl: store.productUrl,
                 productUrlPrivate: store.productUrlPrivate,
                 productUrlIndividual: store.productUrlIndividual,
@@ -223,7 +238,7 @@ export default function CampaignRegistrationContainer() {
                 productPrice: store.productPrice,
                 shippingCost: store.shippingCost,
                 isCouponRequired: store.isCouponRequired,
-                platform: store.platform,
+                platform: mappedPlatform,
                 category: store.category,
                 region: store.region,
                 subRegion: store.subRegion,
@@ -290,7 +305,7 @@ export default function CampaignRegistrationContainer() {
                 brand_name: store.brandName,
                 product_name: store.productName || '',
                 title: store.campaignTitle,
-                type: (store.campaignType || 'VISIT').toUpperCase(),
+                type: normalizedCampaignType,
                 platform: mappedPlatform.toUpperCase(),
                 category: store.category,
                 region: store.region,
@@ -313,6 +328,8 @@ export default function CampaignRegistrationContainer() {
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
                 option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
                 campaign_options: {
+                    step1Data,
+                    step2Data,
                     step3Data,
                     currentStep: 3,
                     payment_method: store.paymentMethod,

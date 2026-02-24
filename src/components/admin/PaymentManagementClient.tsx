@@ -7,9 +7,7 @@ import {
     CreditCard, 
     Search, 
     Calendar, 
-    CheckCircle2, 
-    XCircle, 
-    Clock, 
+    Clock,
     RefreshCcw,
     ExternalLink,
     Filter,
@@ -20,6 +18,8 @@ import {
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
+import { PAYMENT_STATUS_LABELS, PAYMENT_STATUS_VARIANTS } from '@/constants/status';
 
 interface Payment {
     id: string;
@@ -85,7 +85,9 @@ export default function PaymentManagementClient() {
             payment.profiles?.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             payment.campaigns?.title?.toLowerCase().includes(searchTerm.toLowerCase());
         
-        const matchesStatus = statusFilter === 'ALL' || payment.status === statusFilter;
+        const matchesStatus =
+            statusFilter === 'ALL' ||
+            String(payment.status || '').toUpperCase() === String(statusFilter).toUpperCase();
         
         return matchesSearch && matchesStatus;
     });
@@ -96,19 +98,6 @@ export default function PaymentManagementClient() {
     const todaySales = payments
         .filter(p => p.status === 'PAID' && new Date(p.created_at).toDateString() === new Date().toDateString())
         .reduce((sum, p) => sum + p.amount, 0);
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'PAID':
-                return <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit"><CheckCircle2 size={12}/>결제 완료</span>;
-            case 'CANCELLED':
-                return <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit"><XCircle size={12}/>결제 취소</span>;
-            case 'FAILED':
-                return <span className="bg-slate-100 text-slate-500 px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1 w-fit"><Clock size={12}/>결제 실패</span>;
-            default:
-                return null;
-        }
-    };
 
     return (
         <div className="p-4 max-w-7xl mx-auto space-y-4 animate-in fade-in duration-500">
@@ -270,7 +259,12 @@ export default function PaymentManagementClient() {
                                         </td>
                                         <td className="px-6 py-3 text-center">
                                             <div className="flex justify-center">
-                                                {getStatusBadge(payment.status)}
+                                                <StatusBadgeCell
+                                                    status={payment.status}
+                                                    customLabels={PAYMENT_STATUS_LABELS}
+                                                    customVariants={PAYMENT_STATUS_VARIANTS}
+                                                    className="text-[11px] font-bold"
+                                                />
                                             </div>
                                         </td>
                                         <td className="px-6 py-3 text-center">

@@ -6,8 +6,9 @@ import Link from "next/link"
 import { Campaign } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
 import { DateCell } from "@/components/data-table"
+import { StatusBadgeCell } from "@/components/data-table/cells/StatusBadgeCell"
+import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_VARIANTS } from "@/constants/campaign"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,25 +26,6 @@ interface CampaignColumnContext {
     onView?: (id: number) => void
     onExtend?: (id: number, title: string) => void
     isAdmin?: boolean
-}
-
-// 캠페인 상태 Badge
-function CampaignStatusBadge({ status }: { status: string }) {
-    const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-        PENDING: { label: '요청중', variant: 'outline' },
-        RECRUITING: { label: '모집중', variant: 'default' },
-        ONGOING: { label: '진행중', variant: 'default' },
-        COMPLETED: { label: '완료', variant: 'secondary' },
-        DRAFT: { label: '임시저장', variant: 'secondary' },
-    };
-
-    const config = statusConfig[status?.toUpperCase()] || { label: status, variant: 'secondary' };
-
-    return (
-        <Badge variant={config.variant} className="whitespace-nowrap">
-            {config.label}
-        </Badge>
-    );
 }
 
 // 캠페인 정보 셀 (이미지 + 제목 + 카테고리)
@@ -176,7 +158,13 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                 </Button>
             )
         },
-        cell: ({ row }) => <CampaignStatusBadge status={row.getValue("status")} />,
+        cell: ({ row }) => (
+            <StatusBadgeCell
+                status={row.getValue("status")}
+                customLabels={CAMPAIGN_STATUS_LABELS}
+                customVariants={CAMPAIGN_STATUS_VARIANTS}
+            />
+        ),
         size: 100,
     });
 
