@@ -10,6 +10,8 @@ interface CampaignSuccessProps {
     totalAmount: number;
     paymentMethod?: 'card' | 'transfer' | 'free' | null;
     isAdmin?: boolean;
+    isEdit?: boolean;
+    campaignId?: number | string | null;
 }
 
 export default function CampaignSuccess({
@@ -18,9 +20,12 @@ export default function CampaignSuccess({
     totalAmount,
     paymentMethod = 'card',
     isAdmin = false,
+    isEdit = false,
+    campaignId = null,
 }: CampaignSuccessProps) {
     const router = useRouter();
     const isTransfer = paymentMethod === 'transfer';
+    const canGoDetail = isEdit && campaignId !== null && campaignId !== undefined;
 
     const timelineSteps = isTransfer ? [
         {
@@ -72,12 +77,14 @@ export default function CampaignSuccess({
                         <CheckCircle2 className="text-green-600" size={44} />
                     </div>
                     <h1 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">
-                        {isTransfer ? '접수 완료 (입금 대기)' : '캠페인 등록 완료!'}
+                        {isTransfer
+                            ? (isEdit ? '수정 접수 완료 (입금 대기)' : '접수 완료 (입금 대기)')
+                            : (isEdit ? '캠페인 수정 완료!' : '캠페인 등록 완료!')}
                     </h1>
                     <p className="text-gray-600 text-lg font-medium">
                         {isTransfer 
-                            ? '계좌이체 확인 후 캠페인이 최종 등록됩니다.' 
-                            : '새로운 캠페인이 성공적으로 접수되었습니다.'}
+                            ? (isEdit ? '계좌이체 확인 후 수정 내용이 최종 반영됩니다.' : '계좌이체 확인 후 캠페인이 최종 등록됩니다.')
+                            : (isEdit ? '캠페인 수정 내용이 성공적으로 반영되었습니다.' : '새로운 캠페인이 성공적으로 접수되었습니다.')}
                     </p>
                 </div>
 
@@ -232,18 +239,24 @@ export default function CampaignSuccess({
                 {/* 하단 섹션: 액션 버튼 */}
                 <div className="p-8 bg-gray-50/50 flex flex-col sm:flex-row gap-3">
                     <button
-                        onClick={() => router.push(isAdmin ? '/dashboard/admin/campaigns' : '/dashboard/advertiser')}
+                        onClick={() => {
+                            if (canGoDetail) {
+                                router.push(`/campaigns/${campaignId}`);
+                                return;
+                            }
+                            router.push(isAdmin ? '/dashboard/admin/campaigns' : '/dashboard/advertiser');
+                        }}
                         className="flex-1 bg-slate-900 text-white h-14 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-all hover:shadow-lg active:scale-95"
                     >
-                        <LayoutDashboard size={20} />
-                        내 캠페인 관리
+                        {canGoDetail ? <ArrowRight size={20} /> : <LayoutDashboard size={20} />}
+                        {canGoDetail ? '캠페인 상세 보기' : '내 캠페인 관리'}
                     </button>
                     <button
-                        onClick={() => router.push('/')}
+                        onClick={() => router.push(isAdmin ? '/dashboard/admin/campaigns' : '/dashboard/advertiser/campaigns')}
                         className="flex-1 bg-white text-slate-600 h-14 rounded-2xl font-bold border-2 border-slate-200 flex items-center justify-center gap-2 hover:bg-gray-50 transition-all active:scale-95"
                     >
                         <Home size={20} />
-                        홈으로 이동
+                        캠페인 목록 이동
                     </button>
                 </div>
             </div>

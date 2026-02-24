@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
@@ -19,16 +19,20 @@ export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const isEdit = !!searchParams?.get('id');
+    const campaignIdParam = searchParams?.get('id');
+    const draftIdParam = searchParams?.get('draftId');
+    const isEdit = !!campaignIdParam;
     const containerRef = useRef<HTMLDivElement>(null);
 
     // Zustand Store
     const store = useCampaignStore();
+    const initializeFromCampaign = useCampaignStore((state) => state.initializeFromCampaign);
     const { currentStep, currentCampaignId, isSubmitting } = store;
 
     const [nextTrigger, setNextTrigger] = useState(0);
     const [isSuccess, setIsSuccess] = useState(false);
     const [lastResult, setLastResult] = useState<any>(null);
+    const [isInitialDataReady, setIsInitialDataReady] = useState(!campaignIdParam && !draftIdParam);
 
     // --- 캠페인 데이터 로드 로직 ---
     useEffect(() => {
@@ -40,23 +44,70 @@ export default function CampaignRegistrationContainer() {
 
     const handleLoadCompleted = useCallback((campaign: any, silent = false) => {
         if (!campaign) return;
-        store.initializeFromCampaign(campaign);
+        initializeFromCampaign(campaign);
         if (!silent) toast.success('캠페인 데이터를 성공적으로 불러왔습니다.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    }, [store]);
+    }, [initializeFromCampaign]);
 
-    // 초기 데이터 로딩 처리
+    // edit 모드: auth 상태와 무관하게 URL id 기준으로 DB 단일 조회
     useEffect(() => {
-        if (authLoading || !user) return;
-        const campaignId = searchParams?.get('id');
-        const draftId = searchParams?.get('draftId');
+        if (!campaignIdParam) return;
 
-        const loadData = async () => {
-            if (campaignId && currentCampaignId !== campaignId) {
-                const { data } = await supabase.from('campaigns').select('*').eq('id', campaignId).single();
-                if (data) handleLoadCompleted(data, true);
-            } else if (draftId && currentCampaignId !== draftId) {
-                const draft = await loadDraft(user.id, draftId);
+        let cancelled = false;
+        setIsInitialDataReady(false);
+
+        const loadCampaignById = async () => {
+            try {
+                const numericCampaignId = Number(campaignIdParam);
+                if (Number.isNaN(numericCampaignId)) {
+                    toast.error('잘못된 캠페인 ID입니다.');
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('campaigns')
+                    .select('*')
+                    .eq('id', numericCampaignId)
+                    .single();
+
+                if (cancelled) return;
+                if (error || !data) {
+                    toast.error('캠페인 데이터를 불러오지 못했습니다.');
+                    return;
+                }
+
+                handleLoadCompleted(data, true);
+            } catch (_error) {
+                if (!cancelled) toast.error('캠페인 데이터를 불러오는 중 오류가 발생했습니다.');
+            } finally {
+                if (!cancelled) setIsInitialDataReady(true);
+            }
+        };
+
+        loadCampaignById();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [campaignIdParam, handleLoadCompleted]);
+
+    // draft 모드: 인증이 준비된 뒤 사용자 draft 로딩
+    useEffect(() => {
+        if (campaignIdParam || !draftIdParam) return;
+        if (authLoading) return;
+        if (!user?.id) {
+            setIsInitialDataReady(true);
+            return;
+        }
+
+        let cancelled = false;
+        setIsInitialDataReady(false);
+
+        const loadDraftData = async () => {
+            try {
+                const draft = await loadDraft(user.id, draftIdParam);
+                if (cancelled) return;
+
                 if (draft) {
                     const rawData = {
                         ...draft,
@@ -75,10 +126,19 @@ export default function CampaignRegistrationContainer() {
                     };
                     handleLoadCompleted(rawData, true);
                 }
+            } catch (_error) {
+                if (!cancelled) toast.error('임시저장 데이터를 불러오는 중 오류가 발생했습니다.');
+            } finally {
+                if (!cancelled) setIsInitialDataReady(true);
             }
         };
-        loadData();
-    }, [authLoading, user, searchParams, currentCampaignId, handleLoadCompleted]);
+
+        loadDraftData();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [campaignIdParam, draftIdParam, authLoading, user?.id, handleLoadCompleted]);
 
     // --- 액션 핸들러 ---
     const handleSaveDraft = async () => {
@@ -221,6 +281,7 @@ export default function CampaignRegistrationContainer() {
             };
 
             const costs = calculateCosts();
+            const normalizedPaymentMethod = String(store.paymentMethod || '').toUpperCase();
 
             const step1Data = {
                 campaignType: normalizedCampaignType,
@@ -324,6 +385,7 @@ export default function CampaignRegistrationContainer() {
                 experience_details: store.experienceDetails || null,
                 product_options: store.productOptions || [],
                 status: profile?.role === 'ADMIN' ? 'RECRUITING' : 'PENDING',
+                payment_method: normalizedPaymentMethod || null,
                 // 새로운 store_locations 컬럼에 매장 좌표 정보 저장 (API 호출 최적화)
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
                 option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
@@ -351,16 +413,22 @@ export default function CampaignRegistrationContainer() {
             let result;
 
             if (campaignId && !isNaN(Number(campaignId))) {
+                const updateData: any = { ...campaignData };
+                // 수정 시 상태는 기존 워크플로를 유지 (신규 등록시에만 상태 결정)
+                delete updateData.status;
+
                 const { data, error } = await supabase
                     .from('campaigns')
-                    .update(campaignData)
+                    .update(updateData)
                     .eq('id', Number(campaignId))
                     .select()
                     .single();
 
                 if (error) throw error;
                 result = data;
-                toast.success('캠페인이 성공적으로 수정되었습니다.');
+                toast.success('수정완료되었습니다.');
+                router.push(`/campaigns/${result.id}`);
+                return;
             } else {
                 const { data, error } = await supabase
                     .from('campaigns')
@@ -377,6 +445,50 @@ export default function CampaignRegistrationContainer() {
                         await supabase.from('campaigns').delete().eq('id', Number(currentCampaignId));
                     }
                 }
+
+                // 결제 데이터 연동: 결제관리 페이지와 관리자 검수 플로우 연결
+                if (normalizedPaymentMethod === 'TRANSFER') {
+                    const transferPaymentId = `TRF-${result.id}`;
+                    await supabase
+                        .from('payments')
+                        .upsert([{
+                            user_id: user.id,
+                            campaign_id: result.id,
+                            payment_id: transferPaymentId,
+                            merchant_uid: store.externalOrderNumber || null,
+                            amount: costs.totalCost || 0,
+                            method: 'TRANSFER',
+                            status: 'PENDING',
+                            payment_data: {
+                                source: 'CAMPAIGN_REGISTRATION',
+                                payment_method: 'TRANSFER',
+                                depositor_name: store.depositorName || null,
+                                promotion_type: String(store.promotionType || '').toUpperCase() || null,
+                            },
+                            receipt_url: null,
+                            updated_at: new Date().toISOString(),
+                        }], { onConflict: 'payment_id' });
+                } else if (normalizedPaymentMethod === 'CARD') {
+                    // 카드 결제 검증 콜백에서 campaign_id가 비어온 경우 최신 결제건에 캠페인 매핑
+                    const { data: latestCardPayment } = await supabase
+                        .from('payments')
+                        .select('id')
+                        .eq('user_id', user.id)
+                        .is('campaign_id', null)
+                        .eq('method', 'CARD')
+                        .eq('status', 'PAID')
+                        .order('created_at', { ascending: false })
+                        .limit(1)
+                        .maybeSingle();
+
+                    if (latestCardPayment?.id) {
+                        await supabase
+                            .from('payments')
+                            .update({ campaign_id: result.id, updated_at: new Date().toISOString() })
+                            .eq('id', latestCardPayment.id);
+                    }
+                }
+
                 toast.success('캠페인이 성공적으로 등록되었습니다.');
             }
 
@@ -473,7 +585,7 @@ export default function CampaignRegistrationContainer() {
                     </nav>
                 </header>
 
-                {!authLoading && user && (
+                {!authLoading && user && !isEdit && (
                     <CampaignLoader
                         userId={user.id}
                         onLoadDraft={(draft) => {
@@ -493,7 +605,11 @@ export default function CampaignRegistrationContainer() {
                 )}
 
                 <div className="mt-8 transition-all duration-500">
-                    {isSuccess ? (
+                    {!isInitialDataReady ? (
+                        <div className="flex items-center justify-center py-24">
+                            <div className="text-sm font-semibold text-slate-500">캠페인 데이터를 불러오는 중...</div>
+                        </div>
+                    ) : isSuccess ? (
                         <CampaignSuccess
                             campaignTitle={lastResult?.title || store.campaignTitle || '제목 없음'}
                             brandName={lastResult?.brand_name || store.brandName || '브랜드 없음'}
@@ -502,6 +618,8 @@ export default function CampaignRegistrationContainer() {
                                 : 0} // 실제 기획에 따라 totalCost 또는 subtotal 등 표시 가능
                             paymentMethod={lastResult?.campaign_options?.payment_method || store.paymentMethod}
                             isAdmin={profile?.role === 'ADMIN'}
+                            isEdit={isEdit}
+                            campaignId={lastResult?.id ?? (campaignIdParam ? Number(campaignIdParam) : null)}
                         />
                     ) : (
                         <>
@@ -533,7 +651,7 @@ export default function CampaignRegistrationContainer() {
                     )}
                 </div>
 
-                {!isSuccess && (
+                {!isSuccess && isInitialDataReady && (
                     <FloatingActionWrapper>
                         <CampaignActionButtons
                             onPrev={currentStep > 1 ? () => goToStep(currentStep - 1) : undefined}

@@ -15,12 +15,14 @@ export const REVIEW_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
 };
 
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  PENDING: '입금 대기',
   PAID: '결제 완료',
   CANCELLED: '결제 취소',
   FAILED: '결제 실패',
 };
 
 export const PAYMENT_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
+  PENDING: 'outline',
   PAID: 'default',
   CANCELLED: 'destructive',
   FAILED: 'secondary',

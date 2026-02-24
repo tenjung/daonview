@@ -2,6 +2,7 @@ export type UserRole = 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
 export type CampaignTypeKey = 'VISIT' | 'DELIVERY' | 'PRESS' | 'PURCHASE';
 export type PlatformKey = 'BLOG' | 'INSTAGRAM' | 'YOUTUBE' | 'SHORTS' | 'REELS' | 'TIKTOK' | 'PURCHASE' | 'OTHER';
 export type CampaignStatus = 'PENDING' | 'RECRUITING' | 'ONGOING' | 'COMPLETED' | 'REJECTED' | 'DRAFT';
+export type PaymentStatus = 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED';
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'SELECTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 
 export interface Profile {

@@ -29,7 +29,7 @@ interface Payment {
     merchant_uid: string | null;
     amount: number;
     method: string;
-    status: 'PAID' | 'CANCELLED' | 'FAILED';
+    status: 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED';
     payment_data: any;
     receipt_url: string | null;
     cancelled_at: string | null;
@@ -50,7 +50,7 @@ export default function PaymentManagementClient() {
     const [payments, setPayments] = useState<Payment[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'CANCELLED' | 'FAILED'>('ALL');
+    const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'PAID' | 'CANCELLED' | 'FAILED'>('ALL');
 
     useEffect(() => {
         fetchPayments();
@@ -166,7 +166,7 @@ export default function PaymentManagementClient() {
                     />
                 </div>
                 <div className="flex items-center gap-2 bg-slate-50/50 p-1.5 rounded-2xl border-2 border-slate-50 w-full md:w-auto">
-                    {(['ALL', 'PAID', 'CANCELLED', 'FAILED'] as const).map((filter) => (
+                    {(['ALL', 'PENDING', 'PAID', 'CANCELLED', 'FAILED'] as const).map((filter) => (
                         <button
                             key={filter}
                             onClick={() => setStatusFilter(filter)}
@@ -177,8 +177,9 @@ export default function PaymentManagementClient() {
                                     : "text-slate-400 hover:text-slate-600"
                             )}
                         >
-                            {filter === 'ALL' ? '전체' : 
-                             filter === 'PAID' ? '결제완료' : 
+                            {filter === 'ALL' ? '전체' :
+                             filter === 'PENDING' ? '입금대기' :
+                             filter === 'PAID' ? '결제완료' :
                              filter === 'CANCELLED' ? '취소됨' : '실패'}
                         </button>
                     ))}

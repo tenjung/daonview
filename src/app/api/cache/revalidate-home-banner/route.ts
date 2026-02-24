@@ -25,7 +25,7 @@ export async function POST(request: Request) {
       // JSON body is optional.
     }
 
-    revalidateTag('home-banner-data');
+    revalidateTag('home-banner-data', 'max');
     revalidatePath('/');
     revalidatePath('/campaigns');
 

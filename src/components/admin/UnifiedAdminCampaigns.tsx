@@ -52,6 +52,16 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
           toast.error("승인 처리 중 오류가 발생했습니다.")
           console.error(error)
         } else {
+          // 결제 대기건 확정 처리 (결제관리 연동)
+          await supabase
+            .from("payments")
+            .update({
+              status: "PAID",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("campaign_id", id)
+            .eq("status", "PENDING")
+
           toast.success("캠페인이 승인되었습니다.")
           
           // [추가] 캠페인 승인 알림 생성
