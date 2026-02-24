@@ -159,6 +159,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
     const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
+    const isAdmin =
+        normalizedRole === 'ADMIN' ||
+        normalizedRole === 'MASTER' ||
+        normalizedRole === 'SUPER_ADMIN';
     const canEditCampaign = canEditCampaignByRole({
         role: normalizedRole,
         userId: user?.id,

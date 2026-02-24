@@ -13,13 +13,31 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
-import { Application, Campaign } from '@/types/database';
+import { Campaign } from '@/types/database';
 import { Camera, ExternalLink, MessageSquare } from 'lucide-react';
 
-interface PendingReviewApplication extends Application {
-    campaigns: Campaign & {
-        created_by?: string;
-    };
+type CampaignLite = Pick<Campaign, 'id' | 'title' | 'platform' | 'type' | 'end_date'> & {
+    created_by?: string;
+};
+
+interface PendingReviewQueryRow {
+    id: number;
+    status: string | null;
+    created_at: string;
+    campaign_id: number;
+    review_deadline: string | null;
+    purchased_at: string | null;
+    campaigns: CampaignLite | CampaignLite[] | null;
+}
+
+interface PendingReviewApplication {
+    id: number;
+    status: string | null;
+    created_at: string;
+    campaign_id: number;
+    review_deadline: string | null;
+    purchased_at: string | null;
+    campaigns: CampaignLite | null;
 }
 
 interface SubmittedReviewRow {
@@ -29,7 +47,17 @@ interface SubmittedReviewRow {
     created_at: string;
     status: string;
     platform?: string | null;
-    campaigns?: Campaign | null;
+    campaigns?: CampaignLite | null;
+}
+
+interface SubmittedReviewQueryRow {
+    id: number;
+    campaign_id: number;
+    post_url: string;
+    created_at: string;
+    status: string;
+    platform?: string | null;
+    campaigns?: CampaignLite | CampaignLite[] | null;
 }
 
 type ReviewTab = 'PENDING' | 'SUBMITTED';
@@ -57,6 +85,12 @@ export default function InfluencerReviewsPage() {
         isPurchaseExperience: false,
     });
 
+    const normalizeCampaign = (campaigns: CampaignLite | CampaignLite[] | null | undefined): CampaignLite | null => {
+        if (!campaigns) return null;
+        if (Array.isArray(campaigns)) return campaigns[0] || null;
+        return campaigns;
+    };
+
     const fetchReviewData = useCallback(async () => {
         if (!user) return;
         setLoading(true);
@@ -80,9 +114,26 @@ export default function InfluencerReviewsPage() {
             if (pendingError) throw pendingError;
             if (submittedError) throw submittedError;
 
-            const pendingRows = (pendingData || []) as PendingReviewApplication[];
+            const pendingRows: PendingReviewApplication[] = ((pendingData || []) as PendingReviewQueryRow[]).map((row) => ({
+                id: row.id,
+                status: row.status,
+                created_at: row.created_at,
+                campaign_id: row.campaign_id,
+                review_deadline: row.review_deadline,
+                purchased_at: row.purchased_at,
+                campaigns: normalizeCampaign(row.campaigns),
+            }));
             setPendingReviews(pendingRows);
-            setSubmittedReviews((submittedData || []) as SubmittedReviewRow[]);
+            const submittedRows: SubmittedReviewRow[] = ((submittedData || []) as SubmittedReviewQueryRow[]).map((row) => ({
+                id: row.id,
+                campaign_id: row.campaign_id,
+                post_url: row.post_url,
+                created_at: row.created_at,
+                status: row.status,
+                platform: row.platform,
+                campaigns: normalizeCampaign(row.campaigns),
+            }));
+            setSubmittedReviews(submittedRows);
 
             if (pendingRows.length > 0) {
                 const { count: existingTodoCount, error: countError } = await supabase
