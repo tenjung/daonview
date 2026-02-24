@@ -21,10 +21,16 @@ const REGION_MAP: Record<string, string> = {
 };
 
 const DISPLAY_NAME_MAP: Record<string, string> = {
+  BLOG: '블로그',
   NAVER_BLOG: '블로그',
   INSTAGRAM: '인스타그램',
   YOUTUBE: '유튜브',
   TIKTOK: '틱톡'
+};
+
+const normalizePlatform = (value: string | null | undefined) => {
+  const normalized = String(value || '').toUpperCase();
+  return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
 };
 
 export default function RecommendedCampaigns() {
@@ -65,7 +71,7 @@ export default function RecommendedCampaigns() {
 
         // 추천 점수 계산 최적화
         const userInterests = new Set(profile?.interests || []);
-        const userPlatforms = new Set(profile?.preferred_platforms || []);
+        const userPlatforms = new Set((profile?.preferred_platforms || []).map((platform: string) => normalizePlatform(platform)));
         const userRegions = profile?.preferred_regions || [];
 
         const filtered = (campaignData || [])
@@ -74,9 +80,8 @@ export default function RecommendedCampaigns() {
             const reasons: string[] = [];
 
             // 1. 플랫폼 매칭
-            const isPlatformMatch = userPlatforms.has(campaign.platform) || 
-                                   (userPlatforms.has('BLOG') && campaign.platform === 'NAVER_BLOG') ||
-                                   (userPlatforms.has('NAVER_BLOG') && campaign.platform === 'BLOG');
+            const normalizedCampaignPlatform = normalizePlatform(campaign.platform);
+            const isPlatformMatch = userPlatforms.has(normalizedCampaignPlatform);
 
             if (userPlatforms.size > 0 && !isPlatformMatch) {
               return { ...campaign, score: 0, reasons: [] };
@@ -202,7 +207,7 @@ export default function RecommendedCampaigns() {
                 {profile?.preferred_platforms && profile.preferred_platforms.length > 0 ? (
                   profile.preferred_platforms.map((platform: string, idx: number) => (
                     <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-indigo-50/30 text-indigo-700 border-indigo-100 font-bold text-[11px] hover:bg-indigo-100 transition-colors">
-                      {DISPLAY_NAME_MAP[platform] || platform}
+                      {DISPLAY_NAME_MAP[normalizePlatform(platform)] || normalizePlatform(platform)}
                     </Badge>
                   ))
                 ) : (

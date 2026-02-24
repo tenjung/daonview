@@ -122,8 +122,11 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
     };
 
     const getPlatformIcon = (platform: string) => {
-        switch (platform) {
-            case 'NAVER_BLOG': return '📝';
+        const normalizedPlatform = String(platform || '').toUpperCase();
+        switch (normalizedPlatform) {
+            case 'BLOG':
+            case 'NAVER_BLOG':
+                return '📝';
             case 'INSTAGRAM': return '📷';
             case 'YOUTUBE': return '🎥';
             case 'TIKTOK': return '🎵';

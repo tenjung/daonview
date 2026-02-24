@@ -83,29 +83,31 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
     
     setIsLoading(true)
     try {
-        const campaign = data.find(c => c.id === selectedCampaignId)
-        if (!campaign) return
+        const response = await fetch('/api/campaigns/extend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ campaignId: selectedCampaignId, days }),
+        })
 
-        const currentEndDate = new Date(campaign.end_date)
-        const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000)
+        const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+        if (!response.ok) {
+          const errorMessage = typeof payload.error === 'string' ? payload.error : '기간 연장 요청에 실패했습니다.'
+          throw new Error(errorMessage)
+        }
 
-        const { error } = await supabase
-            .from('campaigns')
-            .update({ end_date: newEndDate.toISOString() })
-            .eq('id', selectedCampaignId)
-
-        if (error) throw error
+        const endDate = typeof payload.endDate === 'string' ? payload.endDate : ''
+        if (!endDate) throw new Error('연장 결과(endDate)를 받지 못했습니다.')
 
         toast.success(`모집 기간이 ${days}일 연장되었습니다!`)
         setShowExtendModal(false)
         
         // 로컬 상태 업데이트
         setData(prev => prev.map(c => 
-            c.id === selectedCampaignId ? { ...c, end_date: newEndDate.toISOString() } : c
+            c.id === selectedCampaignId ? { ...c, end_date: endDate } : c
         ))
     } catch (error) {
         console.error('기간 연장 오류:', error)
-        toast.error('기간 연장 중 오류가 발생했습니다.')
+        toast.error(error instanceof Error ? error.message : '기간 연장 중 오류가 발생했습니다.')
     } finally {
         setIsLoading(false)
     }

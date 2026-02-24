@@ -15,6 +15,11 @@ export default function ReviewUpdateClient() {
         setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
     };
 
+    const normalizePlatform = (platform: string | null | undefined) => {
+        const normalized = String(platform || '').toUpperCase();
+        return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
+    };
+
     const updateAllReviews = async () => {
         setIsUpdating(true);
         setLogs([]);
@@ -76,7 +81,7 @@ export default function ReviewUpdateClient() {
                 .from('reviews')
                 .select('id, post_url, title, platform')
                 .eq('status', 'APPROVED')
-                .in('platform', ['NAVER_BLOG', 'INSTAGRAM']);
+                .in('platform', ['BLOG', 'NAVER_BLOG', 'INSTAGRAM']);
 
             if (error) throw error;
 
@@ -95,9 +100,10 @@ export default function ReviewUpdateClient() {
                 setProgress({ current: i + 1, total: reviews.length });
 
                 try {
-                    const platformEmoji = review.platform === 'NAVER_BLOG' ? '📝' :
-                        review.platform === 'INSTAGRAM' ? '📷' : '🔗';
-                    addLog(`${platformEmoji} [${i + 1}/${reviews.length}] ${review.platform} - ${review.post_url} 처리 중...`);
+                    const normalizedPlatform = normalizePlatform(review.platform);
+                    const platformEmoji = normalizedPlatform === 'BLOG' ? '📝' :
+                        normalizedPlatform === 'INSTAGRAM' ? '📷' : '🔗';
+                    addLog(`${platformEmoji} [${i + 1}/${reviews.length}] ${normalizedPlatform} - ${review.post_url} 처리 중...`);
 
                     const response = await fetch('/api/scrape-blog', {
                         method: 'POST',

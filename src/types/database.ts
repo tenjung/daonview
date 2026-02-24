@@ -162,7 +162,7 @@ export interface InfluencerReview {
 export interface InfluencerStats {
     id: number;
     user_id: string;
-    platform: string; // 'NAVER_BLOG', 'INSTAGRAM', 'YOUTUBE', etc.
+    platform: string; // 'BLOG', 'INSTAGRAM', 'YOUTUBE', etc.
     blog_url: string; // URL of the blog or social media profile
 
     // 기본 지표 (사용 안 함)
@@ -193,4 +193,3 @@ export interface InfluencerStats {
 }
 
 export type User = Profile;
-

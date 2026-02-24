@@ -35,17 +35,19 @@ export async function POST(request: NextRequest) {
 
         for (const url of urls) {
             try {
+                const normalizedUrl = String(url).toLowerCase();
+
                 // 플랫폼 구분
-                const platform = url.includes('blog.naver.com') ? 'NAVER_BLOG' :
-                    url.includes('instagram.com') ? 'INSTAGRAM' :
-                        url.includes('youtube.com') || url.includes('youtu.be') ? 'YOUTUBE' :
-                            url.includes('tiktok.com') ? 'TIKTOK' : 'OTHER';
+                const platform = normalizedUrl.includes('blog.naver.com') ? 'BLOG' :
+                    normalizedUrl.includes('instagram.com') ? 'INSTAGRAM' :
+                        normalizedUrl.includes('youtube.com') || normalizedUrl.includes('youtu.be') ? 'YOUTUBE' :
+                            normalizedUrl.includes('tiktok.com') ? 'TIKTOK' : 'OTHER';
 
                 // 메타데이터 수집 (직접 함수 호출로 변경하여 내부 fetch 오류 방지)
                 let metadata = null;
-                if (platform === 'NAVER_BLOG') {
+                if (platform.toUpperCase() === 'BLOG') {
                     metadata = await scrapeNaverBlog(url);
-                } else if (platform === 'INSTAGRAM') {
+                } else if (platform.toUpperCase() === 'INSTAGRAM') {
                     metadata = await scrapeInstagram(url);
                 }
 

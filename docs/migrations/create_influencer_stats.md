@@ -12,7 +12,7 @@ Supabase SQL Editor에서 실행하세요.
 CREATE TABLE IF NOT EXISTS influencer_stats (
     id BIGSERIAL PRIMARY KEY,
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-    platform VARCHAR(50) NOT NULL DEFAULT 'NAVER_BLOG',
+    platform VARCHAR(50) NOT NULL DEFAULT 'BLOG',
     blog_url TEXT NOT NULL,
     
     -- 기본 지표
@@ -156,7 +156,7 @@ INSERT INTO influencer_stats (
 )
 SELECT 
     (SELECT id FROM profiles WHERE role = 'INFLUENCER' LIMIT 1),
-    'NAVER_BLOG',
+    'BLOG',
     'https://blog.naver.com/damgow',
     62,
     58,

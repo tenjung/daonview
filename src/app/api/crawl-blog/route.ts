@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
             .from('influencer_stats')
             .upsert({
                 user_id: userId,
-                platform: 'NAVER_BLOG',
+                platform: 'BLOG',
                 blog_url: blogUrl,
                 
                 // 기본값 설정

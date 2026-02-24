@@ -39,6 +39,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
 
   const platformMap: Record<string, string> = {
     '블로그': 'BLOG',
+    'NAVER_BLOG': 'BLOG',
     '인스타': 'INSTAGRAM',
     '기타': 'OTHER',
     '구매평': 'PURCHASE',
@@ -54,12 +55,13 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
   const rawPlatform = campaign.platform || 'BLOG';
+  const normalizedRawPlatform = typeof rawPlatform === 'string' ? rawPlatform.toUpperCase() : 'BLOG';
   const rawType = campaign.type || 'VISIT';
 
   return {
     id: campaign.id,
     title: campaign.title || productName,
-    platform: platformMap[rawPlatform] || (typeof rawPlatform === 'string' ? rawPlatform.toUpperCase() : 'BLOG'),
+    platform: platformMap[normalizedRawPlatform] || normalizedRawPlatform,
     type: typeMap[rawType] || (typeof rawType === 'string' ? rawType.toUpperCase() : 'VISIT'),
     applicants: applicants,
     total: campaign.recruit_count || 0,

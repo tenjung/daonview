@@ -118,31 +118,43 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     const criticalCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'critical');
     const warningCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'warning');
 
-    async function updateCampaignEndDateWithRetry(campaignId: number, newEndDateIso: string) {
-        const query = () =>
-            supabase
-                .from('campaigns')
-                .update({ end_date: newEndDateIso })
-                .eq('id', campaignId);
+    async function updateCampaignEndDateWithRetry(campaignId: number, days: number): Promise<string> {
+        const requestExtend = async () => {
+            const response = await fetch('/api/campaigns/extend', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campaignId, days }),
+            });
+
+            const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+            if (!response.ok) {
+                const errorMessage = typeof payload.error === 'string' ? payload.error : '기간 연장 요청에 실패했습니다.';
+                throw new Error(errorMessage);
+            }
+
+            const endDate = typeof payload.endDate === 'string' ? payload.endDate : '';
+            if (!endDate) {
+                throw new Error('연장 결과(endDate)를 받지 못했습니다.');
+            }
+
+            return endDate;
+        };
 
         try {
-            const { error } = await withTimeout<any>(
-                query(),
+            return await withTimeout<string>(
+                requestExtend(),
                 BULK_EXTEND_TIMEOUT_MS,
                 `extend campaign ${campaignId}`
             );
-            if (error) throw error;
-            return;
         } catch (error) {
             if (!isTimeoutError(error)) throw error;
         }
 
-        const { error: retryError } = await withTimeout<any>(
-            query(),
+        return withTimeout<string>(
+            requestExtend(),
             EXTEND_RETRY_TIMEOUT_MS,
             `retry extend campaign ${campaignId}`
         );
-        if (retryError) throw retryError;
     }
 
     async function handleBulkExtend(days: number) {
@@ -156,11 +168,8 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 const campaign = campaigns.find(c => c.id === campaignId);
                 if (!campaign) continue;
 
-                const currentEndDate = new Date(campaign.end_date);
-                const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
-
                 try {
-                    await updateCampaignEndDateWithRetry(campaignId, newEndDate.toISOString());
+                    await updateCampaignEndDateWithRetry(campaignId, days);
                 } catch (error) {
                     console.error(`캠페인(${campaignId}) 연장 실패:`, error);
                     failedCampaignIds.push(campaignId);
@@ -184,7 +193,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             }
 
             // Re-fetch or update local state
-            const { data: refetchData, error: refetchErr } = await withTimeout<any>(
+            const { data: refetchData, error: refetchErr } = await withTimeout(
                 supabase
                     .from('campaigns')
                     .select('*, applications(count), profiles:created_by(*)')
@@ -219,22 +228,16 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     async function handleQuickExtend(campaignId: number, days: number) {
         if (quickExtendingId !== null) return;
 
-        const campaign = campaigns.find((c) => c.id === campaignId);
-        if (!campaign) return;
-
         setQuickExtendingId(campaignId);
         try {
-            const currentEndDate = new Date(campaign.end_date);
-            const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
-
-            await updateCampaignEndDateWithRetry(campaignId, newEndDate.toISOString());
+            const endDate = await updateCampaignEndDateWithRetry(campaignId, days);
 
             setCampaigns((prev) =>
                 prev.map((c) =>
-                    c.id === campaignId ? { ...c, end_date: newEndDate.toISOString() } : c
+                    c.id === campaignId ? { ...c, end_date: endDate } : c
                 )
             );
-            toast.success(`"${campaign.title}" 캠페인을 ${days}일 연장했습니다.`);
+            toast.success(`캠페인을 ${days}일 연장했습니다.`);
             setQuickExtendOpenId(null);
         } catch (error) {
             console.error(`캠페인(${campaignId}) 즉시 연장 오류:`, error);

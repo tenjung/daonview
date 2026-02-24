@@ -26,7 +26,7 @@ interface ReviewsClientProps {
 
 // 플랫폼별 아이콘 및 색상
 const platformConfig = {
-    NAVER_BLOG: {
+    BLOG: {
         icon: 'N',
         label: '네이버 블로그',
         color: 'bg-[#03C75A]',
@@ -61,6 +61,11 @@ const platformConfig = {
         textColor: 'text-gray-700',
         bgColor: 'bg-gray-50'
     }
+};
+
+const normalizePlatform = (platform: string | null | undefined) => {
+    const normalized = String(platform || '').toUpperCase();
+    return normalized === 'NAVER_BLOG' ? 'BLOG' : normalized;
 };
 
 // 네이버 블로그 ID 추출 함수
@@ -98,7 +103,7 @@ export default function ReviewsClient({ reviewsPromise }: ReviewsClientProps) {
 
                 {/* 필터 탭 */}
                 <div className="flex flex-wrap justify-center gap-2 mb-12">
-                    {['ALL', 'NAVER_BLOG', 'INSTAGRAM', 'YOUTUBE'].map((platform) => (
+                    {['ALL', 'BLOG', 'INSTAGRAM', 'YOUTUBE'].map((platform) => (
                         <button
                             key={platform}
                             onClick={() => setFilter(platform)}
@@ -205,7 +210,7 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
     // 필터링
     const filteredReviews = filter === 'ALL'
         ? shuffledReviews
-        : shuffledReviews.filter((r: Review) => r.platform === filter);
+        : shuffledReviews.filter((r: Review) => normalizePlatform(r.platform) === filter.toUpperCase());
 
     const displayedReviews = filteredReviews.slice(0, displayedCount);
     const hasMore = displayedCount < filteredReviews.length;
@@ -247,8 +252,9 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
         <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {displayedReviews.map((review: Review) => {
-                    const config = platformConfig[review.platform as keyof typeof platformConfig] || platformConfig.OTHER;
-                    const blogInfo = review.platform === 'NAVER_BLOG' ? extractNaverBlogInfo(review.post_url) : null;
+                    const normalizedPlatform = normalizePlatform(review.platform);
+                    const config = platformConfig[normalizedPlatform as keyof typeof platformConfig] || platformConfig.OTHER;
+                    const blogInfo = normalizedPlatform === 'BLOG' ? extractNaverBlogInfo(review.post_url) : null;
                     return (
                         <a
                             key={review.id}
