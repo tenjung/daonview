@@ -258,6 +258,19 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-text-secondary mb-2">
+              구글폼 URL
+            </label>
+            <input
+              type="url"
+              value={formData.googleFormUrl || ''}
+              onChange={(e) => updateField('googleFormUrl', e.target.value)}
+              placeholder="https://forms.gle/..."
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            />
+          </div>
         </div>
       </div>
 

@@ -21,6 +21,7 @@ export interface LandingPageInput {
   instagram?: string;
   blog?: string;
   phone?: string;
+  googleFormUrl?: string;
 }
 
 export interface HeroSection {

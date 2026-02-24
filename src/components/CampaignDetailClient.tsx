@@ -31,7 +31,8 @@ import {
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
 import CampaignCard from '@/components/CampaignCard';
-import { PlatformBadge, TypeBadge, RegionBadge, DDayBadge } from '@/components/campaign/CampaignBadges';
+import { TypeBadge, RegionBadge, DDayBadge } from '@/components/campaign/CampaignBadges';
+import CampaignPlatformBadges from '@/components/campaign/CampaignPlatformBadges';
 import NaverMap from '@/components/campaign/NaverMap';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -39,7 +40,7 @@ import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
-import { formatDDay } from '@/lib/campaignUtils';
+import { formatDDay, mapCampaignToCard } from '@/lib/campaignUtils';
 import {
     Dialog,
     DialogContent,
@@ -69,11 +70,22 @@ import {
 } from "@/components/ui/tooltip";
 import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
+import { isRole, USER_ROLES } from '@/constants/role';
 
 
 interface CampaignDetailClientProps {
     campaign: any;
     id: string;
+}
+
+function formatDateFixed(rawValue: string | null | undefined): string {
+    if (!rawValue) return '미정';
+    const date = new Date(rawValue);
+    if (Number.isNaN(date.getTime())) return '미정';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}`;
 }
 
 export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
@@ -106,6 +118,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [applicationId, setApplicationId] = useState<number>(0);
     const [mainApi, setMainApi] = useState<CarouselApi>();
 
+    async function revalidateCampaignListCaches() {
+        try {
+            await fetch('/api/cache/revalidate-home-banner', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ campaignId: id }),
+            });
+        } catch (error) {
+            console.error('Failed to revalidate campaign caches:', error);
+        }
+    }
+
 
     // Sync modal carousel when it opens or external index changes
     useEffect(() => {
@@ -132,6 +158,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
     const isAdmin = profile?.role === 'ADMIN';
+    const isInfluencerViewer = Boolean(user) && isRole(profile?.role, USER_ROLES.INFLUENCER);
 
     useEffect(() => {
         let isMounted = true;
@@ -220,13 +247,21 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         if (!currentUser || !id) return;
         try {
             // Only check application status (favorites handled by Zustand)
-            const { data: appData } = await supabase
+            const { data: appData, error: appError } = await supabase
                 .from('applications')
                 .select('id, selected_option, application_message, status')
                 .eq('user_id', currentUser.id)
                 .eq('campaign_id', id)
                 .neq('status', 'CANCELLED')
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
+
+            if (appError) {
+                console.error('Error in checkUserStatus query:', appError);
+                return;
+            }
+
             if (appData) {
                 setHasApplied(true);
                 setApplicationId(appData.id);
@@ -317,6 +352,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        const normalizedRole = String(profile?.role || '').toUpperCase();
+        if (normalizedRole !== 'INFLUENCER') {
+            toast.error('인플루언서 계정만 캠페인 신청이 가능합니다.');
+            return;
+        }
+
         // 중복 신청 방지
         if (hasApplied) {
             toast.error('이미 신청한 캠페인입니다.');
@@ -366,17 +407,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 return;
             }
 
-            const campaignType = campaign.type?.toUpperCase();
+            const campaignType = String(campaign.type || '').toUpperCase();
+            const isPurchaseExperienceCampaign =
+                campaignType === 'PURCHASE' ||
+                String(campaign.platform || '').toUpperCase() === 'PURCHASE' ||
+                Boolean(step1Data.includeReview);
+            const isDeliveryShippingCampaign = campaignType === 'DELIVERY' && !isPurchaseExperienceCampaign;
 
-            if (campaignType === 'PURCHASE') {
-                // 구매평 캠페인: 계좌 정보 필수
-                if (!profile.bank_name || !profile.account_number || !profile.account_holder) {
-                    setMissingInfoType('BANK');
-                    setIsProfileAlertOpen(true);
-                    return;
-                }
-            } else if (campaignType === 'DELIVERY') {
-                // 단순 배송형 캠페인: 배송지 정보 필수
+            // 단순 배송형 캠페인: 신청 시 배송지 정보 필수
+            if (isDeliveryShippingCampaign) {
                 if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
                     setMissingInfoType('ADDRESS');
                     setIsProfileAlertOpen(true);
@@ -440,6 +479,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             toast.success('캠페인 신청이 완료되었습니다!');
 
             fetchCampaign();
+            void revalidateCampaignListCaches();
 
             // 캠페인 생성자(광고주/관리자)에게 마일스톤 알림 발송
             if (campaign.created_by) {
@@ -491,12 +531,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     async function confirmCancel() {
         try {
-            const { data: appData } = await supabase
+            const { data: appData, error: appQueryError } = await supabase
                 .from('applications')
                 .select('status')
                 .eq('user_id', user.id)
                 .eq('campaign_id', id)
-                .single();
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            if (appQueryError) throw appQueryError;
+            if (!appData) {
+                toast.error('신청 내역을 찾을 수 없습니다.');
+                return;
+            }
 
             if (appData?.status?.toUpperCase() !== 'PENDING') {
                 toast.error('심사중인 신청만 취소할 수 있습니다.');
@@ -517,6 +565,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             setSelectedOptions([]);
             setApplicationMessage('');
             fetchCampaign();
+            void revalidateCampaignListCaches();
         } catch (error) {
             console.error('Error canceling application:', error);
             toast.error('취소 중 오류가 발생했습니다.');
@@ -529,10 +578,16 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step1Data = campaignOptions?.step1Data || {};
     const step2Data = campaignOptions?.step2Data || {};
+    const normalizedCampaignType = String(campaign.type || '').toUpperCase();
+    const normalizedCampaignPlatform = String(campaign.platform || '').toUpperCase();
+    const isPurchaseExperience =
+        normalizedCampaignType === 'PURCHASE' ||
+        normalizedCampaignPlatform === 'PURCHASE' ||
+        Boolean(step1Data.includeReview);
 
     const isAlwaysRecruiting = step1Data.scheduleType === 'always' || !campaign.end_date;
-    const startDate = campaign.recruitment_start_date ? new Date(campaign.recruitment_start_date).toLocaleDateString() : new Date(campaign.created_at).toLocaleDateString();
-    const endDateLabel = isAlwaysRecruiting ? '상시 모집' : (campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '미정');
+    const startDate = formatDateFixed(campaign.recruitment_start_date || campaign.created_at);
+    const endDateLabel = isAlwaysRecruiting ? '상시 모집' : formatDateFixed(campaign.end_date);
     // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
     const getCampaignImages = () => {
         const imageSet = new Set<string>();
@@ -656,6 +711,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const isFull = approvedCount >= campaign.recruit_count && campaign.recruit_count > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
+    const rewardRawValue = campaign.reward_per_person ?? campaign.official_price;
+    const rewardAmount = Number(String(rewardRawValue ?? '').replace(/[^0-9]/g, ''));
+    const hasRewardAmount = Number.isFinite(rewardAmount) && rewardAmount > 0;
 
     let closureText = '';
     if (isPastDeadline) closureText = '모집 기간이 종료되었습니다';
@@ -678,20 +736,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         <div className="flex flex-wrap items-center gap-1.5">
                             <TypeBadge type={campaign.type} />
 
-                            {/* 배송형일 경우 includeReview, includeNaver, includeInstagram 체크하여 뱃지 표시 */}
-                            {campaign.type?.toUpperCase() === 'DELIVERY' ? (
-                                <>
-                                    {step1Data.includeReview && <PlatformBadge platform="PURCHASE" />}
-                                    {step1Data.includeNaver && <PlatformBadge platform="BLOG" />}
-                                    {step1Data.includeInstagram && <PlatformBadge platform="INSTAGRAM" />}
-                                    {/* 위 항목들이 하나도 없을 때만 기본 platform 표시 (하위 호환) */}
-                                    {!step1Data.includeReview && !step1Data.includeNaver && !step1Data.includeInstagram && (
-                                        <PlatformBadge platform={campaign.platform} />
-                                    )}
-                                </>
-                            ) : (
-                                <PlatformBadge platform={campaign.platform} />
-                            )}
+                            <CampaignPlatformBadges
+                                type={campaign.type}
+                                platform={campaign.platform}
+                                includeReview={step1Data.includeReview}
+                                includeNaver={step1Data.includeNaver}
+                                includeInstagram={step1Data.includeInstagram}
+                            />
 
                             {campaign.type?.toUpperCase() === 'VISIT' && <RegionBadge region={campaign.region} />}
                             <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
@@ -813,15 +864,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
                         </div>
 
-                        {/* 제공 내역 Section */}
+                        {/* 체험단 혜택 Section */}
                         <section className="py-10 border-t border-slate-100">
                             <div className="flex items-center gap-4 mb-6">
                                 <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
                                     <Gift className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">제공 내역</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Provision Details</p>
+                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">체험단 혜택</h2>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Experience Benefit</p>
                                 </div>
                             </div>
 
@@ -832,11 +883,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium">
                                         {campaignIntro || '제공 내역 정보가 없습니다.'}
                                     </p>
-                                    {campaign.official_price && (
+                                    {isInfluencerViewer && hasRewardAmount && (
                                         <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
-                                            <span className="text-sm font-bold text-slate-400">정가</span>
+                                            <span className="text-sm font-bold text-slate-400">체험단 혜택</span>
                                             <p className="text-xl font-bold text-slate-900">
-                                                {parseInt(campaign.official_price).toLocaleString()}<span className="text-sm ml-1 font-medium">원</span>
+                                                {rewardAmount.toLocaleString()}<span className="text-sm ml-1 font-medium">원</span>
                                             </p>
                                         </div>
                                     )}
@@ -1177,8 +1228,21 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
                     {/* Right Sticky Aside */}
                     <div className="lg:col-span-4 border-l border-slate-100 bg-slate-50/30 relative">
-                        <div className="lg:sticky lg:top-24 p-5 md:p-6 text-left">
+                        <div className="lg:sticky lg:top-16 p-5 md:p-6 text-left">
                             <div id="options-section" className="flex flex-col">
+                                {/* Quick Meta Chips (Desktop Sticky) */}
+                                <div className="hidden lg:flex items-center gap-2 flex-wrap mb-5 pb-4 border-b border-slate-100">
+                                    <TypeBadge type={campaign.type} />
+                                    <CampaignPlatformBadges
+                                        type={campaign.type}
+                                        platform={campaign.platform}
+                                        includeReview={Boolean(step1Data.includeReview)}
+                                        includeNaver={Boolean(step1Data.includeNaver)}
+                                        includeInstagram={Boolean(step1Data.includeInstagram)}
+                                    />
+                                    <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
+                                </div>
+
                                 {/* Campaign Info Summary */}
                                 <div className="space-y-4 mb-8">
                                     <div className="flex items-center justify-between pb-4 border-b border-slate-100">
@@ -1535,25 +1599,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         >
                             <CarouselContent className="-ml-4 pb-4">
                                 {relatedCampaigns.map((rc) => {
-                                    const options = Array.isArray(rc.campaign_options) ? rc.campaign_options[0] : rc.campaign_options;
-                                    const s1 = options?.step1Data || {};
+                                    const cardData = mapCampaignToCard(rc as any);
                                     return (
                                         <CarouselItem key={rc.id} className="pl-4 basis-[85%] sm:basis-1/2 md:basis-1/3 lg:basis-1/4">
                                             <div className="h-full">
                                                 <CampaignCard
-                                                    id={rc.id}
-                                                    title={rc.title}
-                                                    platform={rc.platform}
-                                                    type={rc.type}
-                                                    applicants={rc.app_count || 0}
-                                                    total={rc.recruit_count || 0}
-                                                    dday={(rc.is_always || (rc.recruit_count && rc.recruit_count >= 999)) ? '상시' : formatDDay(rc.end_date)}
-                                                    imageUrl={rc.thumbnail_url}
-                                                    provision={rc.provision_details}
-                                                    region={rc.region}
-                                                    includeReview={s1.includeReview}
-                                                    includeNaver={s1.includeNaver}
-                                                    includeInstagram={s1.includeInstagram}
+                                                    id={cardData.id}
+                                                    title={cardData.title}
+                                                    platform={cardData.platform}
+                                                    type={cardData.type}
+                                                    applicants={cardData.applicants}
+                                                    total={cardData.total}
+                                                    dday={cardData.dday}
+                                                    imageUrl={cardData.imageUrl}
+                                                    provision={cardData.provision}
+                                                    region={cardData.region}
+                                                    includeReview={cardData.includeReview}
+                                                    includeNaver={cardData.includeNaver}
+                                                    includeInstagram={cardData.includeInstagram}
                                                 />
                                             </div>
                                         </CarouselItem>
@@ -1661,6 +1724,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 campaignId={parseInt(id)}
                 campaignTitle={campaign.title}
                 creatorId={campaign.created_by}
+                isPurchaseExperience={isPurchaseExperience}
                 onSuccess={() => {
                     checkUserStatus(user);
                 }}

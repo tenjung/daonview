@@ -6,9 +6,10 @@ import { ArrowRight } from 'lucide-react';
 interface HeroSectionProps {
   hero: HeroSectionType;
   colorScheme: { primary: string; secondary: string };
+  googleFormUrl?: string;
 }
 
-export function HeroSection({ hero, colorScheme }: HeroSectionProps) {
+export function HeroSection({ hero, colorScheme, googleFormUrl }: HeroSectionProps) {
   return (
     <section 
       className="relative min-h-[70vh] flex items-center justify-center overflow-hidden"
@@ -44,13 +45,26 @@ export function HeroSection({ hero, colorScheme }: HeroSectionProps) {
           {hero.subheadline}
         </p>
 
-        <button
-          className="group inline-flex items-center gap-3 px-8 py-4 rounded-full text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-          style={{ backgroundColor: colorScheme.primary }}
-        >
-          {hero.cta}
-          <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
-        </button>
+        {googleFormUrl ? (
+          <a
+            href={googleFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group inline-flex items-center gap-3 px-8 py-4 rounded-full text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            style={{ backgroundColor: colorScheme.primary }}
+          >
+            {hero.cta || '구글폼 이동'}
+            <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+          </a>
+        ) : (
+          <button
+            className="group inline-flex items-center gap-3 px-8 py-4 rounded-full text-white font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            style={{ backgroundColor: colorScheme.primary }}
+          >
+            {hero.cta}
+            <ArrowRight className="group-hover:translate-x-1 transition-transform" size={20} />
+          </button>
+        )}
       </div>
 
       <style jsx global>{`

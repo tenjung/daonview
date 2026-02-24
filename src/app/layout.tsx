@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from 'sonner';
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -59,6 +57,7 @@ export const metadata: Metadata = {
 import AuthHydrator from '@/components/auth/AuthHydrator';
 import OnboardingChecker from '@/components/auth/OnboardingChecker';
 import { createClient } from '@/lib/supabase/server';
+import AppShell from '@/components/AppShell';
 
 function isDynamicServerUsageError(error: unknown): boolean {
   return (
@@ -169,11 +168,9 @@ export default async function RootLayout({
         {/* 서버에서 읽은 실제 세션을 Zustand store에 즉시 주입 */}
         <AuthHydrator user={initialUser} profile={initialProfile} />
         <OnboardingChecker />
-        <Navbar initialUser={initialUser} initialProfile={initialProfile} />
-        <main className="flex-1">
+        <AppShell initialUser={initialUser} initialProfile={initialProfile}>
           {children}
-        </main>
-        <Footer />
+        </AppShell>
         <Toaster position="top-center" richColors />
       </body>
     </html>

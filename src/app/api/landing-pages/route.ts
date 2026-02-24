@@ -1,9 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { LandingPageInput, AIGeneratedContent } from '@/types/landingPage';
+
+function normalizeExternalUrl(raw: unknown): string {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
+function slugifyAscii(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, ' ')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 24);
+}
 
 // GET: 사용자의 모든 랜딩페이지 목록 조회
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
 
@@ -47,14 +63,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
     }
 
-    // slug 생성 (제목 기반 + 랜덤 문자열)
-    const baseSlug = title
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .substring(0, 50);
-    const randomSuffix = Math.random().toString(36).substring(2, 8);
-    const slug = `${baseSlug}-${randomSuffix}`;
+    // slug 생성: 영문+숫자 + 사용자 개인화 prefix
+    const userPrefix = user.id.replace(/-/g, '').slice(0, 6).toLowerCase();
+    const baseSlug = slugifyAscii(String(title || ''));
+    const normalizedBase = baseSlug || 'lp';
+
+    let slug = '';
+    for (let i = 0; i < 5; i += 1) {
+      const randomSuffix = Math.random().toString(36).substring(2, 6);
+      const candidate = `${userPrefix}-${normalizedBase}-${randomSuffix}`;
+      const { data: existing } = await supabase
+        .from('landing_pages')
+        .select('id')
+        .eq('slug', candidate)
+        .maybeSingle();
+      if (!existing) {
+        slug = candidate;
+        break;
+      }
+    }
+
+    if (!slug) {
+      slug = `${userPrefix}-lp-${Date.now().toString(36)}`;
+    }
+
+    const normalizedInputData = {
+      ...inputData,
+      googleFormUrl: normalizeExternalUrl(inputData?.googleFormUrl),
+    };
 
     const { data, error } = await supabase
       .from('landing_pages')
@@ -62,8 +98,8 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         slug,
         title,
-        target_type: inputData.targetType,
-        input_data: inputData,
+        target_type: normalizedInputData.targetType,
+        input_data: normalizedInputData,
         ai_generated_content: generatedContent,
         published: published || false,
       })

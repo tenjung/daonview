@@ -17,6 +17,7 @@ export default function LandingBuilderPage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [latestInputData, setLatestInputData] = useState<LandingPageInput | null>(null);
 
   const {
     generatedContent,
@@ -27,6 +28,11 @@ export default function LandingBuilderPage() {
     setPreviewMode,
     resetBuilder,
   } = useLandingPageStore();
+
+  const getErrorMessage = (error: unknown) => {
+    if (error instanceof Error) return error.message;
+    return '요청 처리 중 오류가 발생했습니다.';
+  };
 
   // 인증 체크
   if (!user) {
@@ -56,6 +62,7 @@ export default function LandingBuilderPage() {
 
   const handleGenerate = async (input: LandingPageInput) => {
     setIsGenerating(true);
+    setLatestInputData(input);
 
     try {
       const res = await fetch('/api/ai/generate-landing', {
@@ -73,9 +80,9 @@ export default function LandingBuilderPage() {
       setGeneratedContent(data.content);
       setIsPreviewOpen(true); // 프리뷰 다이얼로그 열기
       toast.success('AI 랜딩페이지가 생성되었습니다!');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('생성 오류:', error);
-      toast.error(error.message || 'AI 생성 중 오류가 발생했습니다.');
+      toast.error(getErrorMessage(error));
     } finally {
       setIsGenerating(false);
     }
@@ -100,7 +107,7 @@ export default function LandingBuilderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title,
-          inputData: {}, // 필요시 저장
+          inputData: latestInputData || { targetType: 'INFLUENCER' },
           generatedContent,
           published: true,
         }),
@@ -134,9 +141,9 @@ export default function LandingBuilderPage() {
         router.push(`/lp/${slug}`);
         resetBuilder();
       }, 500);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('저장 오류:', error);
-      toast.error(error.message || '저장 중 오류가 발생했습니다.');
+      toast.error(getErrorMessage(error));
     } finally {
       setIsSaving(false);
     }

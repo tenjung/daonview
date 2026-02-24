@@ -4,9 +4,10 @@ import { Mail, Instagram, Globe, Phone, ExternalLink } from 'lucide-react';
 interface ContactSectionProps {
   contact: ContactInfo;
   colorScheme: { primary: string; secondary: string };
+  googleFormUrl?: string;
 }
 
-export function ContactSection({ contact, colorScheme }: ContactSectionProps) {
+export function ContactSection({ contact, colorScheme, googleFormUrl }: ContactSectionProps) {
   const contactItems = [
     { icon: Mail, label: '이메일', value: contact.email, href: contact.email ? `mailto:${contact.email}` : null },
     { icon: Instagram, label: 'Instagram', value: contact.instagram, href: contact.instagram },
@@ -72,6 +73,20 @@ export function ContactSection({ contact, colorScheme }: ContactSectionProps) {
               );
             })}
           </div>
+
+          {googleFormUrl && (
+            <div className="mb-12">
+              <a
+                href={googleFormUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center rounded-full px-8 py-4 text-base font-black text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                style={{ backgroundColor: colorScheme.primary }}
+              >
+                구글폼 이동
+              </a>
+            </div>
+          )}
 
           {/* 다온뷰 워터마크 */}
           <div className="pt-8 border-t border-gray-200">

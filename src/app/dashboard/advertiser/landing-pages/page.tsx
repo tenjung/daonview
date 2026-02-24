@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
-import { Sparkles, ExternalLink, Eye, Plus } from 'lucide-react';
+import { Sparkles, ExternalLink, Plus, Save, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { ADVERTISER_LINKS } from '@/constants/navigation';
@@ -13,8 +13,51 @@ import { ADVERTISER_LINKS } from '@/constants/navigation';
 export default function AdvertiserLandingPagesPage() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
     const router = useRouter();
-    const [landingPages, setLandingPages] = useState<any[]>([]);
+    interface LandingPageCard {
+        id: string | number;
+        slug: string;
+        title: string;
+        created_at: string;
+        view_count?: number;
+        input_data?: {
+            googleFormUrl?: string;
+            [key: string]: unknown;
+        } | null;
+    }
+
+    const [landingPages, setLandingPages] = useState<LandingPageCard[]>([]);
+    const [formUrlById, setFormUrlById] = useState<Record<string, string>>({});
+    const [savingPageId, setSavingPageId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+
+    const normalizeExternalUrl = (raw: string) => {
+        const value = raw.trim();
+        if (!value) return '';
+        return /^https?:\/\//i.test(value) ? value : `https://${value}`;
+    };
+
+    const fetchLandingPages = useCallback(async () => {
+        if (!user) return;
+
+        try {
+            const res = await fetch('/api/landing-pages');
+            if (!res.ok) throw new Error('Failed to fetch');
+
+            const data = await res.json();
+            const pages = (data.landingPages || []) as LandingPageCard[];
+            setLandingPages(pages);
+            const mapped: Record<string, string> = {};
+            pages.forEach((page) => {
+                mapped[String(page.id)] = String(page.input_data?.googleFormUrl || '');
+            });
+            setFormUrlById(mapped);
+        } catch (error) {
+            console.error('Error fetching landing pages:', error);
+            toast.error('랜딩페이지를 불러오는 중 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    }, [user]);
 
     useEffect(() => {
         if (!authLoading && user) {
@@ -26,22 +69,79 @@ export default function AdvertiserLandingPagesPage() {
         } else if (!authLoading && !user) {
             setLoading(false);
         }
-    }, [authLoading, user, profile, router]);
+    }, [authLoading, user, profile, router, fetchLandingPages]);
 
-    async function fetchLandingPages() {
-        if (!user) return;
+    async function saveGoogleFormUrl(page: LandingPageCard) {
+        const pageId = String(page.id);
+        const normalizedGoogleFormUrl = normalizeExternalUrl(formUrlById[pageId] || '');
 
+        setSavingPageId(pageId);
         try {
-            const res = await fetch('/api/landing-pages');
-            if (!res.ok) throw new Error('Failed to fetch');
+            const mergedInputData = {
+                ...(page.input_data || {}),
+                googleFormUrl: normalizedGoogleFormUrl,
+            };
+
+            const res = await fetch(`/api/landing-pages/${encodeURIComponent(page.slug)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ inputData: mergedInputData }),
+            });
 
             const data = await res.json();
-            setLandingPages(data.landingPages || []);
-        } catch (error) {
-            console.error('Error fetching landing pages:', error);
-            toast.error('랜딩페이지를 불러오는 중 오류가 발생했습니다.');
+            if (!res.ok) {
+                throw new Error(data?.error || '저장 중 오류가 발생했습니다.');
+            }
+
+            setLandingPages((prev) =>
+                prev.map((item) =>
+                    item.id === page.id
+                        ? { ...item, input_data: { ...(item.input_data || {}), googleFormUrl: normalizedGoogleFormUrl } }
+                        : item
+                )
+            );
+            setFormUrlById((prev) => ({ ...prev, [pageId]: normalizedGoogleFormUrl }));
+            toast.success('구글폼 링크가 저장되었습니다.');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : '구글폼 링크 저장에 실패했습니다.');
         } finally {
-            setLoading(false);
+            setSavingPageId(null);
+        }
+    }
+
+    async function copyLandingPageUrl(slug: string) {
+        try {
+            const origin = typeof window !== 'undefined' ? window.location.origin : '';
+            const url = `${origin}/lp/${slug}`;
+            await navigator.clipboard.writeText(url);
+            toast.success('랜딩페이지 주소가 복사되었습니다.');
+        } catch (error) {
+            console.error('Copy URL error:', error);
+            toast.error('주소 복사에 실패했습니다.');
+        }
+    }
+
+    async function deleteLandingPage(page: LandingPageCard) {
+        if (!confirm('정말 이 랜딩페이지를 삭제하시겠습니까?')) return;
+
+        try {
+            const res = await fetch(`/api/landing-pages/${encodeURIComponent(page.slug)}`, {
+                method: 'DELETE',
+            });
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data?.error || '삭제에 실패했습니다.');
+            }
+
+            setLandingPages((prev) => prev.filter((item) => item.id !== page.id));
+            setFormUrlById((prev) => {
+                const next = { ...prev };
+                delete next[String(page.id)];
+                return next;
+            });
+            toast.success('랜딩페이지가 삭제되었습니다.');
+        } catch (error: unknown) {
+            toast.error(error instanceof Error ? error.message : '랜딩페이지 삭제에 실패했습니다.');
         }
     }
 
@@ -111,22 +211,53 @@ export default function AdvertiserLandingPagesPage() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
-                                        <div className="flex items-center gap-1">
-                                            <Eye size={16} />
-                                            <span>{page.view_count || 0} 조회</span>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5">구글폼 URL</label>
+                                            <input
+                                                type="url"
+                                                value={formUrlById[String(page.id)] || ''}
+                                                onChange={(e) =>
+                                                    setFormUrlById((prev) => ({ ...prev, [String(page.id)]: e.target.value }))
+                                                }
+                                                placeholder="https://forms.gle/..."
+                                                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-primary"
+                                            />
                                         </div>
+
+                                        <button
+                                            onClick={() => saveGoogleFormUrl(page)}
+                                            disabled={savingPageId === String(page.id)}
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg border border-gray-200 font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-60"
+                                        >
+                                            <Save size={15} />
+                                            {savingPageId === String(page.id) ? '저장 중...' : '구글폼 저장'}
+                                        </button>
                                     </div>
 
-                                    <div className="flex gap-2">
+                                    <div className="grid grid-cols-3 gap-2 mt-3">
                                         <Link
                                             href={`/lp/${page.slug}`}
                                             target="_blank"
-                                            className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-primary/10 text-primary rounded-lg font-bold hover:bg-primary hover:text-white transition-all"
+                                            className="h-11 flex items-center justify-center gap-1.5 px-3 bg-emerald-50 text-emerald-700 rounded-lg font-bold hover:bg-emerald-100 transition-all whitespace-nowrap text-sm"
                                         >
-                                            <ExternalLink size={16} />
-                                            보기
+                                            <ExternalLink size={14} />
+                                            열기
                                         </Link>
+                                        <button
+                                            onClick={() => copyLandingPageUrl(page.slug)}
+                                            className="h-11 flex items-center justify-center gap-1.5 px-3 bg-slate-100 text-slate-700 rounded-lg font-bold hover:bg-slate-200 transition-all whitespace-nowrap text-sm"
+                                        >
+                                            <Copy size={14} />
+                                            복사
+                                        </button>
+                                        <button
+                                            onClick={() => deleteLandingPage(page)}
+                                            className="h-11 flex items-center justify-center gap-1.5 px-3 bg-rose-50 text-rose-600 rounded-lg font-bold hover:bg-rose-100 transition-all whitespace-nowrap text-sm"
+                                        >
+                                            <Trash2 size={14} />
+                                            삭제
+                                        </button>
                                     </div>
                                 </div>
                             ))}

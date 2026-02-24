@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+function normalizeExternalUrl(raw: unknown): string {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://${value}`;
+}
+
 // GET: slug로 특정 랜딩페이지 조회 (조회수 증가)
 export async function GET(
   request: NextRequest,
@@ -51,9 +58,14 @@ export async function PUT(
     const body = await request.json();
     const { title, inputData, generatedContent, published } = body;
 
-    const updateData: any = { updated_at: new Date().toISOString() };
+    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() };
     if (title) updateData.title = title;
-    if (inputData) updateData.input_data = inputData;
+    if (inputData) {
+      updateData.input_data = {
+        ...inputData,
+        googleFormUrl: normalizeExternalUrl(inputData.googleFormUrl),
+      };
+    }
     if (generatedContent) updateData.ai_generated_content = generatedContent;
     if (published !== undefined) updateData.published = published;
 

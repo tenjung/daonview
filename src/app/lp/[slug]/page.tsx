@@ -66,13 +66,28 @@ export default async function LandingPageViewer({ params }: { params: Promise<{ 
 
   const { ai_generated_content } = landingPage;
   const { hero, stats, portfolio, contact, colorScheme } = ai_generated_content;
+  const googleFormUrl = String(landingPage.input_data?.googleFormUrl || '').trim();
 
   return (
     <main className="min-h-screen bg-white">
-      <HeroSection hero={hero} colorScheme={colorScheme} />
+      {googleFormUrl && (
+        <div className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 backdrop-blur-md">
+          <div className="container px-4 py-3">
+            <a
+              href={googleFormUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
+            >
+              {'<'} 구글폼 이동
+            </a>
+          </div>
+        </div>
+      )}
+      <HeroSection hero={hero} colorScheme={colorScheme} googleFormUrl={googleFormUrl} />
       <StatsSection stats={stats} colorScheme={colorScheme} />
       <PortfolioSection portfolio={portfolio} colorScheme={colorScheme} />
-      <ContactSection contact={contact} colorScheme={colorScheme} />
+      <ContactSection contact={contact} colorScheme={colorScheme} googleFormUrl={googleFormUrl} />
     </main>
   );
 }
