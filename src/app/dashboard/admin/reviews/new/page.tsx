@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AdminSidebar from '@/components/AdminSidebar';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import BulkReviewClient from '@/components/admin/BulkReviewClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
@@ -31,11 +31,10 @@ export default async function BulkReviewPage() {
     const sidebarCounts = await fetchAdminCampaignCounts(supabase);
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
-            <div className="flex-1 bg-gray-50 py-12">
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
+            <div className="bg-gray-50 py-12">
                 <BulkReviewClient user={user} />
             </div>
-        </div>
+        </AdminPageLayout>
     );
 }

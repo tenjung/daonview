@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import AdminSidebar from '@/components/AdminSidebar';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import BannerManagementClient from '@/components/BannerManagementClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
@@ -17,9 +17,8 @@ export default async function BannerManagementPage() {
     const config = configRes.data?.value || { new_count: 4, hot_count: 4 };
 
     return (
-        <div className="flex min-h-screen bg-gray-50 text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
-            <main className="flex-1 p-8">
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
+            <main className="p-8">
                 <div className="max-w-5xl mx-auto">
                     <header className="mb-8 flex justify-between items-center">
                         <div>
@@ -31,6 +30,6 @@ export default async function BannerManagementPage() {
                     <BannerManagementClient initialBanners={banners} initialConfig={config} />
                 </div>
             </main>
-        </div>
+        </AdminPageLayout>
     );
 }

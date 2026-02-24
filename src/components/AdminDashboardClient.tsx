@@ -27,7 +27,8 @@ interface CampaignRow {
     applications?: Array<{ count: number }>;
 }
 
-const BULK_EXTEND_TIMEOUT_MS = 12000;
+const BULK_EXTEND_TIMEOUT_MS = 15000;
+const EXTEND_RETRY_TIMEOUT_MS = 35000;
 
 function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
     return Promise.race([
@@ -38,11 +39,17 @@ function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: strin
     ]);
 }
 
+function isTimeoutError(error: unknown): error is Error {
+    return error instanceof Error && error.message.includes('timeout');
+}
+
 export default function AdminDashboardClient({ initialCampaigns }: AdminDashboardClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([]);
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [isBulkExtending, setIsBulkExtending] = useState(false);
+    const [quickExtendOpenId, setQuickExtendOpenId] = useState<number | null>(null);
+    const [quickExtendingId, setQuickExtendingId] = useState<number | null>(null);
     const { user } = useAuthStore();
 
     // 지능형 모니터링 및 알림 (관리자용)
@@ -111,6 +118,33 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     const criticalCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'critical');
     const warningCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'warning');
 
+    async function updateCampaignEndDateWithRetry(campaignId: number, newEndDateIso: string) {
+        const query = () =>
+            supabase
+                .from('campaigns')
+                .update({ end_date: newEndDateIso })
+                .eq('id', campaignId);
+
+        try {
+            const { error } = await withTimeout<any>(
+                query(),
+                BULK_EXTEND_TIMEOUT_MS,
+                `extend campaign ${campaignId}`
+            );
+            if (error) throw error;
+            return;
+        } catch (error) {
+            if (!isTimeoutError(error)) throw error;
+        }
+
+        const { error: retryError } = await withTimeout<any>(
+            query(),
+            EXTEND_RETRY_TIMEOUT_MS,
+            `retry extend campaign ${campaignId}`
+        );
+        if (retryError) throw retryError;
+    }
+
     async function handleBulkExtend(days: number) {
         if (isBulkExtending || selectedCampaigns.length === 0) return;
 
@@ -125,16 +159,9 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 const currentEndDate = new Date(campaign.end_date);
                 const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
 
-                const { error } = await withTimeout<any>(
-                    supabase
-                        .from('campaigns')
-                        .update({ end_date: newEndDate.toISOString() })
-                        .eq('id', campaignId),
-                    BULK_EXTEND_TIMEOUT_MS,
-                    `extend campaign ${campaignId}`
-                );
-
-                if (error) {
+                try {
+                    await updateCampaignEndDateWithRetry(campaignId, newEndDate.toISOString());
+                } catch (error) {
                     console.error(`캠페인(${campaignId}) 연장 실패:`, error);
                     failedCampaignIds.push(campaignId);
                 }
@@ -187,6 +214,37 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 ? prev.filter(id => id !== campaignId)
                 : [...prev, campaignId]
         );
+    }
+
+    async function handleQuickExtend(campaignId: number, days: number) {
+        if (quickExtendingId !== null) return;
+
+        const campaign = campaigns.find((c) => c.id === campaignId);
+        if (!campaign) return;
+
+        setQuickExtendingId(campaignId);
+        try {
+            const currentEndDate = new Date(campaign.end_date);
+            const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
+
+            await updateCampaignEndDateWithRetry(campaignId, newEndDate.toISOString());
+
+            setCampaigns((prev) =>
+                prev.map((c) =>
+                    c.id === campaignId ? { ...c, end_date: newEndDate.toISOString() } : c
+                )
+            );
+            toast.success(`"${campaign.title}" 캠페인을 ${days}일 연장했습니다.`);
+            setQuickExtendOpenId(null);
+        } catch (error) {
+            console.error(`캠페인(${campaignId}) 즉시 연장 오류:`, error);
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            toast.error('즉시 연장에 실패했습니다.', {
+                description: message,
+            });
+        } finally {
+            setQuickExtendingId(null);
+        }
     }
 
     return (
@@ -326,12 +384,41 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                     )}
                                                 </td>
                                                 <td className="px-4 py-4 text-center">
-                                                    <Link
-                                                        href={`/dashboard/campaign/new?id=${campaign.id}`}
-                                                        className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-bold"
-                                                    >
-                                                        공고 수정
-                                                    </Link>
+                                                    <div className="relative inline-flex items-center gap-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={quickExtendingId !== null}
+                                                            onClick={() => setQuickExtendOpenId((prev) => (prev === campaign.id ? null : campaign.id))}
+                                                            className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-bold disabled:opacity-60"
+                                                        >
+                                                            {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
+                                                        </button>
+                                                        <Link
+                                                            href={`/dashboard/campaign/new?id=${campaign.id}`}
+                                                            className="px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-xs font-bold"
+                                                        >
+                                                            공고 수정
+                                                        </Link>
+
+                                                        {quickExtendOpenId === campaign.id && (
+                                                            <div className="absolute right-0 top-10 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[170px]">
+                                                                <div className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</div>
+                                                                <div className="grid grid-cols-3 gap-1">
+                                                                    {[3, 7, 14].map((days) => (
+                                                                        <button
+                                                                            key={days}
+                                                                            type="button"
+                                                                            disabled={quickExtendingId !== null}
+                                                                            onClick={() => handleQuickExtend(campaign.id, days)}
+                                                                            className="px-2 py-1.5 text-xs rounded-md bg-red-50 text-red-700 hover:bg-red-100 font-bold disabled:opacity-60"
+                                                                        >
+                                                                            +{days}일
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </td>
                                             </tr>
                                         );
@@ -369,7 +456,36 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                 </span>
                                             </div>
                                         </div>
-                                        <Link href={`/campaigns/${campaign.id}`} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold">상세보기</Link>
+                                        <div className="relative flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={quickExtendingId !== null}
+                                                onClick={() => setQuickExtendOpenId((prev) => (prev === campaign.id ? null : campaign.id))}
+                                                className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold disabled:opacity-60"
+                                            >
+                                                {quickExtendingId === campaign.id ? '연장중...' : '즉시 연장'}
+                                            </button>
+                                            <Link href={`/campaigns/${campaign.id}`} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold">상세보기</Link>
+
+                                            {quickExtendOpenId === campaign.id && (
+                                                <div className="absolute right-0 top-11 z-20 bg-white border border-gray-200 rounded-lg shadow-lg p-1 min-w-[190px]">
+                                                    <div className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</div>
+                                                    <div className="grid grid-cols-3 gap-1">
+                                                        {[3, 7, 14].map((days) => (
+                                                            <button
+                                                                key={days}
+                                                                type="button"
+                                                                disabled={quickExtendingId !== null}
+                                                                onClick={() => handleQuickExtend(campaign.id, days)}
+                                                                className="px-2 py-1.5 text-xs rounded-md bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold disabled:opacity-60"
+                                                            >
+                                                                +{days}일
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 );
                             })}

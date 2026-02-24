@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import AdminSidebar from '@/components/AdminSidebar';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import BrandSettingsClient from '@/components/admin/BrandSettingsClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
@@ -43,9 +43,8 @@ export default async function BrandSettingsPage() {
     const sidebarCounts = await fetchAdminCampaignCounts(supabase);
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
-            <div className="flex-1 bg-gray-50/50 py-12">
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
+            <div className="bg-gray-50/50 py-12">
                 <div className="container px-4">
                     <div className="mb-8">
                         <h1 className="text-3xl font-black text-gray-900 mb-2">브랜드 설정</h1>
@@ -54,6 +53,6 @@ export default async function BrandSettingsPage() {
                     <BrandSettingsClient initialConfig={initialConfig} />
                 </div>
             </div>
-        </div>
+        </AdminPageLayout>
     );
 }

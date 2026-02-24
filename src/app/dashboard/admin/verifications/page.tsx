@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { 
+import {
     ShieldCheck, 
     CheckCircle2, 
     Clock, 
@@ -18,7 +18,7 @@ import {
     Building2,
     Building
 } from 'lucide-react';
-import AdminSidebar from '@/components/AdminSidebar';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { useAuthStore } from '@/store/authStore';
 
 export default function AdminVerificationManagementPage() {
@@ -101,11 +101,9 @@ export default function AdminVerificationManagementPage() {
     );
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar />
-
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
-                <div className="max-w-[1400px] mx-auto">
+        <AdminPageLayout containerClassName="max-w-[1400px]">
+            <div className="p-8 overflow-y-auto bg-gray-50/50">
+                <div>
                     <div className="flex justify-between items-center mb-10">
                         <div>
                             <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
@@ -256,7 +254,7 @@ export default function AdminVerificationManagementPage() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </AdminPageLayout>
     );
 }

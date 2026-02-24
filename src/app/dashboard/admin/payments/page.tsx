@@ -1,4 +1,5 @@
 import PaymentManagementClient from "@/components/admin/PaymentManagementClient";
+import AdminPageLayout from "@/components/admin/AdminPageLayout";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function PaymentManagementPage() {
     return (
-        <main className="min-h-screen bg-slate-50/30">
+        <AdminPageLayout>
             <PaymentManagementClient />
-        </main>
+        </AdminPageLayout>
     );
 }

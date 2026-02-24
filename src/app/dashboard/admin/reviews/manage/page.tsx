@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import AdminSidebar from '@/components/AdminSidebar';
+import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import ReviewManagementClient from '@/components/admin/ReviewManagementClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
@@ -18,9 +18,8 @@ export default async function ManageReviewsPage() {
     const reviews = reviewsRes.data || [];
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <AdminSidebar initialCounts={sidebarCounts} />
+        <AdminPageLayout sidebarCounts={sidebarCounts}>
             <ReviewManagementClient initialReviews={reviews} />
-        </div>
+        </AdminPageLayout>
     );
 }

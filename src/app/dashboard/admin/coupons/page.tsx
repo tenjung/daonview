@@ -1,4 +1,5 @@
 import CouponManagementClient from "@/components/admin/CouponManagementClient";
+import AdminPageLayout from "@/components/admin/AdminPageLayout";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,8 +9,8 @@ export const metadata: Metadata = {
 
 export default function CouponManagementPage() {
     return (
-        <main className="min-h-screen bg-slate-50/30">
+        <AdminPageLayout>
             <CouponManagementClient />
-        </main>
+        </AdminPageLayout>
     );
 }

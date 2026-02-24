@@ -5,6 +5,10 @@ export interface SidebarLink {
     active?: boolean;
     tag?: string;
     subLinks?: SidebarLink[];
+    exact?: boolean;
+    matchPaths?: string[];
+    badgeKey?: 'campaignTotal';
+    collapsible?: boolean;
 }
 
 export const INFLUENCER_LINKS: SidebarLink[] = [
@@ -46,12 +50,32 @@ export const ADVERTISER_LINKS: SidebarLink[] = [
 ];
 
 export const ADMIN_LINKS: SidebarLink[] = [
-    { href: '/dashboard/admin', label: '인사이트', icon: 'BarChart3' },
-    { href: '/dashboard/admin/campaigns', label: '캠페인 관리', icon: 'Megaphone' },
-    { href: '/dashboard/admin/users', label: '사용자 관리', icon: 'Users' },
-    { href: '/dashboard/admin/reviews', label: '리뷰 검수', icon: 'ClipboardCheck' },
-    { href: '/dashboard/admin/banners', label: '배너 관리', icon: 'Image' },
-    { href: '/dashboard/admin/community', label: '커뮤니티 관리', icon: 'MessageSquare' },
-    { href: '/dashboard/admin/stats', label: '통계', icon: 'PieChart' },
-    { href: '/contact', label: '고객센터 관리', icon: 'Headset' }
+    { href: '/dashboard/admin', label: '인사이트', icon: 'LayoutDashboard', exact: true },
+    {
+        href: '/dashboard/admin/campaigns',
+        label: '캠페인 관리',
+        icon: 'Megaphone',
+        badgeKey: 'campaignTotal',
+        matchPaths: ['/dashboard/admin/campaigns', '/dashboard/campaign/new']
+    },
+    { href: '/dashboard/admin/reviews', label: '리뷰 관리', icon: 'ClipboardCheck', matchPaths: ['/dashboard/admin/reviews'] },
+    { href: '/dashboard/admin/users', label: '회원 관리', icon: 'Users', matchPaths: ['/dashboard/admin/users'] },
+    { href: '/dashboard/admin/verifications', label: '사업자 인증', icon: 'ShieldCheck', matchPaths: ['/dashboard/admin/verifications'] },
+    { href: '/dashboard/admin/banners', label: '배너 관리', icon: 'Image', exact: true },
+    { href: '/dashboard/admin/community', label: '커뮤니티 관리', icon: 'MessageSquare', matchPaths: ['/dashboard/admin/community'] },
+    {
+        href: '/dashboard/admin/notifications',
+        label: '알림 전송 관리',
+        icon: 'Bell',
+        collapsible: true,
+        matchPaths: ['/dashboard/admin/notifications'],
+        subLinks: [
+            { href: '/dashboard/admin/notifications/email', label: '이메일 전송', icon: 'Mail', exact: true },
+            { href: '/dashboard/admin/notifications/kakao', label: '카카오톡 전송', icon: 'MessageCircle', exact: true }
+        ]
+    },
+    { href: '/dashboard/admin/stats', label: '통계', icon: 'PieChart', exact: true },
+    { href: '/dashboard/admin/contact', label: '고객센터', icon: 'Headset', matchPaths: ['/dashboard/admin/contact'] },
+    { href: '/dashboard/admin/payments', label: '결제 관리', icon: 'CreditCard', matchPaths: ['/dashboard/admin/payments'] },
+    { href: '/dashboard/admin/coupons', label: '쿠폰 관리', icon: 'Ticket', matchPaths: ['/dashboard/admin/coupons'] }
 ];
