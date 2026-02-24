@@ -97,7 +97,7 @@ function SignupForm() {
                 .select('email')
                 .ilike('email', trimmedEmail)
                 .maybeSingle();
-            
+
             if (error) {
                 console.error('Email check failed:', error);
                 setEmailAvailable(null);
@@ -230,9 +230,9 @@ function SignupForm() {
                             body: JSON.stringify({
                                 to: email,
                                 type: 'WELCOME',
-                                params: { 
+                                params: {
                                     nickname,
-                                    email 
+                                    email
                                 }
                             })
                         }).catch(err => console.debug('Welcome email check failed (likely duplicate):', err));
@@ -314,9 +314,9 @@ function SignupForm() {
                 body: JSON.stringify({
                     to: email,
                     type: 'WELCOME',
-                    params: { 
+                    params: {
                         nickname,
-                        email 
+                        email
                     }
                 })
             }).catch(err => console.error('Welcome email failed:', err));
@@ -341,7 +341,7 @@ function SignupForm() {
         try {
             // Store role in localStorage to persist through OAuth redirect
             localStorage.setItem('pending_role', userType);
-            
+
             const options: any = {
                 redirectTo: `${window.location.origin}/auth/callback`,
             };
@@ -350,20 +350,31 @@ function SignupForm() {
                 // profile_image는 "선택 동의" 항목 — scope에 포함하되 null 가능
                 options.scopes = 'account_email profile_nickname profile_image';
                 options.queryParams = {
+                    prompt: 'select_account',
                     scope: 'account_email profile_nickname profile_image'
                 };
             }
 
-            const { error } = await supabase.auth.signInWithOAuth({
+            const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: provider,
                 options: options,
             });
 
-            if (error) throw error;
+            if (error) {
+                toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 가입 실패`, {
+                    description: error.message || '다시 시도해주세요.',
+                });
+                setIsSocialLoading(null);
+                return;
+            }
+
+            if (data?.url) {
+                window.location.href = data.url;
+            }
         } catch (error: any) {
-            console.error(`${provider} Signup Error:`, error);
-            toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 가입 실패`, {
-                description: error.message || '다시 시도해주세요.',
+            console.error(`Unexpected ${provider} Signup Error:`, error);
+            toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 접속 중 오류가 발생했습니다.`, {
+                description: '잠시 후 다시 시도해주세요.',
             });
             setIsSocialLoading(null);
         }
@@ -404,10 +415,10 @@ function SignupForm() {
                                 type="email"
                                 id="email"
                                 className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${emailError
-                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
-                                        : emailAvailable === true
-                                            ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                                            : 'border-border focus:border-primary focus:ring-primary/10'
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                    : emailAvailable === true
+                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                        : 'border-border focus:border-primary focus:ring-primary/10'
                                     }`}
                                 placeholder="example@email.com"
                                 value={email}
@@ -456,10 +467,10 @@ function SignupForm() {
                             type="password"
                             id="password"
                             className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${passwordError
-                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
-                                    : passwordStrength === 'strong'
-                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                                        : 'border-border focus:border-primary focus:ring-primary/10'
+                                ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                : passwordStrength === 'strong'
+                                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                    : 'border-border focus:border-primary focus:ring-primary/10'
                                 }`}
                             placeholder="영문, 숫자, 특수문자 포함 8자 이상"
                             value={password}
@@ -471,18 +482,18 @@ function SignupForm() {
                             <div className="mt-2">
                                 <div className="flex gap-1 mb-1.5">
                                     <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'weak' ? 'bg-red-500' :
-                                            passwordStrength === 'medium' ? 'bg-yellow-500' :
-                                                passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
+                                        passwordStrength === 'medium' ? 'bg-yellow-500' :
+                                            passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
                                         }`}></div>
                                     <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'medium' ? 'bg-yellow-500' :
-                                            passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
+                                        passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
                                         }`}></div>
                                     <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'strong' ? 'bg-green-500' : 'bg-gray-200'
                                         }`}></div>
                                 </div>
                                 <p className={`text-xs ${passwordStrength === 'weak' ? 'text-red-500' :
-                                        passwordStrength === 'medium' ? 'text-yellow-600' :
-                                            passwordStrength === 'strong' ? 'text-green-600' : 'text-gray-500'
+                                    passwordStrength === 'medium' ? 'text-yellow-600' :
+                                        passwordStrength === 'strong' ? 'text-green-600' : 'text-gray-500'
                                     }`}>
                                     {passwordStrength === 'weak' && '약함'}
                                     {passwordStrength === 'medium' && '보통'}
@@ -508,10 +519,10 @@ function SignupForm() {
                                 type="password"
                                 id="password-confirm"
                                 className={`w-full px-4 py-3 border rounded-lg text-base transition-all bg-white focus:outline-none focus:ring-2 placeholder:text-slate-300 ${passwordMatchError
-                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
-                                        : passwordConfirm && !passwordMatchError
-                                            ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
-                                            : 'border-border focus:border-primary focus:ring-primary/10'
+                                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500/10'
+                                    : passwordConfirm && !passwordMatchError
+                                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
+                                        : 'border-border focus:border-primary focus:ring-primary/10'
                                     }`}
                                 placeholder="비밀번호를 다시 입력해주세요"
                                 value={passwordConfirm}
@@ -651,9 +662,9 @@ function SignupForm() {
                         </div>
                     </div>
 
-                    <button 
-                        type="submit" 
-                        disabled={loading || emailAvailable === false || !!passwordError || !!passwordMatchError || !email || !password || !agreeTerms || !agreePrivacy} 
+                    <button
+                        type="submit"
+                        disabled={loading || emailAvailable === false || !!passwordError || !!passwordMatchError || !email || !password || !agreeTerms || !agreePrivacy}
                         className="btn btn-primary w-full py-4 text-base shadow-lg shadow-primary/20 disabled:opacity-50 disabled:bg-slate-200 disabled:shadow-none transition-all"
                     >
                         {loading ? '가입 처리중...' : (userType === 'INFLUENCER' ? '인플루언서로 시작하기' : '광고주로 시작하기')}
@@ -706,9 +717,9 @@ function SignupForm() {
             </div>
 
             {showOnboarding && newUserId && (
-                <OnboardingModal 
-                    userId={newUserId} 
-                    onComplete={() => window.location.href = '/'} 
+                <OnboardingModal
+                    userId={newUserId}
+                    onComplete={() => window.location.href = '/'}
                 />
             )}
         </div>

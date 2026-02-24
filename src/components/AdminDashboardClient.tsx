@@ -9,13 +9,40 @@ import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
 
 interface AdminDashboardClientProps {
-    initialCampaigns: any[];
+    initialCampaigns: CampaignRow[];
+}
+
+interface CampaignRow {
+    id: number;
+    title: string;
+    end_date: string;
+    recruit_count: number;
+    is_always?: boolean;
+    profiles?: {
+        company_name?: string | null;
+        nickname?: string | null;
+        email?: string | null;
+        role?: string | null;
+    } | null;
+    applications?: Array<{ count: number }>;
+}
+
+const BULK_EXTEND_TIMEOUT_MS = 12000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) =>
+            setTimeout(() => reject(new Error(`${label} timeout (${timeoutMs}ms)`)), timeoutMs)
+        ),
+    ]);
 }
 
 export default function AdminDashboardClient({ initialCampaigns }: AdminDashboardClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([]);
     const [showBulkModal, setShowBulkModal] = useState(false);
+    const [isBulkExtending, setIsBulkExtending] = useState(false);
     const { user } = useAuthStore();
 
     // 지능형 모니터링 및 알림 (관리자용)
@@ -51,7 +78,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     }, [campaigns, user]);
 
     // 캠페인 위험도 분석
-    function analyzeCampaignRisk(campaign: any) {
+    function analyzeCampaignRisk(campaign: CampaignRow) {
         const applicantCount = campaign.applications?.[0]?.count || 0;
         const targetCount = campaign.recruit_count;
         const applicationRate = (applicantCount / targetCount) * 100;
@@ -85,7 +112,12 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     const warningCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'warning');
 
     async function handleBulkExtend(days: number) {
+        if (isBulkExtending || selectedCampaigns.length === 0) return;
+
+        setIsBulkExtending(true);
         try {
+            const failedCampaignIds: number[] = [];
+
             for (const campaignId of selectedCampaigns) {
                 const campaign = campaigns.find(c => c.id === campaignId);
                 if (!campaign) continue;
@@ -93,23 +125,59 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 const currentEndDate = new Date(campaign.end_date);
                 const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
 
-                await supabase
-                    .from('campaigns')
-                    .update({ end_date: newEndDate.toISOString() })
-                    .eq('id', campaignId);
+                const { error } = await withTimeout(
+                    supabase
+                        .from('campaigns')
+                        .update({ end_date: newEndDate.toISOString() })
+                        .eq('id', campaignId),
+                    BULK_EXTEND_TIMEOUT_MS,
+                    `extend campaign ${campaignId}`
+                );
+
+                if (error) {
+                    console.error(`캠페인(${campaignId}) 연장 실패:`, error);
+                    failedCampaignIds.push(campaignId);
+                }
             }
 
-            toast.success(`${selectedCampaigns.length}개 캠페인의 기간이 ${days}일 연장되었습니다!`);
-            setSelectedCampaigns([]);
-            setShowBulkModal(false);
+            const successCount = selectedCampaigns.length - failedCampaignIds.length;
+            if (successCount > 0) {
+                toast.success(`${successCount}개 캠페인의 기간이 ${days}일 연장되었습니다!`);
+                setSelectedCampaigns([]);
+                setShowBulkModal(false);
+            }
+
+            if (failedCampaignIds.length > 0) {
+                toast.error(
+                    `일부 캠페인 연장 실패 (${failedCampaignIds.length}개)`,
+                    {
+                        description: `실패 ID: ${failedCampaignIds.join(', ')}`
+                    }
+                );
+            }
 
             // Re-fetch or update local state
-            const { data } = await supabase.from('campaigns').select('*, applications(count), profiles:created_by(*)').in('status', ['RECRUITING', 'ONGOING']);
-            if (data) setCampaigns(data);
+            const { data: refetchData, error: refetchErr } = await withTimeout(
+                supabase
+                    .from('campaigns')
+                    .select('*, applications(count), profiles:created_by(*)')
+                    .in('status', ['RECRUITING', 'ONGOING']),
+                BULK_EXTEND_TIMEOUT_MS,
+                'campaign refetch'
+            );
+            if (refetchErr) {
+                throw refetchErr;
+            }
+            if (refetchData) setCampaigns(refetchData);
 
         } catch (error) {
             console.error('일괄 연장 오류:', error);
-            toast.error('일괄 연장 중 오류가 발생했습니다.');
+            const message = error instanceof Error ? error.message : '알 수 없는 오류';
+            toast.error('일괄 연장 중 오류가 발생했습니다.', {
+                description: message,
+            });
+        } finally {
+            setIsBulkExtending(false);
         }
     }
 
@@ -174,8 +242,9 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                 </div>
                                 {selectedCampaigns.length > 0 && (
                                     <button
+                                        disabled={isBulkExtending}
                                         onClick={() => setShowBulkModal(true)}
-                                        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold shadow-lg"
+                                        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-bold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         선택한 {selectedCampaigns.length}개 일괄 연장
                                     </button>
@@ -327,9 +396,9 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                         </p>
 
                         <div className="grid grid-cols-3 gap-4 mb-8">
-                            <button onClick={() => handleBulkExtend(3)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold">+3일</button>
-                            <button onClick={() => handleBulkExtend(7)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold">+7일</button>
-                            <button onClick={() => handleBulkExtend(14)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold">+14일</button>
+                            <button disabled={isBulkExtending} onClick={() => handleBulkExtend(3)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed">{isBulkExtending ? '처리중...' : '+3일'}</button>
+                            <button disabled={isBulkExtending} onClick={() => handleBulkExtend(7)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed">{isBulkExtending ? '처리중...' : '+7일'}</button>
+                            <button disabled={isBulkExtending} onClick={() => handleBulkExtend(14)} className="px-4 py-4 bg-rose-50 border-2 border-rose-100 text-primary rounded-xl hover:bg-rose-100 transition-all font-bold disabled:opacity-50 disabled:cursor-not-allowed">{isBulkExtending ? '처리중...' : '+14일'}</button>
                         </div>
 
                         <div className="flex gap-3">

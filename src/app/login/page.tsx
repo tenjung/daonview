@@ -42,7 +42,12 @@ function LoginForm() {
                 password,
             });
 
-            if (authError) throw authError;
+            if (authError) {
+                toast.error('로그인 실패', {
+                    description: '이메일 또는 비밀번호를 확인해주세요.',
+                });
+                return;
+            }
 
             // Fetch user profile to get role
             let { data: profileData, error: profileError } = await supabase
@@ -134,9 +139,9 @@ function LoginForm() {
             }, 1000);
 
         } catch (error: any) {
-            console.error('Login Error:', error);
-            toast.error('로그인 실패', {
-                description: error.message || '이메일 또는 비밀번호를 확인해주세요.',
+            console.error('Unexpected Login Error:', error);
+            toast.error('시스템 오류', {
+                description: '로그인 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.',
             });
         }
     };
@@ -153,20 +158,31 @@ function LoginForm() {
                 // profile_image는 "선택 동의" 항목 — scope에 포함하되 null 가능
                 options.scopes = 'account_email profile_nickname profile_image';
                 options.queryParams = {
+                    prompt: 'select_account',
                     scope: 'account_email profile_nickname profile_image'
                 };
             }
 
-            const { error } = await supabase.auth.signInWithOAuth({
+            const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: provider,
                 options: options,
             });
 
-            if (error) throw error;
+            if (error) {
+                toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 로그인 실패`, {
+                    description: error.message || '다시 시도해주세요.',
+                });
+                setIsSocialLoading(null);
+                return;
+            }
+
+            if (data?.url) {
+                window.location.href = data.url;
+            }
         } catch (error: any) {
-            console.error(`${provider} Login Error:`, error);
-            toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 로그인 실패`, {
-                description: error.message || '다시 시도해주세요.',
+            console.error(`Unexpected ${provider} Login Error:`, error);
+            toast.error(`${provider === 'kakao' ? '카카오' : '구글'} 접속 중 오류가 발생했습니다.`, {
+                description: '잠시 후 다시 시도해주세요.',
             });
             setIsSocialLoading(null);
         }
