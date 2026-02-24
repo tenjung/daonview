@@ -155,12 +155,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           }
         }
 
-        const updatedNotifications = get().notifications.map((n) => {
+        const updatedNotifications: Notification[] = get().notifications.map((n): Notification => {
           if (entityType === 'campaign' && entityId) {
             const entity = getEntityForNotification(n);
             const sameCampaign = entity.entityType === 'campaign' && entity.entityId === entityId;
             if (sameCampaign) {
-              return { ...n, is_read: true, seen_at: now, entity_type: 'campaign', entity_id: entityId };
+              return {
+                ...n,
+                is_read: true,
+                seen_at: now,
+                entity_type: 'campaign',
+                entity_id: entityId,
+              };
             }
           }
 
@@ -195,7 +201,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
           if (fallbackError) throw fallbackError;
         }
 
-        const updatedNotifications = get().notifications.map((n) => ({
+        const updatedNotifications: Notification[] = get().notifications.map((n): Notification => ({
           ...n,
           is_read: true,
           seen_at: n.seen_at || new Date().toISOString(),

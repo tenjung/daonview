@@ -60,6 +60,15 @@ import AuthHydrator from '@/components/auth/AuthHydrator';
 import OnboardingChecker from '@/components/auth/OnboardingChecker';
 import { createClient } from '@/lib/supabase/server';
 
+function isDynamicServerUsageError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'digest' in error &&
+    (error as { digest?: string }).digest === 'DYNAMIC_SERVER_USAGE'
+  );
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -85,8 +94,14 @@ export default async function RootLayout({
       initialProfile = profile ?? null;
     }
   } catch (e) {
-    // 빌드 타임 또는 미들웨어 없을 때 에러 무시 — 클라이언트 fallback으로 동작
-    console.error('[Layout] Server session fetch failed:', e);
+    // 정적 생성 중 cookies 접근 시 발생하는 Next.js 내부 예외는 로그를 생략한다.
+    if (isDynamicServerUsageError(e)) {
+      initialUser = null;
+      initialProfile = null;
+    } else {
+      // 그 외 예외만 로그로 남기고 클라이언트 fallback으로 동작
+      console.error('[Layout] Server session fetch failed:', e);
+    }
   }
 
   // JSON-LD 구조화 데이터: Google Sitelinks 노출을 위한 사이트 네비게이션 정의

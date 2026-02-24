@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
 interface AuthHydratorProps {
-    user: Record<string, unknown> | null;
-    profile: Record<string, unknown> | null;
+    user: any | null;
+    profile: any | null;
 }
 
 /**

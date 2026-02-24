@@ -29,9 +29,9 @@ interface CampaignRow {
 
 const BULK_EXTEND_TIMEOUT_MS = 12000;
 
-function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+function withTimeout<T>(promise: PromiseLike<T>, timeoutMs: number, label: string): Promise<T> {
     return Promise.race([
-        promise,
+        Promise.resolve(promise),
         new Promise<T>((_, reject) =>
             setTimeout(() => reject(new Error(`${label} timeout (${timeoutMs}ms)`)), timeoutMs)
         ),
@@ -125,7 +125,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                 const currentEndDate = new Date(campaign.end_date);
                 const newEndDate = new Date(currentEndDate.getTime() + days * 24 * 60 * 60 * 1000);
 
-                const { error } = await withTimeout(
+                const { error } = await withTimeout<any>(
                     supabase
                         .from('campaigns')
                         .update({ end_date: newEndDate.toISOString() })
@@ -157,7 +157,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             }
 
             // Re-fetch or update local state
-            const { data: refetchData, error: refetchErr } = await withTimeout(
+            const { data: refetchData, error: refetchErr } = await withTimeout<any>(
                 supabase
                     .from('campaigns')
                     .select('*, applications(count), profiles:created_by(*)')
