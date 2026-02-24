@@ -15,6 +15,7 @@ interface AuthState {
 
 // 리스너 중복 등록 방지용 모듈 레벨 플래그 (Zustand 외부)
 let listenerRegistered = false;
+let authUnsubscribe: (() => void) | null = null;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -58,45 +59,73 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    */
   initialize: async () => {
     // 리스너 중복 등록 방지
-    if (listenerRegistered) return;
-    listenerRegistered = true;
+    if (!listenerRegistered) {
+      const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log(`[Auth] ${event} | ${session?.user?.email ?? 'none'}`);
+
+        if (event === 'SIGNED_OUT') {
+          set({ user: null, profile: null, isLoading: false });
+          return;
+        }
+
+        // INITIAL_SESSION을 포함해 세션이 있는 모든 경우를 동일하게 동기화
+        if (
+          event === 'INITIAL_SESSION' ||
+          event === 'SIGNED_IN' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'USER_UPDATED'
+        ) {
+          const sessionUser = session?.user ?? null;
+
+          if (sessionUser) {
+            set({ user: sessionUser, isLoading: true });
+            await get().fetchProfile(sessionUser.id);
+            set({ isLoading: false });
+          } else {
+            set({ user: null, profile: null, isLoading: false });
+          }
+        }
+      });
+
+      authUnsubscribe = () => authListener.subscription.unsubscribe();
+      listenerRegistered = true;
+    }
 
     const currentUser = get().user;
 
     if (!currentUser) {
-      // hydrate에서 user를 못 받은 상황 → 직접 세션 확인
+      // hydrate에서 user를 못 받은 상황 → 먼저 session, 그다음 user 조회
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (user && !error) {
-          set({ user, isLoading: true });
-          await get().fetchProfile(user.id);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        const sessionUser = session?.user ?? null;
+        if (sessionUser) {
+          set({ user: sessionUser, isLoading: true });
+          await get().fetchProfile(sessionUser.id);
         } else {
-          set({ user: null, profile: null });
+          const {
+            data: { user },
+            error,
+          } = await supabase.auth.getUser();
+          if (user && !error) {
+            set({ user, isLoading: true });
+            await get().fetchProfile(user.id);
+          } else {
+            set({ user: null, profile: null });
+          }
         }
       } catch (err) {
-        console.error('[Auth] getUser 오류:', err);
+        console.error('[Auth] 세션 초기화 오류:', err);
         set({ user: null, profile: null });
       } finally {
         set({ isLoading: false });
       }
+    } else {
+      set({ isLoading: false });
     }
     // user가 있으면 hydrate에서 이미 isLoading=false 완료 → 생략
-
-    // 실시간 인증 상태 변화 감지 (로그인/로그아웃/토큰갱신)
-    supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log(`[Auth] ${event} | ${session?.user?.email ?? 'none'}`);
-
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-        if (verifiedUser) {
-          set({ user: verifiedUser, isLoading: true });
-          await get().fetchProfile(verifiedUser.id);
-          set({ isLoading: false });
-        }
-      } else if (event === 'SIGNED_OUT') {
-        set({ user: null, profile: null, isLoading: false });
-      }
-    });
   },
 
   // 로그아웃
@@ -104,7 +133,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true });
       await supabase.auth.signOut();
-      listenerRegistered = false; // 로그아웃 시 리스너 플래그 초기화
+      authUnsubscribe?.();
+      authUnsubscribe = null;
+      listenerRegistered = false;
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();

@@ -19,16 +19,23 @@ import {
     Building
 } from 'lucide-react';
 import AdminSidebar from '@/components/AdminSidebar';
+import { useAuthStore } from '@/store/authStore';
 
 export default function AdminVerificationManagementPage() {
+    const { user, isLoading: authLoading } = useAuthStore();
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
     useEffect(() => {
+        if (authLoading) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         fetchRequests();
-    }, [filter]);
+    }, [filter, authLoading, user?.id]);
 
     async function fetchRequests() {
         setLoading(true);
