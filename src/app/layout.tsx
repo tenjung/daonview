@@ -55,6 +55,7 @@ export const metadata: Metadata = {
 };
 
 import AuthHydrator from '@/components/auth/AuthHydrator';
+import AuthBootstrap from '@/components/auth/AuthBootstrap';
 import OnboardingChecker from '@/components/auth/OnboardingChecker';
 import { createClient } from '@/lib/supabase/server';
 import AppShell from '@/components/AppShell';
@@ -167,6 +168,7 @@ export default async function RootLayout({
       >
         {/* 서버에서 읽은 실제 세션을 Zustand store에 즉시 주입 */}
         <AuthHydrator user={initialUser} profile={initialProfile} />
+        <AuthBootstrap />
         <OnboardingChecker />
         <AppShell initialUser={initialUser} initialProfile={initialProfile}>
           {children}

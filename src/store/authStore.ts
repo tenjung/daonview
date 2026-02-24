@@ -5,6 +5,7 @@ interface AuthState {
   user: any | null;
   profile: any | null;
   isLoading: boolean;
+  isInitialized: boolean;
 
   initialize: () => void;
   signOut: () => Promise<void>;
@@ -21,6 +22,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
   isLoading: true,
+  isInitialized: false,
 
   // DB 값을 시스템 규격으로 정규화
   normalizeProfile: (raw: any) => {
@@ -64,7 +66,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.log(`[Auth] ${event} | ${session?.user?.email ?? 'none'}`);
 
         if (event === 'SIGNED_OUT') {
-          set({ user: null, profile: null, isLoading: false });
+          set({ user: null, profile: null, isLoading: false, isInitialized: true });
           return;
         }
 
@@ -80,9 +82,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           if (sessionUser) {
             set({ user: sessionUser, isLoading: true });
             await get().fetchProfile(sessionUser.id);
-            set({ isLoading: false });
+            set({ isLoading: false, isInitialized: true });
           } else {
-            set({ user: null, profile: null, isLoading: false });
+            set({ user: null, profile: null, isLoading: false, isInitialized: true });
           }
         }
       });
@@ -120,10 +122,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.error('[Auth] 세션 초기화 오류:', err);
         set({ user: null, profile: null });
       } finally {
-        set({ isLoading: false });
+        set({ isLoading: false, isInitialized: true });
       }
     } else {
-      set({ isLoading: false });
+      set({ isLoading: false, isInitialized: true });
     }
     // user가 있으면 hydrate에서 이미 isLoading=false 완료 → 생략
   },

@@ -65,15 +65,5 @@ export const influencerApplicationColumns: ColumnDef<any>[] = [
                 </Badge>
             );
         }
-    },
-    {
-        id: "note",
-        header: "비고",
-        cell: ({ row }) => {
-            const status = row.original.status?.toUpperCase();
-            if (status === 'APPROVED' || status === 'SELECTED') return <span className="text-xs text-primary font-bold">가이드 확인 필요</span>;
-            if (status === 'REJECTED') return <span className="text-xs text-gray-400">아쉽게도 선정되지 않았습니다.</span>;
-            return <span className="text-gray-400">-</span>;
-        }
     }
 ];

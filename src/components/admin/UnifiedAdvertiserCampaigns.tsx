@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase/client"
 import { toast } from "sonner"
 import ConfirmDialog from "@/components/ConfirmDialog"
 import { useRouter } from "next/navigation"
+import { useAuthStore } from "@/store/authStore"
 
 interface UnifiedAdvertiserCampaignsProps {
   initialData: Campaign[]
@@ -18,6 +19,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
   const [showExtendModal, setShowExtendModal] = React.useState(false)
   const [selectedCampaignId, setSelectedCampaignId] = React.useState<number | null>(null)
   const router = useRouter()
+  const { user, profile } = useAuthStore()
 
   // Confirm Dialog State (Delete)
   const [confirmModal, setConfirmModal] = React.useState<{
@@ -123,6 +125,8 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
         onExtend={handleExtend}
         onView={handleView}
         isLoading={isLoading}
+        currentUserId={user?.id || null}
+        currentUserRole={profile?.role || null}
       />
 
       {/* 삭제 확인 다이얼로그 */}

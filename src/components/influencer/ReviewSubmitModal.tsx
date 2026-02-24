@@ -165,7 +165,7 @@ export default function ReviewSubmitModal({
     };
 
     const handleSubmit = async () => {
-        if (!reviewUrl.trim()) {
+        if (!isPurchaseExperience && !reviewUrl.trim()) {
             toast.error('리뷰 주소(URL)를 입력해주세요.');
             return;
         }
@@ -202,6 +202,9 @@ export default function ReviewSubmitModal({
             const proofUrls = isPurchaseExperience
                 ? [purchaseAmountProofUrl, purchaseReviewProofUrl].filter(Boolean)
                 : mediaUrls;
+            const finalPostUrl = isPurchaseExperience
+                ? (reviewUrl.trim() || 'PURCHASE_PROOF')
+                : reviewUrl.trim();
 
             // 1. applications 테이블 업데이트 (리뷰 제출됨 표시 및 완료 처리)
             const { error: appError } = await supabase
@@ -221,7 +224,7 @@ export default function ReviewSubmitModal({
                 .insert({
                     user_id: user.id,
                     campaign_id: campaignId,
-                    post_url: reviewUrl,
+                    post_url: finalPostUrl,
                     description: reviewContent,
                     thumbnail_url: proofUrls[0] || null,
                     status: 'PENDING', // 관리자 승출 대기
@@ -315,11 +318,11 @@ export default function ReviewSubmitModal({
                 <div className="p-6 space-y-6 bg-white">
                     <div className="space-y-2">
                         <Label htmlFor="reviewUrl" className="text-sm font-black text-slate-700 flex items-center gap-1.5">
-                            <LinkIcon size={14} className="text-rose-500" /> 리뷰 주소 (URL)
+                            <LinkIcon size={14} className="text-rose-500" /> 리뷰 주소 (URL) {isPurchaseExperience ? '(선택)' : ''}
                         </Label>
                         <Input
                             id="reviewUrl"
-                            placeholder="https://blog.naver.com/..."
+                            placeholder={isPurchaseExperience ? '구매평 체험은 생략 가능 (선택 입력)' : 'https://blog.naver.com/...'}
                             value={reviewUrl}
                             onChange={(e) => setReviewUrl(e.target.value)}
                             className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-rose-500 focus:border-rose-500 font-medium"
@@ -515,7 +518,7 @@ export default function ReviewSubmitModal({
                     </Button>
                     <Button
                         onClick={handleSubmit}
-                        disabled={isSubmitting || !reviewUrl.trim()}
+                        disabled={isSubmitting || (!isPurchaseExperience && !reviewUrl.trim())}
                         className="flex-[2] h-12 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black shadow-lg shadow-rose-500/20 disabled:opacity-50"
                     >
                         {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}

@@ -1,24 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 import { Application, Campaign } from '@/types/database';
 import DashboardSidebar from '@/components/DashboardSidebar';
-import { LayoutDashboard, Megaphone, FileText, CheckCircle, Clock } from 'lucide-react';
+import { LayoutDashboard, Megaphone, Clock } from 'lucide-react';
 import { InfluencerStatsCards } from '@/components/influencer/InfluencerStatsCards';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
+import { Button } from '@/components/ui/button';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
 }
 
 export default function InfluencerDashboard() {
-    const { user, profile, isLoading: authLoading } = useAuthStore();
+    const { user, profile, isInitialized } = useAuthStore();
     const router = useRouter();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [stats, setStats] = useState({
@@ -27,31 +28,27 @@ export default function InfluencerDashboard() {
         pending: 0
     });
     const [loading, setLoading] = useState(true);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (user?.id) {
-            if (profile?.role === 'ADVERTISER') {
-                router.replace('/dashboard/advertiser');
-                return;
-            }
-            fetchDashboardData();
-        } else if (!authLoading) {
-            setLoading(false);
-        }
-    }, [user?.id, profile?.role, authLoading, router]);
-
-    async function fetchDashboardData() {
+    const fetchDashboardData = useCallback(async () => {
         if (!user) return;
 
         try {
+            setLoading(true);
+            setErrorMessage(null);
+
             // Fetch applications with campaign details
-            const { data: applicationsData } = await supabase
+            const { data: applicationsData, error: applicationsError } = await supabase
                 .from('applications')
                 .select('*, campaigns(*)')
                 .eq('user_id', user.id)
                 .neq('status', 'CANCELLED')
                 .order('created_at', { ascending: false })
                 .limit(10);
+
+            if (applicationsError) {
+                throw applicationsError;
+            }
 
             if (applicationsData) {
                 setApplications(applicationsData as ApplicationWithCampaign[]);
@@ -62,14 +59,44 @@ export default function InfluencerDashboard() {
                 const needsReview = applicationsData.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
 
                 setStats({ total, approved, pending: needsReview });
+            } else {
+                setApplications([]);
+                setStats({ total: 0, approved: 0, pending: 0 });
             }
-
-            setLoading(false);
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
+            setErrorMessage('대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        } finally {
             setLoading(false);
         }
-    }
+    }, [user]);
+
+    useEffect(() => {
+        if (!isInitialized) {
+            return;
+        }
+
+        if (!user?.id) {
+            setLoading(false);
+            router.replace('/login?returnTo=/dashboard/influencer');
+            return;
+        }
+
+        const normalizedRole = String(profile?.role || '').toUpperCase();
+        if (normalizedRole === 'ADVERTISER') {
+            setLoading(false);
+            router.replace('/dashboard/advertiser');
+            return;
+        }
+
+        if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
+            setLoading(false);
+            router.replace('/dashboard/admin');
+            return;
+        }
+
+        fetchDashboardData();
+    }, [isInitialized, user?.id, profile?.role, router, fetchDashboardData]);
 
     if (loading) {
         return (
@@ -114,6 +141,19 @@ export default function InfluencerDashboard() {
 
                     {/* Stats Cards Section */}
                     <InfluencerStatsCards stats={stats} />
+
+                    {errorMessage && (
+                        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
+                            <Button
+                                type="button"
+                                onClick={fetchDashboardData}
+                                className="h-9 px-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl"
+                            >
+                                다시 시도
+                            </Button>
+                        </div>
+                    )}
 
                     {/* Recent Activity Section */}
                     <div className="mt-12">

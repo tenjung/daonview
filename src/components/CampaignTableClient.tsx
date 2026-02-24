@@ -7,6 +7,8 @@ import { Check, X, Edit, Calendar, Users } from 'lucide-react';
 import Link from 'next/link';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { PlatformBadge, TypeBadge } from '@/components/campaign/CampaignBadges';
+import { useAuthStore } from '@/store/authStore';
+import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
 
 interface CampaignTableClientProps {
     initialCampaigns: any[];
@@ -15,6 +17,7 @@ interface CampaignTableClientProps {
 
 export default function CampaignTableClient({ initialCampaigns, type }: CampaignTableClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
+    const { user, profile } = useAuthStore();
 
     // initialCampaigns가 변경될 때마다 campaigns 상태 업데이트
     useEffect(() => {
@@ -120,6 +123,11 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                     {campaigns.map((cam) => {
                         // DB 필드 기반: recruitment_start_date 사용
                         const startDate = cam.recruitment_start_date || cam.created_at;
+                        const canEdit = canEditCampaignByRole({
+                            role: profile?.role,
+                            userId: user?.id,
+                            campaignCreatorId: cam.created_by,
+                        });
 
                         return (
                             <tr key={cam.id} className="hover:bg-gray-50 transition-colors">
@@ -205,12 +213,14 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                                 >
                                                     <Users size={14} /> 신청자 관리
                                                 </Link>
-                                                <Link
-                                                    href={`/dashboard/campaign/new?id=${cam.id}`}
-                                                    className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
-                                                >
-                                                    <Edit size={14} /> 캠페인 수정
-                                                </Link>
+                                                {canEdit && (
+                                                    <Link
+                                                        href={`/dashboard/campaign/new?id=${cam.id}`}
+                                                        className="flex items-center gap-1 bg-white text-gray-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:bg-gray-50 transition-colors font-medium text-xs"
+                                                    >
+                                                        <Edit size={14} /> 캠페인 수정
+                                                    </Link>
+                                                )}
                                             </>
                                         )}
                                     </div>

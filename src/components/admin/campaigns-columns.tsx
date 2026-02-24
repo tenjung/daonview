@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DateCell } from "@/components/data-table"
 import { StatusBadgeCell } from "@/components/data-table/cells/StatusBadgeCell"
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_VARIANTS } from "@/constants/campaign"
+import { canEditCampaign as canEditCampaignByRole } from "@/lib/campaignPermissions"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,6 +27,8 @@ interface CampaignColumnContext {
     onView?: (id: number) => void
     onExtend?: (id: number, title: string) => void
     isAdmin?: boolean
+    currentUserId?: string | null
+    currentUserRole?: string | null
 }
 
 // 캠페인 정보 셀 (이미지 + 제목 + 카테고리)
@@ -228,6 +231,11 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';
+            const canEdit = Boolean(context.isAdmin) || canEditCampaignByRole({
+                role: context.currentUserRole,
+                userId: context.currentUserId,
+                campaignCreatorId: campaign.created_by,
+            });
 
             return (
                 <div className="flex justify-center items-center w-full">
@@ -272,10 +280,12 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                                     <span>상세 보기 (공개)</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => context.onEdit?.(campaign.id)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    <span>캠페인 수정</span>
-                                </DropdownMenuItem>
+                                {canEdit && (
+                                    <DropdownMenuItem onClick={() => context.onEdit?.(campaign.id)}>
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        <span>캠페인 수정</span>
+                                    </DropdownMenuItem>
+                                )}
 
                                 {!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING') && (
                                     <DropdownMenuItem onClick={() => context.onExtend?.(campaign.id, campaign.title)}>

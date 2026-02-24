@@ -71,6 +71,7 @@ import {
 import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
+import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
 
 
 interface CampaignDetailClientProps {
@@ -158,14 +159,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
     const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
-    const isAdmin =
-        normalizedRole === USER_ROLES.ADMIN ||
-        normalizedRole === 'MASTER' ||
-        normalizedRole === 'SUPER_ADMIN';
-    const canEditCampaign = isAdmin || (
-        normalizedRole === USER_ROLES.ADVERTISER &&
-        String(user?.id || '') === String(campaign.created_by || '')
-    );
+    const canEditCampaign = canEditCampaignByRole({
+        role: normalizedRole,
+        userId: user?.id,
+        campaignCreatorId: campaign.created_by,
+    });
     const isInfluencerViewer = Boolean(user) && isRole(profile?.role, USER_ROLES.INFLUENCER);
 
     useEffect(() => {

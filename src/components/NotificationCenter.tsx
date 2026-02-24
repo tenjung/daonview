@@ -44,7 +44,7 @@ const isInfluencerSelectionNotification = (notification: Notification) =>
   ['CAMPAIGN_SELECTED', 'CAMPAIGN_APPROVED', 'CAMPAIGN_REJECTED'].includes(notification.type);
 
 const isInfluencerScheduleNotification = (notification: Notification) =>
-  ['CAMPAIGN_SHIPPING', 'CAMPAIGN_DEADLINE', 'CAMPAIGN_MILESTONE'].includes(notification.type);
+  ['CAMPAIGN_SHIPPING', 'CAMPAIGN_DEADLINE', 'CAMPAIGN_MILESTONE', 'CAMPAIGN_REVIEW_TODO'].includes(notification.type);
 
 const ROLE_TAB_CONFIG: Record<UserRole, RoleTab[]> = {
   ADMIN: [
@@ -128,6 +128,7 @@ export default function NotificationCenter() {
       case 'CAMPAIGN_SHIPPING': return <Info className="w-4 h-4 text-blue-500" />;
       case 'CAMPAIGN_DEADLINE': return <BellRing className="w-4 h-4 text-rose-500" />;
       case 'CAMPAIGN_REVIEW_SUBMITTED': return <Camera className="w-4 h-4 text-violet-500" />;
+      case 'CAMPAIGN_REVIEW_TODO': return <Camera className="w-4 h-4 text-amber-500" />;
       case 'CAMPAIGN_NEW_APPLICANT': return <Bell className="w-4 h-4 text-blue-500" />;
       case 'CAMPAIGN_MILESTONE': return <TrendingUp className="w-4 h-4 text-emerald-500" />;
       case 'CAMPAIGN_REVIEW_RECEIVED': return <MessageSquare className="w-4 h-4 text-green-500" />;

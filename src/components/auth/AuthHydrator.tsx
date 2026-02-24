@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 
 interface AuthHydratorProps {
-    user: any | null;
-    profile: any | null;
+    user: unknown | null;
+    profile: unknown | null;
 }
 
 /**
@@ -14,12 +14,9 @@ interface AuthHydratorProps {
  */
 export default function AuthHydrator({ user, profile }: AuthHydratorProps) {
     const hydrate = useAuthStore((state) => state.hydrate);
-    const hasHydrated = useRef(false);
 
     useEffect(() => {
-        if (hasHydrated.current) return;
         hydrate(user, profile);
-        hasHydrated.current = true;
     }, [user, profile, hydrate]);
 
     return null;

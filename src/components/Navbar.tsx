@@ -33,7 +33,6 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
     user: storeUser, 
     profile: storeProfile, 
     isLoading, 
-    initialize, 
     signOut: storeSignOut 
   } = useAuthStore();
 
@@ -51,8 +50,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
 
   useEffect(() => {
     setMounted(true);
-    initialize();
-  }, [initialize]);
+  }, []);
 
   // 유저 로그인 시 관심 캠페인(찜) 동기화
   useEffect(() => {

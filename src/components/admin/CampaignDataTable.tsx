@@ -19,6 +19,8 @@ interface CampaignDataTableProps {
   onExtend?: (id: number, title: string) => void
   onView?: (id: number) => void
   isLoading?: boolean
+  currentUserId?: string | null
+  currentUserRole?: string | null
 }
 
 export function CampaignDataTable({
@@ -31,6 +33,8 @@ export function CampaignDataTable({
   onExtend,
   onView,
   isLoading = false,
+  currentUserId,
+  currentUserRole,
 }: CampaignDataTableProps) {
   const [filter, setFilter] = React.useState<string>("all")
 
@@ -94,8 +98,10 @@ export function CampaignDataTable({
       onDelete,
       onExtend,
       onView,
+      currentUserId,
+      currentUserRole,
     }),
-    [isAdmin, onApprove, onReject, onEdit, onDelete, onExtend, onView]
+    [isAdmin, onApprove, onReject, onEdit, onDelete, onExtend, onView, currentUserId, currentUserRole]
   )
 
   return (

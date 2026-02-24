@@ -14,6 +14,7 @@ import CampaignLoader from '@/components/campaign/CampaignLoader';
 import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
+import { canEditCampaign as canEditCampaignByRole, isAdminRole, isAdvertiserRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 
 export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -21,6 +22,7 @@ export default function CampaignRegistrationContainer() {
     const searchParams = useSearchParams();
     const campaignIdParam = searchParams?.get('id');
     const draftIdParam = searchParams?.get('draftId');
+    const roleFromAuth = profile?.role || user?.user_metadata?.role;
     const isEdit = !!campaignIdParam;
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -33,6 +35,7 @@ export default function CampaignRegistrationContainer() {
     const [isSuccess, setIsSuccess] = useState(false);
     const [lastResult, setLastResult] = useState<any>(null);
     const [isInitialDataReady, setIsInitialDataReady] = useState(!campaignIdParam && !draftIdParam);
+    const deniedRef = useRef(false);
 
     // --- 캠페인 데이터 로드 로직 ---
     useEffect(() => {
@@ -49,12 +52,15 @@ export default function CampaignRegistrationContainer() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [initializeFromCampaign]);
 
-    // edit 모드: auth 상태와 무관하게 URL id 기준으로 DB 단일 조회
+    // edit 모드: 인증/권한 확인 후 URL id 기준으로 DB 단일 조회
     useEffect(() => {
         if (!campaignIdParam) return;
 
         let cancelled = false;
         setIsInitialDataReady(false);
+        const normalizedRole = normalizeRoleValue(roleFromAuth);
+        const isAdmin = isAdminRole(normalizedRole);
+        const isAdvertiser = isAdvertiserRole(normalizedRole);
 
         const loadCampaignById = async () => {
             try {
@@ -76,6 +82,40 @@ export default function CampaignRegistrationContainer() {
                     return;
                 }
 
+                if (!authLoading && !user?.id) {
+                    if (!deniedRef.current) {
+                        toast.error('로그인이 필요합니다.');
+                        deniedRef.current = true;
+                    }
+                    router.push('/login');
+                    return;
+                }
+
+                if (!authLoading && !isAdmin && !isAdvertiser) {
+                    if (!deniedRef.current) {
+                        toast.error('수정 권한이 없습니다.');
+                        deniedRef.current = true;
+                    }
+                    router.push(`/campaigns/${campaignIdParam}`);
+                    return;
+                }
+
+                if (!authLoading && isAdvertiser) {
+                    const canEdit = canEditCampaignByRole({
+                        role: normalizedRole,
+                        userId: user?.id,
+                        campaignCreatorId: data.created_by,
+                    });
+                    if (!canEdit) {
+                        if (!deniedRef.current) {
+                            toast.error('내 캠페인만 수정할 수 있습니다.');
+                            deniedRef.current = true;
+                        }
+                        router.push('/dashboard/advertiser/campaigns');
+                        return;
+                    }
+                }
+
                 handleLoadCompleted(data, true);
             } catch (_error) {
                 if (!cancelled) toast.error('캠페인 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -89,7 +129,7 @@ export default function CampaignRegistrationContainer() {
         return () => {
             cancelled = true;
         };
-    }, [campaignIdParam, handleLoadCompleted]);
+    }, [campaignIdParam, authLoading, user?.id, roleFromAuth, handleLoadCompleted, router]);
 
     // draft 모드: 인증이 준비된 뒤 사용자 draft 로딩
     useEffect(() => {
@@ -231,6 +271,8 @@ export default function CampaignRegistrationContainer() {
 
         try {
             const normalizedCampaignType = (store.campaignType || 'VISIT').toUpperCase() as 'DELIVERY' | 'VISIT' | 'PRESS';
+            const normalizedRole = normalizeRoleValue(roleFromAuth);
+            const isAdmin = isAdminRole(normalizedRole);
             let normalizedIncludeReview = normalizedCampaignType === 'DELIVERY' ? Boolean(store.includeReview) : false;
             let normalizedIncludeNaver = normalizedCampaignType === 'DELIVERY'
                 ? Boolean(store.includeNaver)
@@ -384,8 +426,7 @@ export default function CampaignRegistrationContainer() {
                 thumbnail_url: store.campaignImages?.[0] || null,
                 experience_details: store.experienceDetails || null,
                 product_options: store.productOptions || [],
-                status: profile?.role === 'ADMIN' ? 'RECRUITING' : 'PENDING',
-                payment_method: normalizedPaymentMethod || null,
+                status: isAdmin ? 'RECRUITING' : 'PENDING',
                 // 새로운 store_locations 컬럼에 매장 좌표 정보 저장 (API 호출 최적화)
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
                 option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
@@ -417,12 +458,16 @@ export default function CampaignRegistrationContainer() {
                 // 수정 시 상태는 기존 워크플로를 유지 (신규 등록시에만 상태 결정)
                 delete updateData.status;
 
-                const { data, error } = await supabase
+                let query = supabase
                     .from('campaigns')
                     .update(updateData)
-                    .eq('id', Number(campaignId))
-                    .select()
-                    .single();
+                    .eq('id', Number(campaignId));
+
+                if (!isAdmin) {
+                    query = query.eq('created_by', user.id);
+                }
+
+                const { data, error } = await query.select().single();
 
                 if (error) throw error;
                 result = data;

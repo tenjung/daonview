@@ -14,6 +14,8 @@ import { usePathname } from 'next/navigation';
 import { SidebarLink } from '@/constants/navigation';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useAuthStore } from '@/store/authStore';
+import { supabase } from '@/lib/supabase/client';
 
 interface DashboardSidebarProps {
     userType: 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
@@ -29,12 +31,14 @@ const IconMap: Record<string, any> = {
 };
 
 export default function DashboardSidebar({ userType, userName, links }: DashboardSidebarProps) {
+    const { user } = useAuthStore();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const pathname = usePathname();
     const [searchParamsString, setSearchParamsString] = useState('');
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
+    const [reviewPendingCount, setReviewPendingCount] = useState(0);
 
     // 초기 설정 및 로컬스토리지 상태 로드
     useEffect(() => {
@@ -62,6 +66,32 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
         });
         setExpandedMenus(prev => ({ ...prev, ...initialExpanded }));
     }, [links, pathname, searchParamsString]);
+
+    useEffect(() => {
+        const fetchReviewPendingCount = async () => {
+            if (userType !== 'INFLUENCER' || !user?.id) {
+                setReviewPendingCount(0);
+                return;
+            }
+
+            const { count, error } = await supabase
+                .from('applications')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .in('status', ['SELECTED', 'APPROVED'])
+                .or('review_submitted.is.null,review_submitted.eq.false');
+
+            if (error) {
+                console.error('Failed to fetch pending review count:', error);
+                setReviewPendingCount(0);
+                return;
+            }
+
+            setReviewPendingCount(count || 0);
+        };
+
+        fetchReviewPendingCount();
+    }, [userType, user?.id]);
 
     const toggleCollapse = () => {
         const newState = !isCollapsed;
@@ -150,6 +180,7 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                 return pathname === subUrl.pathname;
                             });
                             const isActive = link.active || isAnySubActive;
+                            const currentBadgeCount = link.badgeKey === 'reviewPending' ? reviewPendingCount : 0;
 
                             const content = (
                                 <div key={link.label} className="flex flex-col gap-1">
@@ -170,6 +201,11 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                                         {link.tag && (
                                                             <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
                                                                 {link.tag}
+                                                            </span>
+                                                        )}
+                                                        {currentBadgeCount > 0 && (
+                                                            <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                                                                {currentBadgeCount > 99 ? '99+' : currentBadgeCount}
                                                             </span>
                                                         )}
                                                     </>
@@ -195,6 +231,11 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
                                                         {link.tag && (
                                                             <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
                                                                 {link.tag}
+                                                            </span>
+                                                        )}
+                                                        {currentBadgeCount > 0 && (
+                                                            <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
+                                                                {currentBadgeCount > 99 ? '99+' : currentBadgeCount}
                                                             </span>
                                                         )}
                                                     </>

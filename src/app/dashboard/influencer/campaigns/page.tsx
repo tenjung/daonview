@@ -108,7 +108,9 @@ export default function MyCampaignsPage() {
                 .neq('status', 'CANCELLED')
                 .order('created_at', { ascending: false });
 
-            if (filter !== 'all') {
+            if (filter === 'SELECTED') {
+                query = query.in('status', ['SELECTED', 'APPROVED']);
+            } else if (filter !== 'all') {
                 query = query.eq('status', filter);
             }
 
@@ -260,26 +262,28 @@ export default function MyCampaignsPage() {
         }
     }
 
+    const shippingColumn = {
+        accessorKey: "tracking_number",
+        header: "배송 정보",
+        cell: ({ row }: any) => {
+            const app = row.original;
+            return app.tracking_number ? (
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
+                        <Truck size={12} />
+                        <span>{app.tracking_company}</span>
+                    </div>
+                    <div className="text-slate-400 font-mono text-[10px]">{app.tracking_number}</div>
+                </div>
+            ) : (
+                <span className="text-slate-300 text-xs">발송 대기</span>
+            );
+        }
+    };
+
     const columns = [
         ...influencerApplicationColumns,
-        {
-            accessorKey: "tracking_number",
-            header: "배송 정보",
-            cell: ({ row }: any) => {
-                const app = row.original;
-                return app.tracking_number ? (
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
-                            <Truck size={12} />
-                            <span>{app.tracking_company}</span>
-                        </div>
-                        <div className="text-slate-400 font-mono text-[10px]">{app.tracking_number}</div>
-                    </div>
-                ) : (
-                    <span className="text-slate-300 text-xs">발송 대기</span>
-                );
-            }
-        },
+        ...(filter === 'SELECTED' ? [shippingColumn] : []),
         {
             id: "actions",
             header: "액션",
@@ -331,18 +335,6 @@ export default function MyCampaignsPage() {
                                 </Button>
                             </>
                         )}
-                        {isPending && (
-                            <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-9 text-slate-400 hover:text-red-500 hover:bg-red-50 font-bold gap-1.5 px-3 rounded-xl transition-all"
-                                onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
-                            >
-                                <XCircle size={14} />
-                                <span>신청 취소</span>
-                            </Button>
-                        )}
-
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
@@ -356,6 +348,18 @@ export default function MyCampaignsPage() {
                                         <span className="text-xs font-bold text-slate-600">상세보기</span>
                                     </Link>
                                 </DropdownMenuItem>
+                                {isPending && (
+                                    <DropdownMenuItem
+                                        onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
+                                        className="rounded-lg cursor-pointer text-red-600 focus:text-red-600 flex items-center gap-2 py-2"
+                                    >
+                                        <XCircle size={14} />
+                                        <span className="text-xs font-bold">신청 취소</span>
+                                    </DropdownMenuItem>
+                                )}
+                                {isSelected && app.status !== 'COMPLETED' && (
+                                    <DropdownMenuSeparator />
+                                )}
                                 {isSelected && app.status !== 'COMPLETED' && (
                                     <DropdownMenuItem 
                                         onClick={() => setExtensionModal({

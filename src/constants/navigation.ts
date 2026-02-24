@@ -7,14 +7,15 @@ export interface SidebarLink {
     subLinks?: SidebarLink[];
     exact?: boolean;
     matchPaths?: string[];
-    badgeKey?: 'campaignTotal';
+    badgeKey?: 'campaignTotal' | 'reviewPending';
     collapsible?: boolean;
 }
 
 export const INFLUENCER_LINKS: SidebarLink[] = [
     { href: '/dashboard/influencer', label: '대시보드', icon: 'LayoutDashboard' },
     { href: '/dashboard/influencer/campaigns', label: '나의 캠페인', icon: 'Megaphone' },
-    { href: '/dashboard/influencer/landing-pages', label: '나의 랜딩페이지', icon: 'Globe', tag: 'NEW' },
+    { href: '/dashboard/influencer/reviews', label: '나의 리뷰', icon: 'ClipboardCheck', badgeKey: 'reviewPending' },
+    { href: '/dashboard/influencer/landing-pages', label: '나의 랜딩페이지', icon: 'Globe' },
     { href: '/dashboard/influencer/favorites', label: '관심 캠페인', icon: 'Heart' },
     {
         href: '/profile/edit',
