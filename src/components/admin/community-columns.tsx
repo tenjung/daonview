@@ -134,7 +134,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
                             <ExternalLink size={12} className="text-gray-400" />
                         </Link>
                         <span className="text-xs text-gray-500 truncate mt-1 opacity-70">
-                            {post.content.replace(/<[^>]*>?/gm, '').substring(0, 50)}...
+                            {[...post.content.replace(/<[^>]*>?/gm, '')].slice(0, 50).join('')}...
                         </span>
                     </div>
                 );

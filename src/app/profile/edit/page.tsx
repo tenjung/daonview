@@ -140,6 +140,9 @@ function ProfileEditContent() {
         address_detail: ''
     });
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [avatarUploading, setAvatarUploading] = useState(false);
+
     // 소셜 링크 정보
     const [socialLinks, setSocialLinks] = useState({
         blog: '',
@@ -511,13 +514,64 @@ function ProfileEditContent() {
                                     <CardContent className="relative pt-0">
                                         <div className="flex justify-center -translate-y-12 mb-[-3rem]">
                                             <div className="relative group">
+                                                <input
+                                                    type="file"
+                                                    ref={fileInputRef}
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+
+                                                        // 용량 제한 (5MB)
+                                                        if (file.size > 5 * 1024 * 1024) {
+                                                            toast.error('이미지 크기는 5MB 이하여야 합니다.');
+                                                            return;
+                                                        }
+
+                                                        setAvatarUploading(true);
+                                                        try {
+                                                            const { data: { user } } = await supabase.auth.getUser();
+                                                            if (!user) throw new Error('로그인이 필요합니다.');
+
+                                                            const fileExt = file.name.split('.').pop();
+                                                            const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+                                                            const filePath = `avatars/${fileName}`;
+
+                                                            const { error: uploadError } = await supabase.storage
+                                                                .from('files') // 'files' 버킷 사용 (전체 프로젝트에서 공통 사용됨)
+                                                                .upload(filePath, file);
+
+                                                            if (uploadError) throw uploadError;
+
+                                                            const { data: { publicUrl } } = supabase.storage
+                                                                .from('files')
+                                                                .getPublicUrl(filePath);
+
+                                                            setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
+                                                            toast.success('이미지가 업로드되었습니다. 저장 버튼을 눌러주세요.');
+                                                        } catch (error: any) {
+                                                            console.error('Upload error:', error);
+                                                            toast.error('이미지 업로드에 실패했습니다.');
+                                                        } finally {
+                                                            setAvatarUploading(false);
+                                                        }
+                                                    }}
+                                                />
                                                 <Avatar
                                                     src={formData.avatar_url}
                                                     fallback={formData.nickname?.[0] || '?'}
-                                                    className="h-24 w-24 ring-4 ring-white shadow-xl text-2xl"
+                                                    className={`h-24 w-24 ring-4 ring-white shadow-xl text-2xl ${avatarUploading ? 'opacity-50' : ''}`}
                                                 />
-                                                <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                                                    <Camera className="text-white w-6 h-6" />
+                                                <div 
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                                                >
+                                                    {avatarUploading ? (
+                                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    ) : (
+                                                        <Camera className="text-white w-6 h-6" />
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

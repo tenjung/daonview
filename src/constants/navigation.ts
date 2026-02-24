@@ -28,11 +28,12 @@ export const INFLUENCER_LINKS: SidebarLink[] = [
 export const ADVERTISER_LINKS: SidebarLink[] = [
     { href: '/dashboard/advertiser', label: '대시보드', icon: 'LayoutDashboard' },
     { href: '/dashboard/advertiser/campaigns', label: '캠페인 관리', icon: 'Megaphone' },
-    { href: '/dashboard/advertiser/landing-pages', label: '나의 랜딩페이지', icon: 'Globe', tag: 'NEW' },
     { href: '/dashboard/advertiser/applicants', label: '신청자 목록', icon: 'Users' },
     { href: '/dashboard/advertiser/reviews', label: '리뷰 작업 현황', icon: 'ClipboardCheck' },
     { href: '/dashboard/advertiser/verification', label: '사업자 인증', icon: 'ShieldCheck' },
     { href: '/dashboard/advertiser/brands', label: '브랜드 관리', icon: 'Store' },
+    { href: '/dashboard/advertiser/billing', label: '결제 관리', icon: 'CreditCard' },
+    { href: '/dashboard/advertiser/pricing', label: '이용요금 안내', icon: 'Receipt', tag: 'HOT' },
     {
         href: '/profile/edit',
         label: '계정 설정',

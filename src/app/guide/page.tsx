@@ -1,4 +1,20 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: '이용 가이드',
+  description: '다온뷰 체험단 신청부터 리뷰 작성까지, 5단계로 쉽고 빠르게 이용하세요. 회원가입 후 원하는 체험단에 신청하면 설정 완료!',
+  keywords: ['체험단 이용방법', '다온뷰 가이드', '체험단 신청', '리뷰어 활동', '인플루언서 등록'],
+  openGraph: {
+    title: '이용 가이드 | 다온뷰',
+    description: '다온뷰 체험단 신청부터 리뷰 작성까지, 5단계로 쉽고 빠르게 이용하세요.',
+    url: 'https://daonview.com/guide',
+    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+  },
+  alternates: {
+    canonical: 'https://daonview.com/guide',
+  },
+};
 
 export default function GuidePage() {
     const steps = [

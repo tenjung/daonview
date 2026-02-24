@@ -13,12 +13,15 @@ interface AuthState {
   hydrate: (user: any, profile: any) => void;
 }
 
+// 리스너 중복 등록 방지용 모듈 레벨 플래그 (Zustand 외부)
+let listenerRegistered = false;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   profile: null,
-  isLoading: true, // 초기 상태는 언제나 로딩 중
+  isLoading: true,
 
-  // 0. 데이터 정규화 (Normalizer): DB 값 -> 시스템 규격
+  // DB 값을 시스템 규격으로 정규화
   normalizeProfile: (raw: any) => {
     if (!raw) return null;
     return {
@@ -28,7 +31,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     };
   },
 
-  // 1. 프로필 정보 가져오기 (Normalizer 적용)
+  // 프로필 조회
   fetchProfile: async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -43,47 +46,51 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         set({ profile: null });
       }
     } catch (err) {
-      console.error('[AuthStore] Fetch Profile Error:', err);
+      console.error('[AuthStore] fetchProfile 오류:', err);
+      set({ profile: null });
     }
   },
 
-  // 2. 초기화 및 리스너 등록 (근본적인 인증 상태 관리)
+  /**
+   * 클라이언트 마운트 시 호출.
+   * - hydrate가 이미 user를 채운 경우 → getUser 재호출 생략, 리스너만 등록
+   * - hydrate 없이 바로 호출된 경우 → getUser로 직접 확인
+   */
   initialize: async () => {
-    // 이미 로딩이 완료되었거나 체크 중이라면 중복 실행 방지
-    if ((get() as any).__initialized) return;
-    (get() as any).__initialized = true;
+    // 리스너 중복 등록 방지
+    if (listenerRegistered) return;
+    listenerRegistered = true;
 
-    try {
-      // 1. 현재 사용자 서버에서 즉시 검증 (getUser는 getSession보다 안전함)
-      const { data: { user }, error } = await supabase.auth.getUser();
+    const currentUser = get().user;
 
-      if (user && !error) {
-        set({ user, isLoading: true });
-        await get().fetchProfile(user.id);
-      } else {
+    if (!currentUser) {
+      // hydrate에서 user를 못 받은 상황 → 직접 세션 확인
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (user && !error) {
+          set({ user, isLoading: true });
+          await get().fetchProfile(user.id);
+        } else {
+          set({ user: null, profile: null });
+        }
+      } catch (err) {
+        console.error('[Auth] getUser 오류:', err);
         set({ user: null, profile: null });
+      } finally {
+        set({ isLoading: false });
       }
-    } catch (err) {
-      console.error('[Auth] Initial User Check Error:', err);
-    } finally {
-      // 확인이 끝나면 어떤 경우든 로딩 종료
-      set({ isLoading: false });
     }
+    // user가 있으면 hydrate에서 이미 isLoading=false 완료 → 생략
 
-    // 2. 인증 상태 변화 감지 리스너
+    // 실시간 인증 상태 변화 감지 (로그인/로그아웃/토큰갱신)
     supabase.auth.onAuthStateChange(async (event, session) => {
-      // 세션 기반 유저 정보
-      const sessionUser = session?.user ?? null;
-      console.log(`[Auth] Listener Event: ${event}, User: ${sessionUser?.email ?? 'None'}`);
+      console.log(`[Auth] ${event} | ${session?.user?.email ?? 'none'}`);
 
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // 보안 강화를 위해 서버에서 다시 한번 검증된 유저 정보 획득
         const { data: { user: verifiedUser } } = await supabase.auth.getUser();
-        const finalUser = verifiedUser;
-
-        if (finalUser) {
-          set({ user: finalUser, isLoading: true });
-          await get().fetchProfile(finalUser.id);
+        if (verifiedUser) {
+          set({ user: verifiedUser, isLoading: true });
+          await get().fetchProfile(verifiedUser.id);
           set({ isLoading: false });
         }
       } else if (event === 'SIGNED_OUT') {
@@ -92,30 +99,36 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     });
   },
 
-  // 3. 로그아웃 (군더더기 제거 및 명확한 상태 초기화)
+  // 로그아웃
   signOut: async () => {
     try {
       set({ isLoading: true });
       await supabase.auth.signOut();
-
+      listenerRegistered = false; // 로그아웃 시 리스너 플래그 초기화
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
-        // 전체 상태 초기화를 위해 안전하게 홈으로 리다이렉트 (window.location.href는 가장 근본적인 리셋 방법)
         window.location.href = '/';
       }
     } catch (error) {
-      console.error('SignOut Error:', error);
+      console.error('SignOut 오류:', error);
       set({ isLoading: false });
     }
   },
 
-  hydrate: (user, profile) => {
-    set({
-      user,
-      profile: get().normalizeProfile(profile),
-      isLoading: false
-    });
-    (get() as any).__initialized = true; // 서버에서 하이드레이션했다면 중복 초기화 방지
-  }
+  /**
+   * SSR(layout.tsx)에서 서버 세션을 받아 즉시 store에 주입.
+   * user가 null이면 비로그인 상태로 확정.
+   */
+  hydrate: (user: any, profile: any) => {
+    if (user) {
+      set({
+        user,
+        profile: get().normalizeProfile(profile),
+        isLoading: false,
+      });
+    } else {
+      set({ user: null, profile: null, isLoading: false });
+    }
+  },
 }));

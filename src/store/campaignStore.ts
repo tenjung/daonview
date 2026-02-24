@@ -87,7 +87,7 @@ export interface CampaignState {
     // Step 3: 등록 확인
     paymentMethod: 'card' | 'transfer' | 'free' | null;
     depositorName: string;
-    promotionType: 'COUPON' | 'EXTERNAL' | null;
+    promotionType: 'COUPON' | 'EXTERNAL' | 'UNLIMITED' | null;
     couponCode: string;
     externalOrderNumber: string;
     agreeToTerms: boolean;
