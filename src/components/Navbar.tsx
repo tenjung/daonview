@@ -65,7 +65,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
 
   const handleLogout = async () => {
     try {
-      toast.loading('로그아웃 중...', { id: 'logout' });
+      // 즉시 로그아웃 처리
       await storeSignOut();
       setMobileMenuOpen(false);
 
@@ -74,10 +74,10 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
         description: '안전하게 로그아웃되었습니다.',
       });
 
-      // 즉각적인 상태 반영 및 모든 클라이언트 캐시 초기화를 위해 페이지 강제 리로드
+      // 약간의 지연 후 메인 페이지로 강제 이동 (로컬 캐시 비우기 목적)
       setTimeout(() => {
         window.location.href = '/';
-      }, 500);
+      }, 300);
 
     } catch (error: any) {
       console.error('Logout Error:', error);
@@ -87,7 +87,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
       });
       setTimeout(() => {
         window.location.href = '/';
-      }, 1000);
+      }, 500);
     }
   };
 

@@ -1,10 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { redirect } from 'next/navigation';
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
-  const origin = requestUrl.origin;
   const searchParams = requestUrl.searchParams;
 
   const code = searchParams.get('code');
@@ -12,9 +12,6 @@ export async function GET(request: Request) {
   const providerErrorDescription = searchParams.get('error_description');
   const next = searchParams.get('next') ?? '/';
   const safeNext = next.startsWith('/') ? next : '/';
-  const successRedirect = NextResponse.redirect(`${origin}${safeNext}`);
-  const errorRedirect = (message: string) =>
-    NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(message)}`);
 
   if (code) {
     const cookieStore = await cookies();
@@ -27,11 +24,13 @@ export async function GET(request: Request) {
             return cookieStore.getAll();
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              // Keep Next.js cookie store and redirect response in sync.
-              cookieStore.set(name, value, options);
-              successRedirect.cookies.set(name, value, options);
-            });
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options);
+              });
+            } catch (error) {
+              // Ignore headers already sent error
+            }
           },
         },
       }
@@ -41,7 +40,7 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Exchange error:', error);
-      return errorRedirect(error.message);
+      redirect(`/login?error=${encodeURIComponent(error.message)}`);
     }
 
     // OAuth 완료 후 사용자 정보로 프로필 보완 (avatar_url 등)
@@ -101,16 +100,16 @@ export async function GET(request: Request) {
       console.error('Auth callback profile sync error:', e);
     }
 
-    return successRedirect;
+    redirect(safeNext);
   }
 
   if (providerError) {
     const message = providerErrorDescription
       ? `${providerError}: ${providerErrorDescription}`
       : providerError;
-    return errorRedirect(message);
+    redirect(`/login?error=${encodeURIComponent(message)}`);
   }
 
   // return the user to an error page with instructions
-  return errorRedirect('auth_callback_failed');
+  redirect(`/login?error=${encodeURIComponent('auth_callback_failed')}`);
 }

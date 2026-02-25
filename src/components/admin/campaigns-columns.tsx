@@ -231,10 +231,14 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';
+            const creatorId = typeof campaign.created_by === 'object' && campaign.created_by !== null 
+                ? (campaign.created_by as any).id 
+                : campaign.created_by;
+                
             const canEdit = Boolean(context.isAdmin) || canEditCampaignByRole({
                 role: context.currentUserRole,
                 userId: context.currentUserId,
-                campaignCreatorId: campaign.created_by,
+                campaignCreatorId: creatorId,
             });
 
             return (

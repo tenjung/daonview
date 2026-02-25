@@ -7,6 +7,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
+import { normalizeRole } from '@/constants/role';
 
 interface CampaignProps {
     id?: number | string;
@@ -41,9 +42,13 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const isInfinite = total >= 999;
     const percentage = total > 0 ? (isInfinite ? 0 : Math.min(Math.round((applicants / total) * 100), 100)) : 0;
 
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
     const isWished = id ? isInCart(id) : false;
+
+    const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
+    const isPublicUser = !user || normalizedRole === 'INFLUENCER';
+    const showCount = !isInfinite || !isPublicUser;
 
     const toggleWish = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -159,7 +164,9 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
                         체험단 혜택
                     </span>
-                    <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">체험단 혜택 제공</span>
+                    <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">
+                        {provision && !provision.includes('페이백') ? provision : '체험단 혜택 제공'}
+                    </span>
                 </div>
 
                 {/* Spacer to push bottom section down */}
@@ -177,9 +184,11 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                         )}
 
                         {/* Count Text */}
-                        <span className="text-gray-400 font-medium">
-                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
-                        </span>
+                        {showCount && (
+                            <span className="text-gray-400 font-medium">
+                                <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
+                            </span>
+                        )}
                     </div>
 
                     {/* Progress Bar (Infinite Wave for isInfinite) */}

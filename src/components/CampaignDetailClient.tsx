@@ -596,6 +596,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         Boolean(step1Data.includeReview);
 
     const isAlwaysRecruiting = step1Data.scheduleType === 'always' || !campaign.end_date;
+    const showCount = !isAlwaysRecruiting || Boolean(user && (isAdmin || normalizedRole === 'ADVERTISER'));
     const startDate = formatDateFixed(campaign.recruitment_start_date || campaign.created_at);
     const endDateLabel = isAlwaysRecruiting ? '상시 모집' : formatDateFixed(campaign.end_date);
     // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
@@ -793,7 +794,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                 <img
                                                                     src={img}
                                                                     alt={`${displayTitle} - ${index + 1}`}
-                                                                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                                                    className="w-full h-full object-cover transition-transform duration-700"
                                                                 />
                                                             </div>
                                                         </CarouselItem>
@@ -1300,22 +1301,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                                                <Users className="w-5 h-5" />
+                                    {showCount && (
+                                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                                                    <Users className="w-5 h-5" />
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-500">모집 인원</span>
                                             </div>
-                                            <span className="text-sm font-bold text-slate-500">모집 인원</span>
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-slate-900">
+                                                    <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
+                                                </p>
+                                                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                    모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-slate-900">
-                                                <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
-                                            </p>
-                                            <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
-                                            </p>
-                                        </div>
-                                    </div>
+                                    )}
                                 </div>
 
                                 <div className="mb-4 flex items-center gap-3">

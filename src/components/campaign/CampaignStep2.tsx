@@ -252,6 +252,48 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
         fetchAIKeywords();
     }, [formData.productName, formData.region, formData.campaignType, formData.includeNaver, formData.includeInstagram, formData.campaignTitle]);
 
+    // 카테고리별 본문/사진 가이드 자동 설정
+    useEffect(() => {
+        const category = formData.category || '기타';
+        const productName = formData.productName || formData.campaignTitle || '본 제품';
+
+        // 블로그 가이드 기본값 설정
+        if (formData.includeNaver && (!formData.blogContentGuide || formData.blogContentGuide.trim() === '')) {
+            let blogGuide = '';
+            if (category.includes('뷰티') || category.includes('미용')) {
+                blogGuide = `[${productName}] 뷰티/화장품 리뷰 가이드\n- 피부 타입과 피부 고민(건성/지성 등)을 서두에 기재해 주세요.\n- 제형(텍스처)과 발림성을 시각적으로 잘 보여주는 GIF 및 텍스처 근접 사진을 필수로 1장 이상 포함해 주세요.\n- 최소 일주일 이상 직접 사용해본 후 느낀 변화점과 전/후 사진 비교를 상세하게 작성해 주세요.`;
+            } else if (category.includes('맛집') || category.includes('식품')) {
+                blogGuide = `[${productName}] 맛집/식품 리뷰 가이드\n- 매장 외관, 내부 인테리어 분위기, 메뉴판 사진을 필수로 포함해 주세요.\n- 메인 요리의 먹음직스러운 사진(근접샷)과 함께 생생한 맛 표현을 자유롭게 작성해 주세요.\n- 주변 볼거리나 데이트 코스와 엮어서 소개하면 더욱 좋습니다.`;
+            } else if (category.includes('패션') || category.includes('의류')) {
+                blogGuide = `[${productName}] 패션 리뷰 가이드\n- 본인의 평소 사이즈(키, 몸무게 등 체형 정보)를 언급해 주시면 독자들에게 도움이 됩니다.\n- 원단 느낌, 마감처리 등 디테일한 부분에 대한 사진과 설명 부탁드립니다.\n- 전신 착용 컷 및 활동하는 모습 사진 최소 3장 이상 포함해 주세요.`;
+            } else if (category.includes('생활') || category.includes('가전')) {
+                blogGuide = `[${productName}] 생활/가전 리뷰 가이드\n- 언박싱 사진부터 실제 사용 준비 과정까지 상세히 담아주세요.\n- 제품의 주요 기능 2~3가지를 꼽아서 직접 작동해보는 영상(GIF 포함)을 첨부해 주세요.\n- 이 제품 덕분에 일상생활이 얼마나 편리해졌는지 솔직한 후기를 남겨주세요.`;
+            } else {
+                blogGuide = `[${productName}] 블로그 본문 작성 가이드\n- 직접 체험(사용)하고 느낀 장점 3가지를 구체적으로 작성해 주세요.\n- 전체적인 이용 만족도와 추천 의사를 솔직하게 표현해 주시면 좋습니다.\n- 제품 패키지와 본품 사진, 그리고 실제 사용 중인 사진을 5장 이상 포함해 주세요.`;
+            }
+            // 이미 값이 있는 경우 덮어쓰지 않도록 초기 설정 시에만 반영
+            store.setField('blogContentGuide', blogGuide);
+        }
+
+        // 인스타그램 가이드 기본값 설정
+        if (formData.includeInstagram && (!formData.instagramPhotoGuide || formData.instagramPhotoGuide.trim() === '')) {
+            let instaGuide = '';
+            if (category.includes('뷰티') || category.includes('미용')) {
+                instaGuide = `[${productName}] 뷰티 포스팅 가이드\n- 얼굴에 직접 제품을 바르는 모습이나 제형이 돋보이는 영상/릴스를 1개 이상 포함해 주세요.\n- 비포/애프터 차이가 명확히 보이는 사진이나 손등 테스트 컷 2장 이상 필수.\n- 뷰티 관련 해시태그 최대한 활용해 주세요!`;
+            } else if (category.includes('맛집') || category.includes('식품')) {
+                instaGuide = `[${productName}] 맛집/식품 포스팅 가이드\n- 윤기가 흐르는 음식 확대컷과 먹음직스러운 동영상(릴스) 1개 이상 필수.\n- 식당의 전체적인 분위기를 느낄 수 있는 사진 1~2장 포함해 주세요.\n- 첫 장에 가장 시선을 끄는 예쁜 음식 사진을 배치해 주세요.`;
+            } else if (category.includes('패션') || category.includes('의류')) {
+                instaGuide = `[${productName}] 패션 포스팅 가이드\n- 전신 핏과 코디 느낌이 잘 보이는 착장 사진 최소 2장 이상 필수.\n- 제품의 디테일(로고, 색상, 소재 등)을 포인트로 한 근접컷 1장 포함해 주세요.\n- 데일리룩이나 스타일링 팁을 릴스로 제작해 주시면 더욱 좋습니다!`;
+            } else if (category.includes('생활') || category.includes('가전')) {
+                instaGuide = `[${productName}] 생활/가전 포스팅 가이드\n- 제품이 우리 집 인테리어와 자연스럽게 어우러지는 감성적인 연출컷 1장 필수.\n- 주요 기능이 잘 드러나는 시연 영상이나 릴스를 포함해 주세요.\n- 생활 공간에서 실제로 제품을 사용하는 자연스러운 모습을 담아주세요.`;
+            } else {
+                instaGuide = `[${productName}] 인스타그램 포스팅 가이드\n- 제품(서비스)의 매력이 돋보이는 썸네일 사진으로 피드 첫 장을 꾸며주세요.\n- 자유롭고 감각적인 사진 3장 이상과 체험 인증 영상을 꼭 포함해 주세요.\n- 피드 본문에 제품의 장점과 추천 이유를 솔직하게 녹여주세요.`;
+            }
+            store.setField('instagramPhotoGuide', instaGuide);
+        }
+    }, [formData.category, formData.productName, formData.campaignTitle, formData.includeNaver, formData.includeInstagram]);
+
+
     // 이미지 업로드 핸들러
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -286,13 +328,13 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
                 // 파일명 안전하게 변환
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${fileExt}`;
-                const filePath = fileName; // 'campaigns/' 폴더 경로 제거
+                const filePath = `campaigns/${fileName}`; 
 
                 console.log(`Uploading file: ${filePath}`);
 
                 // Supabase Storage에 업로드
                 const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('campaign-images')
+                    .from('files')
                     .upload(filePath, file, {
                         cacheControl: '3600',
                         upsert: false
@@ -313,7 +355,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
                 // Public URL 가져오기
                 const { data: { publicUrl } } = supabase.storage
-                    .from('campaign-images')
+                    .from('files')
                     .getPublicUrl(filePath);
 
                 newImages.push(publicUrl);

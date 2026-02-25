@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { LayoutDashboard, Megaphone, Plus, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
@@ -10,11 +11,41 @@ import { AdvertiserStatsCards } from '@/components/advertiser/AdvertiserStatsCar
 import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
+import { toast } from 'sonner';
 
 export default function AdvertiserDashboard() {
     const { user, profile, isLoading } = useAuthStore();
     const [campaigns, setCampaigns] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const router = useRouter();
+
+    const fetchCampaigns = useCallback(async () => {
+        if (!user?.id) {
+            setLoading(false);
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            const { data, error: fetchError } = await supabase
+                .from('campaigns')
+                .select('*, applications(count)')
+                .eq('created_by', user.id)
+                .in('status', ['PENDING', 'RECRUITING', 'ONGOING'])
+                .order('created_at', { ascending: false });
+
+            if (fetchError) throw fetchError;
+            setCampaigns(data || []);
+        } catch (err: any) {
+            console.error('캠페인 로딩 오류:', err);
+            setError('데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+            toast.error('캠페인 데이터를 불러오지 못했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    }, [user?.id]);
 
     useEffect(() => {
         if (user?.id) {
@@ -22,28 +53,16 @@ export default function AdvertiserDashboard() {
         } else if (!isLoading) {
             setLoading(false);
         }
-    }, [user?.id, isLoading]);
+    }, [user?.id, isLoading, fetchCampaigns]);
 
-    async function fetchCampaigns() {
-        if (!user) return;
+    const handleEdit = useCallback((id: number) => {
+        router.push(`/dashboard/campaign/new?id=${id}`);
+    }, [router]);
 
-        try {
-            const { data, error } = await supabase
-                .from('campaigns')
-                .select('*, applications(count)')
-                .eq('created_by', user.id)
-                .in('status', ['PENDING', 'RECRUITING', 'ONGOING'])
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setCampaigns(data || []);
-        } catch (error) {
-            console.error('캠페인 로딩 오류:', error);
-        } finally {
-            setLoading(false);
-        }
-    }
-
+    const handleView = useCallback((id: number) => {
+        router.push(`/dashboard/advertiser/campaigns/${id}`);
+    }, [router]);
+    
     // 마감 임박/모집 미달 캠페인 자동 알림 (지능형 모니터링)
     useEffect(() => {
         if (campaigns.length > 0 && user) {
@@ -219,11 +238,27 @@ export default function AdvertiserDashboard() {
                             </Link>
                         </div>
                         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                            <CampaignDataTable
-                                data={campaigns}
-                                isLoading={loading}
-                                isAdmin={false}
-                            />
+                            {error ? (
+                                <div className="text-center py-10">
+                                    <p className="text-rose-500 font-bold mb-2">{error}</p>
+                                    <button 
+                                        onClick={() => fetchCampaigns()} 
+                                        className="text-sm font-semibold text-gray-500 hover:text-gray-800 underline underline-offset-4"
+                                    >
+                                        다시 시도
+                                    </button>
+                                </div>
+                            ) : (
+                                <CampaignDataTable
+                                    data={campaigns}
+                                    isLoading={loading}
+                                    isAdmin={false}
+                                    currentUserId={user?.id || null}
+                                    currentUserRole={profile?.role || null}
+                                    onEdit={handleEdit}
+                                    onView={handleView}
+                                />
+                            )}
                         </div>
                     </div>
 

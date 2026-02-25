@@ -97,13 +97,13 @@ export default function ReviewSubmitModal({
                 const filePath = `reviews/${campaignId}/${user.id}/${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('campaign-images') // 기존 버킷 활용
+                    .from('files') // 기존 버킷 활용
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
                 const { data: { publicUrl } } = supabase.storage
-                    .from('campaign-images')
+                    .from('files')
                     .getPublicUrl(filePath);
 
                 newUrls.push(publicUrl);
@@ -144,12 +144,12 @@ export default function ReviewSubmitModal({
             const filePath = `reviews/${campaignId}/${user.id}/${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('campaign-images')
+                .from('files')
                 .upload(filePath, file);
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
-                .from('campaign-images')
+                .from('files')
                 .getPublicUrl(filePath);
 
             if (slot === 'PAYMENT') setPurchaseAmountProofUrl(publicUrl);

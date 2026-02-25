@@ -138,16 +138,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // 로그아웃
   signOut: async () => {
     try {
-      set({ isLoading: true });
-      await supabase.auth.signOut();
+      set({ isLoading: true, user: null, profile: null });
+      
+      // 서버측 세션 종료는 백그라운드에서 진행하여 클라이언트 체감 속도 향상 (non-blocking)
+      supabase.auth.signOut().catch((err) => console.error('Supabase signOut error:', err));
+      
       authUnsubscribe?.();
       authUnsubscribe = null;
       listenerRegistered = false;
+      
       if (typeof window !== 'undefined') {
         localStorage.clear();
         sessionStorage.clear();
-        window.location.href = '/';
       }
+      set({ isLoading: false });
     } catch (error) {
       console.error('SignOut 오류:', error);
       set({ isLoading: false });
