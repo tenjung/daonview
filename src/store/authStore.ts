@@ -148,18 +148,48 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   signOut: async () => {
     try {
       set({ isLoading: true, user: null, profile: null });
-      
-      // 1. 서버 측 쿠키 확실히 삭제 (API 라우트 호출)
-      // fetch가 실패하더라도 클라이언트 로그아웃은 진행되어야 하므로 에러만 캡처
-      try {
-        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      } catch (err) {
-        console.error('Logout API calling error:', err);
-      }
-      
-      // 2. 클라이언트 세션 정리
-      const { error } = await supabase.auth.signOut();
-      if (error) console.error('Supabase client signOut error:', error);
+
+      const clientSignOutTask = new Promise<void>((resolve) => {
+        const timeoutId = setTimeout(() => {
+          console.error('[AuthStore] Client signOut timeout');
+          resolve();
+        }, 3000);
+
+        supabase.auth
+          .signOut()
+          .then(({ error }) => {
+            if (error) console.error('Supabase client signOut error:', error);
+          })
+          .catch((err) => {
+            console.error('[AuthStore] Client signOut exception:', err);
+          })
+          .finally(() => {
+            clearTimeout(timeoutId);
+            resolve();
+          });
+      });
+
+      const serverLogoutTask = new Promise<void>((resolve) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 2500);
+
+        fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          signal: controller.signal,
+        })
+          .catch((err) => {
+            console.error('[AuthStore] Logout API calling error:', err);
+          })
+          .finally(() => {
+            clearTimeout(timeoutId);
+            resolve();
+          });
+      });
+
+      await Promise.all([clientSignOutTask, serverLogoutTask]);
     } catch (error) {
       console.error('SignOut 오류:', error);
     } finally {
