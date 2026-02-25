@@ -1,17 +1,21 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Profile } from '@/types/database';
+
+type AuthProfile = Profile | null;
 
 interface AuthState {
-  user: any | null;
-  profile: any | null;
+  user: SupabaseUser | null;
+  profile: AuthProfile;
   isLoading: boolean;
   isInitialized: boolean;
 
   initialize: () => void;
   signOut: () => Promise<void>;
   fetchProfile: (userId: string) => Promise<void>;
-  normalizeProfile: (raw: any) => any;
-  hydrate: (user: any, profile: any) => void;
+  normalizeProfile: (raw: unknown) => AuthProfile;
+  hydrate: (user: SupabaseUser | null, profile: Profile | null) => void;
 }
 
 // 리스너 중복 등록 방지용 모듈 레벨 플래그 (Zustand 외부)
@@ -25,12 +29,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
 
   // DB 값을 시스템 규격으로 정규화
-  normalizeProfile: (raw: any) => {
-    if (!raw) return null;
+  normalizeProfile: (raw: unknown) => {
+    if (!raw || typeof raw !== 'object') return null;
+    const source = raw as Profile;
+    const normalizedRole = source.role
+      ? (source.role.toUpperCase() as Profile['role'])
+      : 'INFLUENCER';
+
     return {
-      ...raw,
-      role: raw.role ? raw.role.toUpperCase() : 'INFLUENCER',
-      nickname: raw.nickname || '익명사용자',
+      ...source,
+      role: normalizedRole,
+      nickname: source.nickname || '익명사용자',
     };
   },
 
@@ -143,27 +152,21 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       // 1. 서버 측 쿠키 확실히 삭제 (API 라우트 호출)
       // fetch가 실패하더라도 클라이언트 로그아웃은 진행되어야 하므로 에러만 캡처
       try {
-        await fetch('/api/auth/logout', { method: 'POST' });
+        await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
       } catch (err) {
         console.error('Logout API calling error:', err);
       }
       
-      // 2. 클라이언트 세션 스토리지 삭제 및 로컬 상태 정리
+      // 2. 클라이언트 세션 정리
       const { error } = await supabase.auth.signOut();
       if (error) console.error('Supabase client signOut error:', error);
-      
+    } catch (error) {
+      console.error('SignOut 오류:', error);
+    } finally {
       authUnsubscribe?.();
       authUnsubscribe = null;
       listenerRegistered = false;
-      
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-      }
-      set({ isLoading: false });
-    } catch (error) {
-      console.error('SignOut 오류:', error);
-      set({ isLoading: false });
+      set({ user: null, profile: null, isLoading: false, isInitialized: true });
     }
   },
 
@@ -171,7 +174,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    * SSR(layout.tsx)에서 서버 세션을 받아 즉시 store에 주입.
    * user가 null이면 비로그인 상태로 확정.
    */
-  hydrate: (user: any, profile: any) => {
+  hydrate: (user: SupabaseUser | null, profile: Profile | null) => {
     if (user) {
       set({
         user,

@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Wand2, Menu, X, User, LayoutDashboard, Settings, LogOut, ShieldCheck, ShoppingBag, Heart, ChevronUp, ChevronDown, Sparkles, Bell, BellRing } from 'lucide-react';
+import { Wand2, Menu, X, LayoutDashboard, Settings, LogOut, ShieldCheck, Heart, ChevronUp, ChevronDown, Sparkles, Bell } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -20,10 +20,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Profile } from '@/types/database';
 
 interface NavbarProps {
-  initialUser?: any | null;
-  initialProfile?: any | null;
+  initialUser?: SupabaseUser | null;
+  initialProfile?: Profile | null;
 }
 
 export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
@@ -32,25 +34,22 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   const { 
     user: storeUser, 
     profile: storeProfile, 
-    isLoading, 
+    isLoading,
+    isInitialized,
     signOut: storeSignOut 
   } = useAuthStore();
 
-  // SSR 및 초기 하이드레이션 지연을 방지하기 위해 props 또는 store 상태 사용
-  const user = storeUser || initialUser;
-  const profile = storeProfile || initialProfile;
+  // 초기 부팅 전까지만 SSR 초기값을 사용하고, 초기화 이후에는 store를 단일 소스로 사용
+  const user = !isInitialized && !storeUser && initialUser ? initialUser : storeUser;
+  const profile = !isInitialized && !storeProfile && initialProfile ? initialProfile : storeProfile;
 
   // 서버에서 세션 체크가 완료되었거나(initialUser가 null이라도 존재), 
   // 클라이언트에서 이미 정보를 불러왔다면 스켈레톤을 보여주지 않음
   const showSkeleton = isLoading && initialUser === undefined && storeUser === null;
   const { items: cartItems, fetchItems, clearCart } = useCartStore();
-  const [mounted, setMounted] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // 유저 로그인 시 관심 캠페인(찜) 동기화
   useEffect(() => {
@@ -64,8 +63,10 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   }, [user, isLoading, fetchItems, clearCart]);
 
   const handleLogout = async () => {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+
     try {
-      // 즉시 로그아웃 처리
       await storeSignOut();
       setMobileMenuOpen(false);
 
@@ -74,20 +75,19 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
         description: '안전하게 로그아웃되었습니다.',
       });
 
-      // 약간의 지연 후 메인 페이지로 강제 이동 (로컬 캐시 비우기 목적)
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 300);
+      router.replace('/');
+      router.refresh();
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Logout Error:', error);
       toast.error('로그아웃 알림', {
         id: 'logout',
         description: '로그아웃 처리 중 알림이 발생했으나 세션은 종료되었습니다.',
       });
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 500);
+      router.replace('/');
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -177,13 +177,13 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
 
                 <Link
                   href="/wishlist"
-                  className="relative p-2 rounded-full hover:bg-rose-50 transition-all group outline-none"
-                >
+                    className="relative p-2 rounded-full hover:bg-rose-50 transition-all group outline-none"
+                  >
                   <Heart 
                     size={20} 
-                    className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
+                    className={`transition-all duration-300 group-hover:scale-110 ${cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
                   />
-                  {mounted && cartItems.length > 0 && (
+                  {cartItems.length > 0 && (
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-sm ring-2 ring-white" />
                   )}
                 </Link>
@@ -195,9 +195,9 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
               >
                 <Heart 
                   size={20} 
-                  className={`transition-all duration-300 group-hover:scale-110 ${mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
+                  className={`transition-all duration-300 group-hover:scale-110 ${cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : 'text-slate-400 group-hover:text-rose-500'}`} 
                 />
-                {mounted && cartItems.length > 0 && (
+                {cartItems.length > 0 && (
                   <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-sm ring-2 ring-white" />
                 )}
               </Link>
@@ -263,9 +263,13 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                 )}
 
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-500 focus:text-red-600 focus:bg-red-50">
+                <DropdownMenuItem
+                  onSelect={handleLogout}
+                  disabled={isSigningOut}
+                  className="text-red-500 focus:text-red-600 focus:bg-red-50 data-[disabled]:opacity-50"
+                >
                   <LogOut size={16} />
-                  <span>로그아웃</span>
+                  <span>{isSigningOut ? '로그아웃 중...' : '로그아웃'}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -408,9 +412,9 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                     : 'text-gray-600 border-transparent hover:bg-rose-50 hover:text-rose-600'
                     }`}
                 >
-                  <Heart size={16} className={mounted && cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''} />
+                  <Heart size={16} className={cartItems.length > 0 ? 'fill-rose-500 text-rose-500' : ''} />
                   <span>찜한 캠페인</span>
-                  {mounted && cartItems.length > 0 && (
+                  {cartItems.length > 0 && (
                     <span className="ml-auto px-2 py-0.5 bg-rose-500 text-white text-xs font-bold rounded-full">
                       {cartItems.length}
                     </span>
@@ -509,9 +513,10 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
             {user ? (
               <button
                 onClick={handleLogout}
+                disabled={isSigningOut}
                 className="w-full px-4 py-3 rounded-lg font-medium text-red-500 hover:bg-red-50 transition-colors"
               >
-                로그아웃
+                {isSigningOut ? '로그아웃 중...' : '로그아웃'}
               </button>
             ) : (
               <div className="flex flex-col gap-2">

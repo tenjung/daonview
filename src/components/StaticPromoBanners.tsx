@@ -10,46 +10,42 @@ export default function StaticPromoBanners() {
             title: '꿀팁 X파일!',
             subtitle: '캠페인 신청 노하우',
             description: '합격률 UP! 비법 대공개',
-            bgColor: 'bg-blue-50 border border-blue-100',
-            iconBg: 'bg-blue-100 group-hover:bg-blue-200',
-            iconColor: 'text-blue-500',
+            cardTone: 'bg-blue-50/85',
+            iconTone: 'bg-blue-100/90',
+            iconColor: 'text-blue-600',
             textColor: 'text-slate-800',
-            descColor: 'text-slate-500',
+            descColor: 'text-slate-600',
             icon: BookOpen,
             link: '/guide',
             accentColor: 'text-blue-600',
-            cta: '자세히 보기'
         },
-        // 가운데 배너 (ID 2): 역할에 따라 변경
         {
             id: 2,
             title: '광고주 전용',
             subtitle: '확실한 매출 상승 비결',
             description: '상위 노출부터 브랜딩까지, 결과로 증명하는 솔루션',
-            bgColor: 'bg-rose-50 border border-rose-200',
-            iconBg: 'bg-rose-100 group-hover:bg-rose-200',
-            iconColor: 'text-rose-500',
+            cardTone: 'bg-rose-50/85',
+            iconTone: 'bg-rose-100/90',
+            iconColor: 'text-rose-600',
             textColor: 'text-slate-800',
-            descColor: 'text-slate-500',
+            descColor: 'text-slate-600',
             icon: Briefcase,
             link: '/intro',
             accentColor: 'text-rose-600',
-            cta: '서비스 소개서 보기'
         },
         {
             id: 3,
             title: '새로 나온',
             subtitle: '신규 캠페인',
             description: '따끈따끈한 새 캠페인을 만나보세요!',
-            bgColor: 'bg-orange-50 border border-orange-100',
-            iconBg: 'bg-orange-100 group-hover:bg-orange-200',
-            iconColor: 'text-orange-500',
+            cardTone: 'bg-orange-50/85',
+            iconTone: 'bg-orange-100/90',
+            iconColor: 'text-orange-600',
             textColor: 'text-slate-800',
-            descColor: 'text-slate-500',
+            descColor: 'text-slate-600',
             icon: Sparkles,
             link: '/campaigns?sort=new',
             accentColor: 'text-orange-600',
-            cta: '자세히 보기'
         }
     ];
 
@@ -58,15 +54,11 @@ export default function StaticPromoBanners() {
             <div className="grid grid-cols-3 lg:grid-cols-3 gap-2 md:gap-4">
                 {banners.map((banner) => {
                     const IconComponent = banner.icon;
-                    const isSpecial = banner.id === 2;
                     return (
                         <Link
                             key={banner.id}
                             href={banner.link}
-                            className={`${banner.bgColor} rounded-xl md:rounded-2xl p-2.5 md:p-5 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 ${isSpecial
-                                ? 'shadow-md shadow-rose-100 ring-1 md:ring-2 ring-rose-300 hover:scale-[1.03] hover:shadow-lg'
-                                : 'hover:shadow-md hover:scale-[1.02]'
-                                }`}
+                            className={`${banner.cardTone} rounded-xl md:rounded-2xl p-2.5 md:p-5 relative overflow-hidden group transition-all duration-300 cursor-pointer flex flex-col md:flex-row items-center justify-center md:justify-start gap-2 md:gap-4 hover:-translate-y-0.5 hover:shadow-sm`}
                         >
                             {/* Background Pattern - Subtle */}
                             <div className="absolute inset-0 opacity-[0.03]">
@@ -75,8 +67,8 @@ export default function StaticPromoBanners() {
 
                             {/* Icon Section */}
                             <div className="shrink-0 relative z-10">
-                                <div className={`w-8 h-8 md:w-12 md:h-12 ${banner.iconBg} rounded-lg md:rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110`}>
-                                    <IconComponent className={`w-4 h-4 md:w-6 md:h-6 ${banner.iconColor}`} />
+                                <div className={`w-8 h-8 md:w-12 md:h-12 ${banner.iconTone} rounded-lg md:rounded-xl flex items-center justify-center transition-all duration-300`}>
+                                    <IconComponent className={`w-4 h-4 md:w-6 md:h-6 ${banner.iconColor}`} strokeWidth={2} />
                                 </div>
                             </div>
 
