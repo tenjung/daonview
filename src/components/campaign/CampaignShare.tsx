@@ -19,10 +19,19 @@ interface CampaignShareProps {
     description: string;
     thumbnailUrl?: string;
     campaignType?: string;
+    campaignConditionLabel?: string;
     variant?: 'default' | 'large';
 }
 
-export default function CampaignShare({ campaignId, title, description, thumbnailUrl, campaignType, variant = 'default' }: CampaignShareProps) {
+export default function CampaignShare({
+    campaignId,
+    title,
+    description,
+    thumbnailUrl,
+    campaignType,
+    campaignConditionLabel,
+    variant = 'default'
+}: CampaignShareProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [copied, setCopied] = useState(false);
     const [kakaoLoaded, setKakaoLoaded] = useState(false);
@@ -117,11 +126,23 @@ export default function CampaignShare({ campaignId, title, description, thumbnai
 
     const handleCopyBrief = async () => {
         const typeValue = (campaignType || '').toUpperCase();
-        const typeLabel = typeValue === 'VISIT' ? '방문체험단' : 
-                         typeValue === 'DELIVERY' ? '배송체험단' : 
-                         typeValue === 'PURCHASE' ? '구매평 체험단' : '체험단';
+        const typeLabel =
+            typeValue === 'DELIVERY' ? '배송체험단' :
+            typeValue === 'VISIT' ? '방문체험단' :
+            typeValue === 'PRESS' ? '기자단' :
+            typeValue === 'PURCHASE' ? '구매형 체험단' :
+            '체험단';
 
-        const briefText = `📢 [다온뷰] ${typeLabel} 모집 안내\n\n✨ 캠페인명: ${title}\n🎁 제공 내역: ${description}\n🔗 신청 링크: ${shareUrl}`;
+        const safeDescription = (description || '제공 내역 추후 안내').trim();
+
+        const conditionText = (campaignConditionLabel || '').trim();
+        const headlineType = conditionText ? `${typeLabel} (${conditionText})` : typeLabel;
+        const briefText =
+`📢 [다온뷰] ${headlineType} 모집 안내
+
+✨ 캠페인명: ${title}
+🎁 제공 내역: ${safeDescription}
+🔗 신청 링크: ${shareUrl}`;
 
         try {
             await navigator.clipboard.writeText(briefText);

@@ -57,7 +57,7 @@ export default function PostActions({ postId, postUserId, postType, isPinned }: 
                 const redirectMap: Record<string, string> = {
                     'ACADEMY_INFLUENCER': '/community/academy/influencer',
                     'ACADEMY_ADVERTISER': '/community/academy/advertiser',
-                    'FREE': '/community/free',
+                    'FREE': '/community/feedback',
                     'QNA': '/community/qna',
                 };
 

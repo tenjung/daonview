@@ -3,7 +3,7 @@
 import CommunityBoardClient from "@/components/community/CommunityBoardClient";
 
 interface FreeBoardClientProps {
-    initialPosts: any[];
+    initialPosts: unknown[];
 }
 
 export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) {
@@ -11,9 +11,10 @@ export default function FreeBoardClient({ initialPosts }: FreeBoardClientProps) 
         <CommunityBoardClient
             initialPosts={initialPosts}
             type="FREE"
-            title="자유게시판"
-            description="자유롭게 이야기를 나누는 공간입니다"
-            viewAllHref="/community/free"
+            title="포스팅 피드백"
+            description="포스팅을 공유하고 AI 분석/서로의 피드백으로 성과를 개선하세요."
+            searchPlaceholder="포스팅 제목, 작성자, 키워드 검색"
+            viewAllHref="/community/feedback"
             itemHrefPrefix="/community"
             hideBadge={true}
         />

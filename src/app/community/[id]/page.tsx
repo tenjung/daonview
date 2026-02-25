@@ -55,7 +55,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     const getBackLink = () => {
         switch (post.type) {
-            case 'FREE': return '/community/free';
+            case 'FREE': return '/community/feedback';
             case 'BLOG_INTRO': return '/community/blog-intro';
             case 'ACADEMY_ADVERTISER': return '/community/academy/advertiser';
             case 'ACADEMY_INFLUENCER': return '/community/academy/influencer';
@@ -65,7 +65,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     const getPostTypeLabel = () => {
         switch (post.type) {
-            case 'FREE': return '자유게시판';
+            case 'FREE': return '포스팅 피드백';
             case 'BLOG_INTRO': return '내 블로그 소개';
             case 'ACADEMY_ADVERTISER': return '광고주 칼럼';
             case 'ACADEMY_INFLUENCER': return '인플루언서 칼럼';

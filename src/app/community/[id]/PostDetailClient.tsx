@@ -20,6 +20,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
     const router = useRouter();
     const [comments, setComments] = useState<any[]>(initialComments);
     const [newComment, setNewComment] = useState("");
+    const [commentType, setCommentType] = useState<'FEEDBACK' | 'NETWORK'>('FEEDBACK');
     const [commentLoading, setCommentLoading] = useState(false);
 
     useEffect(() => {
@@ -70,12 +71,29 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
         }
     };
 
+    const parseCommentKind = (text: string): 'AI_ANALYSIS' | 'NETWORK' | 'FEEDBACK' => {
+        if (text.startsWith('[AI_ANALYSIS]')) return 'AI_ANALYSIS';
+        if (text.startsWith('[NETWORK]')) return 'NETWORK';
+        if (text.startsWith('[FEEDBACK]')) return 'FEEDBACK';
+        return 'FEEDBACK';
+    };
+
+    const stripCommentPrefix = (text: string) =>
+        text
+            .replace(/^\[(AI_ANALYSIS|NETWORK|FEEDBACK)\]\s*/i, '')
+            .trim();
+
     const handleWriteComment = async () => {
         if (!user) {
             toast.error("로그인이 필요합니다.");
             return;
         }
         if (!newComment.trim()) return;
+
+        const normalizedContent =
+            initialPost.type === 'FREE'
+                ? `[${commentType}] ${newComment.trim()}`
+                : newComment.trim();
 
         try {
             setCommentLoading(true);
@@ -84,7 +102,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                 .insert({
                     post_id: id,
                     user_id: user.id,
-                    content: newComment
+                    content: normalizedContent
                 });
 
             if (error) throw error;
@@ -142,7 +160,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
 
     const getBackLink = () => {
         switch (initialPost.type) {
-            case 'FREE': return '/community/free';
+            case 'FREE': return '/community/feedback';
             case 'BLOG_INTRO': return '/community/blog-intro';
             default: return '/community';
         }
@@ -150,7 +168,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
 
     const getPostTypeLabel = () => {
         switch (initialPost.type) {
-            case 'FREE': return '자유게시판';
+            case 'FREE': return '포스팅 피드백';
             case 'BLOG_INTRO': return '내 블로그 소개';
             default: return initialPost.type;
         }
@@ -191,10 +209,42 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
 
                 {/* Comment Input */}
                 <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+                    {initialPost.type === 'FREE' && (
+                        <div className="mb-3 flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setCommentType('FEEDBACK')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${commentType === 'FEEDBACK'
+                                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                            >
+                                피드백
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setCommentType('NETWORK')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${commentType === 'NETWORK'
+                                    ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
+                                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+                                    }`}
+                            >
+                                이웃·맞팔
+                            </button>
+                        </div>
+                    )}
                     <textarea
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
-                        placeholder={user ? "댓글을 입력해보세요..." : "로그인 후 댓글을 작성할 수 있습니다."}
+                        placeholder={
+                            user
+                                ? (initialPost.type === 'FREE'
+                                    ? (commentType === 'NETWORK'
+                                        ? "SNS 링크와 함께 이웃추가/맞팔 제안을 남겨보세요."
+                                        : "포스팅 개선 피드백을 남겨보세요.")
+                                    : "댓글을 입력해보세요...")
+                                : "로그인 후 댓글을 작성할 수 있습니다."
+                        }
                         className="w-full bg-transparent border-none focus:ring-0 resize-none px-4 py-2 text-sm"
                         rows={3}
                         disabled={!user || commentLoading}
@@ -215,7 +265,9 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                 <div className="space-y-6">
                     {comments.length === 0 ? (
                         <div className="text-center py-12 text-gray-400">
-                            첫 번째 댓글을 남겨보세요!
+                            {initialPost.type === 'FREE'
+                                ? '첫 피드백을 남겨보세요!'
+                                : '첫 번째 댓글을 남겨보세요!'}
                         </div>
                     ) : (
                         comments.map((comment) => (
@@ -229,6 +281,16 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                                             <span className="font-bold text-gray-900 text-sm">
                                                 {comment.profiles?.nickname || comment.profiles?.name || '익명'}
                                             </span>
+                                            {initialPost.type === 'FREE' && (() => {
+                                                const kind = parseCommentKind(comment.content || '');
+                                                if (kind === 'AI_ANALYSIS') {
+                                                    return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100">AI 분석</span>;
+                                                }
+                                                if (kind === 'NETWORK') {
+                                                    return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">이웃·맞팔</span>;
+                                                }
+                                                return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100">피드백</span>;
+                                            })()}
                                             <span className="text-[10px] text-gray-400">
                                                 {new Date(comment.created_at).toLocaleDateString()}
                                             </span>
@@ -243,7 +305,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                                         )}
                                     </div>
                                     <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-                                        {comment.content}
+                                        {stripCommentPrefix(comment.content || '')}
                                     </p>
                                 </div>
                             </div>

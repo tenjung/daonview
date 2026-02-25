@@ -15,7 +15,7 @@ interface CommunityClientProps {
 
 const typeLabels: Record<string, string> = {
     'NOTICE': '공지사항',
-    'FREE': '자유게시판',
+    'FREE': '포스팅 피드백',
     'EVENT': '이벤트',
     'ACADEMY': '아카데미',
     'FAQ': '자주묻는질문',
@@ -24,7 +24,7 @@ const typeLabels: Record<string, string> = {
 
 const typeHrefs: Record<string, string> = {
     'NOTICE': '/community/notice',
-    'FREE': '/community/free',
+    'FREE': '/community/feedback',
     'EVENT': '/community/event',
     'ACADEMY': '/community/academy',
     'FAQ': '/community/faq',
@@ -72,7 +72,7 @@ export default function CommunityClient({ initialPosts, initialType }: Community
                             <h2 className="text-2xl font-bold text-gray-900">{currentLabel}</h2>
                             <p className="text-gray-500 mt-1 text-sm">
                                 {currentType === 'NOTICE' && '중요한 공지사항을 확인하세요'}
-                                {currentType === 'FREE' && '자유롭게 이야기를 나누는 공간입니다'}
+                                {currentType === 'FREE' && '포스팅을 공유하고 AI 분석/피드백을 받는 공간입니다'}
                                 {currentType === 'EVENT' && '진행 중인 이벤트를 확인하세요'}
                                 {currentType === 'ACADEMY' && '유용한 정보와 노하우를 공유합니다'}
                                 {currentType === 'FAQ' && '자주 묻는 질문과 답변을 확인하세요'}

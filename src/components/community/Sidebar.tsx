@@ -22,8 +22,8 @@ const menuItems = [
         icon: Megaphone,
     },
     {
-        title: "자유게시판",
-        href: "/community/free",
+        title: "포스팅 피드백",
+        href: "/community/feedback",
         icon: MessageSquare,
     },
     {

@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -107,7 +107,7 @@ function ProfileEditContent() {
         return clean;
     };
 
-    const { user: authUser, isInitialized, fetchProfile } = useAuthStore();
+    const { user: authUser, isInitialized, fetchProfile, signOut } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -180,6 +180,14 @@ function ProfileEditContent() {
     };
 
     const [debugError, setDebugError] = useState('');
+    const [showWithdrawalConfirm, setShowWithdrawalConfirm] = useState(false);
+    const [withdrawConfirmText, setWithdrawConfirmText] = useState('');
+    const [withdrawAgreement, setWithdrawAgreement] = useState(false);
+    const [withdrawReason, setWithdrawReason] = useState('');
+    const [withdrawing, setWithdrawing] = useState(false);
+
+    const WITHDRAWAL_CONFIRM_KEYWORD = '회원탈퇴';
+    const canProceedWithdrawal = withdrawAgreement && withdrawConfirmText.trim() === WITHDRAWAL_CONFIRM_KEYWORD;
 
     useEffect(() => {
         if (!isInitialized) return;
@@ -507,6 +515,37 @@ function ProfileEditContent() {
     };
 
     const selectedBank = BANK_LIST.find(b => b.name === formData.bank_name);
+
+    const handleOpenWithdrawalRequest = async () => {
+        if (!canProceedWithdrawal) {
+            toast.error('확인 문구 입력과 동의 체크를 완료해 주세요.');
+            return;
+        }
+
+        try {
+            setWithdrawing(true);
+            const response = await fetch('/api/account/withdrawal-request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    reason: withdrawReason
+                })
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result?.success) {
+                throw new Error(result?.error || '회원탈퇴 요청 접수에 실패했습니다.');
+            }
+
+            toast.success('회원탈퇴 요청이 접수되었습니다. 안전을 위해 로그아웃됩니다.');
+            await signOut();
+            router.push('/');
+        } catch (error: any) {
+            toast.error(error?.message || '회원탈퇴 요청 처리 중 오류가 발생했습니다.');
+        } finally {
+            setWithdrawing(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -909,6 +948,98 @@ function ProfileEditContent() {
                                 >
                                     {saving ? '저장 중...' : '기본 정보 업데이트하기'}
                                 </Button>
+
+                                <Card className="border border-rose-200 bg-rose-50/40 rounded-3xl shadow-none">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-lg text-rose-700 flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5" />
+                                            위험 작업
+                                        </CardTitle>
+                                        <CardDescription className="text-rose-700/80 leading-relaxed">
+                                            회원탈퇴는 복구가 불가능합니다. 실수 방지를 위해 별도 확인을 거쳐야 요청할 수 있습니다.
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {!showWithdrawalConfirm ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                className="border-rose-300 text-rose-700 hover:bg-rose-100 hover:text-rose-800 font-bold"
+                                                onClick={() => setShowWithdrawalConfirm(true)}
+                                            >
+                                                회원탈퇴 진행하기
+                                            </Button>
+                                        ) : (
+                                            <div className="space-y-4 rounded-2xl border border-rose-200 bg-white p-4">
+                                                <div className="text-xs text-slate-600 leading-relaxed space-y-1">
+                                                    <p>1. 계정 삭제 후 포인트, 신청/리뷰 이력 복구는 불가합니다.</p>
+                                                    <p>2. 정산 중인 항목이 있는 경우 탈퇴 처리가 지연될 수 있습니다.</p>
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="withdrawConfirmText" className="text-sm font-bold text-slate-700">
+                                                        확인 문구 입력
+                                                    </Label>
+                                                    <Input
+                                                        id="withdrawConfirmText"
+                                                        value={withdrawConfirmText}
+                                                        onChange={(e) => setWithdrawConfirmText(e.target.value)}
+                                                        placeholder={`정확히 '${WITHDRAWAL_CONFIRM_KEYWORD}' 입력`}
+                                                        className="bg-slate-50 border-slate-200 focus-visible:ring-2 focus-visible:ring-rose-500 h-11 rounded-xl"
+                                                    />
+                                                </div>
+
+                                                <div className="space-y-2">
+                                                    <Label htmlFor="withdrawReason" className="text-sm font-bold text-slate-700">
+                                                        탈퇴 사유 (선택)
+                                                    </Label>
+                                                    <textarea
+                                                        id="withdrawReason"
+                                                        value={withdrawReason}
+                                                        onChange={(e) => setWithdrawReason(e.target.value)}
+                                                        placeholder="서비스 개선을 위해 탈퇴 사유를 남겨주세요."
+                                                        className="w-full min-h-[96px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                                    />
+                                                </div>
+
+                                                <label className="flex items-start gap-2 text-sm text-slate-700 cursor-pointer">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                                        checked={withdrawAgreement}
+                                                        onChange={(e) => setWithdrawAgreement(e.target.checked)}
+                                                    />
+                                                    <span>회원탈퇴 시 데이터 삭제/처리 정책을 확인했고, 복구 불가에 동의합니다.</span>
+                                                </label>
+
+                                                <div className="flex flex-wrap gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        className="border-slate-300 text-slate-700 hover:bg-slate-100"
+                                                        onClick={() => {
+                                                            setShowWithdrawalConfirm(false);
+                                                            setWithdrawConfirmText('');
+                                                            setWithdrawAgreement(false);
+                                                            setWithdrawReason('');
+                                                        }}
+                                                        disabled={withdrawing}
+                                                    >
+                                                        취소
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                                                        disabled={!canProceedWithdrawal || withdrawing}
+                                                        onClick={handleOpenWithdrawalRequest}
+                                                    >
+                                                        {withdrawing ? '요청 접수 중...' : '회원탈퇴 요청하기'}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
                             </form>
                         ) : activeTab === 'payout' ? (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

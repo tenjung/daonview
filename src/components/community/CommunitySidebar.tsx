@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
     MessageSquare,
     Bell,
@@ -23,9 +23,9 @@ const categories = [
     },
     {
         id: 'free',
-        name: '자유게시판',
+        name: '포스팅 피드백',
         icon: <MessageSquare className="w-5 h-5" />,
-        href: '/community/free',
+        href: '/community/feedback',
         type: 'FREE'
     },
     {
@@ -76,11 +76,11 @@ export default function CommunitySidebar() {
         return pathname === href;
     };
 
-    const isParentActive = (item: any) => {
+    const isParentActive = (item: { href: string; subMenus?: Array<{ href: string }> }) => {
         if (pathname === item.href) return true;
         // 상세 페이지 경로에서도 부모 활성화 (예: /community/notice/1 -> 공지사항 활성화)
         if (pathname.startsWith(item.href + '/')) return true;
-        if (item.subMenus?.some((sub: any) => pathname.startsWith(sub.href))) return true;
+        if (item.subMenus?.some((sub) => pathname.startsWith(sub.href))) return true;
         return false;
     };
 

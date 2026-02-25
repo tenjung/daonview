@@ -31,8 +31,6 @@ import {
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
 import CampaignCard from '@/components/CampaignCard';
-import { TypeBadge, RegionBadge, DDayBadge } from '@/components/campaign/CampaignBadges';
-import CampaignPlatformBadges from '@/components/campaign/CampaignPlatformBadges';
 import NaverMap from '@/components/campaign/NaverMap';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -40,7 +38,7 @@ import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
-import { formatDDay, mapCampaignToCard } from '@/lib/campaignUtils';
+import { formatDDay, mapCampaignToCard, resolveCampaignPlatformState } from '@/lib/campaignUtils';
 import {
     Dialog,
     DialogContent,
@@ -728,6 +726,42 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const rewardRawValue = campaign.reward_per_person ?? campaign.official_price;
     const rewardAmount = Number(String(rewardRawValue ?? '').replace(/[^0-9]/g, ''));
     const hasRewardAmount = Number.isFinite(rewardAmount) && rewardAmount > 0;
+    const platformState = resolveCampaignPlatformState({
+        type: campaign.type,
+        platform: campaign.platform,
+        step1Data: {
+            includeReview: step1Data.includeReview,
+            includeNaver: step1Data.includeNaver,
+            includeInstagram: step1Data.includeInstagram,
+            platform: step1Data.platform,
+        },
+    });
+
+    const typeTooltipLabel =
+        platformState.normalizedType === 'DELIVERY'
+            ? '배송체험단'
+            : platformState.normalizedType === 'PRESS'
+                ? '기자단'
+                : platformState.normalizedType === 'PURCHASE'
+                    ? '구매형 캠페인'
+                    : '방문체험단';
+    const typeHoverDescription =
+        platformState.normalizedType === 'DELIVERY'
+            ? '제품을 배송받아 체험하는 캠페인'
+            : platformState.normalizedType === 'PRESS'
+                ? '콘텐츠 작성 중심으로 진행되는 기자단 캠페인'
+                : platformState.normalizedType === 'PURCHASE'
+                    ? '제품을 구매한 뒤 리뷰를 등록하는 캠페인'
+                    : '매장에 방문해 체험 후 리뷰를 등록하는 캠페인';
+    const conditionTooltipParts =
+        platformState.normalizedType === 'DELIVERY'
+            ? [
+                ...(platformState.includeReview ? ['구매평'] : []),
+                ...(platformState.includeNaver ? ['블로그'] : []),
+                ...(platformState.includeInstagram ? ['인스타그램'] : []),
+            ]
+            : [platformState.resolvedPlatform === 'INSTAGRAM' ? '인스타그램' : '블로그'];
+    const conditionTooltipLabel = conditionTooltipParts.length > 0 ? conditionTooltipParts.join(' + ') : '조건 확인 필요';
 
     let closureText = '';
     if (isPastDeadline) closureText = '모집 기간이 종료되었습니다';
@@ -745,28 +779,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 </div>
 
                 {/* Campaign Header Section */}
-                <div className="mb-6 mt-0 space-y-3">
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                            <TypeBadge type={campaign.type} />
-
-                            <CampaignPlatformBadges
-                                type={campaign.type}
-                                platform={campaign.platform}
-                                includeReview={step1Data.includeReview}
-                                includeNaver={step1Data.includeNaver}
-                                includeInstagram={step1Data.includeInstagram}
-                            />
-
-                            {campaign.type?.toUpperCase() === 'VISIT' && <RegionBadge region={campaign.region} />}
-                            <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
+                <div className="mb-6 mt-0">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight">
+                            {displayTitle}
+                        </h1>
+                        <div className="md:shrink-0">
+                            <AdminControls campaignId={campaign.id} canEdit={canEditCampaign} />
                         </div>
-                        <AdminControls campaignId={campaign.id} canEdit={canEditCampaign} />
                     </div>
-
-                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 leading-tight tracking-tight">
-                        {displayTitle}
-                    </h1>
                 </div>
 
                 {/* Main Layout: Left Content + Right Sticky Aside */}
@@ -1269,73 +1290,108 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     <div className="lg:col-span-4 border-l border-slate-100 bg-slate-50/30 relative">
                         <div className="lg:sticky lg:top-16 p-5 md:p-6 text-left">
                             <div id="options-section" className="flex flex-col">
-                                {/* Quick Meta Chips (Desktop Sticky) */}
-                                <div className="hidden lg:flex items-center gap-2 flex-wrap mb-5 pb-4 border-b border-slate-100">
-                                    <TypeBadge type={campaign.type} />
-                                    <CampaignPlatformBadges
-                                        type={campaign.type}
-                                        platform={campaign.platform}
-                                        includeReview={Boolean(step1Data.includeReview)}
-                                        includeNaver={Boolean(step1Data.includeNaver)}
-                                        includeInstagram={Boolean(step1Data.includeInstagram)}
-                                    />
-                                    <DDayBadge dday={isAlwaysRecruiting ? '상시' : formatDDay(campaign.end_date)} />
-                                </div>
-
-                                {/* Campaign Info Summary */}
-                                <div className="space-y-4 mb-8">
-                                    <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                                                <Calendar className="w-5 h-5" />
-                                            </div>
-                                            <span className="text-sm font-bold text-slate-500">모집 기간</span>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-slate-900">
-                                                {isAlwaysRecruiting ? '상시 모집' : `${startDate} ~ ${endDateLabel}`}
-                                            </p>
-                                            <p className="text-[10px] text-rose-500 font-bold mt-0.5">
-                                                {isAlwaysRecruiting ? '중지 시까지' : formatDDay(campaign.end_date)}
-                                            </p>
-                                        </div>
+                                <div className="space-y-4 mb-6">
+                                    <div className={`rounded-2xl border px-4 py-3.5 ${isClosed ? 'bg-slate-100 border-slate-200' : 'bg-sky-50 border-sky-100'}`}>
+                                        <p className={`text-[10px] font-black uppercase tracking-widest ${isClosed ? 'text-slate-500' : 'text-sky-600'}`}>
+                                            신청 상태
+                                        </p>
+                                        <p className={`mt-1 text-sm font-bold ${isClosed ? 'text-slate-700' : 'text-sky-700'}`}>
+                                            {isClosed ? closureText : '지금 신청 가능합니다'}
+                                        </p>
                                     </div>
 
-                                    {showCount && (
-                                        <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
-                                                    <Users className="w-5 h-5" />
+                                    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                                        <div className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100">
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                                                    <Target className="w-5 h-5" />
                                                 </div>
-                                                <span className="text-sm font-bold text-slate-500">모집 인원</span>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-slate-700">캠페인 유형</p>
+                                                    <div className="mt-0.5 flex items-center gap-1.5">
+                                                        <p className="text-[11px] text-slate-500 font-semibold truncate">{typeTooltipLabel}</p>
+                                                        <TooltipProvider delayDuration={250}>
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <button
+                                                                        type="button"
+                                                                        className="w-4 h-4 rounded-full border border-slate-300 text-slate-500 text-[10px] font-black inline-flex items-center justify-center hover:border-slate-400 hover:text-slate-700"
+                                                                        aria-label="캠페인 유형 설명"
+                                                                    >
+                                                                        i
+                                                                    </button>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
+                                                                    <p className="text-[11px] leading-relaxed">{typeHoverDescription}</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
+                                                        </TooltipProvider>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-xs font-bold text-slate-900">{conditionTooltipLabel}</p>
+                                                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">리뷰 필수</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                                                    <Calendar className="w-5 h-5" />
+                                                </div>
+                                                <span className="text-sm font-bold text-slate-700">모집 기간</span>
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
+                                                    {isAlwaysRecruiting ? '상시 모집' : `${startDate} ~ ${endDateLabel}`}
                                                 </p>
-                                                <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                    모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
+                                                <p className="text-[10px] text-rose-500 font-bold mt-0.5">
+                                                    {isAlwaysRecruiting ? '중지 시까지' : formatDDay(campaign.end_date)}
                                                 </p>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
 
-                                <div className="mb-4 flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center">
-                                        <PenLine className="w-5 h-5" />
+                                        {showCount && (
+                                            <div className="flex items-center justify-between gap-4 px-4 py-3.5">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center shrink-0">
+                                                        <Users className="w-5 h-5" />
+                                                    </div>
+                                                    <span className="text-sm font-bold text-slate-700">모집 인원</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-sm font-bold text-slate-900">
+                                                        <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
+                                                    </p>
+                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                                        모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div>
-                                        <h2 className="text-lg font-bold text-slate-900 mb-0.5">신청 정보</h2>
-                                        <p className="text-[11px] text-slate-400 font-medium">옵션과 한마디를 적어주세요.</p>
-                                    </div>
+
                                 </div>
 
                                 {!hasApplied ? (
                                     <div className="flex-1 flex flex-col">
-                                        <div className="space-y-6">
-                                            {options.length > 0 && (
-                                                <div className="space-y-4">
+                                        <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                                            <div className="p-4 border-b border-slate-100">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
+                                                        <PenLine className="w-5 h-5" />
+                                                    </div>
+                                                    <div>
+                                                        <h2 className="text-base font-bold text-slate-900">신청 정보</h2>
+                                                        <p className="text-[11px] text-slate-500 font-medium">옵션과 한마디를 입력해 주세요.</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="p-4 space-y-6">
+                                                {options.length > 0 && (
+                                                    <div className="space-y-4">
                                                     <div className="flex items-center justify-between py-1">
                                                         <div className="flex items-center gap-2">
                                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
@@ -1472,11 +1528,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             })}
                                                         </div>
                                                     )}
-                                                </div>
-                                            )}
+                                                    </div>
+                                                )}
 
-                                            <div className="pt-4 border-t border-slate-50">
-                                                <div className="flex flex-col gap-2">
+                                                <div className={`flex flex-col gap-2 ${options.length > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
                                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">광고주에게 전하는 한마디</p>
                                                     <input
                                                         type="text"
@@ -1486,49 +1541,50 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                         className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm focus:border-rose-300 focus:bg-white outline-none transition-all placeholder:text-slate-300"
                                                     />
                                                 </div>
-                                            </div>
 
-                                            {/* Fixed Bottom Button Area - Premium Style */}
-                                            <div className="pt-2 flex gap-3">
-                                                <button
-                                                    onClick={handleApply}
-                                                    disabled={isClosed || isApplying}
-                                                    className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed || isApplying
-                                                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
-                                                        : !user
-                                                            ? 'bg-gray-800 text-white'
-                                                            : 'bg-gradient-to-r from-rose-500 via-rose-600 to-rose-500 bg-[length:200%_auto] hover:bg-right text-white shadow-rose-200'
-                                                        }`}
-                                                >
-                                                    {isApplying ? (
-                                                        <span className="flex items-center gap-2">
-                                                            <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
-                                                            처리중...
-                                                        </span>
-                                                    ) : isClosed ? closureText : (
-                                                        <>
-                                                            <span className="relative z-10 flex items-center gap-3 uppercase tracking-tight">
-                                                                {user ? '캠페인 신청하기' : '로그인이 필요합니다'}
-                                                                {!isClosed && <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />}
+                                                {/* Fixed Bottom Button Area - Premium Style */}
+                                                <div className="pt-2 flex gap-3">
+                                                    <button
+                                                        onClick={handleApply}
+                                                        disabled={isClosed || isApplying}
+                                                        className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed || isApplying
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                                            : !user
+                                                                ? 'bg-gray-800 text-white'
+                                                                : 'bg-gradient-to-r from-rose-500 via-rose-600 to-rose-500 bg-[length:200%_auto] hover:bg-right text-white shadow-rose-200'
+                                                            }`}
+                                                    >
+                                                        {isApplying ? (
+                                                            <span className="flex items-center gap-2">
+                                                                <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin"></div>
+                                                                처리중...
                                                             </span>
-                                                            {!isClosed && user && (
-                                                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
-                                                            )}
-                                                        </>
+                                                        ) : isClosed ? closureText : (
+                                                            <>
+                                                                <span className="relative z-10 flex items-center gap-3 tracking-tight">
+                                                                    {user ? '캠페인 신청하기' : '로그인 후 신청하기'}
+                                                                    {!isClosed && <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />}
+                                                                </span>
+                                                                {!isClosed && user && (
+                                                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                    {!isClosed && (
+                                                        <div className="shrink-0 flex items-center justify-center">
+                                                            <CampaignShare
+                                                                campaignId={id}
+                                                                title={displayTitle}
+                                                                description={campaignIntro}
+                                                                thumbnailUrl={campaign.thumbnail_url}
+                                                                campaignType={campaign.type}
+                                                                campaignConditionLabel={conditionTooltipLabel}
+                                                                variant="large"
+                                                            />
+                                                        </div>
                                                     )}
-                                                </button>
-                                                {!isClosed && (
-                                                    <div className="shrink-0 flex items-center justify-center">
-                                                        <CampaignShare
-                                                            campaignId={id}
-                                                            title={displayTitle}
-                                                            description={campaignIntro}
-                                                            thumbnailUrl={campaign.thumbnail_url}
-                                                            campaignType={campaign.type}
-                                                            variant="large"
-                                                        />
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -1700,8 +1756,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 }`}
                         >
                             {isApplying ? '처리 중...' : isClosed ? closureText : user
-                                ? (selectedOptions.length > 0 ? '캠페인 신청하기' : '옵션 선택하고 신청하기')
-                                : '로그인이 필요합니다'}
+                                ? (selectedOptions.length > 0 ? '신청서 제출하기' : '옵션 선택 후 신청하기')
+                                : '로그인 후 신청하기'}
                             {!isClosed && !isApplying && <ArrowRight size={20} />}
                         </button>
                         {!isClosed && (
@@ -1712,6 +1768,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                     description={campaignIntro || campaign.description || ''}
                                     thumbnailUrl={images[0]}
                                     campaignType={campaign.type}
+                                    campaignConditionLabel={conditionTooltipLabel}
                                     variant="large"
                                 />
                             </div>
@@ -1728,8 +1785,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 리뷰 제출하기
                             </button>
                         ) : (
-                            <div className="px-5 py-3.5 bg-emerald-50 text-emerald-600 rounded-2xl font-bold text-sm flex-1 text-center">
-                                신청 완료 ✨
+                            <div className="px-5 py-3.5 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-sm flex-1 text-center">
+                                신청 완료 · 검토중
                             </div>
                         )}
                         <CampaignShare
@@ -1737,6 +1794,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             title={displayTitle}
                             description={campaignIntro}
                             thumbnailUrl={campaign.thumbnail_url}
+                            campaignType={campaign.type}
+                            campaignConditionLabel={conditionTooltipLabel}
                             variant="large"
                         />
                         <button

@@ -27,7 +27,7 @@ const TYPE_MAPPING: Record<string, string> = {
 const REDIRECT_MAP: Record<string, string> = {
     'NOTICE': '/community/notice',
     'EVENT': '/community/event',
-    'FREE': '/community/free',
+    'FREE': '/community/feedback',
     'BLOG_INTRO': '/community/blog-intro',
     'ACADEMY_ADVERTISER': '/community/academy/advertiser',
     'ACADEMY_INFLUENCER': '/community/academy/influencer'
@@ -48,11 +48,69 @@ const NOTICE_TABLE_TYPES = ['NOTICE', 'EVENT'];
 const TYPE_TITLES: Record<string, string> = {
     'NOTICE': '공지사항',
     'EVENT': '이벤트',
-    'FREE': '자유게시판',
+    'FREE': '포스팅 피드백',
     'BLOG_INTRO': '내 블로그 소개',
     'ACADEMY_ADVERTISER': '광고주 칼럼',
     'ACADEMY_INFLUENCER': '인플루언서 칼럼'
 };
+
+function stripHtmlTags(input: string): string {
+    return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function buildAutoAiFeedback(title: string, contentHtml: string): string {
+    const plainContent = stripHtmlTags(contentHtml);
+    const hasExternalLink = /(https?:\/\/|blog\.naver\.com|instagram\.com|youtube\.com|tiktok\.com)/i.test(contentHtml);
+    const contentLength = plainContent.length;
+
+    const headlineFeedback =
+        title.length >= 14
+            ? '제목에 핵심 키워드가 잘 들어가 있어 검색 노출에 유리합니다.'
+            : '제목이 짧은 편입니다. 핵심 키워드를 1~2개 더 넣어보세요.';
+
+    const bodyFeedback =
+        contentLength >= 220
+            ? '본문 정보량이 충분해서 체류시간 측면에서 강점이 있습니다.'
+            : '본문 정보량이 부족합니다. 사용감/비교 포인트를 3문장 이상 추가해보세요.';
+
+    const linkFeedback = hasExternalLink
+        ? '링크가 포함되어 있어 유입 동선이 준비되어 있습니다.'
+        : '링크가 없어 전환 동선이 약합니다. 본문 하단에 관련 링크를 추가하세요.';
+
+    return [
+        '[AI_ANALYSIS]',
+        '🤖 AI 포스팅 분석 (자동 생성)',
+        '',
+        '1) 강점',
+        `- ${headlineFeedback}`,
+        `- ${bodyFeedback}`,
+        '',
+        '2) 개선 제안',
+        `- ${linkFeedback}`,
+        '- 첫 문단 2줄 안에 “누가/왜/무엇”을 명확히 써주세요.',
+        '- 마지막 문단에 저장/댓글 유도 CTA를 1문장 추가하세요.',
+    ].join('\n');
+}
+
+async function generateAiFeedbackComment(title: string, contentHtml: string): Promise<string> {
+    try {
+        const response = await fetch('/api/community/feedback-ai', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, content: contentHtml }),
+        });
+
+        if (!response.ok) {
+            return buildAutoAiFeedback(title, contentHtml);
+        }
+
+        const data = await response.json();
+        const comment = typeof data?.comment === 'string' ? data.comment.trim() : '';
+        return comment || buildAutoAiFeedback(title, contentHtml);
+    } catch {
+        return buildAutoAiFeedback(title, contentHtml);
+    }
+}
 
 function WritePageContent() {
     const { user, profile, isLoading } = useAuthStore();
@@ -326,15 +384,31 @@ function WritePageContent() {
                     }
                 } else {
                     // posts 테이블에 저장 (자유게시판, 블로그, 아카데미)
-                    const { error } = await supabase.from('posts').insert({
+                    const { data: insertedPost, error } = await supabase.from('posts').insert({
                         user_id: user.id,
                         type: dbType,
                         title,
                         content,
                         view_count: 0
-                    });
+                    }).select('id').single();
 
                     if (error) throw error;
+
+                    // 포스팅 피드백(FREE) 등록 시 AI 분석 코멘트 자동 생성
+                    if (type === 'FREE' && insertedPost?.id) {
+                        const aiFeedback = await generateAiFeedbackComment(title, content);
+                        const { error: commentError } = await supabase
+                            .from('comments')
+                            .insert({
+                                post_id: insertedPost.id,
+                                user_id: user.id,
+                                content: aiFeedback
+                            });
+
+                        if (commentError) {
+                            console.error('Auto AI feedback comment insert failed:', commentError);
+                        }
+                    }
                 }
                 toast.success("글이 성공적으로 등록되었습니다.");
             }
@@ -380,6 +454,16 @@ function WritePageContent() {
                         {editId ? '글 수정하기' : TYPE_TITLES[type] || '새 글 작성'}
                     </h1>
                 </div>
+
+                {type === 'FREE' && (
+                    <div className="mt-4 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-sm text-sky-900">
+                        <p className="font-bold mb-1">포스팅 피드백 작성 가이드</p>
+                        <p className="text-sky-800/90 leading-relaxed">
+                            제목에 플랫폼/주제를 포함하고, 본문에 포스팅 링크와 피드백 받고 싶은 포인트를 적어주세요.
+                            등록 후 AI 분석 코멘트가 자동으로 생성됩니다.
+                        </p>
+                    </div>
+                )}
             </div>
 
             <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50 overflow-visible">
