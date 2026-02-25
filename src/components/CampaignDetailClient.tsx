@@ -538,6 +538,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     }
 
     async function confirmCancel() {
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
         try {
             const { data: appData, error: appQueryError } = await supabase
                 .from('applications')

@@ -3,11 +3,13 @@
 import { usePathname } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Profile } from '@/types/database';
 
 interface AppShellProps {
   children: React.ReactNode;
-  initialUser?: unknown | null;
-  initialProfile?: unknown | null;
+  initialUser?: SupabaseUser | null;
+  initialProfile?: Profile | null;
 }
 
 export default function AppShell({ children, initialUser, initialProfile }: AppShellProps) {

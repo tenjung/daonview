@@ -2,10 +2,12 @@
 
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import type { Profile } from '@/types/database';
 
 interface AuthHydratorProps {
-    user: unknown | null;
-    profile: unknown | null;
+    user: SupabaseUser | null;
+    profile: Profile | null;
 }
 
 /**
