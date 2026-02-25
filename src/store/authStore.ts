@@ -140,8 +140,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       set({ isLoading: true, user: null, profile: null });
       
-      // 서버측 세션 종료는 백그라운드에서 진행하여 클라이언트 체감 속도 향상 (non-blocking)
-      supabase.auth.signOut().catch((err) => console.error('Supabase signOut error:', err));
+      // 1. 서버 측 쿠키 확실히 삭제 (API 라우트 호출)
+      // fetch가 실패하더라도 클라이언트 로그아웃은 진행되어야 하므로 에러만 캡처
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } catch (err) {
+        console.error('Logout API calling error:', err);
+      }
+      
+      // 2. 클라이언트 세션 스토리지 삭제 및 로컬 상태 정리
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error('Supabase client signOut error:', error);
       
       authUnsubscribe?.();
       authUnsubscribe = null;
