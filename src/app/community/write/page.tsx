@@ -94,11 +94,16 @@ function buildAutoAiFeedback(title: string, contentHtml: string): string {
 
 async function generateAiFeedbackComment(title: string, contentHtml: string): Promise<string> {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4500);
+
         const response = await fetch('/api/community/feedback-ai', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ title, content: contentHtml }),
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             return buildAutoAiFeedback(title, contentHtml);
@@ -396,18 +401,30 @@ function WritePageContent() {
 
                     // 포스팅 피드백(FREE) 등록 시 AI 분석 코멘트 자동 생성
                     if (type === 'FREE' && insertedPost?.id) {
-                        const aiFeedback = await generateAiFeedbackComment(title, content);
-                        const { error: commentError } = await supabase
-                            .from('comments')
-                            .insert({
-                                post_id: insertedPost.id,
-                                user_id: user.id,
-                                content: aiFeedback
-                            });
+                        const autoCommentTask = (async () => {
+                            const aiFeedback = await generateAiFeedbackComment(title, content);
+                            const { error: commentError } = await supabase
+                                .from('comments')
+                                .insert({
+                                    post_id: insertedPost.id,
+                                    user_id: user.id,
+                                    content: aiFeedback
+                                });
 
-                        if (commentError) {
-                            console.error('Auto AI feedback comment insert failed:', commentError);
-                        }
+                            if (commentError) {
+                                console.error('Auto AI feedback comment insert failed:', commentError);
+                            }
+                        })();
+
+                        await Promise.race([
+                            autoCommentTask,
+                            new Promise<void>((resolve) =>
+                                setTimeout(() => {
+                                    console.warn('Auto AI feedback timed out. Continue without blocking save flow.');
+                                    resolve();
+                                }, 4000)
+                            ),
+                        ]);
                     }
                 }
                 toast.success("글이 성공적으로 등록되었습니다.");

@@ -29,6 +29,9 @@ export async function generateWithGemini(
       });
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,7 +42,9 @@ export async function generateWithGemini(
           temperature: 0.7,
         }
       }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     const result = await response.json();
 
