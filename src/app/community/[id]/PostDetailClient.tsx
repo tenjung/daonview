@@ -15,6 +15,15 @@ interface PostDetailClientProps {
     id: string;
 }
 
+function formatStableDate(input: string): string {
+    const date = new Date(input);
+    if (Number.isNaN(date.getTime())) return '-';
+    const year = date.getUTCFullYear();
+    const month = date.getUTCMonth() + 1;
+    const day = date.getUTCDate();
+    return `${year}. ${month}. ${day}.`;
+}
+
 export default function PostDetailClient({ initialPost, initialComments, id }: PostDetailClientProps) {
     const { user } = useAuthStore();
     const router = useRouter();
@@ -181,7 +190,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
             isPinned={initialPost.is_pinned}
             title={initialPost.title}
             author={initialPost.profiles?.nickname || initialPost.profiles?.name || '익명'}
-            createdAt={new Date(initialPost.created_at).toLocaleDateString()}
+            createdAt={formatStableDate(initialPost.created_at)}
             viewCount={initialPost.view_count || 0}
             extraHeader={isOwner && (
                 <div className="flex gap-1 shrink-0">
@@ -292,7 +301,7 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                                                 return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100">피드백</span>;
                                             })()}
                                             <span className="text-[10px] text-gray-400">
-                                                {new Date(comment.created_at).toLocaleDateString()}
+                                                {formatStableDate(comment.created_at)}
                                             </span>
                                         </div>
                                         {user && user.id === comment.user_id && (

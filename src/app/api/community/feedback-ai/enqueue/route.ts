@@ -2,6 +2,7 @@ import { after, NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { generateWithGemini } from '@/lib/services/googleAI';
+import { load } from 'cheerio';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -10,7 +11,43 @@ function stripHtml(input: string): string {
   return input.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-function buildFallbackComment(title: string, content: string): string {
+function extractFirstUrl(input: string): string | null {
+  const match = input.match(/https?:\/\/[^\s"'<>]+/i);
+  return match ? match[0] : null;
+}
+
+async function fetchLinkedText(url: string): Promise<{ title: string; text: string } | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; DAONVIEW-AI-Feedback/1.0)',
+      },
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return null;
+    const html = await response.text();
+    const $ = load(html);
+    $('script, style, noscript').remove();
+
+    const title =
+      $('meta[property="og:title"]').attr('content')?.trim() ||
+      $('title').text().trim() ||
+      '';
+
+    const text = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 4000);
+    if (!text) return null;
+
+    return { title, text };
+  } catch {
+    return null;
+  }
+}
+
+function buildFallbackComment(title: string, content: string, sourceLabel: string): string {
   const plain = stripHtml(content);
   const hasLink = /(https?:\/\/|blog\.naver\.com|instagram\.com|youtube\.com|tiktok\.com)/i.test(content);
   const bodyLength = plain.length;
@@ -35,6 +72,7 @@ function buildFallbackComment(title: string, content: string): string {
   return [
     '[AI_ANALYSIS]',
     '🤖 AI 포스팅 분석',
+    `기반 데이터: ${sourceLabel}`,
     '',
     '1) 강점',
     `- ${strengths[0]}`,
@@ -50,15 +88,37 @@ function buildFallbackComment(title: string, content: string): string {
 async function generateFeedbackComment(title: string, content: string): Promise<string> {
   try {
     const plain = stripHtml(content).slice(0, 3000);
+    const linkUrl = extractFirstUrl(content);
+    const linked = linkUrl ? await fetchLinkedText(linkUrl) : null;
+
+    const sourceLabel = linked
+      ? `작성글 + 링크 본문(${linkUrl})`
+      : (linkUrl ? `작성글 + 링크 접근 실패(${linkUrl})` : '작성글');
+
+    const linkedSection = linked
+      ? `
+[링크 제목]
+${linked.title || '(제목 없음)'}
+
+[링크 본문 요약 원문]
+${linked.text}
+`
+      : `
+[링크 본문]
+${linkUrl ? '접근 실패 또는 본문 추출 실패' : '링크 없음'}
+`;
+
     const prompt = `
 너는 인플루언서 포스팅 코치다.
-아래 제목/본문을 분석해 반드시 JSON으로만 답해라.
+아래 작성글과 링크 본문(가능한 경우)을 함께 분석해 반드시 JSON으로만 답해라.
 
 [제목]
 ${title}
 
 [본문]
 ${plain}
+
+${linkedSection}
 
 응답 스키마:
 {
@@ -69,6 +129,7 @@ ${plain}
 규칙:
 - 한국어, 각 문장 60자 이내
 - 과장/추측 금지, 실행 가능한 개선안만
+- 링크 본문을 읽었으면 그 사실을 반영한 문장으로 작성
 `;
 
     const ai = await generateWithGemini(prompt, true);
@@ -76,12 +137,13 @@ ${plain}
     const improvements = Array.isArray(ai?.improvements) ? ai.improvements.slice(0, 3) : [];
 
     if (strengths.length < 1 || improvements.length < 1) {
-      return buildFallbackComment(title, content);
+      return buildFallbackComment(title, content, sourceLabel);
     }
 
     return [
       '[AI_ANALYSIS]',
       '🤖 AI 포스팅 분석',
+      `기반 데이터: ${sourceLabel}`,
       '',
       '1) 강점',
       ...strengths.map((s: string) => `- ${String(s).trim()}`),
@@ -90,7 +152,7 @@ ${plain}
       ...improvements.map((s: string) => `- ${String(s).trim()}`),
     ].join('\n');
   } catch {
-    return buildFallbackComment(title, content);
+    return buildFallbackComment(title, content, '작성글');
   }
 }
 
