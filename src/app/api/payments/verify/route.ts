@@ -78,6 +78,36 @@ export async function POST(request: Request) {
 
         // 결제 상태 확인
         if (payment.status === 'PAID') {
+            // ✅ 무제한 결제건에 대해서 subscriptions 정보 갱신 처리
+            if (customData.item === 'unlimited-plan' && customData.planMonths) {
+                const planMonths = Number(customData.planMonths);
+                
+                // 만료일 계산 (현재 시간 기준 + 구독 개월 수)
+                const now = new Date();
+                const expiresAt = new Date(now);
+                expiresAt.setMonth(now.getMonth() + planMonths);
+
+                const subscriptionRecord = {
+                    user_id: userId,
+                    plan: 'UNLIMITED',
+                    status: 'ACTIVE',
+                    starts_at: now.toISOString(),
+                    expires_at: expiresAt.toISOString(),
+                    payment_id: paymentId,
+                    created_at: now.toISOString(),
+                    updated_at: now.toISOString(),
+                };
+
+                const { error: subscriptionError } = await supabase
+                    .from('subscriptions')
+                    .upsert(subscriptionRecord, { onConflict: 'user_id' }); // 단일 유저당 최신 상태 덮어쓰기 권장
+
+                if (subscriptionError) {
+                    console.error('Error saving subscription record:', subscriptionError);
+                    // 구독 처리가 실패하더라도 일단 결제 자체는 성공으로 반환할지 여부 고민
+                }
+            }
+
             return NextResponse.json({
                 success: true,
                 payment,

@@ -37,6 +37,7 @@ export interface CampaignState {
     productPrice: string;
     shippingCost: string;
     isCouponRequired: boolean;
+    purchaseRewardMethod: 'DIRECT' | 'DAONVIEW' | null;
     platform: 'BLOG' | 'INSTAGRAM' | 'PURCHASE' | null;
     category: string;
     region: string;
@@ -127,6 +128,7 @@ const initialState: CampaignState = {
     productPrice: '0',
     shippingCost: '0',
     isCouponRequired: false,
+    purchaseRewardMethod: null,
     platform: 'BLOG',
     category: '',
     region: '',
@@ -252,6 +254,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     productPrice: (s1.productPrice || '0').toString(),
                     shippingCost: (s1.shippingCost || '0').toString(),
                     isCouponRequired: s1.isCouponRequired || false,
+                    purchaseRewardMethod: s1.purchaseRewardMethod || null,
                     contactPhone: options.contact_phone || s1.contactPhone || '',
                     contactMethod: campaign.contact_method || options.contact_method || s1.contactMethod || 'TEXT_ONLY',
                     advertiserWillContact: s1.advertiserWillContact || false,

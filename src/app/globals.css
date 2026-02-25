@@ -89,12 +89,12 @@ body {
     background: linear-gradient(135deg,
         #ff385c 0%,
         /* Main Rose Red */
-        #ff5a7b 20%,
+        #ff5a7b 40%,
         /* Warm Pink */
-        #a855f7 50%,
-        /* Premium Violet */
-        #6366f1 80%,
-        /* Soft Indigo Point */
+        #ff385c 75%,
+        /* Main Rose Red */
+        #b375f9 90%,
+        /* Soft Violet Point */
         #ff385c 100%
         /* Return to Rose Red */
       );

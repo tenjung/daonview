@@ -167,20 +167,6 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
                 />
             </div>
 
-            {/* Option Price */}
-            <div className="w-32 flex-shrink-0">
-                <div className="flex items-center gap-1">
-                    <input
-                        type="text"
-                        value={option.optionPrice}
-                        onChange={(e) => onUpdate(option.id, 'optionPrice', e.target.value)}
-                        placeholder="0"
-                        className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                    <span className="text-xs text-gray-500">원</span>
-                </div>
-            </div>
-
             {/* Recruitment Count */}
             <div className="w-24 flex-shrink-0">
                 <div className="flex items-center gap-1">
@@ -638,6 +624,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     const isFormValid = () => {
         if (!formData.brandId) return false;
         if (!formData.campaignType) return false;
+        if (!formData.category) return false;
 
         // 배송체험단
         if (formData.campaignType === 'DELIVERY') {
@@ -646,6 +633,12 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             }
             if ((!formData.productUrlIndividual && !formData.productUrl) || !formData.productName) {
                 return false;
+            }
+            // 구매평 체험단인 경우 공식 판매가와 상품 결제 금액 필수 (단, 쿠폰/옵션 기준 리워드 체크 시 예외)
+            if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired) {
+                if (!formData.officialPrice || !formData.productPrice) {
+                    return false;
+                }
             }
         }
 
@@ -685,6 +678,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             return scrollTo('title-section', '캠페인 제목을 입력해주세요.');
         }
 
+        if (!formData.category) {
+            return scrollTo('category-section', '카테고리를 선택해주세요.');
+        }
+
         if (!formData.campaignType) {
             return scrollTo('type-section', '진행 유형을 선택해주세요.');
         }
@@ -710,6 +707,15 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             }
             if (!formData.productName) {
                 return scrollTo('product-name', '상품명을 입력해주세요.');
+            }
+            // 구매평 체험단 유효성 검사 추가 (단, 쿠폰/옵션 기준 리워드 체크 시 예외)
+            if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired) {
+                if (!formData.officialPrice) {
+                    return scrollTo('official-price', '구매평 체험단은 리워드 지급을 위해 공식 판매가를 필수로 입력해야 합니다.');
+                }
+                if (!formData.productPrice) {
+                    return scrollTo('product-price', '구매평 체험단은 리워드 지급을 위해 상품 결제 금액을 필수로 입력해야 합니다.');
+                }
             }
         } else if (isVisitOrPress) {
             if (formData.stores.length === 0) {
@@ -824,8 +830,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             </section>
 
             {/* 카테고리 선택 */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">카테고리 선택</h2>
+            <section id="category-section" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mt-4 outline-none" tabIndex={-1}>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">
+                    카테고리 선택 <span className="text-red-500">*</span>
+                </h2>
                 <div className="flex flex-wrap gap-2">
                     {['맛집', '뷰티', '숙박', '생활', '서비스', '유아동', '디지털/가전', '기타'].map((cat) => (
                         <button
@@ -1596,17 +1604,23 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 {/* 공식 판매가 & 상품 결제 금액 - 좌우 배치 */}
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* 공식 판매가 */}
-                    <div>
+                    <div id="official-price" className="outline-none" tabIndex={-1}>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                            공식 판매가 <span className="text-gray-500 text-xs">(선택, 참고용)</span>
+                            공식 판매가
+                            {formData.campaignType === 'DELIVERY' && (formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired ? (
+                                <span className="text-red-500"> *</span>
+                            ) : (
+                                <span className="text-gray-500 text-xs"> (선택, 참고용)</span>
+                            )}
                         </label>
                         <div className="flex items-center gap-2">
                             <input
                                 type="text"
                                 value={formData.officialPrice || ''}
                                 onChange={(e) => handlePriceChange('officialPrice', e.target.value)}
-                                placeholder="30,000"
-                                className="flex-1 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                                disabled={formData.isCouponRequired}
+                                placeholder={formData.isCouponRequired ? '' : '30,000'}
+                                className={`flex-1 h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right ${formData.isCouponRequired ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'border-gray-300'}`}
                             />
                             <span className="text-gray-600">원 상당</span>
                         </div>
@@ -1614,17 +1628,23 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
                     {/* 상품 결제 금액 (배송체험단만) */}
                     {formData.campaignType === 'DELIVERY' && (
-                        <div>
+                        <div id="product-price" className="outline-none" tabIndex={-1}>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                상품 결제 금액(배송비 포함) <span className="text-gray-500 text-xs">(선택)</span>
+                                상품 결제 금액(배송비 포함)
+                                {(formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired ? (
+                                    <span className="text-red-500"> *</span>
+                                ) : (
+                                    <span className="text-gray-500 text-xs"> (선택)</span>
+                                )}
                             </label>
                             <div className="flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={formData.productPrice || ''}
                                     onChange={(e) => handlePriceChange('productPrice', e.target.value)}
-                                    placeholder="0"
-                                    className="flex-1 h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+                                    disabled={formData.isCouponRequired}
+                                    placeholder={formData.isCouponRequired ? '' : '0'}
+                                    className={`flex-1 h-10 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right ${formData.isCouponRequired ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'border-gray-300'}`}
                                 />
                                 <span className="text-gray-600">원</span>
                             </div>
@@ -1642,18 +1662,99 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             <input
                                 type="checkbox"
                                 checked={formData.isCouponRequired}
-                                onChange={(e) => campaignStore.setField('isCouponRequired', e.target.checked)}
+                                onChange={(e) => {
+                                    const checked = e.target.checked;
+                                    campaignStore.updateFields({
+                                        isCouponRequired: checked,
+                                        ... (checked ? {
+                                            productPrice: '',
+                                            officialPrice: '',
+                                            purchaseRewardMethod: 'DIRECT'
+                                        } : {})
+                                    });
+                                }}
                                 className="mt-1 w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
                             />
                             <div className="flex-1">
                                 <span className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                                    인플루언서가 쿠폰을 사용해야 하는 경우 체크해 주세요.
+                                    리워드를 결제 금액(쿠폰/옵션 등) 기준으로 개별 지급하는 경우 체크해 주세요.
                                 </span>
                                 <p className="mt-1 text-xs text-gray-500">
-                                    💡 쿠폰 할인 적용 후의 최종 결제 금액을 위 '상품 결제 금액'에 입력해주세요.
+                                    💡 체크 시 위 '상품 결제 금액' 입력을 제한하며, '광고주 직접 지급' 방식으로만 진행할 수 있습니다.
                                 </p>
                             </div>
                         </label>
+                    </div>
+                )}
+
+                {/* 구매평 리워드 지급 방식 선택 (배송 + 구매평 플랫폼인 경우만) */}
+                {formData.campaignType === 'DELIVERY' && (formData.includeReview || formData.platform === 'PURCHASE') && (
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        <Label className="text-sm font-bold text-gray-900 mb-4 block">
+                            구매평 리워드 지급 방식 <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {/* 광고주 직접 지급 */}
+                            <button
+                                type="button"
+                                onClick={() => campaignStore.setField('purchaseRewardMethod', 'DIRECT')}
+                                className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${formData.purchaseRewardMethod === 'DIRECT'
+                                    ? 'border-blue-500 bg-blue-50 shadow-sm'
+                                    : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50'
+                                    }`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className={`font-bold text-base ${formData.purchaseRewardMethod === 'DIRECT' ? 'text-blue-700' : 'text-slate-800'}`}>
+                                        광고주 직접 지급
+                                    </span>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.purchaseRewardMethod === 'DIRECT' ? 'border-blue-500 bg-blue-500' : 'border-slate-300'}`}>
+                                        {formData.purchaseRewardMethod === 'DIRECT' && <div className="w-2 h-2 rounded-full bg-white" />}
+                                    </div>
+                                </div>
+                                <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                                    인플루언서가 리뷰 작성을 완료하면, <strong className="text-slate-700">광고주가 인플루언서 은행 계좌로 결제 대금을 직접 송금</strong>합니다. (다온뷰 결제 시 리워드 금액 미포함)
+                                </p>
+                            </button>
+
+                            {/* 다온뷰 안심 지급 */}
+                            <div className="flex flex-col gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => campaignStore.setField('purchaseRewardMethod', 'DAONVIEW')}
+                                    disabled={formData.isCouponRequired}
+                                    className={`text-left p-5 rounded-2xl border-2 transition-all flex flex-col gap-2 ${formData.purchaseRewardMethod === 'DAONVIEW'
+                                        ? 'border-rose-500 bg-rose-50 shadow-sm'
+                                        : 'border-slate-200 bg-white'
+                                        } ${formData.isCouponRequired ? 'opacity-50 cursor-not-allowed bg-slate-50' : 'hover:border-rose-300 hover:bg-slate-50'}`}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className={`font-bold text-base flex items-center gap-1 ${formData.purchaseRewardMethod === 'DAONVIEW' ? 'text-rose-700' : 'text-slate-800'}`}>
+                                            다온뷰 안심 지급
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 font-black">추천</span>
+                                        </span>
+                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.purchaseRewardMethod === 'DAONVIEW' ? 'border-rose-500 bg-rose-500' : 'border-slate-300'}`}>
+                                            {formData.purchaseRewardMethod === 'DAONVIEW' && <div className="w-2 h-2 rounded-full bg-white" />}
+                                        </div>
+                                    </div>
+                                    <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                                        번거로운 송금 업무와 세금 처리를 다온뷰가 대행합니다. 미리 <strong className="text-slate-700">상품 결제 금액 + 부가세(10%)</strong>를 다온뷰에 결제해 두시면 됩니다.
+                                    </p>
+                                </button>
+                                {formData.isCouponRequired && (
+                                    <p className="text-[12px] text-rose-500 font-bold px-1">
+                                        리워드를 개별 지급하는 경우 안심 지급 기능을 이용할 수 없습니다.
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                        {formData.purchaseRewardMethod === 'DAONVIEW' && (
+                            <div className="mt-3 bg-rose-50/50 border border-rose-100 rounded-xl p-3 flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                <Info size={16} className="text-rose-500 flex-shrink-0 mt-0.5" />
+                                <p className="text-[12px] text-rose-700 font-medium">
+                                    [상품 결제 금액 × 모집인원 × 1.1(부가세)]원 만큼이 최종 캠페인 등록비 결제 시 합산 청구됩니다. 공식 판매가가 아닌 위에서 설정하신 <strong className="font-bold underline">상품 결제 금액</strong>을 기준으로 산정되오니, 다시 한 번 확인해주세요.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 )}
             </section>
@@ -1680,7 +1781,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     <div className="w-6 flex-shrink-0"></div>
                                     <div className="w-8 text-center flex-shrink-0">#</div>
                                     <div className="flex-1">옵션 정보 <span className="text-red-500">*</span></div>
-                                    <div className="w-32 text-center flex-shrink-0">제공 가액</div>
                                     <div className="w-24 text-center flex-shrink-0">모집 인원</div>
                                     <div className="w-8 flex-shrink-0"></div>
                                 </div>

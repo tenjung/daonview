@@ -176,7 +176,7 @@ export default function ReviewSubmitModal({
                 return;
             }
             if (!bankName.trim() || !accountHolder.trim() || !accountNumber.trim()) {
-                toast.error('페이백 정산을 위해 계좌정보(은행/예금주/계좌번호)를 입력해주세요.');
+                toast.error('리워드 정산을 위해 계좌정보(은행/예금주/계좌번호)를 입력해주세요.');
                 return;
             }
         }
@@ -356,7 +356,7 @@ export default function ReviewSubmitModal({
                                         실제 결제한 구매금액과 성함(주문자명)이 한 화면에서 명확하게 보이게 업로드해 주세요.
                                     </p>
                                     <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
-                                        금액/성함 식별이 어려우면 페이백 검수에서 반려될 수 있습니다.
+                                        금액/성함 식별이 어려우면 리워드 검수에서 반려될 수 있습니다.
                                     </p>
                                     {purchaseAmountProofUrl ? (
                                         <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 group">
@@ -475,7 +475,7 @@ export default function ReviewSubmitModal({
 
                     {isPurchaseExperience && (
                         <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <Label className="text-sm font-black text-amber-900">페이백 정산 계좌 정보 (필수)</Label>
+                            <Label className="text-sm font-black text-amber-900">리워드 정산 계좌 정보 (필수)</Label>
                             <Input
                                 placeholder="은행명 (예: 카카오뱅크)"
                                 value={bankName}

@@ -29,6 +29,7 @@ export default function CampaignRegistrationContainer() {
     // Zustand Store
     const store = useCampaignStore();
     const initializeFromCampaign = useCampaignStore((state) => state.initializeFromCampaign);
+    const resetStore = useCampaignStore((state) => state.resetStore);
     const { currentStep, currentCampaignId, isSubmitting } = store;
 
     const [nextTrigger, setNextTrigger] = useState(0);
@@ -36,8 +37,18 @@ export default function CampaignRegistrationContainer() {
     const [lastResult, setLastResult] = useState<any>(null);
     const [isInitialDataReady, setIsInitialDataReady] = useState(!campaignIdParam && !draftIdParam);
     const deniedRef = useRef(false);
+    const hasFetchedRef = useRef(false);
 
     // --- 캠페인 데이터 로드 로직 ---
+
+    // 새 캠페인 등록 진입 시 스토어 초기화 (localStorage 에 이전 데이터가 남아있어 오기입 방지)
+    useEffect(() => {
+        if (!campaignIdParam && !draftIdParam) {
+            resetStore();
+            setIsInitialDataReady(true);
+        }
+    }, [campaignIdParam, draftIdParam, resetStore]);
+
     useEffect(() => {
         if (!authLoading && user && profile?.role === 'ADVERTISER' && profile?.biz_verification_status !== 'APPROVED') {
             toast.error('캠페인을 등록하려면 사업자 인증이 필요합니다.');
@@ -55,6 +66,7 @@ export default function CampaignRegistrationContainer() {
     // edit 모드: 인증/권한 확인 후 URL id 기준으로 DB 단일 조회
     useEffect(() => {
         if (!campaignIdParam) return;
+        if (hasFetchedRef.current) return;
 
         let cancelled = false;
         setIsInitialDataReady(false);
@@ -117,6 +129,7 @@ export default function CampaignRegistrationContainer() {
                 }
 
                 handleLoadCompleted(data, true);
+                if (!cancelled) hasFetchedRef.current = true;
             } catch (_error) {
                 if (!cancelled) toast.error('캠페인 데이터를 불러오는 중 오류가 발생했습니다.');
             } finally {
@@ -139,6 +152,7 @@ export default function CampaignRegistrationContainer() {
             setIsInitialDataReady(true);
             return;
         }
+        if (hasFetchedRef.current) return;
 
         let cancelled = false;
         setIsInitialDataReady(false);
@@ -165,6 +179,7 @@ export default function CampaignRegistrationContainer() {
                         }
                     };
                     handleLoadCompleted(rawData, true);
+                    if (!cancelled) hasFetchedRef.current = true;
                 }
             } catch (_error) {
                 if (!cancelled) toast.error('임시저장 데이터를 불러오는 중 오류가 발생했습니다.');
@@ -315,7 +330,22 @@ export default function CampaignRegistrationContainer() {
                 }
 
                 const totalReviewCost = recruitmentCount * reviewCostPerPerson;
-                const subtotal = totalReviewCost;
+                
+                let productPayment = 0;
+                const baseProductPrice = parseInt(store.productPrice?.replace(/,/g, '') || '0') || 0;
+                
+                if (normalizedCampaignType === 'DELIVERY' && (normalizedIncludeReview || mappedPlatform === 'PURCHASE')) {
+                    if (store.purchaseRewardMethod === 'DAONVIEW') {
+                        const priceWithFee = Math.round(baseProductPrice * 1.1);
+                        productPayment = priceWithFee * recruitmentCount;
+                    } else {
+                        productPayment = 0;
+                    }
+                } else {
+                    productPayment = baseProductPrice * recruitmentCount;
+                }
+
+                const subtotal = totalReviewCost + productPayment;
                 const vat = Math.floor(subtotal * 0.1);
                 const totalCost = subtotal + vat;
 
@@ -341,6 +371,7 @@ export default function CampaignRegistrationContainer() {
                 productPrice: store.productPrice,
                 shippingCost: store.shippingCost,
                 isCouponRequired: store.isCouponRequired,
+                purchaseRewardMethod: store.purchaseRewardMethod,
                 platform: mappedPlatform,
                 category: store.category,
                 region: store.region,

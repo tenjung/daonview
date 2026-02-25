@@ -51,6 +51,8 @@ export default function BrandSelect({ value, onChange, userId }: BrandSelectProp
     useEffect(() => {
         if (userId) {
             fetchBrands();
+        } else {
+            setIsLoading(false);
         }
     }, [userId]);
 
@@ -205,7 +207,12 @@ export default function BrandSelect({ value, onChange, userId }: BrandSelectProp
                             </div>
                         </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)] max-w-[500px] rounded-2xl overflow-hidden shadow-2xl border-border" align="start">
+                    <PopoverContent 
+                        className="p-0 w-[var(--radix-popover-trigger-width)] max-w-[500px] rounded-2xl overflow-hidden shadow-2xl border-border" 
+                        align="start" 
+                        side="bottom" 
+                        sideOffset={4}
+                    >
                         <div className="p-3 border-b border-gray-100 bg-gray-50/50">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />

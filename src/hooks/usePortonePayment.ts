@@ -66,7 +66,10 @@ interface PaymentRequest {
     customerEmail?: string;
     customerTel?: string;
     userId: string;
-    campaignId: number;
+    campaignId?: number;
+    itemType?: 'CAMPAIGN' | 'UNLIMITED';
+    planMonths?: number;
+    payMethod?: 'CARD' | 'TRANSFER' | 'VIRTUAL_ACCOUNT' | 'MOBILE' | 'EASY_PAY';
 }
 
 export const usePortonePayment = () => {
@@ -79,6 +82,9 @@ export const usePortonePayment = () => {
         customerTel,
         userId,
         campaignId,
+        itemType = 'CAMPAIGN',
+        planMonths,
+        payMethod,
     }: PaymentRequest) => {
         try {
             const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
@@ -107,16 +113,17 @@ export const usePortonePayment = () => {
                 orderName: sanitizedOrderName,
                 totalAmount: Math.floor(Number(totalAmount)),
                 currency: 'KRW',
-                payMethod: 'CARD',
+                payMethod: payMethod || 'CARD',
                 customer: {
                     fullName: customerName || '구매자',
                     email: customerEmail || 'customer@example.com',
                     phoneNumber: customerTel?.replace(/[^0-9]/g, '') || '01000000000',
                 },
                 customData: {
-                    item: 'campaign-payment',
+                    item: itemType === 'UNLIMITED' ? 'unlimited-plan' : 'campaign-payment',
                     userId,
                     campaignId,
+                    ...(itemType === 'UNLIMITED' && planMonths ? { planMonths } : {}),
                 },
             };
             console.log(JSON.stringify(requestObject, null, 2));

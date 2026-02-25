@@ -111,9 +111,24 @@ export default function CampaignStep3({
         const totalReviewCost = recruitmentCount * reviewCostPerPerson;
 
         // 상품 결제 금액 (Step1에서 입력한 productPrice)
-        const productPayment = parseInt(formData.productPrice?.replace(/,/g, '') || '0') || 0;
+        let productPayment = 0;
+        const baseProductPrice = parseInt(formData.productPrice?.replace(/,/g, '') || '0') || 0;
+        
+        if (formData.campaignType === 'DELIVERY' && (formData.includeReview || formData.platform === 'PURCHASE')) {
+            if (formData.purchaseRewardMethod === 'DAONVIEW') {
+                // 다온뷰 안심결제: (상품가 + 10% 수수료) * 인원수
+                const priceWithFee = Math.round(baseProductPrice * 1.1);
+                productPayment = priceWithFee * recruitmentCount;
+            } else {
+                // 직접 지급: 구매평이어도 다온뷰 결제금액은 0원
+                productPayment = 0;
+            }
+        } else {
+            // 그 외 일반 배송/방문 (옵션 금액 등)
+            productPayment = baseProductPrice * recruitmentCount;
+        }
 
-        // 소계 (구매평 비용 + 상품 결제금액)
+        // 소계 (캠페인 리뷰 진행 비용 + 상품 결제금액)
         const subtotal = totalReviewCost + productPayment;
 
         // 부가세 (10%)
@@ -328,7 +343,7 @@ export default function CampaignStep3({
 
                     {costs.productPayment > 0 && (
                         <div className="flex justify-between items-center">
-                            <span className="text-gray-700">상품 결제금액</span>
+                            <span className="text-gray-700">상품 결제금액{formData.purchaseRewardMethod === 'DAONVIEW' ? ' (안심지급금)' : ''}</span>
                             <span className="font-semibold text-gray-900">
                                 {costs.productPayment.toLocaleString()}원
                             </span>
@@ -369,9 +384,19 @@ export default function CampaignStep3({
                     )}
 
                     {costs.productPayment > 0 && (
-                        <div className="flex justify-between items-center pb-3 border-b border-gray-200">
-                            <span className="text-gray-700">상품 결제금액</span>
-                            <span className="font-medium text-gray-900">
+                        <div className="flex justify-between items-start pb-3 border-b border-gray-200">
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-1">
+                                    <span className="text-gray-700">상품 결제금액</span>
+                                    {formData.purchaseRewardMethod === 'DAONVIEW' && <span className="text-[11px] text-rose-500 font-bold bg-rose-50 px-1.5 py-0.5 rounded">안심 지급금</span>}
+                                </div>
+                                {formData.purchaseRewardMethod === 'DAONVIEW' && (
+                                    <span className="text-[11px] text-gray-500 mt-1">
+                                        ※ 부가세 10% 포함
+                                    </span>
+                                )}
+                            </div>
+                            <span className="font-medium text-gray-900 mt-0.5">
                                 {costs.productPayment.toLocaleString()}원
                             </span>
                         </div>
@@ -419,69 +444,105 @@ export default function CampaignStep3({
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">결제 방법</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-3">
                     {/* 무제한 이용권 결제 (구독자용) */}
                     {isUnlimited && (
-                        <button
+                        <label
                             onClick={() => {
                                 store.updateFields({
                                     paymentMethod: 'free',
                                     promotionType: 'UNLIMITED'
                                 });
                             }}
-                            className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.promotionType === 'UNLIMITED' && formData.paymentMethod === 'free'
-                                ? 'border-purple-500 bg-purple-50'
-                                : 'border-gray-200 hover:border-purple-300'
+                            className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.promotionType === 'UNLIMITED' && formData.paymentMethod === 'free'
+                                ? 'border-purple-500 bg-purple-50 shadow-sm'
+                                : 'border-gray-200 hover:border-purple-300 hover:bg-slate-50'
                                 }`}
                         >
-                            <Infinity className={`mb-3 ${formData.promotionType === 'UNLIMITED' ? 'text-purple-500' : 'text-gray-400'}`} size={28} />
-                            <h3 className="font-bold text-base mb-1">무제한 이용권</h3>
-                            <p className="text-[11px] text-gray-500 mt-1 font-medium">자동 혜택 적용</p>
-                        </button>
+                            <div className="flex items-center gap-4 flex-1">
+                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.promotionType === 'UNLIMITED' && formData.paymentMethod === 'free' ? 'border-purple-500 bg-purple-500' : 'border-gray-300'}`}>
+                                    {formData.promotionType === 'UNLIMITED' && formData.paymentMethod === 'free' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                                </div>
+                                <div className="bg-purple-100/50 p-2.5 rounded-xl text-purple-600">
+                                    <Infinity size={22} strokeWidth={2.5} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">무제한 이용권 적용</span>
+                                    <span className="text-[13px] text-gray-500 font-medium">프리미엄 구독 혜택 (결제 금액 없음)</span>
+                                </div>
+                            </div>
+                        </label>
                     )}
 
+                    {/* 카드 결제 */}
+                    <label
+                        onClick={handleCardPayment}
+                        className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.paymentMethod === 'card'
+                            ? 'border-blue-500 bg-blue-50 shadow-sm'
+                            : 'border-gray-200 hover:border-blue-300 hover:bg-slate-50'
+                            }`}
+                    >
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.paymentMethod === 'card' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
+                                {formData.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                            </div>
+                            <div className="bg-blue-100/50 p-2.5 rounded-xl text-blue-600">
+                                <CreditCard size={22} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">신용 / 체크카드</span>
+                                <span className="text-[13px] text-gray-500 font-medium">안전하고 빠른 간편 결제 (PG 연동)</span>
+                            </div>
+                        </div>
+                    </label>
+
+                    {/* 계좌이체 */}
+                    <label
+                        onClick={() => store.setField('paymentMethod', 'transfer')}
+                        className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.paymentMethod === 'transfer'
+                            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
+                            : 'border-gray-200 hover:border-emerald-300 hover:bg-slate-50'
+                            }`}
+                    >
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.paymentMethod === 'transfer' ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
+                                {formData.paymentMethod === 'transfer' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                            </div>
+                            <div className="bg-emerald-100/50 p-2.5 rounded-xl text-emerald-600">
+                                <Building2 size={22} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">계좌이체 (무통장 입금)</span>
+                                <span className="text-[13px] text-gray-500 font-medium">입금 내역 확인 후 관리자가 승인 처리</span>
+                            </div>
+                        </div>
+                    </label>
+
                     {/* 제휴 및 프로모션 */}
-                    <button
+                    <label
                         onClick={() => {
                             store.setField('paymentMethod', 'free');
                             if (formData.promotionType === 'UNLIMITED') store.setField('promotionType', 'COUPON');
                             else if (!formData.promotionType) store.setField('promotionType', 'COUPON');
                         }}
-                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED'
-                            ? 'border-rose-500 bg-rose-50'
-                            : 'border-gray-200 hover:border-rose-300'
+                        className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED'
+                            ? 'border-rose-500 bg-rose-50 shadow-sm'
+                            : 'border-gray-200 hover:border-rose-300 hover:bg-slate-50'
                             }`}
                     >
-                        <Handshake className={`mb-3 ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED' ? 'text-rose-500' : 'text-gray-400'}`} size={28} />
-                        <h3 className="font-bold text-base mb-1">제휴 및 프로모션</h3>
-                        <p className="text-[11px] text-gray-500 mt-1 font-medium">쿠폰 또는 주문번호</p>
-                    </button>
-
-                    {/* 카드 결제 */}
-                    <button
-                        onClick={handleCardPayment}
-                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'card'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300'
-                            }`}
-                    >
-                        <CreditCard className={`mb-3 ${formData.paymentMethod === 'card' ? 'text-blue-500' : 'text-gray-400'}`} size={28} />
-                        <h3 className="font-bold text-base">신용/체크카드</h3>
-                        <p className="text-[11px] text-gray-500 mt-1 font-medium">포트원 테스트 결제</p>
-                    </button>
-
-                    {/* 계좌이체 */}
-                    <button
-                        onClick={() => store.setField('paymentMethod', 'transfer')}
-                        className={`p-6 rounded-lg border-2 transition-all flex flex-col items-center justify-center text-center ${formData.paymentMethod === 'transfer'
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-blue-300'
-                            }`}
-                    >
-                        <Building2 className={`mb-3 ${formData.paymentMethod === 'transfer' ? 'text-blue-500' : 'text-gray-400'}`} size={28} />
-                        <h3 className="font-bold text-base">계좌이체</h3>
-                        <p className="text-xs text-gray-500 mt-1">입금 확인 후 승인된다</p>
-                    </button>
+                        <div className="flex items-center gap-4 flex-1">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED' ? 'border-rose-500 bg-rose-500' : 'border-gray-300'}`}>
+                                {formData.paymentMethod === 'free' && formData.promotionType !== 'UNLIMITED' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
+                            </div>
+                            <div className="bg-rose-100/50 p-2.5 rounded-xl text-rose-600">
+                                <Handshake size={22} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">제휴 / 가상 결제</span>
+                                <span className="text-[13px] text-gray-500 font-medium">프로모션 쿠폰 또는 타사 주문번호 연동</span>
+                            </div>
+                        </div>
+                    </label>
                 </div>
 
                 {/* 프로모션 상세 선택 (제휴 및 프로모션 선택 시) */}

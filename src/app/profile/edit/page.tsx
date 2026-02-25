@@ -107,7 +107,7 @@ function ProfileEditContent() {
         return clean;
     };
 
-    const { profile: globalProfile, fetchProfile } = useAuthStore();
+    const { user: authUser, isInitialized, fetchProfile } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -163,6 +163,8 @@ function ProfileEditContent() {
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
+    const initializedRef = useRef(false);
+
     // 전화번호 포맷팅 함수
     const formatPhoneNumber = (value: string) => {
         const numbers = value.replace(/[^\d]/g, '');
@@ -177,78 +179,113 @@ function ProfileEditContent() {
         setFormData({ ...formData, phone_number: formatted });
     };
 
-    useEffect(() => {
-        const loadProfileData = async () => {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) {
-                    router.push('/login');
-                    return;
-                }
+    const [debugError, setDebugError] = useState('');
 
-                const { data, error } = await supabase
+    useEffect(() => {
+        if (!isInitialized) return;
+        if (initializedRef.current) return;
+
+        if (!authUser) {
+            router.push('/login');
+            return;
+        }
+
+        const loadProfileData = async () => {
+            initializedRef.current = true;
+            try {
+                // 타임아웃 10초 설정
+                const fetchPromise = supabase
                     .from('profiles')
                     .select('*')
-                    .eq('id', user.id)
-                    .single();
+                    .eq('id', authUser.id)
+                    .maybeSingle();
+
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase 요청 타임아웃')), 10000));
+                
+                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
 
                 if (error) throw error;
 
-                if (data) {
-                    setProfile(data);
-                    setProviders(user.app_metadata?.providers || []);
+                let profileData = data;
+
+                if (!profileData) {
+                    const fallbackEmail = authUser.email || '';
+                    const newProfile = {
+                        id: authUser.id,
+                        nickname: authUser.user_metadata?.name || (fallbackEmail ? fallbackEmail.split('@')[0] : '익명사용자'),
+                        email: fallbackEmail,
+                        role: 'INFLUENCER'
+                    };
+                    const { data: inserted, error: insertError } = await supabase
+                        .from('profiles')
+                        .insert([newProfile])
+                        .select()
+                        .maybeSingle();
+                        
+                    if (insertError) {
+                        console.error('Initial profile creation failed:', insertError);
+                        throw insertError;
+                    }
+                    if (inserted) {
+                        profileData = inserted;
+                    }
+                }
+
+                if (profileData) {
+                    setProfile(profileData);
+                    setProviders(authUser.app_metadata?.providers || []);
                     setFormData({
-                        nickname: data.nickname || '',
-                        name: data.name || '',
-                        phone_number: data.phone_number || '',
-                        company_name: data.company_name || '',
-                        avatar_url: data.avatar_url || '',
-                        bank_name: data.bank_name || '',
-                        account_number: data.account_number || '',
-                        account_holder: data.account_holder || '',
-                        zip_code: data.zip_code || '',
-                        address_base: data.address_base || '',
-                        address_detail: data.address_detail || ''
+                        nickname: profileData.nickname || '',
+                        name: profileData.name || '',
+                        phone_number: profileData.phone_number || '',
+                        company_name: profileData.company_name || '',
+                        avatar_url: profileData.avatar_url || '',
+                        bank_name: profileData.bank_name || '',
+                        account_number: profileData.account_number || '',
+                        account_holder: profileData.account_holder || '',
+                        zip_code: profileData.zip_code || '',
+                        address_base: profileData.address_base || '',
+                        address_detail: profileData.address_detail || ''
                     });
 
                     setSocialLinks({
-                        blog: extractId(data.blog_url || data.sns_url || '', BLOG_PREFIX),
-                        instagram: extractId(data.instagram_url || '', INSTA_PREFIX),
-                        youtube: extractId(data.youtube_url || '', YOUTUBE_PREFIX),
-                        tiktok: extractId(data.tiktok_url || '', TIKTOK_PREFIX),
+                        blog: extractId(profileData.blog_url || profileData.sns_url || '', BLOG_PREFIX),
+                        instagram: extractId(profileData.instagram_url || '', INSTA_PREFIX),
+                        youtube: extractId(profileData.youtube_url || '', YOUTUBE_PREFIX),
+                        tiktok: extractId(profileData.tiktok_url || '', TIKTOK_PREFIX),
                         other: ''
                     });
 
-                    setSelectedPlatforms(data.preferred_platforms || []);
-                    setSelectedRegions(data.preferred_regions || []);
-                    setSelectedCategories(data.interests || []);
+                    setSelectedPlatforms(profileData.preferred_platforms || []);
+                    setSelectedRegions(profileData.preferred_regions || []);
+                    setSelectedCategories(profileData.interests || []);
                 }
-            } catch (error) {
+                setLoading(false); // 성공 시 로딩 해제
+            } catch (error: any) {
                 console.error('Error fetching profile:', error);
-                toast.error('프로필을 불러오는 데 실패했습니다.');
-            } finally {
-                setLoading(false);
+                setDebugError(error?.message || '알 수 없는 에러가 발생했습니다.');
+                toast.error('프로필 정보를 불러오는 데 실패했습니다.');
+                // 에러 발생 시 setLoading(false)를 호출하지 않아 오류 메세지 UI 렌더링 유지
             }
         };
 
         loadProfileData();
 
-        // Cleanup timers on unmount
         return () => {
             if (blogSaveTimer.current) clearTimeout(blogSaveTimer.current);
             if (instaSaveTimer.current) clearTimeout(instaSaveTimer.current);
             if (youtubeSaveTimer.current) clearTimeout(youtubeSaveTimer.current);
             if (tiktokSaveTimer.current) clearTimeout(tiktokSaveTimer.current);
         };
-    }, [router]);
+    }, [isInitialized, authUser, router]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!authUser) return;
+            const user = authUser;
 
             if (!formData.phone_number || formData.phone_number.trim().length < 10) {
                 toast.error('올바른 연락처를 입력해주세요. 연락처는 필수 항목입니다.');
@@ -341,8 +378,8 @@ function ProfileEditContent() {
     // 소셜 링크 자동 저장 함수
     const autoSaveSocialLink = useCallback(async (field: 'blog' | 'instagram' | 'youtube' | 'tiktok', value: string) => {
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!authUser) return;
+            const user = authUser;
 
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
 
@@ -400,7 +437,7 @@ function ProfileEditContent() {
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
             toast.error('저장에 실패했습니다.');
         }
-    }, [fetchProfile]);
+    }, [authUser, fetchProfile]);
 
     // 소셜 링크 변경 핸들러 (debounced)
     const handleSocialLinkChange = useCallback((field: 'blog' | 'instagram' | 'youtube' | 'tiktok', value: string) => {
@@ -426,8 +463,8 @@ function ProfileEditContent() {
     const handleInterestsSubmit = async () => {
         setSaving(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!authUser) return;
+            const user = authUser;
 
             const { error } = await supabase
                 .from('profiles')
@@ -474,9 +511,23 @@ function ProfileEditContent() {
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50/50">
-                <div className="flex flex-col items-center gap-2">
-                    <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-medium text-gray-500">정보를 불러오는 중입니다...</p>
+                <div className="flex flex-col items-center gap-4">
+                    {debugError ? (
+                        <div className="flex flex-col items-center gap-2 max-w-sm text-center">
+                            <div className="text-rose-500 font-bold mb-2">로딩 오류 발생</div>
+                            <div className="bg-white p-4 rounded-xl shadow-sm text-xs text-slate-600 border border-slate-200">
+                                {debugError}
+                            </div>
+                            <Button onClick={() => window.location.reload()} className="mt-4" variant="outline">
+                                페이지 새로고침
+                            </Button>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-sm font-medium text-gray-500">정보를 불러오는 중입니다...</p>
+                        </>
+                    )}
                 </div>
             </div>
         );
@@ -1130,7 +1181,7 @@ function ProfileEditContent() {
                                                         <div className="flex items-start gap-1.5 px-1">
                                                             <div className="mt-1 w-1 h-1 rounded-full bg-rose-500 shrink-0" />
                                                             <p className="text-[10px] leading-relaxed text-rose-500 font-medium">
-                                                                예금주 성함이 계좌 정보와 일치하지 않을 경우, 페이백 정산이 반려되거나 지급이 지연될 수 있습니다.
+                                                                예금주 성함이 계좌 정보와 일치하지 않을 경우, 리워드 정산이 반려되거나 지급이 지연될 수 있습니다.
                                                             </p>
                                                         </div>
                                                     </div>
@@ -1144,7 +1195,7 @@ function ProfileEditContent() {
                                                             placeholder="- 없이 숫자만 입력"
                                                             className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
                                                         />
-                                                        <p className="text-[11px] text-slate-400 ml-1">계좌번호는 페이백 정산을 위해서만 사용되며 안전하게 보호됩니다.</p>
+                                                        <p className="text-[11px] text-slate-400 ml-1">계좌번호는 리워드 정산을 위해서만 사용되며 안전하게 보호됩니다.</p>
                                                     </div>
                                                 </div>
                                             </CardContent>

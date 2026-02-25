@@ -709,6 +709,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const visitTimeNegotiable = campaign.visit_time_negotiable || step1Data.visitTimeNegotiable || false;
     const visitDays = Array.isArray(campaign.visit_days) ? campaign.visit_days : (step1Data.visitDays || []);
     const visitNotes = campaign.visit_notes || step1Data.visitNotes || '';
+    const productUrl = step1Data.productUrl || '';
+    const productUrlIndividual = step1Data.productUrlIndividual || false;
+    const productName = step1Data.productName || '';
     // 우선순위: store_locations (DB 컬럼) > campaign_options.stores (레거시)
     // store_locations에 좌표가 저장되어 있으면 API 호출 없이 지도 표시 가능
     const stores = Array.isArray(campaign.store_locations) && campaign.store_locations.length > 0
@@ -890,9 +893,34 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
 
                                 <div className="relative overflow-hidden">
-                                    <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium">
+                                    <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium mb-6">
                                         {campaignIntro || '제공 내역 정보가 없습니다.'}
                                     </p>
+
+                                    {/* 상품 링크 및 이름 (배송형인 경우 주로 표시됨) */}
+                                    {(productUrl || productUrlIndividual || productName) && (
+                                        <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl flex flex-col gap-3">
+                                            {productName && (
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">체험 상품 이름</span>
+                                                    <span className="font-bold text-slate-800 text-[15px]">{productName}</span>
+                                                </div>
+                                            )}
+                                            {(productUrlIndividual || productUrl) && (
+                                                <div className="flex flex-col gap-1 mt-2">
+                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">체험 상품 링크</span>
+                                                    {productUrlIndividual ? (
+                                                        <span className="font-bold text-slate-600 text-[14px]">🔥 선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                    ) : (
+                                                        <a href={productUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-500 hover:text-blue-600 text-[14px] underline truncate inline-block max-w-[full]">
+                                                            {productUrl}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {isInfluencerViewer && hasRewardAmount && (
                                         <div className="mt-8 pt-6 border-t border-slate-100 flex items-center gap-3">
                                             <span className="text-sm font-bold text-slate-400">체험단 혜택</span>

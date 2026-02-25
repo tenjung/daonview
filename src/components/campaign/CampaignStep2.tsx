@@ -597,29 +597,6 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
                     <div className="h-px bg-gradient-to-r from-blue-200 via-blue-300 to-blue-200 mb-6"></div>
 
-                    {/* 페이백 금액 안내 (Step1 데이터 기반) */}
-                    <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-1.5">
-                            💰 페이백 금액 (옵션별)
-                            <HelpTooltip content="Step 1에서 설정한 페이백 금액이 자동으로 적용됩니다" />
-                        </label>
-                        {formData.productOptions && formData.productOptions.length > 0 ? (
-                            <div className="space-y-2">
-                                {formData.productOptions.map((option: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between items-center bg-white px-4 py-2 rounded border border-blue-100">
-                                        <span className="text-sm font-medium text-gray-700">{option.optionName || `옵션 ${idx + 1}`}</span>
-                                        <span className="text-sm font-bold text-blue-600">
-                                            {parseInt(option.optionPrice || '0').toLocaleString()}원
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-3 text-gray-500 text-sm">
-                                Step 1에서 상품 옵션을 설정해주세요
-                            </div>
-                        )}
-                    </div>
 
                     {/* 구매 시 주의사항 */}
                     <div className="mb-6">

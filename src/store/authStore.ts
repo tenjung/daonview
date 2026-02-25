@@ -78,9 +78,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           event === 'USER_UPDATED'
         ) {
           const sessionUser = session?.user ?? null;
+          const alreadyInitialized = get().isInitialized;
 
           if (sessionUser) {
-            set({ user: sessionUser, isLoading: true });
+            if (!alreadyInitialized) {
+              set({ user: sessionUser, isLoading: true });
+            } else {
+              set({ user: sessionUser });
+            }
             await get().fetchProfile(sessionUser.id);
             set({ isLoading: false, isInitialized: true });
           } else {

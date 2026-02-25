@@ -6,6 +6,8 @@ import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { usePortonePayment } from '@/hooks/usePortonePayment';
+import { toast } from 'sonner';
 import {
     ArrowLeft,
     Infinity,
@@ -55,19 +57,68 @@ function UnlimitedPaymentContent() {
         setSelectedPlan(UNLIMITED_PLANS[idx]);
     };
 
+    const { requestPayment } = usePortonePayment();
+    const { user } = useAuthStore();
+
     const handlePayment = async () => {
         if (!agreeTerms) {
             alert('이용약관에 동의해 주세요.');
             return;
         }
+        if (!user) {
+            toast.error('로그인이 필요합니다.');
+            return;
+        }
+
         setIsProcessing(true);
 
-        // TODO: PortOne 결제 연동 시 여기에 구현
-        // 현재는 문의 안내로 대체
-        setTimeout(() => {
+        const vat = Math.floor(selectedPlan.total * 0.1);
+        const totalWithVat = selectedPlan.total + vat;
+
+        try {
+            const planMonths = parseInt(selectedPlan.period.replace(/[^0-9]/g, ''), 10);
+            
+            const response = await requestPayment({
+                paymentId: '', // 훅 내부 생성
+                orderName: `다온뷰 무제한 이용권 (${selectedPlan.period})`,
+                totalAmount: totalWithVat,
+                customerName: displayName,
+                customerEmail: user.email || 'customer@example.com',
+                customerTel: user.user_metadata?.phone || user.user_metadata?.mobile || '',
+                userId: user.id,
+                itemType: 'UNLIMITED',
+                planMonths,
+            });
+
+            if (response?.code != null) {
+                // 결제 취소 또는 에러
+                setIsProcessing(false);
+                return;
+            }
+
+            // 백엔드 검증 호출
+            const verifyResponse = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paymentId: response.paymentId }),
+            });
+
+            const result = await verifyResponse.json();
+
+            if (result.success) {
+                toast.success('무제한 이용권 결제가 완료되었습니다!');
+                setTimeout(() => {
+                    router.push('/dashboard/advertiser/billing');
+                }, 1500);
+            } else {
+                toast.error(`결제 실패: ${result.message}`);
+            }
+        } catch (error) {
+            console.error('Payment error:', error);
+            // 에러 메시지는 requestPayment 내부에서 toast로 노출됨
+        } finally {
             setIsProcessing(false);
-            alert('결제 연동 준비 중입니다.\n담당자에게 문의해 주시면 빠르게 처리해 드리겠습니다.\n\n📞 카카오톡 채널: @다온뷰');
-        }, 800);
+        }
     };
 
     const vat = Math.floor(selectedPlan.total * 0.1);

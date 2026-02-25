@@ -150,7 +150,7 @@ export default async function Home() {
             {/* Service Introduction */}
             <section className="bg-white pt-24 pb-0 border-y border-gray-100 mt-8">
                 <div className="container px-4 md:px-0">
-                    <div className="text-center mb-12 md:mb-16">
+                    <div className="text-center mb-6 md:mb-8">
                         <h2 className="text-3xl md:text-5xl font-black mb-4 md:mb-6 leading-tight whitespace-pre-wrap md:whitespace-normal">
                             인플루언서의 시간을 가치 있게,<br className="md:hidden" /> 성장을 확실하게 <span className="text-primary inline-block animate-bounce">🚀</span>
                         </h2>
