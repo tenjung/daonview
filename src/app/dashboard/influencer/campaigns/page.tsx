@@ -34,6 +34,7 @@ import { influencerApplicationColumns } from '@/components/influencer/influencer
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
+import { ColumnDef } from '@tanstack/react-table';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -246,7 +247,7 @@ export default function MyCampaignsPage() {
         }
     }
 
-    const shippingColumn = {
+    const shippingColumn: ColumnDef<ApplicationWithCampaign> = {
         accessorKey: "tracking_number",
         header: "배송 정보",
         cell: ({ row }: RowCellProps) => {
@@ -265,8 +266,10 @@ export default function MyCampaignsPage() {
         }
     };
 
-    const columns = [
-        ...influencerApplicationColumns,
+    const baseColumns = influencerApplicationColumns as ColumnDef<ApplicationWithCampaign>[];
+
+    const columns: ColumnDef<ApplicationWithCampaign>[] = [
+        ...baseColumns,
         ...(filter === 'SELECTED' ? [shippingColumn] : []),
         {
             id: "actions",
