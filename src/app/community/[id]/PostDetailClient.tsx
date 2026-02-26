@@ -99,29 +99,32 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
         }
         if (!newComment.trim()) return;
 
-        const normalizedContent =
-            initialPost.type === 'FREE'
-                ? `[${commentType}] ${newComment.trim()}`
-                : newComment.trim();
-
         try {
             setCommentLoading(true);
-            const { error } = await supabase
-                .from('comments')
-                .insert({
-                    post_id: id,
-                    user_id: user.id,
-                    content: normalizedContent
-                });
+            const response = await fetch('/api/community/comments', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    postId: id,
+                    content: newComment.trim(),
+                    commentType,
+                }),
+            });
 
-            if (error) throw error;
+            const payload = await response.json();
+            if (!response.ok) {
+                const code = payload?.code ? ` (${payload.code})` : '';
+                throw new Error(`${payload?.error || '댓글 등록 중 오류가 발생했습니다.'}${code}`);
+            }
 
             setNewComment("");
-            fetchComments();
+            await fetchComments();
             toast.success("댓글이 등록되었습니다.");
         } catch (error) {
             console.error('Error writing comment:', error);
-            toast.error("댓글 등록 중 오류가 발생했습니다.");
+            toast.error(error instanceof Error ? error.message : "댓글 등록 중 오류가 발생했습니다.");
         } finally {
             setCommentLoading(false);
         }
@@ -150,18 +153,20 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
         if (!window.confirm("댓글을 삭제하시겠습니까?")) return;
 
         try {
-            const { error } = await supabase
-                .from('comments')
-                .delete()
-                .eq('id', commentId);
+            const response = await fetch(`/api/community/comments/${commentId}`, {
+                method: 'DELETE',
+            });
+            const payload = await response.json();
+            if (!response.ok) {
+                const code = payload?.code ? ` (${payload.code})` : '';
+                throw new Error(`${payload?.error || '댓글 삭제 중 오류가 발생했습니다.'}${code}`);
+            }
 
-            if (error) throw error;
-
-            fetchComments();
+            await fetchComments();
             toast.success("댓글이 삭제되었습니다.");
         } catch (error) {
             console.error('Error deleting comment:', error);
-            toast.error("삭제 중 오류가 발생했습니다.");
+            toast.error(error instanceof Error ? error.message : "삭제 중 오류가 발생했습니다.");
         }
     };
 

@@ -8,6 +8,13 @@ import { z } from 'zod';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
+const INQUIRY_CATEGORY_OPTIONS = [
+    { value: 'EXPERIENCE', label: '체험단 관련 문의' },
+    { value: 'POINT', label: '정산 문의' },
+    { value: 'ERROR', label: '사이트 이용 오류' },
+    { value: 'AD_PARTNERSHIP', label: '제휴/광고 문의' },
+] as const;
+
 const inquirySchema = z.object({
     category: z.string().min(1, '문의 유형을 선택해주세요.'),
     title: z.string().min(5, '제목은 5자 이상 입력해주세요.'),
@@ -40,38 +47,33 @@ export default function ContactForm() {
                 data: { user },
             } = await supabase.auth.getUser();
 
-            console.log('Current User:', user);
-
             if (!user) {
                 toast.error('로그인이 필요한 서비스입니다.');
                 router.push('/login?next=/contact');
                 return;
             }
 
-            console.log('Attempting to insert inquiry:', {
-                user_id: user.id,
-                ...data,
-                status: 'PENDING'
-            });
-
-            const { data: result, error } = await supabase.from('inquiries').insert({
+            const { error } = await supabase.from('inquiries').insert({
                 user_id: user.id, // profiles 테이블을 참조하므로 user.id 사용 (프로필이 생성되어 있어야 함)
                 category: data.category,
                 title: data.title,
                 content: data.content,
                 status: 'PENDING',
-            }).select();
+            });
 
-            console.log('Insert Result:', result);
-            console.log('Insert Error:', error);
-
-            if (error) throw error;
+            if (error) {
+                const detail = [error.code, error.message].filter(Boolean).join(': ');
+                console.error('Error submitting inquiry:', detail, error);
+                toast.error(`문의 접수 실패: ${error.message}`);
+                return;
+            }
 
             toast.success('문의가 성공적으로 접수되었습니다.');
-            router.push('/'); // 또는 마이페이지 문의 내역으로 이동
-        } catch (error) {
-            console.error('Error submitting inquiry:', error);
-            toast.error('문의 접수 중 오류가 발생했습니다.');
+            router.push('/contact/my');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : '문의 접수 중 오류가 발생했습니다.';
+            console.error('Error submitting inquiry:', message, error);
+            toast.error(message);
         } finally {
             setIsSubmitting(false);
         }
@@ -80,7 +82,7 @@ export default function ContactForm() {
     return (
         <form
             onSubmit={handleSubmit(onSubmit)}
-            className="bg-white p-8 rounded-2xl border border-border shadow-sm"
+            className=""
         >
             <div className="mb-6">
                 <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -90,10 +92,11 @@ export default function ContactForm() {
                     {...register('category')}
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/50"
                 >
-                    <option value="EXPERIENCE">체험단 관련 문의</option>
-                    <option value="CAMPAIGN">정산 문의</option>
-                    <option value="ERROR">사이트 이용 오류</option>
-                    <option value="AD_PARTNERSHIP">제휴/광고 문의</option>
+                    {INQUIRY_CATEGORY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                            {option.label}
+                        </option>
+                    ))}
                 </select>
                 {errors.category && (
                     <p className="text-red-500 text-sm mt-1">

@@ -27,7 +27,8 @@ export const INFLUENCER_LINKS: SidebarLink[] = [
             { href: '/profile/edit?tab=interests', label: '관심사 설정', icon: 'Tags' }
         ]
     },
-    { href: '/contact', label: '1:1 문의', icon: 'MessageSquare' }
+    { href: '/contact', label: '1:1 문의', icon: 'MessageSquare' },
+    { href: '/contact/my', label: '나의 문의 확인', icon: 'FileText' }
 ];
 
 export const ADVERTISER_LINKS: SidebarLink[] = [
@@ -47,7 +48,8 @@ export const ADVERTISER_LINKS: SidebarLink[] = [
             { href: '/profile/edit?tab=basic', label: '기본 정보', icon: 'User' }
         ]
     },
-    { href: '/contact', label: '1:1 문의', icon: 'MessageSquare' }
+    { href: '/contact', label: '1:1 문의', icon: 'MessageSquare' },
+    { href: '/contact/my', label: '나의 문의 확인', icon: 'FileText' }
 ];
 
 export const ADMIN_LINKS: SidebarLink[] = [

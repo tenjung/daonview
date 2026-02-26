@@ -12,14 +12,13 @@ import { InfluencerStatsCards } from '@/components/influencer/InfluencerStatsCar
 import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
-import { Button } from '@/components/ui/button';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
 }
 
 export default function InfluencerDashboard() {
-    const { user, profile, isInitialized } = useAuthStore();
+    const { user, profile, isLoading: authLoading } = useAuthStore();
     const router = useRouter();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
     const [stats, setStats] = useState({
@@ -27,14 +26,14 @@ export default function InfluencerDashboard() {
         approved: 0,
         pending: 0
     });
-    const [loading, setLoading] = useState(true);
+    const [isDataLoading, setIsDataLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     const fetchDashboardData = useCallback(async () => {
         if (!user) return;
 
         try {
-            setLoading(true);
+            setIsDataLoading(true);
             setErrorMessage(null);
 
             // Fetch applications with campaign details
@@ -67,38 +66,35 @@ export default function InfluencerDashboard() {
             console.error('Error fetching dashboard data:', error);
             setErrorMessage('대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         } finally {
-            setLoading(false);
+            setIsDataLoading(false);
         }
     }, [user]);
 
     useEffect(() => {
-        if (!isInitialized) {
+        if (authLoading) {
             return;
         }
 
         if (!user?.id) {
-            setLoading(false);
             router.replace('/login?returnTo=/dashboard/influencer');
             return;
         }
 
         const normalizedRole = String(profile?.role || '').toUpperCase();
         if (normalizedRole === 'ADVERTISER') {
-            setLoading(false);
             router.replace('/dashboard/advertiser');
             return;
         }
 
         if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
-            setLoading(false);
             router.replace('/dashboard/admin');
             return;
         }
 
         fetchDashboardData();
-    }, [isInitialized, user?.id, profile?.role, router, fetchDashboardData]);
+    }, [authLoading, user?.id, profile?.role, router, fetchDashboardData]);
 
-    if (loading) {
+    if (authLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
                 <div className="flex flex-col items-center gap-4">
@@ -143,15 +139,8 @@ export default function InfluencerDashboard() {
                     <InfluencerStatsCards stats={stats} />
 
                     {errorMessage && (
-                        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50 p-5">
                             <p className="text-sm font-semibold text-rose-700">{errorMessage}</p>
-                            <Button
-                                type="button"
-                                onClick={fetchDashboardData}
-                                className="h-9 px-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl"
-                            >
-                                다시 시도
-                            </Button>
                         </div>
                     )}
 
@@ -174,14 +163,14 @@ export default function InfluencerDashboard() {
                             <DataTable
                                 columns={influencerApplicationColumns}
                                 data={applications}
-                                isLoading={loading}
+                                isLoading={isDataLoading}
                                 emptyMessage="아직 신청한 캠페인이 없습니다."
                             />
                         </div>
                     </div>
 
                     {/* Empty State Suggestion */}
-                    {applications.length === 0 && !loading && (
+                    {applications.length === 0 && !isDataLoading && (
                         <div className="mt-12 p-12 bg-white rounded-3xl border border-dashed border-gray-200 text-center">
                             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
                                 <Megaphone className="w-10 h-10 text-gray-400" />

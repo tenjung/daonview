@@ -87,16 +87,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           event === 'USER_UPDATED'
         ) {
           const sessionUser = session?.user ?? null;
-          const alreadyInitialized = get().isInitialized;
 
           if (sessionUser) {
-            if (!alreadyInitialized) {
-              set({ user: sessionUser, isLoading: true });
-            } else {
-              set({ user: sessionUser });
-            }
-            await get().fetchProfile(sessionUser.id);
-            set({ isLoading: false, isInitialized: true });
+            set({ user: sessionUser, isLoading: false, isInitialized: true });
+            void get().fetchProfile(sessionUser.id);
           } else {
             set({ user: null, profile: null, isLoading: false, isInitialized: true });
           }
@@ -118,22 +112,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
         const sessionUser = session?.user ?? null;
         if (sessionUser) {
-          set({ user: sessionUser, isLoading: true });
-          await get().fetchProfile(sessionUser.id);
+          // 인증 초기화는 프로필 조회 성공/실패와 분리한다.
+          // 프로필 네트워크 지연이 앱 전체 로딩을 잠그지 않도록 즉시 부팅 완료 처리.
+          set({ user: sessionUser, isLoading: false, isInitialized: true });
+          void get().fetchProfile(sessionUser.id);
         } else {
-          const {
-            data: { user },
-            error,
-          } = await supabase.auth.getUser();
-          if (user && !error) {
-            set({ user, isLoading: true });
-            await get().fetchProfile(user.id);
-          } else {
-            set({ user: null, profile: null });
-          }
+          // 세션이 없으면 비로그인 상태로 확정한다.
+          // getUser()를 추가 호출하면 AuthSessionMissingError가 발생할 수 있다.
+          set({ user: null, profile: null });
         }
       } catch (err) {
-        console.error('[Auth] 세션 초기화 오류:', err);
+        const isExpectedMissingSession =
+          typeof err === 'object' &&
+          err !== null &&
+          'name' in err &&
+          String((err as { name?: string }).name) === 'AuthSessionMissingError';
+
+        if (!isExpectedMissingSession) {
+          console.error('[Auth] 세션 초기화 오류:', err);
+        }
         set({ user: null, profile: null });
       } finally {
         set({ isLoading: false, isInitialized: true });

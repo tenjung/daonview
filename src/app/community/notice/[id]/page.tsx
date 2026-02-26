@@ -7,6 +7,17 @@ interface PageProps {
     params: Promise<{ id: string }>;
 }
 
+function formatKoreanDate(input: string): string {
+    const date = new Date(input);
+    if (Number.isNaN(date.getTime())) return '-';
+
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+
+    return `${year}.${month}.${day}`;
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
 
@@ -52,7 +63,10 @@ export default async function NoticeDetailPage({ params }: PageProps) {
     // Increment view count
     await supabase.rpc('increment_notice_view_count', { notice_id: id });
 
-    const authorName = (notice as any).profiles?.nickname || '관리자';
+    const noticeWithProfile = notice as typeof notice & {
+        profiles?: { nickname?: string } | null;
+    };
+    const authorName = noticeWithProfile.profiles?.nickname || '관리자';
 
     return (
         <PostDetailLayout
@@ -62,7 +76,7 @@ export default async function NoticeDetailPage({ params }: PageProps) {
             isPinned={notice.is_pinned}
             title={notice.title}
             author={authorName}
-            createdAt={new Date(notice.created_at).toLocaleDateString()}
+            createdAt={formatKoreanDate(notice.created_at)}
             viewCount={(notice.view_count || 0) + 1}
         >
             {/* JSON-LD for Structured Data */}

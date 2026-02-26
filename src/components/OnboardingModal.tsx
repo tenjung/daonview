@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
-
-const PLATFORMS = [
-  { id: 'BLOG', name: '블로거', icon: '📝', color: 'bg-emerald-500' },
-  { id: 'YOUTUBE', name: '유튜버', icon: '🎥', color: 'bg-red-500' },
-  { id: 'INSTAGRAM', name: '인스타그래머', icon: '📸', color: 'bg-pink-500' },
-  { id: 'TIKTOK', name: '틱톡커', icon: '🎵', color: 'bg-slate-900' },
-];
+import {
+  buildPreferredPlatforms,
+  CREATOR_PLATFORM_OPTIONS,
+  type CreatorPlatformId,
+  PROFILE_MODES,
+  type ProfileMode,
+} from '@/constants/profilePlatforms';
 
 const REGIONS = [
   { id: 'seoul', name: '서울', emoji: '🏙️' },
@@ -54,12 +54,13 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
   const [step, setStep] = useState(0); // 0: 성함/연락처, 1: 플랫폼, 2: 지역, 3: 카테고리
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [profileMode, setProfileMode] = useState<ProfileMode>(PROFILE_MODES.CREATOR);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<CreatorPlatformId[]>([]);
   const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const togglePlatform = (id: string) => {
+  const togglePlatform = (id: CreatorPlatformId) => {
     if (selectedPlatforms.includes(id)) {
       setSelectedPlatforms(selectedPlatforms.filter(p => p !== id));
     } else {
@@ -96,7 +97,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
         .update({
           name: name,
           phone_number: phoneNumber,
-          preferred_platforms: selectedPlatforms,
+          preferred_platforms: buildPreferredPlatforms(profileMode, selectedPlatforms),
           preferred_regions: selectedRegions,
           interests: selectedCategories,
         })
@@ -126,7 +127,10 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
       const phoneRegex = /^01[0-9]{8,9}$/;
       return name.trim().length >= 2 && phoneRegex.test(phoneNumber.replace(/-/g, ''));
     }
-    if (step === 1) return selectedPlatforms.length > 0;
+    if (step === 1) {
+      if (profileMode === PROFILE_MODES.REVIEWER) return true;
+      return selectedPlatforms.length > 0;
+    }
     if (step === 2) return selectedRegions.length > 0;
     if (step === 3) return selectedCategories.length > 0;
     return false;
@@ -174,11 +178,11 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                 {/* 선택 카운터 배지 */}
                 {step === 1 && (
                   <span className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
-                    selectedPlatforms.length > 0 
+                    (profileMode === PROFILE_MODES.REVIEWER || selectedPlatforms.length > 0)
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
                   }`}>
-                    {selectedPlatforms.length}개 선택
+                    {profileMode === PROFILE_MODES.REVIEWER ? '리뷰어형' : `${selectedPlatforms.length}개 선택`}
                   </span>
                 )}
                 {step === 2 && (
@@ -202,7 +206,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
               </div>
               <p className="text-sm text-gray-600 mt-1">
                 {step === 0 && '성함과 연락처를 입력해주세요'}
-                {step === 1 && '활동 플랫폼을 선택해주세요'}
+                {step === 1 && '활동 유형을 선택해주세요'}
                 {step === 2 && '선호하는 지역을 선택해주세요'}
                 {step === 3 && '관심 분야를 선택해주세요'}
               </p>
@@ -287,7 +291,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                     </p>
                   )}
                   <p className="text-xs text-gray-400 mt-1">
-                    '-' 없이 숫자만 입력해주세요
+                    하이픈 없이 숫자만 입력해주세요
                   </p>
                 </div>
               </div>
@@ -303,25 +307,61 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
           {/* Step 1: Platforms */}
           {step === 1 && (
-            <div className="grid grid-cols-2 gap-4">
-              {PLATFORMS.map(platform => (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
-                  key={platform.id}
-                  onClick={() => togglePlatform(platform.id)}
-                  className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
-                      ? 'border-primary bg-rose-50 shadow-lg scale-102'
+                  type="button"
+                  onClick={() => setProfileMode(PROFILE_MODES.CREATOR)}
+                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                    profileMode === PROFILE_MODES.CREATOR
+                      ? 'border-rose-500 bg-rose-50 shadow-sm'
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
-                    }`}
+                  }`}
                 >
-                  {selectedPlatforms.includes(platform.id) && (
-                    <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
-                      <Check size={14} className="text-white" />
-                    </div>
-                  )}
-                  <div className="text-5xl mb-3">{platform.icon}</div>
-                  <div className="text-lg font-bold text-gray-900">{platform.name}</div>
+                  <div className="text-sm font-black text-gray-900">크리에이터형</div>
+                  <p className="mt-1 text-xs text-slate-500">SNS 채널 기반으로 캠페인에 참여해요.</p>
                 </button>
-              ))}
+                <button
+                  type="button"
+                  onClick={() => setProfileMode(PROFILE_MODES.REVIEWER)}
+                  className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                    profileMode === PROFILE_MODES.REVIEWER
+                      ? 'border-rose-500 bg-rose-50 shadow-sm'
+                      : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="text-sm font-black text-gray-900">리뷰어형 (구매평)</div>
+                  <p className="mt-1 text-xs text-slate-500">SNS 없이 구매평 캠페인 위주로 참여해요.</p>
+                </button>
+              </div>
+
+              {profileMode === PROFILE_MODES.CREATOR ? (
+                <div className="grid grid-cols-2 gap-4">
+                  {CREATOR_PLATFORM_OPTIONS.map(platform => (
+                    <button
+                      key={platform.id}
+                      type="button"
+                      onClick={() => togglePlatform(platform.id)}
+                      className={`relative p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
+                          ? 'border-primary bg-rose-50 shadow-lg scale-102'
+                          : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                        }`}
+                    >
+                      {selectedPlatforms.includes(platform.id) && (
+                        <div className="absolute top-3 right-3 w-6 h-6 bg-primary rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                          <Check size={14} className="text-white" />
+                        </div>
+                      )}
+                      <div className="text-5xl mb-3">{platform.icon}</div>
+                      <div className="text-lg font-bold text-gray-900">{platform.name}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4 text-sm text-slate-700">
+                  구매평 중심 사용자로 저장됩니다. 가입 후에도 프로필 설정에서 언제든 활동 유형을 바꿀 수 있습니다.
+                </div>
+              )}
             </div>
           )}
 

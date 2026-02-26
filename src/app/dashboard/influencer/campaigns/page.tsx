@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
@@ -39,11 +39,23 @@ interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
 }
 
+type CampaignFilter = 'all' | 'PENDING' | 'SELECTED' | 'REJECTED' | 'COMPLETED';
+
+interface CountRow {
+    status: Application['status'];
+}
+
+interface RowCellProps {
+    row: {
+        original: ApplicationWithCampaign;
+    };
+}
+
 export default function MyCampaignsPage() {
     const { user, profile, isLoading } = useAuthStore();
     const router = useRouter();
     const [applications, setApplications] = useState<ApplicationWithCampaign[]>([]);
-    const [filter, setFilter] = useState<'all' | 'PENDING' | 'SELECTED' | 'REJECTED' | 'COMPLETED'>('all');
+    const [filter, setFilter] = useState<CampaignFilter>('all');
     const [loading, setLoading] = useState(true);
     const [cancelDialog, setCancelDialog] = useState<{ isOpen: boolean; appId: number; title: string; status: string }>({
         isOpen: false,
@@ -83,19 +95,7 @@ export default function MyCampaignsPage() {
         reason: ''
     });
 
-    useEffect(() => {
-        if (!isLoading && user) {
-            if (profile?.role === 'ADVERTISER') {
-                router.replace('/dashboard/advertiser');
-                return;
-            }
-            fetchData();
-        } else if (!isLoading && !user) {
-            setLoading(false);
-        }
-    }, [isLoading, user, profile, router, filter]);
-
-    async function fetchData() {
+    const fetchData = useCallback(async () => {
         if (!user) return;
 
         try {
@@ -119,41 +119,8 @@ export default function MyCampaignsPage() {
             if (applicationsData) {
                 const apps = applicationsData as ApplicationWithCampaign[];
                 setApplications(apps);
-
-                // 마감 기한 체크 및 알림 생성 (선정된 캠페인 대상)
-                const approvedApps = apps.filter(app => app.status === 'SELECTED' || app.status === 'APPROVED');
-                for (const app of approvedApps) {
-                    const now = new Date();
-                    
-                    // 개별 리뷰 마감 기한이 있으면 그것을 우선, 없으면 캠페인 마감일 사용
-                    const targetDeadline = app.review_deadline ? new Date(app.review_deadline) : (app.campaigns?.end_date ? new Date(app.campaigns.end_date) : null);
-                    
-                    if (!targetDeadline) continue;
-
-                    const diffTime = targetDeadline.getTime() - now.getTime();
-                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                    // 마감 3일 이내인 경우 및 아직 완료되지 않은 경우
-                    if (diffDays <= 3 && diffDays > 0 && app.status !== 'COMPLETED') {
-                        const { count } = await supabase
-                            .from('notifications')
-                            .select('*', { count: 'exact', head: true })
-                            .eq('user_id', user.id)
-                            .eq('type', 'CAMPAIGN_DEADLINE')
-                            .ilike('content', `%[${app.campaigns.title}]%`)
-                            .gt('created_at', new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString());
-
-                        if (count === 0) {
-                            await supabase.from('notifications').insert({
-                                user_id: user.id,
-                                type: 'CAMPAIGN_DEADLINE',
-                                title: '⏰ 리뷰 마감 임박 안내',
-                                content: `[${app.campaigns.title}] 캠페인 리뷰 마감이 ${diffDays}일 남았습니다!`,
-                                link: `/dashboard/influencer/campaigns`
-                            });
-                        }
-                    }
-                }
+            } else {
+                setApplications([]);
             }
 
             // Fetch counts for all statuses
@@ -164,22 +131,39 @@ export default function MyCampaignsPage() {
                 .neq('status', 'CANCELLED');
 
             if (countData) {
+                const rows = countData as CountRow[];
                 const newCounts = {
-                    all: countData.length,
-                    PENDING: countData.filter((a: any) => a.status === 'PENDING').length,
-                    SELECTED: countData.filter((a: any) => a.status === 'SELECTED' || a.status === 'APPROVED').length,
-                    REJECTED: countData.filter((a: any) => a.status === 'REJECTED').length,
-                    COMPLETED: countData.filter((a: any) => a.status === 'COMPLETED').length,
+                    all: rows.length,
+                    PENDING: rows.filter((a) => a.status === 'PENDING').length,
+                    SELECTED: rows.filter((a) => a.status === 'SELECTED' || a.status === 'APPROVED').length,
+                    REJECTED: rows.filter((a) => a.status === 'REJECTED').length,
+                    COMPLETED: rows.filter((a) => a.status === 'COMPLETED').length,
                 };
                 setCounts(newCounts);
             }
-
-            setLoading(false);
         } catch (error) {
             console.error('Error fetching data:', error);
+        } finally {
             setLoading(false);
         }
-    }
+    }, [filter, user]);
+
+    useEffect(() => {
+        if (!isLoading && user) {
+            const normalizedRole = String(profile?.role || '').toUpperCase();
+            if (normalizedRole === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
+            if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
+                router.replace('/dashboard/admin');
+                return;
+            }
+            fetchData();
+        } else if (!isLoading && !user) {
+            setLoading(false);
+        }
+    }, [isLoading, user, profile?.role, router, fetchData]);
 
     async function handleCancel(applicationId: number, campaignTitle: string, status: string) {
         if (status !== 'PENDING') {
@@ -265,7 +249,7 @@ export default function MyCampaignsPage() {
     const shippingColumn = {
         accessorKey: "tracking_number",
         header: "배송 정보",
-        cell: ({ row }: any) => {
+        cell: ({ row }: RowCellProps) => {
             const app = row.original;
             return app.tracking_number ? (
                 <div className="flex flex-col gap-1">
@@ -287,7 +271,7 @@ export default function MyCampaignsPage() {
         {
             id: "actions",
             header: "액션",
-            cell: ({ row }: any) => {
+            cell: ({ row }: RowCellProps) => {
                 const app = row.original;
                 const isSelected = app.status === 'SELECTED' || app.status === 'APPROVED';
                 const isPending = app.status === 'PENDING';
@@ -425,7 +409,12 @@ export default function MyCampaignsPage() {
 
                     {/* Tabs / Filters */}
                     <div className="mb-8">
-                        <Tabs defaultValue="all" value={filter} onValueChange={(v: any) => setFilter(v)} className="w-full">
+                        <Tabs
+                            defaultValue="all"
+                            value={filter}
+                            onValueChange={(v) => setFilter(v as CampaignFilter)}
+                            className="w-full"
+                        >
                             <TabsList className="bg-transparent h-auto p-0 flex-wrap gap-2">
                                 {[
                                     { value: 'all', label: '전체', count: counts.all, color: 'bg-gray-500' },
@@ -478,7 +467,7 @@ export default function MyCampaignsPage() {
 
             <ReviewSubmitModal
                 isOpen={reviewModal.isOpen}
-                onClose={() => setReviewModal((prev: any) => ({ ...prev, isOpen: false }))}
+                onClose={() => setReviewModal((prev) => ({ ...prev, isOpen: false }))}
                 applicationId={reviewModal.appId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}

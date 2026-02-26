@@ -15,14 +15,15 @@ import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { ADVERTISER_LINKS, INFLUENCER_LINKS } from '@/constants/navigation';
-
-// 온보딩 모달과 동일한 상수 재사용
-const PLATFORMS = [
-    { id: 'BLOG', name: '블로거', icon: '📝', color: 'bg-emerald-500' },
-    { id: 'YOUTUBE', name: '유튜버', icon: '🎥', color: 'bg-red-500' },
-    { id: 'INSTAGRAM', name: '인스타그래머', icon: '📸', color: 'bg-pink-500' },
-    { id: 'TIKTOK', name: '틱톡커', icon: '🎵', color: 'bg-slate-900' },
-];
+import {
+    buildPreferredPlatforms,
+    CREATOR_PLATFORM_OPTIONS,
+    normalizeCreatorPlatforms,
+    type CreatorPlatformId,
+    PROFILE_MODES,
+    type ProfileMode,
+    resolveProfileModeFromPlatforms,
+} from '@/constants/profilePlatforms';
 
 const REGIONS = [
     { id: 'seoul', name: '서울', emoji: '🏙️' },
@@ -159,7 +160,8 @@ function ProfileEditContent() {
     const tiktokSaveTimer = useRef<NodeJS.Timeout | null>(null);
 
     // 관심사 정보
-    const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+    const [profileMode, setProfileMode] = useState<ProfileMode>(PROFILE_MODES.CREATOR);
+    const [selectedPlatforms, setSelectedPlatforms] = useState<CreatorPlatformId[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
@@ -264,7 +266,8 @@ function ProfileEditContent() {
                         other: ''
                     });
 
-                    setSelectedPlatforms(profileData.preferred_platforms || []);
+                    setProfileMode(resolveProfileModeFromPlatforms(profileData.preferred_platforms));
+                    setSelectedPlatforms(normalizeCreatorPlatforms(profileData.preferred_platforms));
                     setSelectedRegions(profileData.preferred_regions || []);
                     setSelectedCategories(profileData.interests || []);
                 }
@@ -473,10 +476,15 @@ function ProfileEditContent() {
         try {
             if (!authUser) return;
             const user = authUser;
+            if (profileMode === PROFILE_MODES.CREATOR && selectedPlatforms.length === 0) {
+                toast.error('크리에이터형은 최소 1개 플랫폼을 선택해야 합니다.');
+                return;
+            }
 
             const { error } = await supabase
                 .from('profiles')
                 .update({
+                    preferred_platforms: buildPreferredPlatforms(profileMode, selectedPlatforms),
                     preferred_regions: selectedRegions,
                     interests: selectedCategories
                 })
@@ -493,7 +501,7 @@ function ProfileEditContent() {
         }
     };
 
-    const togglePlatform = (id: string) => {
+    const togglePlatform = (id: CreatorPlatformId) => {
         setSelectedPlatforms(prev => prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]);
     };
 
@@ -1349,32 +1357,70 @@ function ProfileEditContent() {
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <CardTitle className="text-xl">활동 플랫폼</CardTitle>
-                                                <CardDescription className="text-slate-400">주로 활동하는 채널을 알려주세요.</CardDescription>
+                                                <CardDescription className="text-slate-400">크리에이터형 또는 리뷰어형(구매평) 중 하나를 선택하세요.</CardDescription>
                                             </div>
-                                            <div className="bg-rose-500 px-3 py-1 rounded-full text-xs font-bold">필수</div>
+                                            <div className="bg-rose-500 px-3 py-1 rounded-full text-xs font-bold">
+                                                {profileMode === PROFILE_MODES.REVIEWER ? '리뷰어형' : `${selectedPlatforms.length}개 선택`}
+                                            </div>
                                         </div>
                                     </CardHeader>
                                     <CardContent className="p-8">
-                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                                            {PLATFORMS.map(platform => (
+                                        <div className="space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 <button
-                                                    key={platform.id}
                                                     type="button"
-                                                    onClick={() => togglePlatform(platform.id)}
-                                                    className={`relative group p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
-                                                        ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.05]'
-                                                        : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
+                                                    onClick={() => setProfileMode(PROFILE_MODES.CREATOR)}
+                                                    className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                                                        profileMode === PROFILE_MODES.CREATOR
+                                                            ? 'border-rose-500 bg-rose-50 shadow-sm'
+                                                            : 'border-slate-200 hover:bg-slate-50'
                                                         }`}
                                                 >
-                                                    {selectedPlatforms.includes(platform.id) && (
-                                                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
-                                                            <Check size={14} className="text-white" />
-                                                        </div>
-                                                    )}
-                                                    <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{platform.icon}</div>
-                                                    <div className="text-sm font-bold text-slate-800">{platform.name}</div>
+                                                    <div className="text-sm font-black text-slate-900">크리에이터형</div>
+                                                    <p className="mt-1 text-xs text-slate-500">SNS 채널 기반 캠페인에 참여합니다.</p>
                                                 </button>
-                                            ))}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setProfileMode(PROFILE_MODES.REVIEWER)}
+                                                    className={`rounded-2xl border-2 p-4 text-left transition-all ${
+                                                        profileMode === PROFILE_MODES.REVIEWER
+                                                            ? 'border-rose-500 bg-rose-50 shadow-sm'
+                                                            : 'border-slate-200 hover:bg-slate-50'
+                                                        }`}
+                                                >
+                                                    <div className="text-sm font-black text-slate-900">리뷰어형 (구매평)</div>
+                                                    <p className="mt-1 text-xs text-slate-500">SNS 채널 없이 구매평 중심으로 참여합니다.</p>
+                                                </button>
+                                            </div>
+
+                                            {profileMode === PROFILE_MODES.CREATOR ? (
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                                    {CREATOR_PLATFORM_OPTIONS.map(platform => (
+                                                        <button
+                                                            key={platform.id}
+                                                            type="button"
+                                                            onClick={() => togglePlatform(platform.id)}
+                                                            className={`relative group p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
+                                                                ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.05]'
+                                                                : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
+                                                                }`}
+                                                        >
+                                                            {selectedPlatforms.includes(platform.id) && (
+                                                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                                    <Check size={14} className="text-white" />
+                                                                </div>
+                                                            )}
+                                                            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{platform.icon}</div>
+                                                            <div className="text-sm font-bold text-slate-800">{platform.name}</div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="rounded-2xl border border-rose-100 bg-rose-50/60 p-4 text-sm text-slate-700">
+                                                    리뷰어형은 저장 시 <span className="font-bold">PURCHASE</span> 플랫폼으로 등록됩니다.
+                                                    이후 설정에서 언제든 크리에이터형으로 변경할 수 있습니다.
+                                                </div>
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
