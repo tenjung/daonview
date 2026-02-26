@@ -217,6 +217,7 @@ export default function CampaignRegistrationContainer() {
                     productUrl: store.productUrl,
                     productUrlPrivate: store.productUrlPrivate,
                     productUrlIndividual: store.productUrlIndividual,
+                    purchaseLinkPools: store.purchaseLinkPools || [],
                     productName: store.productName,
                     campaignTitle: store.campaignTitle,
                     brandName: store.brandName,
@@ -278,6 +279,22 @@ export default function CampaignRegistrationContainer() {
             }
         } catch (e) {
             toast.error('임시저장에 실패했습니다.');
+        }
+    };
+
+    const syncPurchaseLinkPools = async (campaignId: number) => {
+        const response = await fetch('/api/campaigns/purchase-links/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                campaignId,
+                purchaseLinkPools: store.productUrlIndividual ? (store.purchaseLinkPools || []) : [],
+            }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) {
+            throw new Error(payload?.error || '구매링크 풀 동기화에 실패했습니다.');
         }
     };
 
@@ -368,6 +385,7 @@ export default function CampaignRegistrationContainer() {
                 productUrl: store.productUrl,
                 productUrlPrivate: store.productUrlPrivate,
                 productUrlIndividual: store.productUrlIndividual,
+                purchaseLinkPools: store.purchaseLinkPools || [],
                 productName: store.productName,
                 campaignTitle: store.campaignTitle,
                 brandName: store.brandName,
@@ -510,6 +528,7 @@ export default function CampaignRegistrationContainer() {
 
                 if (error) throw error;
                 result = data;
+                await syncPurchaseLinkPools(result.id);
                 toast.success('수정완료되었습니다.');
                 router.push(`/campaigns/${result.id}`);
                 return;
@@ -522,6 +541,7 @@ export default function CampaignRegistrationContainer() {
 
                 if (error) throw error;
                 result = data;
+                await syncPurchaseLinkPools(result.id);
 
                 if (currentCampaignId && currentCampaignId !== result.id.toString()) {
                     const isDraftNumeric = !isNaN(Number(currentCampaignId));

@@ -18,12 +18,13 @@ import ApplicationStatusBadge from "@/components/admin/ApplicationStatusBadge"
 import { SatisfactionLevel } from "@/types/review"
 
 interface ColumnContext {
-    onApprove: (id: number, name: string, email: string) => void
+    onApprove: (app: Application) => void
     onReject: (id: number, name: string) => void
     onCancel: (id: number, name: string) => void
     onOpenReview: (userId: string, name: string) => void
     onOpenReputation: (userId: string, name: string) => void
     onResendNotification?: (app: Application) => void
+    onReassignLink?: (app: Application) => void
     onUpdateTracking?: (id: number, company: string, number: string) => void
     onHandleExtension?: (id: number, action: 'APPROVED' | 'REJECTED') => void
     influencerStats?: Map<string, {
@@ -33,6 +34,7 @@ interface ColumnContext {
     }>;
     reviewedInfluencerIds?: Set<string>;
     campaignType?: string;
+    productUrlIndividual?: boolean;
 }
 
 export function createApplicationColumns(context: ColumnContext): ColumnDef<Application>[] {
@@ -333,7 +335,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 <Button
                                     size="sm"
                                     disabled={!hasPhoneNumber}
-                                    onClick={() => context.onApprove(app.id, user?.nickname || '사용자', user?.email || '')}
+                                    onClick={() => context.onApprove(app)}
                                     className={`whitespace-nowrap h-8 px-2.5 ${hasPhoneNumber ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
                                     title={!hasPhoneNumber ? "연락처가 등록되지 않은 유저는 승인할 수 없습니다." : ""}
                                 >
@@ -372,6 +374,16 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 >
                                     재발송
                                 </Button>
+                                {context.productUrlIndividual && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => context.onReassignLink?.(app)}
+                                        className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap h-7 px-2 text-[11px]"
+                                    >
+                                        링크
+                                    </Button>
+                                )}
                                 <Button
                                     size="sm"
                                     variant="outline"

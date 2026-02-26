@@ -115,6 +115,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [applicationId, setApplicationId] = useState<number>(0);
+    const [assignedPurchaseLink, setAssignedPurchaseLink] = useState<string>('');
+    const [assignedOptionLabel, setAssignedOptionLabel] = useState<string>('');
     const [mainApi, setMainApi] = useState<CarouselApi>();
 
     async function revalidateCampaignListCaches() {
@@ -257,7 +259,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             // Only check application status (favorites handled by Zustand)
             const { data: appData, error: appError } = await supabase
                 .from('applications')
-                .select('id, selected_option, application_message, status')
+                .select('id, selected_option, application_message, status, assigned_purchase_link_url, assigned_option_label')
                 .eq('user_id', currentUser.id)
                 .eq('campaign_id', id)
                 .neq('status', 'CANCELLED')
@@ -281,9 +283,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     setSelectedOptions([optString]);
                 }
                 setApplicationMessage(appData.application_message || '');
+                setAssignedPurchaseLink(appData.assigned_purchase_link_url || '');
+                setAssignedOptionLabel(appData.assigned_option_label || '');
             } else {
                 setHasApplied(false);
                 setApplicationStatus(null);
+                setAssignedPurchaseLink('');
+                setAssignedOptionLabel('');
             }
         } catch (err) {
             console.error('Error in checkUserStatus:', err);
@@ -716,6 +722,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const productUrl = step1Data.productUrl || '';
     const productUrlIndividual = step1Data.productUrlIndividual || false;
     const productName = step1Data.productName || '';
+    const canViewAssignedPurchaseLink =
+        isInfluencerViewer &&
+        (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED');
     // 우선순위: store_locations (DB 컬럼) > campaign_options.stores (레거시)
     // store_locations에 좌표가 저장되어 있으면 API 호출 없이 지도 표시 가능
     const stores = Array.isArray(campaign.store_locations) && campaign.store_locations.length > 0
@@ -937,7 +946,29 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 <div className="flex flex-col gap-1 mt-2">
                                                     <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">체험 상품 링크</span>
                                                     {productUrlIndividual ? (
-                                                        <span className="font-bold text-slate-600 text-[14px]">🔥 선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                        canViewAssignedPurchaseLink ? (
+                                                            assignedPurchaseLink ? (
+                                                                <div className="flex flex-col gap-1">
+                                                                    {assignedOptionLabel && (
+                                                                        <span className="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-100">
+                                                                            확정 옵션: {assignedOptionLabel}
+                                                                        </span>
+                                                                    )}
+                                                                    <a
+                                                                        href={assignedPurchaseLink}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="font-bold text-blue-500 hover:text-blue-600 text-[14px] underline break-all"
+                                                                    >
+                                                                        {assignedPurchaseLink}
+                                                                    </a>
+                                                                </div>
+                                                            ) : (
+                                                                <span className="font-bold text-amber-600 text-[14px]">링크 준비중</span>
+                                                            )
+                                                        ) : (
+                                                            <span className="font-bold text-slate-600 text-[14px]">🔥 선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                        )
                                                     ) : (
                                                         <a href={productUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-500 hover:text-blue-600 text-[14px] underline truncate inline-block max-w-[full]">
                                                             {productUrl}
@@ -1273,8 +1304,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     {store.address || '주소 정보 없음'}
                                                 </p>
                                             </div>
-                                            {/* Dynamic Map 사용 - DB 저장된 좌표로 빠른 로딩 */}
-                                            {store.address && store.lat && store.lng && (
+                                            {/* 주소만 있으면 지도 렌더, 좌표 없으면 컴포넌트 내부에서 지오코딩 fallback */}
+                                            {Boolean(store.address?.trim()) && (
                                                 <div className="mt-4">
                                                     <NaverMap
                                                         address={store.address}

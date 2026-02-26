@@ -26,6 +26,8 @@ interface EmailParams {
   nickname?: string;
   campaignTitle?: string;
   providedItems?: string;
+  assignedOptionLabel?: string;
+  assignedPurchaseLink?: string;
   trackingCompany?: string;
   trackingNumber?: string;
   deadlineDate?: string;
@@ -202,6 +204,26 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       subject = `🎉 [다온뷰] 축하합니다! '${params.campaignTitle}' 캠페인에 선정되셨습니다.`;
       const providedItems = params.providedItems || '캠페인 상세 페이지에서 제공내역을 확인해 주세요.';
       const deadlineDate = params.deadlineDate || '캠페인 상세 페이지에서 마감일을 확인해 주세요.';
+      const assignedOptionLabel = params.assignedOptionLabel || '';
+      const assignedPurchaseLink = params.assignedPurchaseLink || '';
+      const optionRow = assignedOptionLabel
+        ? `
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">확정 옵션</span>
+            <span>${assignedOptionLabel}</span>
+          </div>
+        `
+        : '';
+      const purchaseLinkRow = assignedPurchaseLink
+        ? `
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">개별 구매링크</span>
+            <a href="${assignedPurchaseLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">
+              ${assignedPurchaseLink}
+            </a>
+          </div>
+        `
+        : '';
       content = `
         <div style="${heroStyle}">
           <div style="${headerStyle}">캠페인 선정 축하드립니다!</div>
@@ -218,6 +240,8 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
             <span style="${infoLabelStyle}">제공내역</span>
             <span>${providedItems}</span>
           </div>
+          ${optionRow}
+          ${purchaseLinkRow}
           <div style="padding: 12px 14px; font-size: 14px; background: #fff7ed;">
             <span style="${infoLabelStyle}">체험 마감기한</span>
             <span style="font-weight: 700; color: #b45309;">${deadlineDate}</span>

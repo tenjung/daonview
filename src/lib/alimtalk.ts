@@ -34,7 +34,11 @@ export async function sendInfluencerSelectedAlimtalk(
     to: string,
     influencerName: string,
     campaignTitle: string,
-    campaignId: number
+    campaignId: number,
+    extras?: {
+        assignedOptionLabel?: string;
+        assignedPurchaseLink?: string;
+    }
 ): Promise<AlimtalkResponse> {
     if (!isValidPhoneNumber(to)) {
         return {
@@ -78,6 +82,8 @@ export async function sendInfluencerSelectedAlimtalk(
 
         // 제공내역 (product_name 또는 experience_details)
         const providedItems = campaign?.product_name || campaign?.experience_details || '캠페인 상세 페이지 참조';
+        const assignedOptionLabel = extras?.assignedOptionLabel || '';
+        const assignedPurchaseLink = extras?.assignedPurchaseLink || '';
 
         const request: AlimtalkRequest = {
             to: formatPhoneNumber(to),
@@ -88,7 +94,9 @@ export async function sendInfluencerSelectedAlimtalk(
                 '체험유형': typeText,
                 '마감일': endDate,
                 '제공내역': providedItems.length > 50 ? providedItems.substring(0, 47) + '...' : providedItems,
-                '캠페인ID': campaignId.toString() // 템플릿의 #{캠페인ID} 변수 대응
+                '캠페인ID': campaignId.toString(), // 템플릿의 #{캠페인ID} 변수 대응
+                '확정옵션': assignedOptionLabel,
+                '개별구매링크': assignedPurchaseLink
             },
             buttons: [
                 {
@@ -230,7 +238,16 @@ export async function sendShippingStartedAlimtalk(
  */
 async function sendAlimtalk(request: AlimtalkRequest): Promise<AlimtalkResponse> {
     try {
-        const response = await fetch('/api/send-alimtalk', {
+        const isServerRuntime = typeof window === 'undefined';
+        const siteUrl =
+            process.env.NEXT_PUBLIC_SITE_URL ||
+            process.env.SITE_URL ||
+            'http://localhost:3000';
+        const endpoint = isServerRuntime
+            ? `${siteUrl.replace(/\/$/, '')}/api/send-alimtalk`
+            : '/api/send-alimtalk';
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

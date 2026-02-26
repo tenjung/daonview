@@ -16,6 +16,7 @@ import BulkActionsBar from './BulkActionsBar';
 import CancellationModal from './CancellationModal';
 import * as XLSX from 'xlsx';
 import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
+import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
 
 import { RATING_TAGS, SatisfactionLevel } from '@/types/review';
 
@@ -27,6 +28,7 @@ interface ApplicationsTableClientProps {
     campaignDeadlineDate?: string;
     campaignCategory?: string;
     campaignType?: string;
+    productUrlIndividual?: boolean;
     recruitCount: number;
 }
 
@@ -42,6 +44,7 @@ export default function ApplicationsTableClient({
     campaignDeadlineDate,
     campaignCategory,
     campaignType,
+    productUrlIndividual = false,
     recruitCount
 }: ApplicationsTableClientProps) {
     const [applications, setApplications] = useState<Application[]>(initialApplications);
@@ -76,6 +79,20 @@ export default function ApplicationsTableClient({
         company: '',
         number: ''
     });
+    const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+    const [selectionMode, setSelectionMode] = useState<'APPROVE' | 'REASSIGN'>('APPROVE');
+    const [selectionTarget, setSelectionTarget] = useState<Application | null>(null);
+    const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
+    const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
+    const [manualLinkId, setManualLinkId] = useState<string>('');
+    const [linkCandidates, setLinkCandidates] = useState<Array<{
+        id: number;
+        optionLabel: string;
+        purchaseLinkUrl: string;
+        usageCount: number;
+    }>>([]);
+    const [isCandidateLoading, setIsCandidateLoading] = useState(false);
+    const [isSelectionSubmitting, setIsSelectionSubmitting] = useState(false);
 
     const [influencerStats, setInfluencerStats] = useState<Map<string, {
         tags: string[];
@@ -170,6 +187,10 @@ export default function ApplicationsTableClient({
     const filteredApplications = useMemo(() => {
         return applications.filter(app => {
             if (filter === 'all') return true;
+            if (filter === 'approved') {
+                const status = app.status?.toUpperCase();
+                return status === 'APPROVED' || status === 'SELECTED';
+            }
             return app.status?.toUpperCase() === filter.toUpperCase();
         });
     }, [applications, filter]);
@@ -178,7 +199,10 @@ export default function ApplicationsTableClient({
     const stats: StatCard[] = useMemo(() => {
         const total = applications.length;
         const pending = applications.filter(app => app.status?.toUpperCase() === 'PENDING').length;
-        const approved = applications.filter(app => app.status?.toUpperCase() === 'APPROVED').length;
+        const approved = applications.filter(app => {
+            const status = app.status?.toUpperCase();
+            return status === 'APPROVED' || status === 'SELECTED';
+        }).length;
         const rejected = applications.filter(app => app.status?.toUpperCase() === 'REJECTED').length;
         const cancelled = applications.filter(app => app.status?.toUpperCase() === 'CANCELLED').length;
 
@@ -216,82 +240,130 @@ export default function ApplicationsTableClient({
         ];
     }, [applications, recruitCount]);
 
-    // 승인 처리
-    const handleApprove = async (id: number, name: string, email: string) => {
-        setConfirmModal({
-            isOpen: true,
-            title: '신청 승인',
-            message: `${name}님의 신청을 승인하시겠습니까?`,
-            type: 'info',
-            onConfirm: async () => {
-                const now = new Date();
-                let updateData: any = {
-                    status: 'APPROVED',
-                    selected_at: now.toISOString()
-                };
+    const getOptionLabelsFromApplication = (app: Application) => {
+        const parsed = extractOptionCandidates(app.selected_option || '');
+        if (parsed.length > 0) return parsed.map((item) => item.label);
+        const fallback = normalizeOptionLabel(app.selected_option || '');
+        return fallback ? [fallback] : ['기본 옵션'];
+    };
 
-                // 방문형(VISIT) 캠페인인 경우 선정일로부터 14일 마감 설정
-                if (campaignCategory === 'VISIT') {
-                    const deadline = new Date(now);
-                    deadline.setDate(deadline.getDate() + 14);
-                    updateData.review_deadline = deadline.toISOString();
-                }
+    const fetchLinkCandidates = async (optionLabel: string) => {
+        setIsCandidateLoading(true);
+        try {
+            const response = await fetch('/api/applications/link-candidates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    campaignId: Number(campaignId),
+                    optionLabel
+                })
+            });
 
-                const { error } = await supabase
-                    .from('applications')
-                    .update(updateData)
-                    .eq('id', id);
-
-                if (error) {
-                    toast.error('승인 처리 중 오류가 발생했습니다.');
-                    return;
-                }
-
-                // 알림톡 발송 (연락처 체크)
-                const app = applications.find(a => a.id === id);
-                if (app?.user?.phone_number) {
-                    try {
-                        await sendInfluencerSelectedAlimtalk(
-                            app.user.phone_number,
-                            name,
-                            campaignTitle,
-                            parseInt(campaignId)
-                        );
-                    } catch (err) {
-                        console.error('Alimtalk send error:', err);
-                    }
-                }
-
-                // 이메일 발송
-                if (email) {
-                    try {
-                        await fetch('/api/send-email', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                to: email,
-                                type: 'CAMPAIGN_SELECTED',
-                                params: {
-                                    nickname: name,
-                                    campaignTitle,
-                                    providedItems: campaignProvidedItems,
-                                    deadlineDate: campaignDeadlineDate,
-                                    email: email
-                                }
-                            })
-                        });
-                    } catch (err) {
-                        console.error('Email send error:', err);
-                    }
-                }
-
-                setApplications(prev =>
-                    prev.map(app => app.id === id ? { ...app, status: 'APPROVED' } : app)
-                );
-                toast.success(`${name}님의 신청이 승인되었습니다.`);
-                setConfirmModal(prev => ({ ...prev, isOpen: false }));
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                setLinkCandidates([]);
+                return;
             }
-        });
+
+            setLinkCandidates(payload.candidates || []);
+        } catch (error) {
+            console.error('Fetch link candidates error:', error);
+            setLinkCandidates([]);
+        } finally {
+            setIsCandidateLoading(false);
+        }
+    };
+
+    const openSelectionModal = async (app: Application, mode: 'APPROVE' | 'REASSIGN') => {
+        const options = getOptionLabelsFromApplication(app);
+        const defaultOption = normalizeOptionLabel(app.assigned_option_label || options[0] || '기본 옵션');
+        setSelectionMode(mode);
+        setSelectionTarget(app);
+        setSelectionOptions(options);
+        setSelectedOptionLabel(defaultOption);
+        setManualLinkId('');
+        setIsSelectionModalOpen(true);
+        if (productUrlIndividual) {
+            await fetchLinkCandidates(defaultOption);
+        } else {
+            setLinkCandidates([]);
+        }
+    };
+
+    const closeSelectionModal = () => {
+        setIsSelectionModalOpen(false);
+        setSelectionTarget(null);
+        setSelectionOptions([]);
+        setSelectedOptionLabel('');
+        setManualLinkId('');
+        setLinkCandidates([]);
+    };
+
+    const handleSelectionSubmit = async () => {
+        if (!selectionTarget) return;
+        setIsSelectionSubmitting(true);
+        try {
+            const endpoint =
+                selectionMode === 'REASSIGN'
+                    ? '/api/applications/reassign-link'
+                    : '/api/applications/select';
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    applicationId: selectionTarget.id,
+                    campaignId: Number(campaignId),
+                    targetStatus: 'APPROVED',
+                    assignedOptionLabel: selectedOptionLabel,
+                    manualLinkId: manualLinkId ? Number(manualLinkId) : null
+                })
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                toast.error(payload?.error || '승인/재할당 처리에 실패했습니다.');
+                return;
+            }
+
+            const assigned = payload.application || {};
+            setApplications((prev) =>
+                prev.map((app) =>
+                    app.id === selectionTarget.id
+                        ? {
+                            ...app,
+                            status: assigned.status || app.status,
+                            assigned_option_key: assigned.assigned_option_key ?? app.assigned_option_key,
+                            assigned_option_label: assigned.assigned_option_label ?? app.assigned_option_label,
+                            assigned_purchase_link_id: assigned.assigned_purchase_link_id ?? app.assigned_purchase_link_id,
+                            assigned_purchase_link_url: assigned.assigned_purchase_link_url ?? app.assigned_purchase_link_url,
+                            link_assigned_at: assigned.link_assigned_at ?? app.link_assigned_at,
+                            link_updated_at: assigned.link_updated_at ?? app.link_updated_at
+                        }
+                        : app
+                )
+            );
+
+            if (payload.notification && payload.notification.success === false) {
+                toast.warning(
+                    selectionMode === 'REASSIGN'
+                        ? '링크 변경은 완료되었지만 일부 알림 발송에 실패했습니다.'
+                        : '승인은 완료되었지만 일부 알림 발송에 실패했습니다.'
+                );
+            } else {
+                toast.success(selectionMode === 'REASSIGN' ? '링크를 재할당했습니다.' : '신청이 승인되었습니다.');
+            }
+
+            closeSelectionModal();
+        } catch (error) {
+            console.error('Selection modal submit error:', error);
+            toast.error('승인/재할당 처리 중 오류가 발생했습니다.');
+        } finally {
+            setIsSelectionSubmitting(false);
+        }
+    };
+
+    // 승인 처리
+    const handleApprove = async (app: Application) => {
+        await openSelectionModal(app, 'APPROVE');
     };
 
     // 거절 처리
@@ -375,65 +447,68 @@ export default function ApplicationsTableClient({
 
     // 일괄 승인
     const handleBulkApprove = async () => {
-        const ids = selectedApplications.map(app => app.id);
-        if (ids.length === 0) return;
-
-        const { error } = await supabase
-            .from('applications')
-            .update({ status: 'APPROVED' })
-            .in('id', ids);
-
-        if (error) {
-            toast.error('일괄 승인 중 오류가 발생했습니다.');
+        const pendingTargets = selectedApplications.filter(
+            (app) => String(app.status || '').toUpperCase() === 'PENDING'
+        );
+        if (pendingTargets.length === 0) {
+            toast.error('대기중(PENDING) 신청만 일괄 승인할 수 있습니다.');
             return;
         }
 
-        // 일괄 알림톡 및 이메일 발송
-        for (const app of selectedApplications) {
-            const userName = app.user?.nickname || app.user?.name || '인플루언서';
+        let successCount = 0;
+        const failedIds: number[] = [];
 
-            // 알림톡 발송
-            if (app.user?.phone_number) {
-                try {
-                    await sendInfluencerSelectedAlimtalk(
-                        app.user.phone_number,
-                        userName,
-                        campaignTitle,
-                        parseInt(campaignId)
-                    );
-                } catch (err) {
-                    console.error(`Alimtalk send error for app ${app.id}:`, err);
+        for (const app of pendingTargets) {
+            const optionLabels = getOptionLabelsFromApplication(app);
+            const assignedOptionLabel = normalizeOptionLabel(app.assigned_option_label || optionLabels[0] || '기본 옵션');
+
+            try {
+                const response = await fetch('/api/applications/select', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        applicationId: app.id,
+                        campaignId: Number(campaignId),
+                        targetStatus: 'APPROVED',
+                        assignedOptionLabel,
+                    })
+                });
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload?.success) {
+                    failedIds.push(app.id);
+                    continue;
                 }
-            }
 
-            // 이메일 발송
-            if (app.user?.email) {
-                try {
-                    await fetch('/api/send-email', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            to: app.user.email,
-                            type: 'CAMPAIGN_SELECTED',
-                            params: {
-                                nickname: userName,
-                                campaignTitle,
-                                providedItems: campaignProvidedItems,
-                                deadlineDate: campaignDeadlineDate,
-                                email: app.user.email
+                const assigned = payload.application || {};
+                setApplications((prev) =>
+                    prev.map((item) =>
+                        item.id === app.id
+                            ? {
+                                ...item,
+                                status: assigned.status || item.status,
+                                assigned_option_key: assigned.assigned_option_key ?? item.assigned_option_key,
+                                assigned_option_label: assigned.assigned_option_label ?? item.assigned_option_label,
+                                assigned_purchase_link_id: assigned.assigned_purchase_link_id ?? item.assigned_purchase_link_id,
+                                assigned_purchase_link_url: assigned.assigned_purchase_link_url ?? item.assigned_purchase_link_url,
+                                link_assigned_at: assigned.link_assigned_at ?? item.link_assigned_at,
+                                link_updated_at: assigned.link_updated_at ?? item.link_updated_at
                             }
-                        })
-                    });
-                } catch (err) {
-                    console.error(`Email send error for app ${app.id}:`, err);
-                }
+                            : item
+                    )
+                );
+                successCount += 1;
+            } catch (error) {
+                console.error(`Bulk approve error for app ${app.id}:`, error);
+                failedIds.push(app.id);
             }
         }
 
-        setApplications(prev =>
-            prev.map(app => ids.includes(app.id) ? { ...app, status: 'APPROVED' } : app)
-        );
-        toast.success(`${ids.length}개의 신청이 승인되었습니다.`);
+        if (successCount > 0) {
+            toast.success(`${successCount}개의 신청이 승인되었습니다.`);
+        }
+        if (failedIds.length > 0) {
+            toast.warning(`일부 승인 실패 (${failedIds.length}건)`);
+        }
         setSelectedApplications([]);
     };
 
@@ -469,7 +544,11 @@ export default function ApplicationsTableClient({
                     app.user.phone_number,
                     userName,
                     campaignTitle,
-                    parseInt(campaignId)
+                    parseInt(campaignId),
+                    {
+                        assignedOptionLabel: app.assigned_option_label,
+                        assignedPurchaseLink: app.assigned_purchase_link_url
+                    }
                 );
                 if (!alimtalkResult.success) {
                     errors.push(alimtalkResult.error || '알림톡 발송 실패');
@@ -490,6 +569,8 @@ export default function ApplicationsTableClient({
                             campaignTitle,
                             providedItems: campaignProvidedItems,
                             deadlineDate: campaignDeadlineDate,
+                            assignedOptionLabel: app.assigned_option_label,
+                            assignedPurchaseLink: app.assigned_purchase_link_url,
                             email: app.user.email
                         }
                     })
@@ -574,7 +655,10 @@ export default function ApplicationsTableClient({
     const handleExtension = async (id: number, action: 'APPROVED' | 'REJECTED') => {
         try {
             const app = applications.find(a => a.id === id);
-            let updateData: any = { extension_status: action };
+            const updateData: {
+                extension_status: 'APPROVED' | 'REJECTED';
+                review_deadline?: string;
+            } = { extension_status: action };
 
             if (action === 'APPROVED' && app?.review_deadline) {
                 const currentDeadline = new Date(app.review_deadline);
@@ -631,18 +715,23 @@ export default function ApplicationsTableClient({
         onOpenReview: handleOpenReview,
         onOpenReputation: handleOpenReputation,
         onResendNotification: handleResendNotification,
+        onReassignLink: (app) => openSelectionModal(app, 'REASSIGN'),
         onUpdateTracking: handleUpdateTracking,
         onHandleExtension: handleExtension,
         influencerStats: influencerStats,
         reviewedInfluencerIds: reviewedInfluencerIds,
         campaignType: campaignType,
-    }), [influencerStats, reviewedInfluencerIds, applications, campaignType]);
+        productUrlIndividual,
+    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual]);
 
     // 필터별 개수
     const filterCounts = useMemo(() => ({
         all: applications.length,
         pending: applications.filter(app => app.status?.toUpperCase() === 'PENDING').length,
-        approved: applications.filter(app => app.status?.toUpperCase() === 'APPROVED').length,
+        approved: applications.filter(app => {
+            const status = app.status?.toUpperCase();
+            return status === 'APPROVED' || status === 'SELECTED';
+        }).length,
         rejected: applications.filter(app => app.status?.toUpperCase() === 'REJECTED').length,
         cancelled: applications.filter(app => app.status?.toUpperCase() === 'CANCELLED').length,
     }), [applications]);
@@ -776,6 +865,94 @@ export default function ApplicationsTableClient({
                                 </Button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isSelectionModalOpen && selectionTarget && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+                        <h2 className="text-xl font-bold mb-2">
+                            {selectionMode === 'REASSIGN' ? '구매링크 재할당' : '승인 옵션 및 링크 배정'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                            {selectionTarget.user?.nickname || '인플루언서'}님의 확정 옵션을 선택하세요.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">확정 옵션</label>
+                                <select
+                                    value={selectedOptionLabel}
+                                    onChange={async (e) => {
+                                        const value = e.target.value;
+                                        setSelectedOptionLabel(value);
+                                        setManualLinkId('');
+                                        if (productUrlIndividual) {
+                                            await fetchLinkCandidates(value);
+                                        }
+                                    }}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                >
+                                    {selectionOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {productUrlIndividual ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">링크 배정 방식</label>
+                                    <select
+                                        value={manualLinkId}
+                                        onChange={(e) => setManualLinkId(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        disabled={isCandidateLoading}
+                                    >
+                                        <option value="">자동 배정 (최소사용우선)</option>
+                                        {linkCandidates.map((candidate) => (
+                                            <option key={candidate.id} value={candidate.id}>
+                                                #{candidate.id} (사용 {candidate.usageCount}건)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {isCandidateLoading
+                                            ? '링크 후보를 불러오는 중...'
+                                            : '수동 링크를 지정하지 않으면 최소사용우선으로 자동 배정됩니다.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                    이 캠페인은 개별 구매링크를 사용하지 않습니다.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2 pt-6">
+                            <Button
+                                type="button"
+                                onClick={handleSelectionSubmit}
+                                disabled={isSelectionSubmitting}
+                                className="flex-1 bg-primary h-11 font-bold rounded-xl"
+                            >
+                                {isSelectionSubmitting
+                                    ? '처리 중...'
+                                    : selectionMode === 'REASSIGN'
+                                        ? '재할당 실행'
+                                        : '승인 확정'}
+                            </Button>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="flex-1 h-11 font-bold rounded-xl border-gray-200"
+                                onClick={closeSelectionModal}
+                            >
+                                취소
+                            </Button>
+                        </div>
                     </div>
                 </div>
             )}

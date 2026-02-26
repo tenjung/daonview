@@ -11,6 +11,11 @@ export interface ProductOption {
     recruitmentCount: string;
 }
 
+export interface PurchaseLinkPool {
+    optionLabel: string;
+    links: string[];
+}
+
 export interface Store {
     id: string;
     naverPlaceUrl: string;
@@ -29,6 +34,7 @@ export interface CampaignState {
     productUrl: string;
     productUrlPrivate: boolean;
     productUrlIndividual: boolean;
+    purchaseLinkPools: PurchaseLinkPool[];
     productName: string;
     campaignTitle: string;
     brandName: string;
@@ -120,6 +126,7 @@ const initialState: CampaignState = {
     productUrl: '',
     productUrlPrivate: false,
     productUrlIndividual: false,
+    purchaseLinkPools: [],
     productName: '',
     campaignTitle: '',
     brandName: '',
@@ -250,6 +257,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     productUrl: campaign.product_url || s1.productUrl || '',
                     productUrlPrivate: s1.productUrlPrivate || false,
                     productUrlIndividual: s1.productUrlIndividual || false,
+                    purchaseLinkPools: Array.isArray(s1.purchaseLinkPools) ? s1.purchaseLinkPools : [],
                     productOptions: campaign.product_options || s1.productOptions || [],
                     productPrice: (s1.productPrice || '0').toString(),
                     shippingCost: (s1.shippingCost || '0').toString(),

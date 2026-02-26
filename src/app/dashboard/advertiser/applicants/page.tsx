@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
 import { ExternalLink } from 'lucide-react';
+import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
 
 interface Applicant {
     id: number;
@@ -15,6 +16,12 @@ interface Applicant {
     status: string;
     application_message: string;
     selected_option?: string;
+    assigned_option_key?: string;
+    assigned_option_label?: string;
+    assigned_purchase_link_id?: number;
+    assigned_purchase_link_url?: string;
+    link_assigned_at?: string;
+    link_updated_at?: string;
     campaign: {
         id: number;
         title: string;
@@ -24,6 +31,7 @@ interface Applicant {
         provision?: string;
         experience_details?: string;
         product_name?: string;
+        campaign_options?: any;
     };
     user: {
         id: string;
@@ -45,12 +53,28 @@ interface TrackingForm {
     number: string;
 }
 
+interface LinkCandidate {
+    id: number;
+    optionLabel: string;
+    purchaseLinkUrl: string;
+    usageCount: number;
+}
+
 export default function AdvertiserApplicantsPage() {
     const { user, profile, isLoading } = useAuthStore();
     const [campaignIdFilter, setCampaignIdFilter] = useState<number | null>(null);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingTracking, setEditingTracking] = useState<TrackingForm | null>(null);
+    const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false);
+    const [selectionMode, setSelectionMode] = useState<'SELECT' | 'REASSIGN'>('SELECT');
+    const [selectionTarget, setSelectionTarget] = useState<Applicant | null>(null);
+    const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
+    const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
+    const [manualLinkId, setManualLinkId] = useState<string>('');
+    const [linkCandidates, setLinkCandidates] = useState<LinkCandidate[]>([]);
+    const [isCandidateLoading, setIsCandidateLoading] = useState(false);
+    const [isSelectionSubmitting, setIsSelectionSubmitting] = useState(false);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -98,7 +122,13 @@ export default function AdvertiserApplicantsPage() {
                     status,
                     application_message,
                     selected_option,
-                    campaign:campaign_id (id, title, type, is_always, end_date, provision, experience_details, product_name),
+                    assigned_option_key,
+                    assigned_option_label,
+                    assigned_purchase_link_id,
+                    assigned_purchase_link_url,
+                    link_assigned_at,
+                    link_updated_at,
+                    campaign:campaign_id (id, title, type, is_always, end_date, provision, experience_details, product_name, campaign_options),
                     user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
                     tracking_company,
                     tracking_number,
@@ -244,7 +274,11 @@ export default function AdvertiserApplicantsPage() {
                 userData.phone_number,
                 recipientName,
                 applicant.campaign.title,
-                campaignId
+                campaignId,
+                {
+                    assignedOptionLabel: applicant.assigned_option_label,
+                    assignedPurchaseLink: applicant.assigned_purchase_link_url
+                }
             );
 
             if (!alimtalkResult.success) {
@@ -266,6 +300,8 @@ export default function AdvertiserApplicantsPage() {
                         campaignTitle: applicant.campaign.title,
                         providedItems,
                         deadlineDate,
+                        assignedOptionLabel: applicant.assigned_option_label,
+                        assignedPurchaseLink: applicant.assigned_purchase_link_url,
                         email: userData.email
                     }
                 })
@@ -291,28 +327,146 @@ export default function AdvertiserApplicantsPage() {
         return { success: true };
     };
 
-    const handleStatusChange = async (applicationId: number, newStatus: string, campaignId: number) => {
-        try {
-            // 1. 신청 상태 업데이트 및 데이터 설정
-            const applicant = applicants.find(a => a.id === applicationId);
-            const isAlways = applicant?.campaign?.is_always;
-            const campaignType = applicant?.campaign?.type;
-            
-            let updateData: any = { 
-                status: newStatus 
-            };
+    const getOptionLabelsFromApplication = (applicant: Applicant) => {
+        const parsed = extractOptionCandidates(applicant.selected_option || '');
+        if (parsed.length > 0) return parsed.map((item) => item.label);
+        const fallback = normalizeOptionLabel(applicant.selected_option || '');
+        return fallback ? [fallback] : ['기본 옵션'];
+    };
 
-            if (newStatus === 'SELECTED') {
-                const now = new Date();
-                updateData.selected_at = now.toISOString();
-                
-                // 방문형(VISIT) 상시 모집인 경우 선정일로부터 14일 마감 설정
-                if (isAlways && campaignType === 'VISIT') {
-                    const deadline = new Date(now);
-                    deadline.setDate(deadline.getDate() + 14);
-                    updateData.review_deadline = deadline.toISOString();
-                }
+    const isIndividualLinkCampaign = (applicant: Applicant) => {
+        const optionsRaw = applicant.campaign.campaign_options;
+        const options = Array.isArray(optionsRaw) ? optionsRaw[0] : optionsRaw;
+        const step1 = options?.step1Data || {};
+        return Boolean(step1.productUrlIndividual);
+    };
+
+    const fetchLinkCandidates = async (campaignId: number, optionLabel: string) => {
+        setIsCandidateLoading(true);
+        try {
+            const response = await fetch('/api/applications/link-candidates', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campaignId, optionLabel })
+            });
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                setLinkCandidates([]);
+                return;
             }
+
+            setLinkCandidates(payload.candidates || []);
+        } catch (error) {
+            console.error('Fetch link candidates error:', error);
+            setLinkCandidates([]);
+        } finally {
+            setIsCandidateLoading(false);
+        }
+    };
+
+    const openSelectionModal = async (applicant: Applicant, mode: 'SELECT' | 'REASSIGN') => {
+        const options = getOptionLabelsFromApplication(applicant);
+        const defaultOption = normalizeOptionLabel(applicant.assigned_option_label || options[0] || '기본 옵션');
+
+        setSelectionMode(mode);
+        setSelectionTarget(applicant);
+        setSelectionOptions(options);
+        setSelectedOptionLabel(defaultOption);
+        setManualLinkId('');
+        setIsSelectionModalOpen(true);
+        if (isIndividualLinkCampaign(applicant)) {
+            await fetchLinkCandidates(applicant.campaign.id, defaultOption);
+        } else {
+            setLinkCandidates([]);
+        }
+    };
+
+    const closeSelectionModal = () => {
+        setIsSelectionModalOpen(false);
+        setSelectionTarget(null);
+        setSelectionOptions([]);
+        setSelectedOptionLabel('');
+        setManualLinkId('');
+        setLinkCandidates([]);
+    };
+
+    const handleSelectionSubmit = async () => {
+        if (!selectionTarget) return;
+        setIsSelectionSubmitting(true);
+
+        try {
+            const endpoint =
+                selectionMode === 'REASSIGN'
+                    ? '/api/applications/reassign-link'
+                    : '/api/applications/select';
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    applicationId: selectionTarget.id,
+                    campaignId: selectionTarget.campaign.id,
+                    targetStatus: 'SELECTED',
+                    assignedOptionLabel: selectedOptionLabel,
+                    manualLinkId: manualLinkId ? Number(manualLinkId) : null
+                })
+            });
+
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                toast.error(payload?.error || '선정/재할당 처리에 실패했습니다.');
+                return;
+            }
+
+            const assigned = payload.application || {};
+
+            setApplicants((prev) =>
+                prev.map((app) =>
+                    app.id === selectionTarget.id
+                        ? {
+                            ...app,
+                            status: assigned.status || app.status,
+                            assigned_option_key: assigned.assigned_option_key ?? app.assigned_option_key,
+                            assigned_option_label: assigned.assigned_option_label ?? app.assigned_option_label,
+                            assigned_purchase_link_id: assigned.assigned_purchase_link_id ?? app.assigned_purchase_link_id,
+                            assigned_purchase_link_url: assigned.assigned_purchase_link_url ?? app.assigned_purchase_link_url,
+                            link_assigned_at: assigned.link_assigned_at ?? app.link_assigned_at,
+                            link_updated_at: assigned.link_updated_at ?? app.link_updated_at
+                        }
+                        : app
+                )
+            );
+
+            if (payload.notification && payload.notification.success === false) {
+                toast.warning(
+                    selectionMode === 'REASSIGN'
+                        ? '링크 변경은 완료되었지만 일부 알림 발송에 실패했습니다.'
+                        : '선정은 완료되었지만 일부 알림 발송에 실패했습니다.'
+                );
+            } else {
+                toast.success(selectionMode === 'REASSIGN' ? '링크를 재할당했습니다.' : '리뷰어를 선정했습니다.');
+            }
+
+            closeSelectionModal();
+        } catch (error) {
+            console.error('Selection submit error:', error);
+            toast.error('선정/재할당 처리 중 오류가 발생했습니다.');
+        } finally {
+            setIsSelectionSubmitting(false);
+        }
+    };
+
+    const handleStatusChange = async (applicationId: number, newStatus: string) => {
+        try {
+            const applicant = applicants.find(a => a.id === applicationId);
+            if (newStatus === 'SELECTED') {
+                if (!applicant) return;
+                await openSelectionModal(applicant, 'SELECT');
+                return;
+            }
+
+            const updateData = { status: newStatus };
 
             const { error: appError } = await supabase
                 .from('applications')
@@ -320,34 +474,7 @@ export default function AdvertiserApplicantsPage() {
                 .eq('id', applicationId);
 
             if (appError) throw appError;
-
-            // 2. 선정(SELECTED)인 경우 캠페인의 모집 인원 카운트 증가 (RPC 호출) 및 알림톡 발송
-            if (newStatus === 'SELECTED') {
-                // RPC 호출
-                const { error: campaignError } = await supabase.rpc('increment_campaign_recruit_count', {
-                    campaign_id: campaignId
-                });
-
-                if (campaignError) {
-                    console.error('RPC Error:', campaignError);
-                }
-
-                // 알림톡 발송
-                const applicant = applicants.find(a => a.id === applicationId);
-                if (applicant && applicant.user.id) {
-                    try {
-                        const notifyResult = await sendSelectionNotifications(applicant, campaignId);
-                        if (!notifyResult.success) {
-                            toast.warning('선정은 완료되었지만 일부 알림 발송에 실패했습니다.');
-                        }
-                    } catch (error) {
-                        console.error('Alimtalk send error:', error);
-                        toast.warning('선정은 완료되었지만 알림 발송 중 오류가 발생했습니다.');
-                    }
-                }
-            }
-
-            toast.success(newStatus === 'SELECTED' ? '리뷰어를 선정했습니다!' : '신청을 거절했습니다.');
+            toast.success('신청을 거절했습니다.');
 
             // 목록 갱신
             setApplicants(prev => prev.map(app =>
@@ -399,7 +526,11 @@ export default function AdvertiserApplicantsPage() {
                         </div>
                     ) : (
                         <div className="grid gap-4">
-                            {applicants.map((app) => (
+                            {applicants.map((app) => {
+                                const isSelectedStatus = app.status === 'SELECTED' || app.status === 'APPROVED';
+                                const individualLinkCampaign = isIndividualLinkCampaign(app);
+
+                                return (
                                 <div key={app.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
                                     <div className="flex items-center gap-6">
                                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
@@ -421,6 +552,17 @@ export default function AdvertiserApplicantsPage() {
                                                         <span className="text-xs font-semibold text-blue-700">{app.selected_option}</span>
                                                     </div>
                                                 )}
+                                                {app.assigned_option_label && (
+                                                    <div className="flex items-start gap-2">
+                                                        <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 uppercase">Assigned</span>
+                                                        <span className="text-xs font-semibold text-emerald-700">{app.assigned_option_label}</span>
+                                                    </div>
+                                                )}
+                                                {app.assigned_purchase_link_url && (
+                                                    <span className="text-xs text-indigo-600 font-semibold">
+                                                        개별 링크 할당 완료
+                                                    </span>
+                                                )}
                                                 <div className="text-sm text-gray-600 line-clamp-2">{app.application_message || '지원 메시지가 없습니다.'}</div>
                                             </div>
 
@@ -435,13 +577,13 @@ export default function AdvertiserApplicantsPage() {
                                         {app.status === 'PENDING' ? (
                                             <>
                                                 <button
-                                                    onClick={() => handleStatusChange(app.id, 'SELECTED', app.campaign.id)}
+                                                    onClick={() => handleStatusChange(app.id, 'SELECTED')}
                                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
                                                 >
                                                     선정하기
                                                 </button>
                                                 <button
-                                                    onClick={() => handleStatusChange(app.id, 'REJECTED', app.campaign.id)}
+                                                    onClick={() => handleStatusChange(app.id, 'REJECTED')}
                                                     className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
                                                 >
                                                     거절
@@ -455,9 +597,9 @@ export default function AdvertiserApplicantsPage() {
                                                             연장 요청됨
                                                         </span>
                                                     )}
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${app.status === 'SELECTED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${isSelectedStatus ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                                                         }`}>
-                                                        {app.status === 'SELECTED' ? '선정됨' : '거절됨'}
+                                                        {isSelectedStatus ? '선정됨' : '거절됨'}
                                                     </span>
                                                 </div>
                                                 
@@ -481,7 +623,7 @@ export default function AdvertiserApplicantsPage() {
                                                     </div>
                                                 )}
 
-                                                {app.status === 'SELECTED' && app.campaign.type === 'DELIVERY' && (
+                                                {isSelectedStatus && app.campaign.type === 'DELIVERY' && (
                                                     <button
                                                         onClick={() => setEditingTracking({
                                                             applicationId: app.id,
@@ -494,12 +636,21 @@ export default function AdvertiserApplicantsPage() {
                                                     </button>
                                                 )}
 
-                                                {app.status === 'SELECTED' && (
+                                                {isSelectedStatus && (
                                                     <button
                                                         onClick={() => handleResendSelectionNotification(app)}
                                                         className="text-xs text-rose-600 hover:underline"
                                                     >
                                                         알림 재발송
+                                                    </button>
+                                                )}
+
+                                                {isSelectedStatus && individualLinkCampaign && (
+                                                    <button
+                                                        onClick={() => openSelectionModal(app, 'REASSIGN')}
+                                                        className="text-xs text-indigo-600 hover:underline"
+                                                    >
+                                                        링크 재할당
                                                     </button>
                                                 )}
                                                 
@@ -512,7 +663,7 @@ export default function AdvertiserApplicantsPage() {
                                         )}
                                     </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                     )}
                 </div>
@@ -562,6 +713,95 @@ export default function AdvertiserApplicantsPage() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {isSelectionModalOpen && selectionTarget && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+                        <h2 className="text-xl font-bold mb-2">
+                            {selectionMode === 'REASSIGN' ? '구매링크 재할당' : '선정 옵션 및 링크 배정'}
+                        </h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                            {selectionTarget.user.nickname}님의 확정 옵션을 선택하세요.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">확정 옵션</label>
+                                <select
+                                    value={selectedOptionLabel}
+                                    onChange={async (e) => {
+                                        const value = e.target.value;
+                                        setSelectedOptionLabel(value);
+                                        setManualLinkId('');
+                                        if (isIndividualLinkCampaign(selectionTarget)) {
+                                            await fetchLinkCandidates(selectionTarget.campaign.id, value);
+                                        }
+                                    }}
+                                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                >
+                                    {selectionOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            {isIndividualLinkCampaign(selectionTarget) ? (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        링크 배정 방식
+                                    </label>
+                                    <select
+                                        value={manualLinkId}
+                                        onChange={(e) => setManualLinkId(e.target.value)}
+                                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        disabled={isCandidateLoading}
+                                    >
+                                        <option value="">자동 배정 (최소사용우선)</option>
+                                        {linkCandidates.map((candidate) => (
+                                            <option key={candidate.id} value={candidate.id}>
+                                                #{candidate.id} (사용 {candidate.usageCount}건)
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        {isCandidateLoading
+                                            ? '링크 후보를 불러오는 중...'
+                                            : '수동 링크를 지정하지 않으면 최소사용우선으로 자동 배정됩니다.'}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                                    이 캠페인은 개별 구매링크를 사용하지 않습니다.
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="flex gap-2 pt-6">
+                            <button
+                                type="button"
+                                onClick={handleSelectionSubmit}
+                                disabled={isSelectionSubmitting}
+                                className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 disabled:bg-blue-400"
+                            >
+                                {isSelectionSubmitting
+                                    ? '처리 중...'
+                                    : selectionMode === 'REASSIGN'
+                                        ? '재할당 실행'
+                                        : '선정 확정'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={closeSelectionModal}
+                                className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg font-bold hover:bg-gray-50"
+                            >
+                                취소
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -135,6 +135,12 @@ export interface Application {
     cancelled_at?: string;
     selected_option?: string;
     application_message?: string;
+    assigned_option_key?: string;
+    assigned_option_label?: string;
+    assigned_purchase_link_id?: number;
+    assigned_purchase_link_url?: string;
+    link_assigned_at?: string;
+    link_updated_at?: string;
 
     // Joins
     campaign?: Campaign;

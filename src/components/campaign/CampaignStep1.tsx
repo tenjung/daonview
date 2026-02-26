@@ -54,6 +54,7 @@ interface Step1Data {
     productUrl: string;
     productUrlPrivate: boolean; // 링크 비공개 설정
     productUrlIndividual: boolean; // 선정시 구매링크 개별전달
+    purchaseLinkPools: PurchaseLinkPool[];
     productName: string;
     campaignTitle: string; // 캠페인 제목 동기화용 추가
     brandName: string;     // 브랜드명 (레거시 및 표시용)
@@ -94,6 +95,11 @@ interface ProductOption {
     optionName: string;
     optionPrice: string;
     recruitmentCount: string;
+}
+
+interface PurchaseLinkPool {
+    optionLabel: string;
+    links: string[];
 }
 
 interface Store {
@@ -451,6 +457,54 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         updateField('productOptions', formData.productOptions.map(opt =>
             opt.id === id ? { ...opt, [field]: finalValue } : opt
         ));
+    };
+
+    const resolveLinkPoolOptionLabels = () => {
+        const optionNames = formData.productOptions
+            .map((option) => option.optionName?.trim())
+            .filter(Boolean) as string[];
+
+        if (optionNames.length > 0) {
+            return Array.from(new Set(optionNames));
+        }
+
+        if (formData.productName?.trim()) {
+            return [formData.productName.trim()];
+        }
+
+        return ['기본 옵션'];
+    };
+
+    const getPoolLinksText = (optionLabel: string) => {
+        const pool = (formData.purchaseLinkPools || []).find(
+            (item) => item.optionLabel.trim().toUpperCase() === optionLabel.trim().toUpperCase()
+        );
+        return (pool?.links || []).join('\n');
+    };
+
+    const updatePurchaseLinkPool = (optionLabel: string, inputValue: string) => {
+        const links = inputValue
+            .split(/\r?\n|,/)
+            .map((value) => value.trim())
+            .filter((value) => /^https?:\/\//i.test(value));
+
+        const normalizedLabel = optionLabel.trim();
+        const existing = (formData.purchaseLinkPools || []).filter(
+            (item) => item.optionLabel.trim().toUpperCase() !== normalizedLabel.toUpperCase()
+        );
+
+        if (links.length === 0) {
+            updateField('purchaseLinkPools', existing);
+            return;
+        }
+
+        updateField('purchaseLinkPools', [
+            ...existing,
+            {
+                optionLabel: normalizedLabel,
+                links: Array.from(new Set(links)),
+            },
+        ]);
     };
 
     // 요일 토글
@@ -1178,6 +1232,34 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             </label>
                         </div>
                     </div>
+
+                    {formData.productUrlIndividual && (
+                        <div className="mb-4 rounded-xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-bold text-blue-900">옵션별 개별 구매링크 풀</p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        옵션별로 한 줄에 하나씩 링크를 입력하세요. 선정 시 최소사용우선으로 자동 배정됩니다.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="space-y-3">
+                                {resolveLinkPoolOptionLabels().map((optionLabel) => (
+                                    <div key={optionLabel} className="rounded-lg border border-blue-100 bg-white p-3">
+                                        <p className="text-xs font-bold text-blue-700 mb-2">옵션: {optionLabel}</p>
+                                        <textarea
+                                            rows={4}
+                                            placeholder={'https://example.com/link-1\nhttps://example.com/link-2'}
+                                            value={getPoolLinksText(optionLabel)}
+                                            onChange={(e) => updatePurchaseLinkPool(optionLabel, e.target.value)}
+                                            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* 상품명 */}
                     <div className="mb-4">

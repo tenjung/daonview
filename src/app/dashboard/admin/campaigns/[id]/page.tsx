@@ -62,6 +62,10 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
 
     const campaign = campaignRes.data;
     const applications: Application[] = (applicationsRes.data || []) as Application[];
+    const campaignOptions = Array.isArray(campaign?.campaign_options)
+        ? campaign.campaign_options[0]
+        : campaign?.campaign_options;
+    const productUrlIndividual = Boolean(campaignOptions?.step1Data?.productUrlIndividual);
 
     const campaignProvidedItems =
         campaign?.provision ||
@@ -117,6 +121,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 campaignDeadlineDate={campaignDeadlineDate}
                 campaignCategory={campaign.category || ''}
                 campaignType={campaign.type}
+                productUrlIndividual={productUrlIndividual}
                 recruitCount={campaign.recruit_count || 0}
             />
         </AdminPageLayout>
