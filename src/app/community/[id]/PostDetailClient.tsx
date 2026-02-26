@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase/client";
@@ -31,18 +31,6 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
     const [newComment, setNewComment] = useState("");
     const [commentType, setCommentType] = useState<'FEEDBACK' | 'NETWORK'>('FEEDBACK');
     const [commentLoading, setCommentLoading] = useState(false);
-
-    useEffect(() => {
-        incrementViewCount();
-    }, []);
-
-    const incrementViewCount = async () => {
-        try {
-            await supabase.rpc('increment_view_count', { post_id: id });
-        } catch (error) {
-            console.error('Error incrementing view count:', error);
-        }
-    };
 
     const fetchComments = async () => {
         try {

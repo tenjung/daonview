@@ -1,6 +1,7 @@
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailClient from './PostDetailClient';
+import { incrementCommunityViewCount } from '@/lib/community/view-count';
 
 import { Metadata } from 'next';
 
@@ -55,6 +56,9 @@ export default async function PostDetailPage({ params }: PageProps) {
 
     if (error || !post) return notFound();
 
+    const nextViewCount = (post.view_count || 0) + 1;
+    await incrementCommunityViewCount('POST', id, nextViewCount);
+
     // Fetch initial comments with profile join for first paint
     const { data: commentsData } = await supabase
         .from('comments')
@@ -88,7 +92,7 @@ export default async function PostDetailPage({ params }: PageProps) {
                 }}
             />
             <PostDetailClient
-                initialPost={post}
+                initialPost={{ ...post, view_count: nextViewCount }}
                 initialComments={commentsData || []}
                 id={id}
             />

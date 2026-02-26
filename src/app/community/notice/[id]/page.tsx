@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
 import { Metadata } from 'next';
+import { incrementCommunityViewCount } from '@/lib/community/view-count';
 
 interface PageProps {
     params: Promise<{ id: string }>;
@@ -20,6 +21,7 @@ function formatKoreanDate(input: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
+    const supabase = await createServerClient();
 
     const { data: notice } = await supabase
         .from('notices')
@@ -50,6 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function NoticeDetailPage({ params }: PageProps) {
     const { id } = await params;
+    const supabase = await createServerClient();
 
     // Fetch notice data
     const { data: notice, error } = await supabase
@@ -60,8 +63,8 @@ export default async function NoticeDetailPage({ params }: PageProps) {
 
     if (error || !notice) return notFound();
 
-    // Increment view count
-    await supabase.rpc('increment_notice_view_count', { notice_id: id });
+    const nextViewCount = (notice.view_count || 0) + 1;
+    await incrementCommunityViewCount('NOTICE', id, nextViewCount);
 
     const noticeWithProfile = notice as typeof notice & {
         profiles?: { nickname?: string } | null;
@@ -77,7 +80,7 @@ export default async function NoticeDetailPage({ params }: PageProps) {
             title={notice.title}
             author={authorName}
             createdAt={formatKoreanDate(notice.created_at)}
-            viewCount={(notice.view_count || 0) + 1}
+            viewCount={nextViewCount}
         >
             {/* JSON-LD for Structured Data */}
             <script

@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
+import { incrementCommunityViewCount } from '@/lib/community/view-count';
 
 import { Metadata } from 'next';
 
@@ -21,6 +22,7 @@ function formatKoreanDate(input: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
+    const supabase = await createServerClient();
 
     const { data: post } = await supabase
         .from('notices')
@@ -48,6 +50,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function EventDetailPage({ params }: PageProps) {
     const { id } = await params;
+    const supabase = await createServerClient();
 
     // Fetch event data (from notices table since events are stored there with type='이벤트')
     const { data: post, error } = await supabase
@@ -59,8 +62,8 @@ export default async function EventDetailPage({ params }: PageProps) {
 
     if (error || !post) return notFound();
 
-    // Increment view count
-    await supabase.rpc('increment_notice_view_count', { notice_id: id });
+    const nextViewCount = (post.view_count || 0) + 1;
+    await incrementCommunityViewCount('NOTICE', id, nextViewCount);
 
     const postWithProfile = post as typeof post & {
         profiles?: { nickname?: string } | null;
@@ -76,7 +79,7 @@ export default async function EventDetailPage({ params }: PageProps) {
             title={post.title}
             author={authorName}
             createdAt={formatKoreanDate(post.created_at)}
-            viewCount={(post.view_count || 0) + 1}
+            viewCount={nextViewCount}
         >
             {/* JSON-LD for Structured Data */}
             <script
