@@ -24,7 +24,8 @@ export default function CampaignSuccess({
     campaignId = null,
 }: CampaignSuccessProps) {
     const router = useRouter();
-    const isTransfer = paymentMethod === 'transfer';
+    // PG 계좌이체로 통합되어 수동 입금 대기 화면은 더 이상 사용하지 않음
+    const isTransfer = paymentMethod === 'transfer' && false;
     const canGoDetail = isEdit && campaignId !== null && campaignId !== undefined;
 
     const timelineSteps = isTransfer ? [
@@ -56,7 +57,7 @@ export default function CampaignSuccess({
         {
             icon: <ShieldCheck className="text-gray-400" size={20} />,
             title: "승인 완료",
-            desc: "검토 결과에 따라 승인 시 결제가 최종 확정됩니다.",
+            desc: "검토 결과에 따라 승인 여부가 확정됩니다.",
             status: "pending"
         },
         {

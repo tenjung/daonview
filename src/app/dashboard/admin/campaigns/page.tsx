@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import { UnifiedAdminCampaigns } from '@/components/admin/UnifiedAdminCampaigns';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import Link from 'next/link';
@@ -10,6 +10,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AdminCampaignsPage() {
+    const supabase = await createClient();
+
     // 모든 캠페인 데이터 가져오기 (관리자는 전체를 봐야 하므로 필터 최소화)
     const { data: campaignsRes, error } = await supabase
         .from('campaigns')

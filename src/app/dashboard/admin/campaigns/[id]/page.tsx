@@ -1,11 +1,12 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, BadgeHelp } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import ApplicationsTableClient from '@/components/admin/ApplicationsTableClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { Badge } from '@/components/ui/badge';
+import { Application } from '@/types/database';
 
 // Next.js 캐싱 비활성화
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,7 @@ interface PageProps {
 }
 
 export default async function CampaignApplicationsPage({ params }: PageProps) {
+    const supabase = await createClient();
     const { id } = await params;
 
     // 캠페인 정보, 신청자 목록, 사이드바 카운트 병렬 조회
@@ -59,7 +61,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
     ]);
 
     const campaign = campaignRes.data;
-    const applications = applicationsRes.data || [];
+    const applications: Application[] = (applicationsRes.data || []) as Application[];
 
     if (campaignRes.error || !campaign) {
         notFound();
@@ -93,7 +95,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
 
             {/* 메인 테이블 영역 */}
             <ApplicationsTableClient
-                initialApplications={applications as any}
+                initialApplications={applications}
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
                 campaignCategory={campaign.category || ''}

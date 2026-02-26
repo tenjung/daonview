@@ -1,14 +1,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Handshake, CreditCard, Building2, Info, Check, ChevronRight, ChevronLeft, Gift, ShoppingBag, Search, Loader2, CheckCircle2, Infinity } from 'lucide-react';
-import { HelpTooltip } from '@/components/ui/HelpTooltip';
+import { Handshake, Info, Check, Gift, ShoppingBag, Search, Loader2, CheckCircle2, Infinity } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { CampaignActionButtons } from './CampaignActionButtons';
 import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
 import { useSubscription } from '@/hooks/useSubscription';
+import CardTransferPaymentSelector from '@/components/payment/CardTransferPaymentSelector';
 
 interface Step3Data {
     paymentMethod: 'card' | 'transfer' | 'free' | null;
@@ -201,7 +200,7 @@ export default function CampaignStep3({
             setIsValidatingCoupon(false);
         }
     };
-    const handleCardPayment = async () => {
+    const handlePgPayment = async (payMethod: 'CARD' | 'TRANSFER') => {
         if (!user) {
             toast.error('로그인이 필요합니다.');
             return;
@@ -215,9 +214,6 @@ export default function CampaignStep3({
         }
 
         try {
-            // 결제 ID 생성 (고유값)
-            const paymentId = `campaign-${Date.now()}`;
-            
             // INICIS V2 필수 정보(이메일 등) 포함하여 호출
             const response = await requestPayment({
                 paymentId: '', // Hook 내부에서 안전한 Hex ID로 자동 생성됨
@@ -230,6 +226,7 @@ export default function CampaignStep3({
                 campaignId: formData.currentCampaignId && !isNaN(Number(formData.currentCampaignId)) 
                     ? Number(formData.currentCampaignId) 
                     : 0,
+                payMethod,
             });
             
             // 결제 실패/취소 시 중단 (response.code가 있으면 실패)
@@ -240,9 +237,9 @@ export default function CampaignStep3({
             console.log('Payment request successful:', response);
 
             // 결제 방법 상태 업데이트
-            store.setField('paymentMethod', 'card');
+            store.setField('paymentMethod', payMethod === 'CARD' ? 'card' : 'transfer');
         } catch (error) {
-            console.error('Card payment error:', error);
+            console.error('PG payment error:', error);
             // 에러 처리는 Hook 내부에서 toast로 표시됨
         }
     };
@@ -258,12 +255,6 @@ export default function CampaignStep3({
     const handleSubmit = async () => {
         if (!isFormValid()) {
             toast.error('결제 방법 선택 및 약관 동의가 필요합니다.');
-            return;
-        }
-
-        // 계좌이체 선택 시 입금자명 필수 체크
-        if (formData.paymentMethod === 'transfer' && !formData.depositorName?.trim()) {
-            toast.error('입금자명을 입력해 주세요.');
             return;
         }
 
@@ -474,49 +465,16 @@ export default function CampaignStep3({
                         </label>
                     )}
 
-                    {/* 카드 결제 */}
-                    <label
-                        onClick={handleCardPayment}
-                        className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.paymentMethod === 'card'
-                            ? 'border-blue-500 bg-blue-50 shadow-sm'
-                            : 'border-gray-200 hover:border-blue-300 hover:bg-slate-50'
-                            }`}
-                    >
-                        <div className="flex items-center gap-4 flex-1">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.paymentMethod === 'card' ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                                {formData.paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
-                            </div>
-                            <div className="bg-blue-100/50 p-2.5 rounded-xl text-blue-600">
-                                <CreditCard size={22} strokeWidth={2.5} />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">신용 / 체크카드</span>
-                                <span className="text-[13px] text-gray-500 font-medium">안전하고 빠른 간편 결제 (PG 연동)</span>
-                            </div>
-                        </div>
-                    </label>
-
-                    {/* 계좌이체 */}
-                    <label
-                        onClick={() => store.setField('paymentMethod', 'transfer')}
-                        className={`relative flex items-center p-5 rounded-2xl border-2 cursor-pointer transition-all group ${formData.paymentMethod === 'transfer'
-                            ? 'border-emerald-500 bg-emerald-50 shadow-sm'
-                            : 'border-gray-200 hover:border-emerald-300 hover:bg-slate-50'
-                            }`}
-                    >
-                        <div className="flex items-center gap-4 flex-1">
-                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${formData.paymentMethod === 'transfer' ? 'border-emerald-500 bg-emerald-500' : 'border-gray-300'}`}>
-                                {formData.paymentMethod === 'transfer' && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
-                            </div>
-                            <div className="bg-emerald-100/50 p-2.5 rounded-xl text-emerald-600">
-                                <Building2 size={22} strokeWidth={2.5} />
-                            </div>
-                            <div className="flex flex-col">
-                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">계좌이체 (무통장 입금)</span>
-                                <span className="text-[13px] text-gray-500 font-medium">입금 내역 확인 후 관리자가 승인 처리</span>
-                            </div>
-                        </div>
-                    </label>
+                    <CardTransferPaymentSelector
+                        variant="CAMPAIGN"
+                        selectedMethod={formData.paymentMethod}
+                        cardDescription="안전하고 빠른 간편 결제 (PG 연동)"
+                        transferLabel="계좌이체"
+                        transferDescription="실시간 계좌이체 (PG 연동)"
+                        onSelect={(method) => {
+                            void handlePgPayment(method);
+                        }}
+                    />
 
                     {/* 제휴 및 프로모션 */}
                     <label
@@ -670,82 +628,6 @@ export default function CampaignStep3({
                     </div>
                 )}
 
-                {/* 계좌 정보 (계좌이체 선택 시) */}
-                {formData.paymentMethod === 'transfer' && (
-                    <div className="mt-4 p-6 bg-amber-50/50 border-2 border-amber-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300 relative overflow-hidden group">
-                        {/* 배경 장식 */}
-                        <div className="absolute right-0 top-0 p-4 opacity-[0.05] pointer-events-none group-hover:scale-110 transition-transform">
-                            <Building2 size={100} />
-                        </div>
-
-                        <div className="relative z-10 flex flex-col md:flex-row gap-6 md:items-start justify-between">
-                            <div className="space-y-6 flex-1">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                                    <span className="text-sm font-black text-amber-900 tracking-tight">지정된 계좌로 입금해 주세요</span>
-                                </div>
-                                <div className="flex flex-col gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="px-2.5 py-1.5 bg-[#FEE500] text-[#3C1E1E] rounded-lg font-black text-[12px] shadow-sm flex-shrink-0">카카오뱅크</span>
-                                        <span className="text-2xl font-black text-gray-900 tracking-tighter">3333-36-4120453</span>
-                                        <button 
-                                            onClick={() => {
-                                                navigator.clipboard.writeText('카카오뱅크 3333-36-4120453');
-                                                toast.success('은행과 계좌번호가 복사되었습니다.');
-                                            }}
-                                            className="group/copy flex items-center gap-1.5 text-[11px] font-black text-amber-700 bg-white border-2 border-amber-100 hover:border-amber-300 hover:bg-amber-50 px-3 py-1.5 rounded-xl transition-all shadow-sm active:scale-95"
-                                        >
-                                            <span className="opacity-70 group-hover/copy:opacity-100 italic transition-opacity">Copy</span>
-                                            전체복사
-                                        </button>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div className="bg-white/60 p-3 rounded-xl border border-amber-200/50">
-                                            <p className="text-[11px] font-bold text-amber-600 mb-1 uppercase tracking-wider">Deposit Holder</p>
-                                            <p className="text-base text-gray-900 font-extrabold">
-                                                신지호<span className="text-gray-400 font-bold ml-1 text-sm">(다온컴퍼니)</span>
-                                            </p>
-                                        </div>
-                                        <div className="bg-white p-3 rounded-xl border-2 border-amber-200 shadow-sm focus-within:border-amber-400 transition-colors">
-                                            <p className="text-[11px] font-bold text-amber-600 mb-1 uppercase tracking-wider">Depositor Name <span className="text-rose-500">*</span></p>
-                                            <input 
-                                                type="text"
-                                                value={formData.depositorName}
-                                                onChange={(e) => store.setField('depositorName', e.target.value)}
-                                                placeholder="입금자명을 입력해주세요"
-                                                className="w-full bg-transparent border-none p-0 focus:ring-0 text-gray-900 font-extrabold placeholder:text-gray-300 placeholder:font-bold text-base"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 금액 강조 영역 */}
-                            <div className="bg-slate-900 px-8 py-6 rounded-3xl shadow-xl border-4 border-slate-800 text-center md:text-right min-w-[240px] transform hover:scale-[1.02] transition-transform">
-                                <p className="text-xs font-bold text-amber-400 mb-2 uppercase tracking-widest opacity-80">Total Deposit Amount</p>
-                                <p className="text-3xl font-black text-white tracking-tighter">
-                                    {costs.totalCost.toLocaleString()}<span className="text-xl ml-1 text-amber-100">원</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 pt-5 border-t border-amber-200/50 space-y-2">
-                            <div className="flex items-start gap-2 text-[12px] text-amber-900 font-bold leading-relaxed">
-                                <span className="text-rose-600">●</span>
-                                <p>입금자명이 신청하신 성함과 동일해야만 자동 입금 확인이 가능합니다.</p>
-                            </div>
-                            <div className="flex items-start gap-2 text-[12px] text-amber-800 font-medium leading-relaxed opacity-80">
-                                <span className="opacity-50">●</span>
-                                <p>주문 후 <span className="font-bold underline text-amber-900">14일 이내</span> 미입금 시, 주문 내역이 자동 취소됩니다.</p>
-                            </div>
-                            <div className="flex items-start gap-2 text-[12px] text-amber-800 font-medium leading-relaxed opacity-80">
-                                <span className="opacity-50">●</span>
-                                <p>캠페인 완료 시 <span className="font-bold text-blue-700">세금계산서는 자동으로 발행</span>됩니다.</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </section>
 
             {/* 약관 동의 */}

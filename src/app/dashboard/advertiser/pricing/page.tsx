@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
+import { UNLIMITED_PLANS } from '@/constants/pricing';
 import { useAuthStore } from '@/store/authStore';
 import {
     Check,
@@ -26,25 +27,18 @@ import {
     ArrowRight,
 } from 'lucide-react';
 
-const UNLIMITED_PLANS = [
-    { period: '1개월', pricePerMonth: 250000, total: 250000, discount: null, highlight: false },
-    { period: '3개월', pricePerMonth: 219000, total: 657000, discount: 13, highlight: false },
-    { period: '6개월', pricePerMonth: 179000, total: 1074000, discount: 29, highlight: false },
-    { period: '12개월', pricePerMonth: 139000, total: 1668000, discount: 45, highlight: true },
-];
-
 const FAQS = [
     {
         q: '캠페인 등록 1건당 과금이 되는 건가요?',
-        a: '단일 체험단과 1석 2조 체험단은 캠페인 등록 건당 5,000원 / 9,000원이 부과됩니다. 무제한 이용권 구독 시에는 건당 과금 없이 자유롭게 등록하실 수 있습니다.',
+        a: '단일 체험단과 1석 2조 체험단은 캠페인 등록 건당 5,000원 / 9,000원이 부과됩니다. 구독형 결제(무제한 이용권) 선택 시에는 건당 과금 없이 자유롭게 등록하실 수 있습니다.',
     },
     {
         q: '1석 2조 체험단은 어떤 서비스인가요?',
         a: '쇼핑몰 리뷰와 SNS 리뷰(블로그·인스타피드·인스타릴스·네이버클립·스레드 중 택1)를 한 번에 진행하는 패키지입니다. 단일 건당보다 10% 저렴하게 두 채널을 동시에 활용할 수 있습니다.',
     },
     {
-        q: '무제한 이용권 구독 중 해지하면 어떻게 되나요?',
-        a: '구독 기간 내 해지 시 남은 기간에 대해 일할 계산 환불이 가능합니다. 단, 이미 사용된 캠페인 건수에 대한 환불은 불가합니다.',
+        q: '무제한 이용권 해지/환불은 어떻게 되나요?',
+        a: '월간 결제는 결제 후 7일 이내 미사용 시 전액 환불됩니다. 연간 결제는 중도 해지 시 사용 개월을 월간 정상가 기준으로 차감하고, 잔여 금액에서 해지 수수료 10%를 공제 후 환불됩니다.',
     },
     {
         q: '무제한 이용권으로 등록할 수 있는 캠페인 수에 제한이 있나요?',
@@ -52,17 +46,26 @@ const FAQS = [
     },
     {
         q: '결제는 어떤 방식으로 이루어지나요?',
-        a: '신용카드, 체크카드를 통해 결제하실 수 있습니다. 정기구독(무제한 이용권)의 경우 선결제 방식으로 진행됩니다. 세금계산서 발행이 필요하신 경우 1:1 문의로 요청해 주세요.',
+        a: '신용카드, 체크카드, 계좌이체로 결제하실 수 있습니다. 구독형 결제(무제한 이용권)는 월간/연간 플랜으로 제공됩니다. 세금계산서 발행이 필요하신 경우 1:1 문의로 요청해 주세요.',
     },
 ];
+
+type PaymentMode = 'ONE_TIME' | 'SUBSCRIPTION';
+type BillingCycle = 'MONTHLY' | 'YEARLY';
 
 export default function PricingPage() {
     const { profile } = useAuthStore();
     const [openFaq, setOpenFaq] = useState<number | null>(null);
-    const [selectedUnlimited, setSelectedUnlimited] = useState<number | null>(null);
+    const [paymentMode, setPaymentMode] = useState<PaymentMode>('ONE_TIME');
+    const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
 
     const displayName = profile?.company_name || profile?.nickname || '광고주';
     const isVerified = profile?.biz_verification_status === 'APPROVED';
+    const monthlyPlan = UNLIMITED_PLANS[0];
+    const yearlyPlan = UNLIMITED_PLANS[3];
+    const yearlyRegularTotal = UNLIMITED_PLANS[0].pricePerMonth * 12;
+    const yearlySavedAmount = yearlyRegularTotal - UNLIMITED_PLANS[3].total;
+    const yearlyDiscountRate = Math.round((yearlySavedAmount / yearlyRegularTotal) * 100);
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
@@ -108,7 +111,7 @@ export default function PricingPage() {
                                         </div>
                                         <h1 className="text-3xl font-black tracking-tight text-gray-900">이용요금 안내</h1>
                                     </div>
-                                    <p className="ml-[52px] mt-1 text-gray-500">단일, 패키지, 무제한 이용권 요금을 확인하고 선택하세요.</p>
+                                    <p className="ml-[52px] mt-1 text-gray-500">결제 방식을 먼저 고른 뒤, 해당 요금제를 선택하세요.</p>
                                 </div>
                                 <Link
                                     href="/dashboard/advertiser/billing"
@@ -119,155 +122,254 @@ export default function PricingPage() {
                                 </Link>
                             </div>
 
-                            <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                                <div className="flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
-                                    <div className="mb-6">
-                                        <div className="mb-2 flex items-center gap-2">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
-                                                <ShoppingBag className="h-4 w-4 text-blue-500" />
-                                            </div>
-                                            <h2 className="text-xl font-black text-gray-900">단일 체험단</h2>
-                                        </div>
-                                        <p className="text-sm leading-relaxed text-gray-500">부담 없는 비용으로, 꼭 필요한 채널의 리뷰부터 빠르게 채우세요.</p>
-                                    </div>
-                                    <div className="mb-8 border-y border-gray-100 py-6">
-                                        <div className="flex items-end gap-1">
-                                            <span className="text-4xl font-black text-gray-900">5,000</span>
-                                            <span className="text-xl font-black text-gray-900">원</span>
-                                            <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
-                                        </div>
-                                    </div>
-                                    <Link
-                                        href="/dashboard/campaign/new"
-                                        className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-gray-100 py-3 text-center text-sm font-bold text-gray-700 transition-all hover:bg-gray-200"
-                                    >
-                                        캠페인 등록하기
-                                        <ArrowRight size={15} />
-                                    </Link>
-                                    <ul className="flex flex-1 flex-col gap-5">
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-                                                <ShoppingBag className="h-3.5 w-3.5 text-amber-600" />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-800">쇼핑몰 리뷰</p>
-                                        </li>
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50">
-                                                <Newspaper className="h-3.5 w-3.5 text-violet-600" />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-800">원고료형 기자단</p>
-                                        </li>
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50">
-                                                <Share2 className="h-3.5 w-3.5 text-rose-500" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-800">SNS 리뷰</p>
-                                                <p className="mt-0.5 text-xs leading-relaxed text-gray-400">블로그 · 인스타피드 · 인스타릴스 · 네이버클립 · 스레드</p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <div className="relative flex h-full scale-[1.02] flex-col rounded-3xl border-2 border-primary bg-white p-8 shadow-xl shadow-primary/10">
-                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-primary px-4 py-1 text-xs font-black tracking-wide text-white">추천</div>
-                                    <div className="mb-6">
-                                        <div className="mb-2 flex items-center gap-2">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
-                                                <Zap className="h-4 w-4 text-primary" />
-                                            </div>
-                                            <h2 className="text-xl font-black text-gray-900">1석 2조 체험단</h2>
-                                        </div>
-                                        <p className="text-sm leading-relaxed text-gray-500">쇼핑몰 + SNS 리뷰를 한 번에, 할인된 가격으로 해결하세요.</p>
-                                    </div>
-                                    <div className="mb-8 border-y border-gray-100 py-6">
-                                        <span className="mb-1 inline-block rounded-lg bg-primary/10 px-2 py-0.5 text-xs font-black text-primary">10% 할인</span>
-                                        <div className="flex items-end gap-1">
-                                            <span className="text-4xl font-black text-gray-900">9,000</span>
-                                            <span className="text-xl font-black text-gray-900">원</span>
-                                            <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
-                                        </div>
-                                    </div>
-                                    <Link
-                                        href="/dashboard/campaign/new"
-                                        className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
-                                    >
-                                        캠페인 등록하기
-                                        <ArrowRight size={15} />
-                                    </Link>
-                                    <ul className="flex flex-1 flex-col gap-5">
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
-                                                <ShoppingBag className="h-3.5 w-3.5 text-amber-600" />
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-800">쇼핑몰 리뷰</p>
-                                        </li>
-                                        <li className="flex items-start gap-3">
-                                            <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50">
-                                                <Share2 className="h-3.5 w-3.5 text-rose-500" />
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-800">SNS 리뷰 <span className="text-xs font-normal text-gray-400">택1</span></p>
-                                                <p className="mt-0.5 text-xs leading-relaxed text-gray-400">블로그 · 인스타피드 · 인스타릴스 · 네이버클립 · 스레드</p>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <div className="relative flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
-                                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-1 text-xs font-black tracking-wide text-white">인기</div>
-                                    <div className="mb-6">
-                                        <div className="mb-2 flex items-center gap-2">
-                                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50">
-                                                <Infinity className="h-4 w-4 text-purple-600" />
-                                            </div>
-                                            <h2 className="text-xl font-black text-gray-900">무제한 이용권</h2>
-                                        </div>
-                                        <p className="text-sm leading-relaxed text-gray-500">리뷰가 많이 필요한 광고주라면, 다온뷰의 모든 체험단을 제한 없이 이용해 보세요.</p>
-                                    </div>
-                                    <div className="mb-8 grid grid-cols-2 gap-3">
-                                        {UNLIMITED_PLANS.map((plan, i) => (
-                                            <button
-                                                key={i}
-                                                onClick={() => setSelectedUnlimited(selectedUnlimited === i ? null : i)}
-                                                className={`relative rounded-2xl border-2 p-4 text-left transition-all ${
-                                                    selectedUnlimited === i ? 'border-primary bg-primary/5' : 'border-gray-100 bg-gray-50 hover:border-gray-200'
-                                                }`}
-                                            >
-                                                {plan.highlight && <span className="absolute -right-2 -top-2 rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-black text-white">BEST</span>}
-                                                <p className="mb-1 text-[10px] font-bold text-gray-400">{plan.period}</p>
-                                                <p className={`text-xl font-black ${plan.highlight ? 'text-primary' : 'text-gray-900'}`}>
-                                                    {plan.pricePerMonth.toLocaleString()}
-                                                    <span className="ml-0.5 text-xs font-bold text-gray-400">원/월</span>
-                                                </p>
-                                                <p className="mt-1 text-[10px] text-gray-400">총 {plan.total.toLocaleString()}원</p>
-                                                {plan.discount && <span className="mt-1 inline-block rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-black text-primary">{plan.discount}% 할인</span>}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <Link
-                                        href={selectedUnlimited !== null ? `/dashboard/advertiser/billing/unlimited?plan=${selectedUnlimited}` : '#'}
-                                        onClick={(e) => {
-                                            if (selectedUnlimited === null) {
-                                                e.preventDefault();
-                                                alert('이용 기간을 먼저 선택해주세요.');
-                                            }
-                                        }}
-                                        className={`mb-8 flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-center text-sm font-bold transition-all ${
-                                            selectedUnlimited !== null ? 'bg-gray-900 text-white hover:bg-black' : 'cursor-not-allowed bg-gray-200 text-gray-400'
-                                        }`}
-                                    >
-                                        결제 페이지로 이동
-                                        <ArrowRight size={15} />
-                                    </Link>
-                                    <ul className="flex flex-col gap-3">
-                                        <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">단일 체험단 이용 <strong className="text-primary">무제한</strong></span></li>
-                                        <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">1석 2조 체험단 이용 <strong className="text-primary">무제한</strong></span></li>
-                                        <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">동시 진행 최대 30개</span></li>
-                                        <li className="flex items-center gap-2"><Star className="h-4 w-4 shrink-0 text-amber-500" /><span className="text-sm text-gray-700">우선 노출 혜택 제공</span></li>
-                                    </ul>
-                                </div>
+                            <div className="mb-6 flex items-center rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMode('ONE_TIME')}
+                                    className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                        paymentMode === 'ONE_TIME' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    단일 결제
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPaymentMode('SUBSCRIPTION')}
+                                    className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                        paymentMode === 'SUBSCRIPTION' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    구독형 결제
+                                </button>
                             </div>
+
+                            {paymentMode === 'ONE_TIME' && (
+                                <div className="mb-12 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                                    <div className="flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
+                                        <div className="mb-6 min-h-[92px]">
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
+                                                    <ShoppingBag className="h-4 w-4 text-blue-500" />
+                                                </div>
+                                                <h2 className="text-xl font-black text-gray-900">배송체험단</h2>
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-gray-500">부담 없는 비용으로, 꼭 필요한 채널의 리뷰부터 빠르게 채우세요.</p>
+                                        </div>
+                                        <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
+                                            <div className="flex items-end gap-1">
+                                                <span className="text-4xl font-black text-gray-900">5,000</span>
+                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/dashboard/campaign/new"
+                                            className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
+                                        >
+                                            캠페인 등록하기
+                                            <ArrowRight size={15} />
+                                        </Link>
+                                        <ul className="flex flex-1 flex-col gap-5">
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                                                    <ShoppingBag className="h-3.5 w-3.5 text-amber-600" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-800">쇼핑몰 리뷰</p>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-violet-50">
+                                                    <Newspaper className="h-3.5 w-3.5 text-violet-600" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-800">원고료형 기자단</p>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                                                    <Share2 className="h-3.5 w-3.5 text-rose-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800">SNS 리뷰</p>
+                                                    <p className="mt-0.5 text-xs leading-relaxed text-gray-400">블로그 · 인스타피드 · 인스타릴스 · 네이버클립 · 스레드</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
+                                        <div className="mb-6 min-h-[92px]">
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
+                                                    <Zap className="h-4 w-4 text-primary" />
+                                                </div>
+                                                <h2 className="text-xl font-black text-gray-900">1석 2조 체험단</h2>
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-gray-500">쇼핑몰 + SNS 리뷰를 한 번에, 할인된 가격으로 해결하세요.</p>
+                                        </div>
+                                        <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
+                                            <span className="mb-1 inline-block rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-black text-gray-600">10% 할인</span>
+                                            <div className="flex items-end gap-1">
+                                                <span className="text-4xl font-black text-gray-900">9,000</span>
+                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/dashboard/campaign/new"
+                                            className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
+                                        >
+                                            캠페인 등록하기
+                                            <ArrowRight size={15} />
+                                        </Link>
+                                        <ul className="flex flex-1 flex-col gap-5">
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-50">
+                                                    <ShoppingBag className="h-3.5 w-3.5 text-amber-600" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-800">쇼핑몰 리뷰</p>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                                                    <Share2 className="h-3.5 w-3.5 text-rose-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800">SNS 리뷰 <span className="text-xs font-normal text-gray-400">택1</span></p>
+                                                    <p className="mt-0.5 text-xs leading-relaxed text-gray-400">블로그 · 인스타피드 · 인스타릴스 · 네이버클립 · 스레드</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+
+                                    <div className="flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
+                                        <div className="mb-6 min-h-[92px]">
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
+                                                    <Newspaper className="h-4 w-4 text-emerald-600" />
+                                                </div>
+                                                <h2 className="text-xl font-black text-gray-900">방문체험단</h2>
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-gray-500">매장 방문 기반 후기로 오프라인 유입과 지역 키워드 노출을 동시에 확보하세요.</p>
+                                        </div>
+                                        <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
+                                            <div className="flex items-end gap-1">
+                                                <span className="text-4xl font-black text-gray-900">10,000</span>
+                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
+                                            </div>
+                                        </div>
+                                        <Link
+                                            href="/dashboard/campaign/new"
+                                            className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-3 text-center text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
+                                        >
+                                            캠페인 등록하기
+                                            <ArrowRight size={15} />
+                                        </Link>
+                                        <ul className="flex flex-1 flex-col gap-5">
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-50">
+                                                    <ShoppingBag className="h-3.5 w-3.5 text-emerald-600" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-800">방문 리뷰</p>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-cyan-50">
+                                                    <Newspaper className="h-3.5 w-3.5 text-cyan-600" />
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-800">지역 키워드 노출</p>
+                                            </li>
+                                            <li className="flex items-start gap-3">
+                                                <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50">
+                                                    <Share2 className="h-3.5 w-3.5 text-rose-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-800">SNS 리뷰 연계</p>
+                                                    <p className="mt-0.5 text-xs leading-relaxed text-gray-400">블로그 · 인스타피드 · 인스타릴스</p>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
+
+                            {paymentMode === 'SUBSCRIPTION' && (
+                                <div className="mb-12 mx-auto max-w-[560px]">
+                                    <div className="relative flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
+                                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-1 text-xs font-black tracking-wide text-white">인기</div>
+                                        <div className="mb-6">
+                                            <div className="mb-2 flex items-center gap-2">
+                                                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50">
+                                                    <Infinity className="h-4 w-4 text-purple-600" />
+                                                </div>
+                                                <h2 className="text-xl font-black text-gray-900">무제한 이용권</h2>
+                                            </div>
+                                            <p className="text-sm leading-relaxed text-gray-500">리뷰가 많이 필요한 광고주라면, 다온뷰의 모든 체험단을 제한 없이 이용해 보세요.</p>
+                                        </div>
+                                        <div className="mb-5 rounded-2xl border border-gray-200 bg-gray-50 p-1">
+                                            <div className="grid grid-cols-2 gap-1">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBillingCycle('MONTHLY')}
+                                                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                                        billingCycle === 'MONTHLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                                    }`}
+                                                >
+                                                    월간 결제
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setBillingCycle('YEARLY')}
+                                                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                                        billingCycle === 'YEARLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                                    }`}
+                                                >
+                                                    연간 결제
+                                                    <span className="ml-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">
+                                                        {yearlyDiscountRate}% 절약
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <p className="mb-4 text-xs font-bold text-emerald-700">
+                                            연간 결제는 월간 12개월 기준 대비 {yearlySavedAmount.toLocaleString()}원 절약 ({yearlyDiscountRate}% 할인)됩니다.
+                                        </p>
+                                        <div
+                                            className={`mb-8 relative rounded-2xl border-2 p-5 text-left transition-all ${
+                                                billingCycle === 'YEARLY' ? 'border-primary bg-primary/5' : 'border-gray-100 bg-gray-50'
+                                            }`}
+                                        >
+                                            {billingCycle === 'YEARLY' && (
+                                                <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white">BEST</span>
+                                            )}
+                                            <p className="mb-1 text-xs font-black text-gray-500">{billingCycle === 'MONTHLY' ? monthlyPlan.period : yearlyPlan.period}</p>
+                                            <p className={`text-3xl font-black ${billingCycle === 'YEARLY' ? 'text-primary' : 'text-gray-900'}`}>
+                                                {(billingCycle === 'MONTHLY' ? monthlyPlan.pricePerMonth : yearlyPlan.pricePerMonth).toLocaleString()}
+                                                <span className="ml-1 text-base font-bold text-gray-400">원/월</span>
+                                            </p>
+                                            <p className="mt-1 text-xs text-gray-500">총 {(billingCycle === 'MONTHLY' ? monthlyPlan.total : yearlyPlan.total).toLocaleString()}원</p>
+                                            {billingCycle === 'YEARLY' ? (
+                                                <span className="mt-2 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-black text-primary">
+                                                    {yearlyDiscountRate}% 할인
+                                                </span>
+                                            ) : (
+                                                <span className="mt-2 inline-block rounded-md bg-gray-200 px-2 py-0.5 text-xs font-black text-gray-600">
+                                                    매월 결제
+                                                </span>
+                                            )}
+                                        </div>
+                                        <Link
+                                            href={`/dashboard/advertiser/billing/unlimited?plan=${billingCycle === 'MONTHLY' ? 0 : 3}`}
+                                            className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 py-3 text-center text-sm font-bold text-white transition-all hover:bg-black"
+                                        >
+                                            결제 페이지로 이동
+                                            <ArrowRight size={15} />
+                                        </Link>
+                                        <ul className="flex flex-col gap-3">
+                                            <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">단일 체험단 이용 <strong className="text-primary">무제한</strong></span></li>
+                                            <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">1석 2조 체험단 이용 <strong className="text-primary">무제한</strong></span></li>
+                                            <li className="flex items-center gap-2"><Check className="h-4 w-4 shrink-0 text-primary" /><span className="text-sm text-gray-700">동시 진행 최대 30개</span></li>
+                                            <li className="flex items-center gap-2"><Star className="h-4 w-4 shrink-0 text-amber-500" /><span className="text-sm text-gray-700">우선 노출 혜택 제공</span></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="mb-12">
                                 <h2 className="mb-6 text-xl font-black text-gray-900">자주 묻는 질문</h2>
@@ -300,19 +402,21 @@ export default function PricingPage() {
                                     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
                                         <div className="mb-3 flex items-center gap-2"><Infinity className="h-4 w-4 shrink-0 text-purple-500" /><p className="text-sm font-black text-gray-800">무제한 이용권</p></div>
                                         <ul className="flex flex-col gap-2.5">
-                                            <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600">진행 수량이 전혀 없는 경우 <strong className="text-gray-900">100% 환불</strong> 가능합니다.</p></li>
-                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">진행 수량이 있는 경우, <strong className="text-gray-900">1개월권 정가 기준</strong>으로 사용한 일수를 일할 계산하여 차감 후 나머지 금액을 환불합니다.</p></li>
-                                            <li className="flex items-start gap-2"><XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" /><p className="text-sm leading-relaxed text-gray-600">정가 기준 사용 금액이 결제 금액 이상이면 환불 금액이 없을 수 있습니다.</p></li>
+                                            <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600"><strong className="text-gray-900">결제 후 7일 이내 + 미사용</strong> 상태면 월간/연간 모두 전액 환불됩니다.</p></li>
+                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">월간 결제는 유료 기능(캠페인 등록, 모집/선정 등) 사용 시작 후에는 당월 환불이 불가합니다.</p></li>
+                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">연간 결제는 중도 해지 시 사용 개월 수를 <strong className="text-gray-900">월간 정상가(170,000원)</strong>로 차감하고, 잔여 금액에서 <strong className="text-gray-900">해지 수수료 10%</strong>를 공제 후 환불됩니다.</p></li>
+                                            <li className="flex items-start gap-2"><XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" /><p className="text-sm leading-relaxed text-gray-600">차감 금액이 결제 금액 이상이면 환불 가능 금액이 없을 수 있습니다.</p></li>
                                         </ul>
                                     </div>
                                 </div>
                                 <div className="rounded-2xl border border-amber-100 bg-amber-50 px-6 py-5">
                                     <p className="mb-2 text-xs font-black uppercase tracking-wide text-amber-700">💡 환불 예시</p>
                                     <p className="text-sm leading-relaxed text-amber-800">
-                                        3개월권 구매 후 <strong>1개월 5일</strong> 사용 시 →
-                                        1개월권 정가(250,000원) + 5일 일할 계산(41,700원) = <strong>291,700원</strong> 차감 후 나머지 환불
+                                        연간권(1,548,000원) 구매 후 <strong>3개월</strong> 사용 중 해지 시 →
+                                        월간 정상가 기준 차감(170,000원 × 3개월 = 510,000원) 후 잔액 1,038,000원 산정,
+                                        잔액의 10% 수수료(103,800원) 공제 후 <strong>934,200원</strong> 환불
                                         <br />
-                                        <span className="mt-1 block text-xs text-amber-600">※ 3개월권 구매 후 2개월 18일 이상 사용한 경우 환불 가능 금액이 없을 수 있습니다.</span>
+                                        <span className="mt-1 block text-xs text-amber-600">※ 실제 환불액은 사용 여부/결제 승인 시점/약관 적용일에 따라 달라질 수 있습니다.</span>
                                     </p>
                                 </div>
                             </div>

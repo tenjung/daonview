@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
+import { UNLIMITED_PLANS } from '@/constants/pricing';
 import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import CardTransferPaymentSelector from '@/components/payment/CardTransferPaymentSelector';
 import {
     ArrowLeft,
     Infinity,
@@ -16,16 +19,8 @@ import {
     Shield,
     Clock,
     ChevronRight,
-    Star,
     Zap,
 } from 'lucide-react';
-
-const UNLIMITED_PLANS = [
-    { period: '1개월', pricePerMonth: 250000, total: 250000, discount: null, highlight: false },
-    { period: '3개월', pricePerMonth: 219000, total: 657000, discount: 13, highlight: false },
-    { period: '6개월', pricePerMonth: 179000, total: 1074000, discount: 29, highlight: false },
-    { period: '12개월', pricePerMonth: 139000, total: 1668000, discount: 45, highlight: true },
-];
 
 const FEATURES = [
     '단일 체험단 등록 무제한',
@@ -35,34 +30,34 @@ const FEATURES = [
     '전담 담당자 매칭',
 ];
 
+type PaymentMethod = 'CARD' | 'TRANSFER';
+type BillingCycle = 'MONTHLY' | 'YEARLY';
+
 function UnlimitedPaymentContent() {
     const { profile } = useAuthStore();
     const router = useRouter();
     const searchParams = useSearchParams();
     const planIndex = Number(searchParams?.get('plan') ?? 0);
-
-    const [selectedPlan, setSelectedPlan] = useState(
-        UNLIMITED_PLANS[planIndex] ?? UNLIMITED_PLANS[0]
-    );
-    const [selectedPlanIdx, setSelectedPlanIdx] = useState(
-        planIndex < UNLIMITED_PLANS.length ? planIndex : 0
-    );
+    const [billingCycle, setBillingCycle] = useState<BillingCycle>(planIndex === 3 ? 'YEARLY' : 'MONTHLY');
     const [isProcessing, setIsProcessing] = useState(false);
     const [agreeTerms, setAgreeTerms] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD');
+    const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
 
     const displayName = profile?.company_name || profile?.nickname || '광고주';
-
-    const handleSelectPlan = (idx: number) => {
-        setSelectedPlanIdx(idx);
-        setSelectedPlan(UNLIMITED_PLANS[idx]);
-    };
+    const monthlyPlan = UNLIMITED_PLANS[0];
+    const yearlyPlan = UNLIMITED_PLANS[3];
+    const selectedPlan = billingCycle === 'MONTHLY' ? monthlyPlan : yearlyPlan;
+    const yearlyRegularTotal = monthlyPlan.pricePerMonth * 12;
+    const yearlySavedAmount = yearlyRegularTotal - yearlyPlan.total;
+    const yearlyDiscountRate = Math.round((yearlySavedAmount / yearlyRegularTotal) * 100);
 
     const { requestPayment } = usePortonePayment();
     const { user } = useAuthStore();
 
     const handlePayment = async () => {
         if (!agreeTerms) {
-            alert('이용약관에 동의해 주세요.');
+            toast.error('이용약관에 동의해 주세요.');
             return;
         }
         if (!user) {
@@ -88,6 +83,7 @@ function UnlimitedPaymentContent() {
                 userId: user.id,
                 itemType: 'UNLIMITED',
                 planMonths,
+                payMethod: paymentMethod,
             });
 
             if (response?.code != null) {
@@ -171,40 +167,61 @@ function UnlimitedPaymentContent() {
                                     <Clock size={16} className="text-purple-500" />
                                     이용 기간 선택
                                 </h2>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {UNLIMITED_PLANS.map((plan, i) => (
+                                <div className="mb-4 rounded-2xl border border-gray-200 bg-gray-50 p-1">
+                                    <div className="grid grid-cols-2 gap-1">
                                         <button
-                                            key={i}
-                                            onClick={() => handleSelectPlan(i)}
-                                            className={`relative p-4 rounded-2xl border-2 text-left transition-all ${
-                                                selectedPlanIdx === i
-                                                    ? 'border-purple-500 bg-purple-50'
-                                                    : 'border-gray-100 bg-gray-50 hover:border-gray-200'
+                                            type="button"
+                                            onClick={() => setBillingCycle('MONTHLY')}
+                                            className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                                billingCycle === 'MONTHLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                                             }`}
                                         >
-                                            {plan.highlight && (
-                                                <span className="absolute -top-2 right-2 text-[9px] font-black px-1.5 py-0.5 bg-primary text-white rounded-full">
-                                                    BEST
-                                                </span>
-                                            )}
-                                            <p className="text-[10px] font-bold text-gray-400 mb-1">{plan.period}</p>
-                                            <p className={`text-xl font-black ${plan.highlight ? 'text-primary' : 'text-gray-900'}`}>
-                                                {plan.pricePerMonth.toLocaleString()}
-                                                <span className="text-xs font-bold text-gray-400 ml-0.5">원/월</span>
-                                            </p>
-                                            <p className="text-[10px] text-gray-400 mt-1">
-                                                총 {plan.total.toLocaleString()}원
-                                            </p>
-                                            {plan.discount && (
-                                                <span className="inline-block mt-1 text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
-                                                    {plan.discount}% 할인
-                                                </span>
-                                            )}
-                                            {selectedPlanIdx === i && (
-                                                <CheckCircle2 size={16} className="absolute top-3 right-3 text-purple-500" />
-                                            )}
+                                            월간 결제
                                         </button>
-                                    ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setBillingCycle('YEARLY')}
+                                            className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                                billingCycle === 'YEARLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                            }`}
+                                        >
+                                            연간 결제
+                                            <span className="ml-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">
+                                                {yearlyDiscountRate}% 절약
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="mb-3 text-xs font-bold text-emerald-700">
+                                    연간 결제는 월간 12개월 기준 대비 {yearlySavedAmount.toLocaleString()}원 절약 ({yearlyDiscountRate}% 할인)됩니다.
+                                </p>
+                                <div
+                                    className={`relative rounded-2xl border-2 p-4 text-left transition-all ${
+                                        billingCycle === 'YEARLY' ? 'border-purple-500 bg-purple-50' : 'border-gray-100 bg-gray-50'
+                                    }`}
+                                >
+                                    {billingCycle === 'YEARLY' && (
+                                        <span className="absolute -top-2 right-2 text-[9px] font-black px-1.5 py-0.5 bg-primary text-white rounded-full">
+                                            BEST
+                                        </span>
+                                    )}
+                                    <p className="text-[10px] font-bold text-gray-400 mb-1">{selectedPlan.period}</p>
+                                    <p className={`text-xl font-black ${billingCycle === 'YEARLY' ? 'text-primary' : 'text-gray-900'}`}>
+                                        {selectedPlan.pricePerMonth.toLocaleString()}
+                                        <span className="text-xs font-bold text-gray-400 ml-0.5">원/월</span>
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-1">
+                                        총 {selectedPlan.total.toLocaleString()}원
+                                    </p>
+                                    {billingCycle === 'YEARLY' ? (
+                                        <span className="inline-block mt-1 text-[10px] font-black text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+                                            {yearlyDiscountRate}% 할인
+                                        </span>
+                                    ) : (
+                                        <span className="inline-block mt-1 text-[10px] font-black text-gray-600 bg-gray-200 px-1.5 py-0.5 rounded-md">
+                                            매월 결제
+                                        </span>
+                                    )}
                                 </div>
                             </div>
 
@@ -214,49 +231,30 @@ function UnlimitedPaymentContent() {
                                     <CreditCard size={16} className="text-gray-500" />
                                     결제 수단
                                 </h2>
-                                <div className="flex flex-col gap-3">
-                                    <label className="flex items-center gap-3 p-4 rounded-2xl border-2 border-purple-500 bg-purple-50 cursor-pointer">
-                                        <input type="radio" name="payment" defaultChecked className="accent-purple-500" />
-                                        <div>
-                                            <p className="text-sm font-bold text-gray-800">신용카드 / 체크카드</p>
-                                            <p className="text-xs text-gray-400 mt-0.5">VISA, MasterCard, 국내 전 카드사</p>
-                                        </div>
-                                    </label>
-                                    <label className="flex items-center gap-3 p-4 rounded-2xl border-2 border-gray-100 bg-gray-50 cursor-pointer opacity-50">
-                                        <input type="radio" name="payment" disabled className="accent-purple-500" />
-                                        <div>
-                                            <p className="text-sm font-bold text-gray-800">무통장 입금</p>
-                                            <p className="text-xs text-gray-400 mt-0.5">준비 중</p>
-                                        </div>
-                                    </label>
-                                </div>
+                                <CardTransferPaymentSelector
+                                    variant="UNLIMITED"
+                                    selectedMethod={paymentMethod}
+                                    cardLabel="신용카드 / 체크카드"
+                                    cardDescription="VISA, MasterCard, 국내 전 카드사"
+                                    transferDescription="실시간 계좌이체, 주요 은행 지원"
+                                    onSelect={(method) => setPaymentMethod(method)}
+                                />
                             </div>
 
-                            {/* 약관 동의 */}
+                            {/* 포함 혜택 */}
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
                                 <h2 className="text-base font-black text-gray-900 mb-4 flex items-center gap-2">
-                                    <Shield size={16} className="text-gray-500" />
-                                    약관 동의
+                                    <Zap size={16} className="text-amber-500" />
+                                    이용권 포함 혜택
                                 </h2>
-                                <div className="space-y-3 text-sm text-gray-500 mb-4 bg-gray-50 rounded-2xl p-4 max-h-36 overflow-y-auto leading-relaxed">
-                                    <p className="font-bold text-gray-700">무제한 이용권 이용약관</p>
-                                    <p>• 무제한 이용권은 선결제 방식으로 진행됩니다.</p>
-                                    <p>• 진행 수량이 전혀 없는 경우 100% 환불 가능합니다.</p>
-                                    <p>• 진행 수량이 있는 경우, 1개월권 정가 기준으로 사용한 일수를 일할 계산하여 차감 후 나머지 금액을 환불합니다.</p>
-                                    <p>• 이용 기간이 종료되면 캠페인 모집이 자동 중단됩니다.</p>
-                                    <p>• 무제한 이용권 재이용 시, 일시 정지된 캠페인을 그대로 이어서 이용할 수 있습니다.</p>
-                                </div>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={agreeTerms}
-                                        onChange={(e) => setAgreeTerms(e.target.checked)}
-                                        className="w-4 h-4 accent-purple-500 rounded"
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">
-                                        위 이용약관에 동의합니다.
-                                    </span>
-                                </label>
+                                <ul className="space-y-2.5">
+                                    {FEATURES.map((f, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                                            <CheckCircle2 size={14} className="text-primary shrink-0" />
+                                            {f}
+                                        </li>
+                                    ))}
+                                </ul>
                             </div>
                         </div>
 
@@ -266,6 +264,35 @@ function UnlimitedPaymentContent() {
                                 {/* 주문 요약 카드 */}
                                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
                                     <h2 className="text-base font-black text-gray-900 mb-5">결제 요약</h2>
+
+                                    {/* 약관 동의 (우측 결제 흐름) */}
+                                    <div className="mb-5 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <Shield size={14} className="text-gray-500" />
+                                                <p className="text-sm font-bold text-gray-800">무제한 이용권 이용약관</p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsTermsModalOpen(true)}
+                                                className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80"
+                                            >
+                                                전문 보기
+                                                <ChevronRight size={12} />
+                                            </button>
+                                        </div>
+                                        <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={agreeTerms}
+                                                onChange={(e) => setAgreeTerms(e.target.checked)}
+                                                className="w-4 h-4 accent-purple-500 rounded"
+                                            />
+                                            <span className="text-sm font-medium text-gray-700">
+                                                위 이용약관에 동의합니다.
+                                            </span>
+                                        </label>
+                                    </div>
 
                                     {/* 선택된 플랜 */}
                                     <div className="bg-purple-50 rounded-2xl p-4 mb-5">
@@ -307,16 +334,18 @@ function UnlimitedPaymentContent() {
                                     {/* 결제 버튼 */}
                                     <button
                                         onClick={handlePayment}
-                                        disabled={isProcessing || !agreeTerms}
+                                        disabled={isProcessing}
                                         className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
-                                            agreeTerms && !isProcessing
-                                                ? 'bg-gray-900 text-white hover:bg-black shadow-lg'
-                                                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                            isProcessing
+                                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                                : agreeTerms
+                                                    ? 'bg-gray-900 text-white hover:bg-black shadow-lg'
+                                                    : 'bg-gray-900 text-white hover:bg-black shadow-lg'
                                         }`}
                                     >
-                                        {isProcessing ? (
-                                            <>
-                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    {isProcessing ? (
+                                        <>
+                                            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                 처리 중...
                                             </>
                                         ) : (
@@ -331,22 +360,6 @@ function UnlimitedPaymentContent() {
                                         <Shield size={11} />
                                         SSL 보안 결제 · 개인정보 암호화 처리
                                     </p>
-                                </div>
-
-                                {/* 포함 혜택 */}
-                                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-                                    <h3 className="text-sm font-black text-gray-800 mb-3 flex items-center gap-1.5">
-                                        <Zap size={14} className="text-amber-500" />
-                                        이용권 포함 혜택
-                                    </h3>
-                                    <ul className="space-y-2.5">
-                                        {FEATURES.map((f, i) => (
-                                            <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                                                <CheckCircle2 size={14} className="text-primary shrink-0" />
-                                                {f}
-                                            </li>
-                                        ))}
-                                    </ul>
                                 </div>
 
                                 {/* 문의 */}
@@ -365,6 +378,34 @@ function UnlimitedPaymentContent() {
                     </div>
                 </div>
             </main>
+
+            <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
+                <DialogContent className="sm:max-w-lg rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle>무제한 이용권 이용약관</DialogTitle>
+                        <DialogDescription>
+                            아래 규정을 결제 전 반드시 확인해 주세요.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="max-h-[55vh] overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm leading-relaxed text-gray-600">
+                        <p className="font-bold text-gray-800">[무제한 이용권 이용약관 및 환불 규정]</p>
+                        <p className="mt-3 font-bold text-gray-800">1. 서비스 이용 및 결제</p>
+                        <p className="mt-1">무제한 이용권은 선결제 방식으로 진행되며, 월간/연간 구독형으로 운영됩니다.</p>
+                        <p className="mt-1">결제 완료 즉시 캠페인 등록 및 플랫폼 내 모든 유료 솔루션(AI 진단 등) 이용 권한이 부여됩니다.</p>
+
+                        <p className="mt-3 font-bold text-gray-800">2. 청약철회 및 환불 기준</p>
+                        <p className="mt-1">전액 환불: 결제 후 7일 이내에 캠페인 등록, AI 진단 도구 사용 등 유료 기능을 전혀 이용하지 않은 경우에 한합니다.</p>
+                        <p className="mt-1">월간 구독: 유료 기능 이용 시작(캠페인 등록 시 등) 후에는 당월 이용료에 대한 환불이 불가하며, 해지 시 다음 결제일부터 과금되지 않습니다.</p>
+                        <p className="mt-1">연간 구독: 중도 해지 시, 이용 기간을 할인 없는 월간 정상가로 소급 계산하여 차감하며, 잔여 금액의 10%를 해지 위약금으로 공제 후 환불합니다.</p>
+
+                        <p className="mt-3 font-bold text-gray-800">3. 인플루언서 지급금 관련 (중요)</p>
+                        <p className="mt-1">캠페인 진행을 위해 인플루언서에게 지급되는 별도의 실비(구매비, 제작비 등)는 인플루언서 매칭 및 이행 시작 시점부터 환불이 절대 불가합니다.</p>
+
+                        <p className="mt-3 font-bold text-gray-800">4. 이용 제한 및 정지</p>
+                        <p className="mt-1">이용 기간 종료 시 캠페인 관리 및 신규 모집 권한이 제한될 수 있으나, 기존 진행 중인 데이터는 재이용 시 연결하여 진행 가능합니다.</p>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

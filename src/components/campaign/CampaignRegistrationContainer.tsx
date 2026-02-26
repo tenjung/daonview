@@ -14,7 +14,7 @@ import CampaignLoader from '@/components/campaign/CampaignLoader';
 import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
-import { canEditCampaign as canEditCampaignByRole, isAdminRole, isAdvertiserRole, normalizeRoleValue } from '@/lib/campaignPermissions';
+import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 
 export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -49,6 +49,12 @@ export default function CampaignRegistrationContainer() {
         }
     }, [campaignIdParam, draftIdParam, resetStore]);
 
+    // URL 파라미터가 바뀌면 로드 가드 초기화
+    useEffect(() => {
+        hasFetchedRef.current = false;
+        deniedRef.current = false;
+    }, [campaignIdParam, draftIdParam]);
+
     useEffect(() => {
         if (!authLoading && user && profile?.role === 'ADVERTISER' && profile?.biz_verification_status !== 'APPROVED') {
             toast.error('캠페인을 등록하려면 사업자 인증이 필요합니다.');
@@ -66,13 +72,44 @@ export default function CampaignRegistrationContainer() {
     // edit 모드: 인증/권한 확인 후 URL id 기준으로 DB 단일 조회
     useEffect(() => {
         if (!campaignIdParam) return;
+        if (authLoading) return;
         if (hasFetchedRef.current) return;
+
+        if (!user?.id) {
+            setIsInitialDataReady(true);
+            if (!deniedRef.current) {
+                toast.error('로그인이 필요합니다.');
+                deniedRef.current = true;
+            }
+            router.push('/login');
+            return;
+        }
 
         let cancelled = false;
         setIsInitialDataReady(false);
-        const normalizedRole = normalizeRoleValue(roleFromAuth);
-        const isAdmin = isAdminRole(normalizedRole);
-        const isAdvertiser = isAdvertiserRole(normalizedRole);
+
+        const fetchEditableCampaign = async (numericCampaignId: number) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+            try {
+                const response = await fetch(`/api/campaigns/${numericCampaignId}/editable`, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    signal: controller.signal,
+                });
+
+                const payload = await response.json().catch(() => ({} as Record<string, unknown>));
+                if (!response.ok) {
+                    const message = typeof payload.error === 'string' ? payload.error : '캠페인 데이터를 불러오지 못했습니다.';
+                    throw new Error(message);
+                }
+
+                return payload.data ?? null;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        };
 
         const loadCampaignById = async () => {
             try {
@@ -82,56 +119,24 @@ export default function CampaignRegistrationContainer() {
                     return;
                 }
 
-                const { data, error } = await supabase
-                    .from('campaigns')
-                    .select('*')
-                    .eq('id', numericCampaignId)
-                    .single();
+                const data = await fetchEditableCampaign(numericCampaignId);
 
                 if (cancelled) return;
-                if (error || !data) {
+                if (!data) {
                     toast.error('캠페인 데이터를 불러오지 못했습니다.');
                     return;
                 }
 
-                if (!authLoading && !user?.id) {
-                    if (!deniedRef.current) {
-                        toast.error('로그인이 필요합니다.');
-                        deniedRef.current = true;
-                    }
-                    router.push('/login');
-                    return;
-                }
-
-                if (!authLoading && !isAdmin && !isAdvertiser) {
-                    if (!deniedRef.current) {
-                        toast.error('수정 권한이 없습니다.');
-                        deniedRef.current = true;
-                    }
-                    router.push(`/campaigns/${campaignIdParam}`);
-                    return;
-                }
-
-                if (!authLoading && isAdvertiser) {
-                    const canEdit = canEditCampaignByRole({
-                        role: normalizedRole,
-                        userId: user?.id,
-                        campaignCreatorId: data.created_by,
-                    });
-                    if (!canEdit) {
-                        if (!deniedRef.current) {
-                            toast.error('내 캠페인만 수정할 수 있습니다.');
-                            deniedRef.current = true;
-                        }
-                        router.push('/dashboard/advertiser/campaigns');
-                        return;
-                    }
-                }
-
                 handleLoadCompleted(data, true);
                 if (!cancelled) hasFetchedRef.current = true;
-            } catch (_error) {
-                if (!cancelled) toast.error('캠페인 데이터를 불러오는 중 오류가 발생했습니다.');
+            } catch (error) {
+                if (!cancelled) {
+                    const normalizedError = error instanceof Error ? error.message : '';
+                    const message = normalizedError === 'The operation was aborted.'
+                        ? '캠페인 조회가 지연되고 있습니다. 새로고침 후 다시 시도해주세요.'
+                        : normalizedError || '캠페인 데이터를 불러오는 중 오류가 발생했습니다.';
+                    toast.error(message);
+                }
             } finally {
                 if (!cancelled) setIsInitialDataReady(true);
             }
@@ -433,8 +438,8 @@ export default function CampaignRegistrationContainer() {
             const updatedStores = store.stores || [];
 
             // 캠페인 데이터 구성
-            const campaignData: any = {
-                created_by: user.id,
+            // 중요: created_by는 "생성(insert)" 시점에만 설정하고, "수정(update)" 시에는 절대 변경하지 않는다.
+            const campaignDataBase = {
                 brand_id: store.brandId,
                 brand_name: store.brandName,
                 product_name: store.productName || '',
@@ -480,13 +485,17 @@ export default function CampaignRegistrationContainer() {
                 },
                 contact_method: store.contactMethod,
             };
+            const campaignDataForInsert = {
+                ...campaignDataBase,
+                created_by: user.id,
+            };
 
             const campaignId = searchParams?.get('id');
             let result;
 
             if (campaignId && !isNaN(Number(campaignId))) {
-                const updateData: any = { ...campaignData };
-                // 수정 시 상태는 기존 워크플로를 유지 (신규 등록시에만 상태 결정)
+                const updateData = { ...campaignDataBase };
+                // 수정 시 상태/소유자는 기존 값을 유지 (신규 등록시에만 결정)
                 delete updateData.status;
 
                 let query = supabase
@@ -508,7 +517,7 @@ export default function CampaignRegistrationContainer() {
             } else {
                 const { data, error } = await supabase
                     .from('campaigns')
-                    .insert([campaignData])
+                    .insert([campaignDataForInsert])
                     .select()
                     .single();
 
@@ -522,46 +531,24 @@ export default function CampaignRegistrationContainer() {
                     }
                 }
 
-                // 결제 데이터 연동: 결제관리 페이지와 관리자 검수 플로우 연결
-                if (normalizedPaymentMethod === 'TRANSFER') {
-                    const transferPaymentId = `TRF-${result.id}`;
-                    await supabase
-                        .from('payments')
-                        .upsert([{
-                            user_id: user.id,
-                            campaign_id: result.id,
-                            payment_id: transferPaymentId,
-                            merchant_uid: store.externalOrderNumber || null,
-                            amount: costs.totalCost || 0,
-                            method: 'TRANSFER',
-                            status: 'PENDING',
-                            payment_data: {
-                                source: 'CAMPAIGN_REGISTRATION',
-                                payment_method: 'TRANSFER',
-                                depositor_name: store.depositorName || null,
-                                promotion_type: String(store.promotionType || '').toUpperCase() || null,
-                            },
-                            receipt_url: null,
-                            updated_at: new Date().toISOString(),
-                        }], { onConflict: 'payment_id' });
-                } else if (normalizedPaymentMethod === 'CARD') {
-                    // 카드 결제 검증 콜백에서 campaign_id가 비어온 경우 최신 결제건에 캠페인 매핑
-                    const { data: latestCardPayment } = await supabase
+                // PG 결제(CARD/TRANSFER) 검증 콜백에서 campaign_id가 비어온 경우 최신 결제건에 캠페인 매핑
+                if (normalizedPaymentMethod === 'CARD' || normalizedPaymentMethod === 'TRANSFER') {
+                    const { data: latestPgPayment } = await supabase
                         .from('payments')
                         .select('id')
                         .eq('user_id', user.id)
                         .is('campaign_id', null)
-                        .eq('method', 'CARD')
+                        .eq('method', normalizedPaymentMethod)
                         .eq('status', 'PAID')
                         .order('created_at', { ascending: false })
                         .limit(1)
                         .maybeSingle();
 
-                    if (latestCardPayment?.id) {
+                    if (latestPgPayment?.id) {
                         await supabase
                             .from('payments')
                             .update({ campaign_id: result.id, updated_at: new Date().toISOString() })
-                            .eq('id', latestCardPayment.id);
+                            .eq('id', latestPgPayment.id);
                     }
                 }
 
@@ -579,18 +566,6 @@ export default function CampaignRegistrationContainer() {
                         campaign_id: result.id
                     })
                     .eq('code', store.couponCode);
-            }
-
-            // [추가] 무통장 입금인 경우 알림 생성
-            if (store.paymentMethod === 'transfer') {
-                const totalAmount = costs.totalCost;
-                await supabase.from('notifications').insert([{
-                    user_id: user.id,
-                    type: 'PAYMENT_GUIDE',
-                    title: '캠페인 입금 안내',
-                    content: `카카오뱅크 3333-36-4120453 (신지호)로 ${totalAmount.toLocaleString()}원을 입금해 주세요.`,
-                    link: '/dashboard/advertiser/campaigns'
-                }]);
             }
 
             // 스토어 초기화

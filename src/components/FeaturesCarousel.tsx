@@ -46,9 +46,9 @@ const features: Feature[] = [
     },
     {
         icon: ShieldCheck,
-        title: '콘텐츠 누락 판별기',
-        subtitle: 'Risk Control',
-        description: '"내 리뷰가 보이지 않는다면?" 정성껏 만든 콘텐츠가 검색에서 누락되었는지, 1초 만에 상태를 진단해 드립니다.',
+        title: 'AI 게시물 진단 매니저',
+        subtitle: '콘텐츠 모니터링 도구',
+        description: 'AI를 통한 기술적 참고치를 기반으로 수정방안을 마련합니다.',
         gradient: 'from-rose-500/20 to-red-600/20',
         glowColor: 'group-hover:shadow-rose-500/10',
         iconColor: 'text-rose-500',
