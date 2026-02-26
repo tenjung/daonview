@@ -494,9 +494,8 @@ export default function CampaignRegistrationContainer() {
             let result;
 
             if (campaignId && !isNaN(Number(campaignId))) {
-                const updateData = { ...campaignDataBase };
+                const { status: _status, ...updateData } = campaignDataBase;
                 // 수정 시 상태/소유자는 기존 값을 유지 (신규 등록시에만 결정)
-                delete updateData.status;
 
                 let query = supabase
                     .from('campaigns')
