@@ -244,23 +244,64 @@ export default function AdvertiserApplicantsPage() {
                 const applicant = applicants.find(a => a.id === applicationId);
                 if (applicant && applicant.user.id) {
                     try {
-                        // 실제 발송을 위해 프로필에서 전화번호 가져오기
+                        const notifyErrors: string[] = [];
+
+                        // 실제 발송을 위해 프로필에서 연락처/이메일 가져오기
                         const { data: userData } = await supabase
                             .from('profiles')
-                            .select('phone_number, name, nickname')
+                            .select('phone_number, name, nickname, email')
                             .eq('id', applicant.user.id)
                             .single();
 
                         if (userData?.phone_number) {
-                            await sendInfluencerSelectedAlimtalk(
+                            const alimtalkResult = await sendInfluencerSelectedAlimtalk(
                                 userData.phone_number,
                                 userData.nickname || userData.name || '인플루언서',
                                 applicant.campaign.title,
                                 campaignId
                             );
+
+                            if (!alimtalkResult.success) {
+                                notifyErrors.push(`카카오 알림톡 실패: ${alimtalkResult.error || 'unknown error'}`);
+                            }
+                        } else {
+                            notifyErrors.push('카카오 알림톡 스킵: 전화번호 없음');
+                        }
+
+                        if (userData?.email) {
+                            const emailResponse = await fetch('/api/send-email', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    to: userData.email,
+                                    type: 'CAMPAIGN_SELECTED',
+                                    params: {
+                                        nickname: userData.nickname || userData.name || '인플루언서',
+                                        campaignTitle: applicant.campaign.title,
+                                        email: userData.email
+                                    }
+                                })
+                            });
+
+                            const emailResult = await emailResponse.json().catch(() => null);
+                            if (!emailResponse.ok || !emailResult?.success) {
+                                notifyErrors.push(`이메일 실패: ${emailResult?.error || emailResult?.message || emailResponse.statusText}`);
+                            }
+                        } else {
+                            notifyErrors.push('이메일 스킵: 이메일 주소 없음');
+                        }
+
+                        if (notifyErrors.length > 0) {
+                            console.error('Selection notification errors:', {
+                                applicationId,
+                                userId: applicant.user.id,
+                                errors: notifyErrors
+                            });
+                            toast.warning('선정은 완료되었지만 일부 알림 발송에 실패했습니다.');
                         }
                     } catch (error) {
                         console.error('Alimtalk send error:', error);
+                        toast.warning('선정은 완료되었지만 알림 발송 중 오류가 발생했습니다.');
                     }
                 }
             }
