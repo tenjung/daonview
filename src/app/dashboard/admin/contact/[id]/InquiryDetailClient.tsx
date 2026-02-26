@@ -91,7 +91,7 @@ export default function InquiryDetailClient() {
                     type: 'INQUIRY',
                     title: '💬 문의하신 내용에 답변이 등록되었습니다.',
                     content: `제목: ${inquiry.title}\n관리자의 답변이 등록되었습니다. 상세 내용을 확인해보세요.`,
-                    link: `/contact/my/${id}` // 사용자가 본인의 문의 상세를 바로 확인
+                    link: `/contact/my/${params.id}` // 사용자가 본인의 문의 상세를 바로 확인
                 });
             }
 
