@@ -15,7 +15,7 @@ function generateStrategicQueries(address: string): string[] {
 
     // 2. 도로명 주소 핵심 패턴 추출 (예: "옹기마길 4")
     // 주소의 뒷부분이 보통 "~~로/길 번호" 형태이므로 뒤에서부터 매칭
-    const roadMatch = raw.match(/([가-힣\d]+[로|길|번길])\s?(\d+(?:-\d+)?)/);
+    const roadMatch = raw.match(/([가-힣\d]+(?:로|길|번길))\s?(\d+(?:-\d+)?)/);
     if (roadMatch) {
         queries.push(`${roadMatch[1]} ${roadMatch[2]}`);
         // 시/군/구와 함께 조합 (성공률 가장 높음)
@@ -26,7 +26,7 @@ function generateStrategicQueries(address: string): string[] {
 
     // 3. 지번/리 포함 단어 강제 분리 시도 (예: "명리옹기마길" -> "명리 옹기마길")
     // "리"나 "동" 뒤에 "길/로"가 붙은 경우 분리
-    const stickyMatch = raw.match(/([가-힣]+[리|동])([가-힣\d]+[로|길])/);
+    const stickyMatch = raw.match(/([가-힣]+(?:리|동))([가-힣\d]+(?:로|길))/);
     if (stickyMatch) {
         queries.push(raw.replace(stickyMatch[0], `${stickyMatch[1]} ${stickyMatch[2]}`));
     }
@@ -53,12 +53,14 @@ export async function GET(request: Request) {
 
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
     const clientSecret = process.env.NAVER_MAP_CLIENT_SECRET;
+    let permissionDenied = false;
 
     for (const query of queries) {
         try {
-            const response = await axios.get('https://naveropenapi.apigw.ntruss.com/map-geocoder/v2/geocode', {
+            const response = await axios.get('https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode', {
                 params: { query },
                 headers: {
+                    'Accept': 'application/json',
                     'X-NCP-APIGW-API-KEY-ID': clientId,
                     'X-NCP-APIGW-API-KEY': clientSecret,
                 },
@@ -74,8 +76,18 @@ export async function GET(request: Request) {
                 });
             }
         } catch (error: any) {
-            console.warn(`[Geocode Proxy] "${query}" failed: ${error.message}`);
+            const status = error?.response?.status;
+            const detail = error?.response?.data ? JSON.stringify(error.response.data) : error.message;
+            console.warn(`[Geocode Proxy] "${query}" failed (${status || 'NO_STATUS'}): ${detail}`);
+            if (status === 401 || status === 403) permissionDenied = true;
         }
+    }
+
+    if (permissionDenied) {
+        return NextResponse.json(
+            { error: 'Geocoding API 권한이 없습니다. NCP에서 Geocoding API 구독 상태를 확인하세요.' },
+            { status: 502 }
+        );
     }
 
     return NextResponse.json({ error: '주소를 좌표로 변환할 수 없습니다. 번지수나 길 이름까지만 입력해 보세요.' }, { status: 404 });

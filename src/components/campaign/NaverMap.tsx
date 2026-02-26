@@ -29,6 +29,10 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
 
     useEffect(() => {
         let isMounted = true;
+        let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+        const hasValidCoords = (targetLat: unknown, targetLng: unknown) =>
+            Number.isFinite(Number(targetLat)) && Number.isFinite(Number(targetLng));
 
         if (!CLIENT_ID) {
             setStatus(MAP_STATUS.ERROR);
@@ -38,7 +42,6 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
 
         // 네이버 지도 인증 실패 핸들러 (공식 문서 권장)
         (window as any).navermap_authFailure = function () {
-            console.error('[NaverMap] Authentication Failed - Check Client ID and Web Service URL');
             if (isMounted) {
                 setStatus(MAP_STATUS.ERROR);
                 setErrorMsg("네이버 지도 인증에 실패했습니다. Client ID와 Web 서비스 URL을 확인해주세요.");
@@ -87,18 +90,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             const scriptId = 'naver-map-script';
             const existingScript = document.getElementById(scriptId) as HTMLScriptElement;
 
-            if (existingScript) {
-                const checkInterval = setInterval(() => {
-                    if ((window as any).naver?.maps?.LatLng) {
-                        clearInterval(checkInterval);
-                        if (isMounted) {
-                            if (lat && lng) drawMap(Number(lat), Number(lng));
-                            else setStatus(MAP_STATUS.ERROR);
-                        }
-                    }
-                }, 100);
-                return;
-            }
+            if (existingScript) return;
 
             const script = document.createElement('script');
             script.id = scriptId;
@@ -113,17 +105,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             script.src = scriptUrl;
             script.async = true;
 
-            script.onload = () => {
-                const checkInterval = setInterval(() => {
-                    if ((window as any).naver?.maps?.LatLng) {
-                        clearInterval(checkInterval);
-                        if (isMounted) {
-                            if (lat && lng) drawMap(Number(lat), Number(lng));
-                            else setStatus(MAP_STATUS.ERROR);
-                        }
-                    }
-                }, 100);
-            };
+            script.onload = () => {};
 
             script.onerror = () => {
                 if (isMounted) {
@@ -135,19 +117,64 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             document.head.appendChild(script);
         };
 
-        if (lat && lng) {
-            if ((window as any).naver?.maps?.LatLng) {
-                drawMap(Number(lat), Number(lng));
-            } else {
-                loadScript();
-            }
-        } else {
-            // 좌표가 없으면 주소 기반 지오코딩 시도 (상세 페이지에서 좌표가 없을 수 있으므로)
-            loadScript();
-        }
+        const waitForNaverMap = () =>
+            new Promise<void>((resolve, reject) => {
+                const startedAt = Date.now();
+                pollInterval = setInterval(() => {
+                    if ((window as any).naver?.maps?.LatLng) {
+                        if (pollInterval) clearInterval(pollInterval);
+                        pollInterval = null;
+                        resolve();
+                        return;
+                    }
+                    if (Date.now() - startedAt > 10000) {
+                        if (pollInterval) clearInterval(pollInterval);
+                        pollInterval = null;
+                        reject(new Error('NAVER_MAP_LOAD_TIMEOUT'));
+                    }
+                }, 100);
+            });
 
-        return () => { isMounted = false; };
-    }, [lat, lng, CLIENT_ID]);
+        const resolveCoordinates = async () => {
+            if (hasValidCoords(lat, lng)) {
+                return { lat: Number(lat), lng: Number(lng) };
+            }
+
+            if (!address?.trim()) {
+                throw new Error('INVALID_ADDRESS');
+            }
+
+            throw new Error('MISSING_COORDS');
+        };
+
+        const initializeMap = async () => {
+            try {
+                loadScript();
+                await waitForNaverMap();
+                if (!isMounted) return;
+                const coords = await resolveCoordinates();
+                drawMap(coords.lat, coords.lng);
+            } catch (e) {
+                console.error('[NaverMap] Initialize Error:', e);
+                if (isMounted) {
+                    setStatus(MAP_STATUS.ERROR);
+                    setErrorMsg('지도를 불러올 수 없습니다. 주소 또는 좌표를 확인해주세요.');
+                }
+            }
+        };
+
+        setStatus(MAP_STATUS.LOADING);
+        setErrorMsg(null);
+        initializeMap();
+
+        return () => {
+            isMounted = false;
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        };
+    }, [lat, lng, address, CLIENT_ID]);
 
     const copyOrigin = () => {
         const origin = window.location.origin;
