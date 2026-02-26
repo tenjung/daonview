@@ -199,6 +199,67 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
+    const sendSelectionNotifications = async (applicant: Applicant, campaignId: number) => {
+        const notifyErrors: string[] = [];
+
+        const { data: userData } = await supabase
+            .from('profiles')
+            .select('phone_number, name, nickname, email')
+            .eq('id', applicant.user.id)
+            .single();
+
+        const recipientName = userData?.nickname || userData?.name || '인플루언서';
+
+        if (userData?.phone_number) {
+            const alimtalkResult = await sendInfluencerSelectedAlimtalk(
+                userData.phone_number,
+                recipientName,
+                applicant.campaign.title,
+                campaignId
+            );
+
+            if (!alimtalkResult.success) {
+                notifyErrors.push(`카카오 알림톡 실패: ${alimtalkResult.error || 'unknown error'}`);
+            }
+        } else {
+            notifyErrors.push('카카오 알림톡 스킵: 전화번호 없음');
+        }
+
+        if (userData?.email) {
+            const emailResponse = await fetch('/api/send-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    to: userData.email,
+                    type: 'CAMPAIGN_SELECTED',
+                    params: {
+                        nickname: recipientName,
+                        campaignTitle: applicant.campaign.title,
+                        email: userData.email
+                    }
+                })
+            });
+
+            const emailResult = await emailResponse.json().catch(() => null);
+            if (!emailResponse.ok || !emailResult?.success) {
+                notifyErrors.push(`이메일 실패: ${emailResult?.error || emailResult?.message || emailResponse.statusText}`);
+            }
+        } else {
+            notifyErrors.push('이메일 스킵: 이메일 주소 없음');
+        }
+
+        if (notifyErrors.length > 0) {
+            console.error('Selection notification errors:', {
+                applicationId: applicant.id,
+                userId: applicant.user.id,
+                errors: notifyErrors
+            });
+            return { success: false };
+        }
+
+        return { success: true };
+    };
+
     const handleStatusChange = async (applicationId: number, newStatus: string, campaignId: number) => {
         try {
             // 1. 신청 상태 업데이트 및 데이터 설정
@@ -244,59 +305,8 @@ export default function AdvertiserApplicantsPage() {
                 const applicant = applicants.find(a => a.id === applicationId);
                 if (applicant && applicant.user.id) {
                     try {
-                        const notifyErrors: string[] = [];
-
-                        // 실제 발송을 위해 프로필에서 연락처/이메일 가져오기
-                        const { data: userData } = await supabase
-                            .from('profiles')
-                            .select('phone_number, name, nickname, email')
-                            .eq('id', applicant.user.id)
-                            .single();
-
-                        if (userData?.phone_number) {
-                            const alimtalkResult = await sendInfluencerSelectedAlimtalk(
-                                userData.phone_number,
-                                userData.nickname || userData.name || '인플루언서',
-                                applicant.campaign.title,
-                                campaignId
-                            );
-
-                            if (!alimtalkResult.success) {
-                                notifyErrors.push(`카카오 알림톡 실패: ${alimtalkResult.error || 'unknown error'}`);
-                            }
-                        } else {
-                            notifyErrors.push('카카오 알림톡 스킵: 전화번호 없음');
-                        }
-
-                        if (userData?.email) {
-                            const emailResponse = await fetch('/api/send-email', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    to: userData.email,
-                                    type: 'CAMPAIGN_SELECTED',
-                                    params: {
-                                        nickname: userData.nickname || userData.name || '인플루언서',
-                                        campaignTitle: applicant.campaign.title,
-                                        email: userData.email
-                                    }
-                                })
-                            });
-
-                            const emailResult = await emailResponse.json().catch(() => null);
-                            if (!emailResponse.ok || !emailResult?.success) {
-                                notifyErrors.push(`이메일 실패: ${emailResult?.error || emailResult?.message || emailResponse.statusText}`);
-                            }
-                        } else {
-                            notifyErrors.push('이메일 스킵: 이메일 주소 없음');
-                        }
-
-                        if (notifyErrors.length > 0) {
-                            console.error('Selection notification errors:', {
-                                applicationId,
-                                userId: applicant.user.id,
-                                errors: notifyErrors
-                            });
+                        const notifyResult = await sendSelectionNotifications(applicant, campaignId);
+                        if (!notifyResult.success) {
                             toast.warning('선정은 완료되었지만 일부 알림 발송에 실패했습니다.');
                         }
                     } catch (error) {
@@ -316,6 +326,20 @@ export default function AdvertiserApplicantsPage() {
         } catch (error) {
             console.error('Status update error:', error);
             toast.error('상태 변경 중 오류가 발생했습니다.');
+        }
+    };
+
+    const handleResendSelectionNotification = async (applicant: Applicant) => {
+        try {
+            const notifyResult = await sendSelectionNotifications(applicant, applicant.campaign.id);
+            if (!notifyResult.success) {
+                toast.warning('일부 알림 발송에 실패했습니다. 콘솔 로그를 확인해주세요.');
+                return;
+            }
+            toast.success('카카오/이메일 재발송을 완료했습니다.');
+        } catch (error) {
+            console.error('Selection notification resend error:', error);
+            toast.error('재발송 중 오류가 발생했습니다.');
         }
     };
 
@@ -436,6 +460,15 @@ export default function AdvertiserApplicantsPage() {
                                                         className="text-xs text-blue-600 hover:underline flex items-center gap-1"
                                                     >
                                                         {app.tracking_number ? '운송장 수정' : '운송장 입력'}
+                                                    </button>
+                                                )}
+
+                                                {app.status === 'SELECTED' && (
+                                                    <button
+                                                        onClick={() => handleResendSelectionNotification(app)}
+                                                        className="text-xs text-rose-600 hover:underline"
+                                                    >
+                                                        알림 재발송
                                                     </button>
                                                 )}
                                                 
