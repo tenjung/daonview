@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     title: '체험단 모집 | 다온뷰',
     description: '다온뷰의 다양한 체험단 모집입니다. 블로그, 인스타그램, 유튜브 체험단에 지금 바로 신청하세요.',
     url: 'https://daonview.com/campaigns',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+    images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
   },
   alternates: {
     canonical: 'https://daonview.com/campaigns',

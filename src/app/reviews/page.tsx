@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     title: '리뷰 모아보기 | 다온뷰',
     description: '다온뷰 체험단에 참가한 인플루언서들의 실제 리뷰를 모아보세요.',
     url: 'https://daonview.com/reviews',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+    images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
   },
   alternates: {
     canonical: 'https://daonview.com/reviews',

@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: "다온뷰",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/og-daon.png",
         width: 1200,
         height: 630,
         alt: "다온뷰 서비스 미리보기",
@@ -133,7 +133,7 @@ export default async function RootLayout({
         "url": "https://daonview.com",
         "logo": {
           "@type": "ImageObject",
-          "url": "https://daonview.com/og-image.jpg"
+          "url": "https://daonview.com/og-daon.png"
         },
         "sameAs": [
           "https://daonview.com"

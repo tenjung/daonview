@@ -23,6 +23,8 @@ interface ApplicationsTableClientProps {
     initialApplications: Application[];
     campaignId: string;
     campaignTitle: string;
+    campaignProvidedItems?: string;
+    campaignDeadlineDate?: string;
     campaignCategory?: string;
     campaignType?: string;
     recruitCount: number;
@@ -36,6 +38,8 @@ export default function ApplicationsTableClient({
     initialApplications,
     campaignId,
     campaignTitle,
+    campaignProvidedItems,
+    campaignDeadlineDate,
     campaignCategory,
     campaignType,
     recruitCount
@@ -269,7 +273,9 @@ export default function ApplicationsTableClient({
                                 type: 'CAMPAIGN_SELECTED',
                                 params: {
                                     nickname: name,
-                                    campaignTitle: campaignTitle,
+                                    campaignTitle,
+                                    providedItems: campaignProvidedItems,
+                                    deadlineDate: campaignDeadlineDate,
                                     email: email
                                 }
                             })
@@ -411,7 +417,9 @@ export default function ApplicationsTableClient({
                             type: 'CAMPAIGN_SELECTED',
                             params: {
                                 nickname: userName,
-                                campaignTitle: campaignTitle,
+                                campaignTitle,
+                                providedItems: campaignProvidedItems,
+                                deadlineDate: campaignDeadlineDate,
                                 email: app.user.email
                             }
                         })
@@ -449,6 +457,62 @@ export default function ApplicationsTableClient({
         );
         toast.success(`${ids.length}개의 신청이 거절되었습니다.`);
         setSelectedApplications([]);
+    };
+
+    const handleResendNotification = async (app: Application) => {
+        const userName = app.user?.nickname || app.user?.name || '인플루언서';
+        const errors: string[] = [];
+
+        try {
+            if (app.user?.phone_number) {
+                const alimtalkResult = await sendInfluencerSelectedAlimtalk(
+                    app.user.phone_number,
+                    userName,
+                    campaignTitle,
+                    parseInt(campaignId)
+                );
+                if (!alimtalkResult.success) {
+                    errors.push(alimtalkResult.error || '알림톡 발송 실패');
+                }
+            } else {
+                errors.push('연락처 미등록');
+            }
+
+            if (app.user?.email) {
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        to: app.user.email,
+                        type: 'CAMPAIGN_SELECTED',
+                        params: {
+                            nickname: userName,
+                            campaignTitle,
+                            providedItems: campaignProvidedItems,
+                            deadlineDate: campaignDeadlineDate,
+                            email: app.user.email
+                        }
+                    })
+                });
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload?.success) {
+                    errors.push(payload?.error || payload?.message || '이메일 발송 실패');
+                }
+            } else {
+                errors.push('이메일 미등록');
+            }
+
+            if (errors.length > 0) {
+                console.warn('Resend notification warnings:', { applicationId: app.id, errors });
+                toast.warning('일부 알림 재발송에 실패했습니다.');
+                return;
+            }
+
+            toast.success('카카오/이메일 재발송 완료');
+        } catch (error) {
+            console.error('Resend notification error:', error);
+            toast.error('알림 재발송 중 오류가 발생했습니다.');
+        }
     };
 
     // 운송장 정보 업데이트
@@ -566,6 +630,7 @@ export default function ApplicationsTableClient({
         onCancel: handleCancel,
         onOpenReview: handleOpenReview,
         onOpenReputation: handleOpenReputation,
+        onResendNotification: handleResendNotification,
         onUpdateTracking: handleUpdateTracking,
         onHandleExtension: handleExtension,
         influencerStats: influencerStats,

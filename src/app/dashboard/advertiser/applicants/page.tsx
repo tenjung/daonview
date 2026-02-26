@@ -20,6 +20,10 @@ interface Applicant {
         title: string;
         type: string;
         is_always: boolean;
+        end_date?: string;
+        provision?: string;
+        experience_details?: string;
+        product_name?: string;
     };
     user: {
         id: string;
@@ -43,9 +47,17 @@ interface TrackingForm {
 
 export default function AdvertiserApplicantsPage() {
     const { user, profile, isLoading } = useAuthStore();
+    const [campaignIdFilter, setCampaignIdFilter] = useState<number | null>(null);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingTracking, setEditingTracking] = useState<TrackingForm | null>(null);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const value = params.get('campaignId');
+        setCampaignIdFilter(value ? Number(value) : null);
+    }, []);
 
     useEffect(() => {
         if (!isLoading && user) {
@@ -53,7 +65,7 @@ export default function AdvertiserApplicantsPage() {
         } else if (!isLoading && !user) {
             setLoading(false);
         }
-    }, [isLoading, user]);
+    }, [isLoading, user, campaignIdFilter]);
 
     const fetchApplicants = async () => {
         if (!user) return;
@@ -72,6 +84,10 @@ export default function AdvertiserApplicantsPage() {
             }
 
             const campaignIds = myCampaigns.map(c => c.id);
+            const filteredCampaignIds =
+                campaignIdFilter && campaignIds.includes(campaignIdFilter)
+                    ? [campaignIdFilter]
+                    : campaignIds;
 
             // 2. 해당 캠페인들에 지원한 지원자 조회
             const { data, error } = await supabase
@@ -82,7 +98,7 @@ export default function AdvertiserApplicantsPage() {
                     status,
                     application_message,
                     selected_option,
-                    campaign:campaign_id (id, title, type, is_always),
+                    campaign:campaign_id (id, title, type, is_always, end_date, provision, experience_details, product_name),
                     user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
                     tracking_company,
                     tracking_number,
@@ -90,7 +106,7 @@ export default function AdvertiserApplicantsPage() {
                     extension_reason,
                     review_deadline
                 `)
-                .in('campaign_id', campaignIds)
+                .in('campaign_id', filteredCampaignIds)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -209,6 +225,19 @@ export default function AdvertiserApplicantsPage() {
             .single();
 
         const recipientName = userData?.nickname || userData?.name || '인플루언서';
+        const providedItems =
+            applicant.campaign.provision ||
+            applicant.campaign.experience_details ||
+            applicant.campaign.product_name ||
+            '캠페인 상세 페이지 참조';
+        const deadlineDate = applicant.campaign.end_date
+            ? new Intl.DateTimeFormat('ko-KR', {
+                timeZone: 'Asia/Seoul',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(new Date(applicant.campaign.end_date))
+            : '캠페인 상세 페이지 참조';
 
         if (userData?.phone_number) {
             const alimtalkResult = await sendInfluencerSelectedAlimtalk(
@@ -235,6 +264,8 @@ export default function AdvertiserApplicantsPage() {
                     params: {
                         nickname: recipientName,
                         campaignTitle: applicant.campaign.title,
+                        providedItems,
+                        deadlineDate,
                         email: userData.email
                     }
                 })

@@ -63,6 +63,21 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
     const campaign = campaignRes.data;
     const applications: Application[] = (applicationsRes.data || []) as Application[];
 
+    const campaignProvidedItems =
+        campaign?.provision ||
+        campaign?.experience_details ||
+        campaign?.product_name ||
+        '';
+
+    const campaignDeadlineDate = campaign?.end_date
+        ? new Intl.DateTimeFormat('ko-KR', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(new Date(campaign.end_date))
+        : '';
+
     if (campaignRes.error || !campaign) {
         notFound();
     }
@@ -98,6 +113,8 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 initialApplications={applications}
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
+                campaignProvidedItems={campaignProvidedItems}
+                campaignDeadlineDate={campaignDeadlineDate}
                 campaignCategory={campaign.category || ''}
                 campaignType={campaign.type}
                 recruitCount={campaign.recruit_count || 0}

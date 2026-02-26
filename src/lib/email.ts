@@ -25,6 +25,7 @@ export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'D
 interface EmailParams {
   nickname?: string;
   campaignTitle?: string;
+  providedItems?: string;
   trackingCompany?: string;
   trackingNumber?: string;
   deadlineDate?: string;
@@ -61,6 +62,11 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
       htmlContent = htmlContent.replace(regex, value || '');
     });
 
+    // 관리 화면에서 저장한 템플릿이 완전한 HTML 문서라면 그대로 사용
+    if (/<html[\s>]/i.test(htmlContent) || /<!doctype/i.test(htmlContent)) {
+      return { subject, html: htmlContent };
+    }
+
     // 푸터 추가 (로고, 카카오톡 문의, 수신거부)
     const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
     const kakaoInquiryUrl = 'https://pf.kakao.com/_xbxhDgn/chat';
@@ -73,8 +79,9 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
         </head>
         <body>
           <div style="font-family: 'Pretendard', sans-serif; line-height: 1.6; color: #334155; max-width: 600px; margin: 0 auto; padding: 40px 20px; border: 1px solid #f1f5f9; border-radius: 20px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <img src="https://daonview.com/logo.png" alt="Daonview" style="height: 40px;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px;">
+              <img src="https://daonview.com/daonview_logo.png" alt="다온뷰" style="height: 40px;">
+              <span style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">다온뷰</span>
             </div>
             ${htmlContent}
             <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
@@ -118,11 +125,20 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
     border-radius: 20px;
   `;
 
+  const heroStyle = `
+    background: linear-gradient(135deg, #fff1f5 0%, #ffe4ee 100%);
+    border: 1px solid #fecdd3;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 24px;
+    text-align: center;
+  `;
+
   const headerStyle = `
-    font-size: 24px;
+    font-size: 30px;
     font-weight: 800;
     color: #0f172a;
-    margin-bottom: 24px;
+    margin-bottom: 10px;
     text-align: center;
   `;
 
@@ -137,6 +153,26 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
     margin-top: 24px;
   `;
 
+  const infoGridStyle = `
+    margin: 20px 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    overflow: hidden;
+  `;
+
+  const infoRowStyle = `
+    padding: 12px 14px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+  `;
+
+  const infoLabelStyle = `
+    color: #64748b;
+    font-weight: 700;
+    display: inline-block;
+    min-width: 90px;
+  `;
+
   const footerLinkStyle = `
     color: #94a3b8;
     text-decoration: underline;
@@ -149,7 +185,10 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
     case 'WELCOME':
       subject = `✨ [다온뷰] ${params.nickname}님, 환영합니다! 다온뷰의 회원이 되셨습니다.`;
       content = `
-        <div style="${headerStyle}">다온뷰의 가족이 되신 것을 환영합니다!</div>
+        <div style="${heroStyle}">
+          <div style="${headerStyle}">다온뷰의 가족이 되신 것을 환영합니다!</div>
+          <div style="font-size: 14px; color: #475569;">첫 캠페인 신청까지 1분이면 충분합니다.</div>
+        </div>
         <p>안녕하세요, <b>${params.nickname}</b>님!</p>
         <p>성공적인 인플루언서 활동의 시작, 다온뷰와 함께하게 되어 진심으로 기쁩니다.</p>
         <p>지금 바로 다온뷰의 다양한 캠페인을 확인하고 신청해 보세요.</p>
@@ -159,28 +198,61 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       `;
       break;
 
-    case 'CAMPAIGN_SELECTED':
+    case 'CAMPAIGN_SELECTED': {
       subject = `🎉 [다온뷰] 축하합니다! '${params.campaignTitle}' 캠페인에 선정되셨습니다.`;
+      const providedItems = params.providedItems || '캠페인 상세 페이지에서 제공내역을 확인해 주세요.';
+      const deadlineDate = params.deadlineDate || '캠페인 상세 페이지에서 마감일을 확인해 주세요.';
       content = `
-        <div style="${headerStyle}">캠페인 선정 축하드립니다!</div>
+        <div style="${heroStyle}">
+          <div style="${headerStyle}">캠페인 선정 축하드립니다!</div>
+          <div style="font-size: 14px; color: #475569;">아래 핵심 정보 확인 후 리뷰를 준비해 주세요.</div>
+        </div>
         <p>안녕하세요, ${params.nickname}님.</p>
-        <p>신청하신 <b>[${params.campaignTitle}]</b> 캠페인에 최종 선정되셨음을 알려드립니다.</p>
+        <p>신청하신 <b>[${params.campaignTitle}]</b> 캠페인에 최종 선정되셨습니다.</p>
+        <div style="${infoGridStyle}">
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">체험 타이틀</span>
+            <span>${params.campaignTitle}</span>
+          </div>
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">제공내역</span>
+            <span>${providedItems}</span>
+          </div>
+          <div style="padding: 12px 14px; font-size: 14px; background: #fff7ed;">
+            <span style="${infoLabelStyle}">체험 마감기한</span>
+            <span style="font-weight: 700; color: #b45309;">${deadlineDate}</span>
+          </div>
+        </div>
         <p>협찬 가이드라인을 꼼꼼히 확인하신 후 멋진 리뷰 부탁드립니다.</p>
         <div style="text-align: center;">
           <a href="https://daonview.com/dashboard/influencer/campaigns" style="${buttonStyle}">가이드 확인 및 리뷰 등록</a>
         </div>
       `;
       break;
+    }
 
     case 'PRODUCT_SHIPPED':
       subject = `📦 [다온뷰] 신청하신 캠페인의 제품 배송이 시작되었습니다.`;
       content = `
-        <div style="${headerStyle}">기다리시던 제품이 발송되었습니다!</div>
+        <div style="${heroStyle}">
+          <div style="${headerStyle}">기다리시던 제품이 발송되었습니다!</div>
+          <div style="font-size: 14px; color: #475569;">배송 정보를 확인해 주세요.</div>
+        </div>
         <p>안녕하세요, ${params.nickname}님.</p>
         <p><b>[${params.campaignTitle}]</b> 캠페인의 제품이 안전하게 발송되었습니다.</p>
-        <div style="background-color: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0;">
-          <p style="margin: 0; font-size: 14px; color: #64748b;">배송 정보</p>
-          <p style="margin: 8px 0 0 0; font-weight: 700;">${params.trackingCompany} : ${params.trackingNumber}</p>
+        <div style="${infoGridStyle}">
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">캠페인</span>
+            <span>${params.campaignTitle}</span>
+          </div>
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">택배사</span>
+            <span>${params.trackingCompany}</span>
+          </div>
+          <div style="padding: 12px 14px; font-size: 14px; background: #f8fafc;">
+            <span style="${infoLabelStyle}">운송장번호</span>
+            <span style="font-weight: 700;">${params.trackingNumber}</span>
+          </div>
         </div>
         <p>제품 수령 후 3일 이내에 리뷰 작성을 부탁드립니다.</p>
       `;
@@ -189,10 +261,22 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
     case 'DEADLINE_WARNING':
       subject = `⏰ [다온뷰] 마감 임박! 리뷰 제출 기한이 얼마 남지 않았습니다.`;
       content = `
-        <div style="${headerStyle}">리뷰 마감 기한을 확인해 주세요!</div>
+        <div style="${heroStyle}">
+          <div style="${headerStyle}">리뷰 마감 기한을 확인해 주세요!</div>
+          <div style="font-size: 14px; color: #475569;">마감 임박 캠페인 안내입니다.</div>
+        </div>
         <p>안녕하세요, ${params.nickname}님.</p>
-        <p>진행 중인 <b>[${params.campaignTitle}]</b> 캠페인의 리뷰 마감일이 벌써 다가오고 있습니다.</p>
-        <p style="color: #ef4444; font-weight: 700;">마감 기한: ${params.deadlineDate}</p>
+        <p>진행 중인 <b>[${params.campaignTitle}]</b> 캠페인의 리뷰 마감일이 다가오고 있습니다.</p>
+        <div style="${infoGridStyle}">
+          <div style="${infoRowStyle}">
+            <span style="${infoLabelStyle}">캠페인</span>
+            <span>${params.campaignTitle}</span>
+          </div>
+          <div style="padding: 12px 14px; font-size: 14px; background: #fef2f2;">
+            <span style="${infoLabelStyle}">리뷰 마감일</span>
+            <span style="font-weight: 700; color: #dc2626;">${params.deadlineDate}</span>
+          </div>
+        </div>
         <p>기한 내 리뷰가 등록되지 않을 경우 패널티가 발생할 수 있으니 유의 부탁드립니다.</p>
         <div style="text-align: center;">
           <a href="https://daonview.com/dashboard/influencer/campaigns" style="${buttonStyle}">리뷰 등록하러 가기</a>
@@ -212,8 +296,9 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       </head>
       <body>
         <div style="${baseStyle}">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <img src="https://daonview.com/logo.png" alt="Daonview" style="height: 40px;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 30px;">
+            <img src="https://daonview.com/daonview_logo.png" alt="다온뷰" style="height: 40px;">
+            <span style="font-size: 24px; font-weight: 800; color: #0f172a; letter-spacing: -0.02em;">다온뷰</span>
           </div>
           ${content}
           <div style="margin-top: 40px; border-top: 1px solid #f1f5f9; padding-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
@@ -271,7 +356,12 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     const { subject, html } = await getEmailTemplateFromDB(type, { ...params, email: to });
 
     // 3. 개발 환경 체크
-    if (process.env.NODE_ENV === 'development' || !process.env.AWS_ACCESS_KEY_ID) {
+    // 개발 환경에서도 EMAIL_FORCE_SEND=true(또는 1/yes/on) 설정 시 실제 발송 허용
+    const forceSend = ['TRUE', '1', 'YES', 'ON'].includes(
+      String(process.env.EMAIL_FORCE_SEND || '').toUpperCase()
+    );
+
+    if ((process.env.NODE_ENV === 'development' && !forceSend) || !process.env.AWS_ACCESS_KEY_ID) {
       console.log('[EMAIL MOCK] Sending email:', { to, subject });
       return { success: true, messageId: `mock-${Date.now()}` };
     }

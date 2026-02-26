@@ -16,6 +16,7 @@ interface EmailTemplate {
     sampleParams: {
         nickname?: string;
         campaignTitle?: string;
+        providedItems?: string;
         trackingCompany?: string;
         trackingNumber?: string;
         deadlineDate?: string;
@@ -81,6 +82,8 @@ export default function EmailTemplateManager() {
             'CAMPAIGN_SELECTED': {
                 nickname: '김인플',
                 campaignTitle: '[대구/수성구] 신매영 프리미엄 미용실 펌/매직/염색/클리닉',
+                providedItems: '염색 또는 클리닉 1회 + 시술 전후 사진 촬영',
+                deadlineDate: '2026.03.12',
                 email: 'influencer@example.com'
             },
             'PRODUCT_SHIPPED': {

@@ -88,7 +88,7 @@ export default function AdvertiserDashboard() {
                                 type,
                                 title,
                                 content: `[${campaign.title}] 캠페인의 마감이 임박했거나 모집이 저조합니다. 확인 후 기간 연장 등의 조치를 고려해 주세요.`,
-                                link: `/dashboard/advertiser/campaigns?id=${campaign.id}`
+                                link: `/dashboard/advertiser/campaigns/${campaign.id}`
                             });
                         }
                     }

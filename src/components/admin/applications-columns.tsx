@@ -23,6 +23,7 @@ interface ColumnContext {
     onCancel: (id: number, name: string) => void
     onOpenReview: (userId: string, name: string) => void
     onOpenReputation: (userId: string, name: string) => void
+    onResendNotification?: (app: Application) => void
     onUpdateTracking?: (id: number, company: string, number: string) => void
     onHandleExtension?: (id: number, action: 'APPROVED' | 'REJECTED') => void
     influencerStats?: Map<string, {
@@ -363,6 +364,14 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                         <Star size={12} className="mr-1 fill-white" /> 평가
                                     </Button>
                                 )}
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => context.onResendNotification?.(app)}
+                                    className="border-blue-500 text-blue-600 hover:bg-blue-50 whitespace-nowrap h-7 px-2 text-[11px]"
+                                >
+                                    재발송
+                                </Button>
                                 <Button
                                     size="sm"
                                     variant="outline"

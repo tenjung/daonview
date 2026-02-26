@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     title: '이용 가이드 | 다온뷰',
     description: '다온뷰 체험단 신청부터 리뷰 작성까지, 5단계로 쉽고 빠르게 이용하세요.',
     url: 'https://daonview.com/guide',
-    images: [{ url: '/og-image.jpg', width: 1200, height: 630 }],
+    images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
   },
   alternates: {
     canonical: 'https://daonview.com/guide',

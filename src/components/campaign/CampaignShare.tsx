@@ -89,7 +89,7 @@ export default function CampaignShare({
                     content: {
                         title: title,
                         description: description.substring(0, 100),
-                        imageUrl: thumbnailUrl || 'https://daonview.com/og-image.jpg',
+                        imageUrl: thumbnailUrl || 'https://daonview.com/og-daon.png',
                         link: {
                             mobileWebUrl: shareUrl,
                             webUrl: shareUrl,
