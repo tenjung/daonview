@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateColumn, generateColumnThumbnail } from '@/lib/ai/generateColumn';
+import { generateColumnThumbnail, generateColumnWithOptions } from '@/lib/ai/generateColumn';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -38,9 +38,34 @@ export async function GET(request: Request) {
 
         console.log('[CRON] ✅ 인플루언서 칼럼 자동 생성 시작...');
 
-        // 2. AI 칼럼 생성 (인플루언서 칼럼)
+        // 2. 최근 20건 제목 조회 후 AI 칼럼 생성 (인플루언서 칼럼)
+        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+        const supabase = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        const { data: recentPosts, error: recentPostsError } = await supabase
+            .from('posts')
+            .select('title')
+            .eq('type', 'ACADEMY_INFLUENCER')
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (recentPostsError) {
+            console.error('[CRON] 최근 칼럼 조회 오류:', recentPostsError);
+        }
+
+        const excludedTitles = (recentPosts || []).map((p: { title: string }) => p.title);
+
         console.log('[CRON] 📝 Google Gemini로 칼럼 생성 중...');
-        const { title, content, topic } = await generateColumn('ACADEMY_INFLUENCER');
+        const { title, content, topic } = await generateColumnWithOptions('ACADEMY_INFLUENCER', { excludedTitles });
         console.log(`[CRON] ✅ 칼럼 생성 완료: "${title}"`);
 
         // 3. 본문 내 이미지 플레이스홀더 처리
@@ -85,19 +110,6 @@ export async function GET(request: Request) {
 
         // 5. Supabase에 저장 (Service Role Key 사용 - RLS 우회)
         console.log('[CRON] 💾 Supabase에 칼럼 저장 중...');
-
-        // Service Role Key로 Supabase 클라이언트 생성 (RLS 우회)
-        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-        const supabase = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            }
-        );
 
         // 관리자 계정 ID 가져오기
         const { data: adminProfile, error: adminError } = await supabase

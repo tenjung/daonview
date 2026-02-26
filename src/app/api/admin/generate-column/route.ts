@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateColumn, generateColumnThumbnail } from '@/lib/ai/generateColumn';
+import { generateColumnThumbnail, generateColumnWithOptions } from '@/lib/ai/generateColumn';
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -51,11 +51,37 @@ export async function POST(request: Request) {
 
         console.log(`[AI Column] 📝 ${type} 칼럼 생성 시작...`);
 
-        // 3. AI 칼럼 생성
-        const { title, content, topic } = await generateColumn(type);
+        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+        const supabaseAdmin = createSupabaseClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            {
+                auth: {
+                    autoRefreshToken: false,
+                    persistSession: false
+                }
+            }
+        );
+
+        // 3. 최근 20건 제목 조회 (중복 주제 방지)
+        const { data: recentPosts, error: recentPostsError } = await supabaseAdmin
+            .from('posts')
+            .select('title')
+            .eq('type', type)
+            .order('created_at', { ascending: false })
+            .limit(20);
+
+        if (recentPostsError) {
+            console.error('[AI Column] 최근 칼럼 조회 오류:', recentPostsError);
+        }
+
+        const excludedTitles = (recentPosts || []).map((p: { title: string }) => p.title);
+
+        // 4. AI 칼럼 생성
+        const { title, content, topic } = await generateColumnWithOptions(type, { excludedTitles });
         console.log(`[AI Column] ✅ 칼럼 생성 완료: "${title}"`);
 
-        // 4. 본문 내 이미지 플레이스홀더 처리
+        // 5. 본문 내 이미지 플레이스홀더 처리
         console.log('[AI Column] 🎨 본문 이미지 생성 중...');
         let finalContent = content;
 
@@ -90,21 +116,7 @@ export async function POST(request: Request) {
             console.log('[AI Column] ℹ️ 이미지 플레이스홀더 없음');
         }
 
-        // 5. Supabase에 저장 (Service Role Key 사용)
-        console.log('[AI Column] 💾 Supabase에 칼럼 저장 중...');
-
-        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-        const supabaseAdmin = createSupabaseClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            {
-                auth: {
-                    autoRefreshToken: false,
-                    persistSession: false
-                }
-            }
-        );
-
+        // 6. Supabase에 저장 (Service Role Key 사용)
         const { data: post, error: insertError } = await supabaseAdmin
             .from('posts')
             .insert({

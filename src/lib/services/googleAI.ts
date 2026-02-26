@@ -30,7 +30,9 @@ export async function generateWithGemini(
     }
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 8000);
+    const parsedTimeout = Number(process.env.GEMINI_TIMEOUT_MS || '30000');
+    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     const response = await fetch(API_URL, {
       method: "POST",

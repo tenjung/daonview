@@ -42,8 +42,74 @@ export async function generateColumn(type: 'ACADEMY_INFLUENCER' | 'ACADEMY_ADVER
     content: string;
     topic: string;
 }> {
+    return generateColumnWithOptions(type, {});
+}
+
+interface GenerateColumnOptions {
+    excludedTitles?: string[];
+}
+
+function pickTopicWithDedupe(topics: string[], excludedTitles: string[]): string {
+    const excluded = new Set(
+        excludedTitles
+            .map(title => title?.trim().toLowerCase())
+            .filter(Boolean)
+    );
+
+    const candidates = topics.filter(topic => !excluded.has(topic.trim().toLowerCase()));
+    const pool = candidates.length > 0 ? candidates : topics;
+    const picked = pool[Math.floor(Math.random() * pool.length)];
+
+    // 모든 주제가 소진되어 중복을 피할 수 없는 경우 변형 타이틀로 중복 확률을 낮춤
+    if (candidates.length === 0) {
+        const suffixes = [
+            '실전편',
+            '최신 업데이트',
+            '고급 전략',
+            '현장 적용 가이드',
+            '2026 트렌드 반영',
+        ];
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+        return `${picked} (${suffix})`;
+    }
+
+    return picked;
+}
+
+function getTrendSignals(type: 'ACADEMY_INFLUENCER' | 'ACADEMY_ADVERTISER'): string[] {
+    // 최신 트렌드 기준 (2026-02 업데이트):
+    // - IAB(2025-11-20): Creator economy ad spend 급성장
+    // - Forbes(2026-01), New Consumer 2026: 하이브리드 제휴, 숏폼 커머스, 성과 기반 협업 강화
+    if (type === 'ACADEMY_INFLUENCER') {
+        return [
+            '숏폼·UGC 중심의 전환형 콘텐츠',
+            '장기 앰배서더십/반복 노출 기반 신뢰 축적',
+            '정액 + 성과(제휴/커미션) 하이브리드 수익 구조',
+            '니치 카테고리 전문성(뷰티/웰니스/로컬) 강화',
+            '플랫폼별 포맷 최적화(썸네일·후킹·댓글 유도)',
+        ];
+    }
+
+    return [
+        '마이크로·나노 인플루언서 포트폴리오 운영',
+        '성과형 계약(정액+성과)과 CPA 관점 예산 집행',
+        '숏폼 커머스/UGC 크리에이티브 실험 고도화',
+        '단발성보다 장기 파트너십 중심 캠페인 설계',
+        '브랜드 안전성과 측정 가능성(리포팅 지표) 강화',
+    ];
+}
+
+export async function generateColumnWithOptions(
+    type: 'ACADEMY_INFLUENCER' | 'ACADEMY_ADVERTISER',
+    options: GenerateColumnOptions
+): Promise<{
+    title: string;
+    content: string;
+    topic: string;
+}> {
     const topics = type === 'ACADEMY_INFLUENCER' ? INFLUENCER_TOPICS : ADVERTISER_TOPICS;
-    const topic = topics[Math.floor(Math.random() * topics.length)];
+    const topic = pickTopicWithDedupe(topics, options.excludedTitles || []);
+    const trendSignals = getTrendSignals(type);
 
     const role = type === 'ACADEMY_INFLUENCER' ? '인플루언서' : '광고주';
     const targetAudience = type === 'ACADEMY_INFLUENCER'
@@ -98,6 +164,9 @@ export async function generateColumn(type: 'ACADEMY_INFLUENCER' | 'ACADEMY_ADVER
         '- 이모지 적절히 활용',
         '- 실제 경험담처럼 작성',
         '- 숫자와 데이터 활용',
+        '',
+        '최신 트렌드 반영 (반드시 2개 이상 자연스럽게 녹일 것):',
+        ...trendSignals.map((signal, index) => `${index + 1}. ${signal}`),
         '',
         '순수 HTML만 반환하세요.'
     ];
