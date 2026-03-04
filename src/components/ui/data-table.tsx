@@ -66,6 +66,7 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
@@ -158,7 +159,7 @@ export function DataTable<TData, TValue>({
                       }}
                       className={cn(
                         "whitespace-nowrap",
-                        header.id === "actions" && "sticky right-0 z-20 bg-gray-50/95 backdrop-blur-sm shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] border-l border-gray-200"
+                        header.id === "actions" && "lg:sticky lg:right-0 lg:z-20 bg-gray-50/95 lg:backdrop-blur-sm lg:shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] lg:border-l lg:border-gray-200"
                       )}
                     >
                       {header.isPlaceholder
@@ -200,7 +201,7 @@ export function DataTable<TData, TValue>({
                         minWidth: cell.column.columnDef.size !== 150 ? cell.column.columnDef.size : undefined 
                       }}
                       className={cn(
-                        cell.column.id === "actions" && "sticky right-0 z-10 bg-white group-hover:bg-gray-50/80 transition-colors shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] border-l border-gray-100"
+                        cell.column.id === "actions" && "lg:sticky lg:right-0 lg:z-10 bg-white group-hover:bg-gray-50/80 transition-colors lg:shadow-[-8px_0_12px_-6px_rgba(0,0,0,0.1)] lg:border-l lg:border-gray-100"
                       )}
                     >
                       {flexRender(

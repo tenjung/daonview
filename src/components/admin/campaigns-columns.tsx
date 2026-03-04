@@ -1,8 +1,9 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, MoreHorizontal, ExternalLink, Settings, ChevronDown } from "lucide-react"
+import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { Campaign } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -44,9 +45,11 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
     return (
         <div className="flex items-center gap-3 max-w-[200px] sm:max-w-[300px] overflow-hidden">
             {campaign.main_image_url && (
-                <img
+                <Image
                     src={campaign.main_image_url}
                     alt={campaign.title}
+                    width={48}
+                    height={48}
                     className="hidden sm:block w-12 h-12 rounded-lg object-cover flex-shrink-0"
                 />
             )}
@@ -235,9 +238,11 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';
-            const creatorId = typeof campaign.created_by === 'object' && campaign.created_by !== null 
-                ? (campaign.created_by as any).id 
-                : campaign.created_by;
+            const creatorField = campaign.created_by;
+            const creatorId =
+                typeof creatorField === 'object' && creatorField !== null && 'id' in creatorField
+                    ? (creatorField as { id?: string | number | null }).id ?? null
+                    : creatorField;
                 
             const canEdit = Boolean(context.isAdmin) || canEditCampaignByRole({
                 role: context.currentUserRole,
@@ -272,9 +277,10 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                         {/* 시안 1: 텍스트 버튼 + 드롭다운 (가장 직관적) */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold gap-1 h-8 px-2.5">
-                                    관리/설정
-                                    <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
+                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold gap-1 h-8 px-2 lg:px-2.5 min-w-8">
+                                    <span className="hidden lg:inline">관리/설정</span>
+                                    <ChevronDown className="hidden lg:block h-3.5 w-3.5 text-slate-500" />
+                                    <MoreHorizontal className="lg:hidden h-4 w-4 text-slate-500" />
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-[160px]">
