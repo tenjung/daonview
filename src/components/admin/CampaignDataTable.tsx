@@ -110,30 +110,32 @@ export function CampaignDataTable({
       <StatsCards stats={stats} />
 
       {/* 필터 탭 */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between w-full">
         <Tabs value={filter} onValueChange={setFilter} className="w-full">
-          <TabsList className="bg-gray-100/50 p-1 h-auto">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-              전체 <Badge variant="secondary" className="bg-gray-200 text-gray-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.all}</Badge>
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-                요청중 <Badge variant="default" className="bg-orange-500 text-white border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.pending}</Badge>
+          <div className="overflow-x-auto w-full pb-2 -mb-2 custom-scrollbar">
+            <TabsList className="bg-gray-100/50 p-1 h-auto min-w-max flex">
+              <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                전체 <Badge variant="secondary" className="bg-gray-200 text-gray-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.all}</Badge>
               </TabsTrigger>
-            )}
-            <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-              진행전 <Badge variant="secondary" className="bg-blue-100 text-blue-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.upcoming}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-              진행중 <Badge variant="secondary" className="bg-green-100 text-green-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.active}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="completed" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-              완료 <Badge variant="secondary" className="bg-purple-100 text-purple-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.completed}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="draft" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2">
-              임시저장 <Badge variant="secondary" className="bg-gray-200 text-gray-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.draft}</Badge>
-            </TabsTrigger>
-          </TabsList>
+              {isAdmin && (
+                <TabsTrigger value="pending" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                  요청중 <Badge variant="default" className="bg-orange-500 text-white border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.pending}</Badge>
+                </TabsTrigger>
+              )}
+              <TabsTrigger value="upcoming" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                진행전 <Badge variant="secondary" className="bg-blue-100 text-blue-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.upcoming}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                진행중 <Badge variant="secondary" className="bg-green-100 text-green-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.active}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="completed" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                완료 <Badge variant="secondary" className="bg-purple-100 text-purple-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.completed}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="draft" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
+                임시저장 <Badge variant="secondary" className="bg-gray-200 text-gray-600 border-none px-1.5 h-5 min-w-[20px] flex justify-center">{counts.draft}</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
       </div>
 

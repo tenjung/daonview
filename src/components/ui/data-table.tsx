@@ -142,8 +142,9 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* 테이블 */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border bg-white overflow-hidden w-full">
+        <div className="overflow-x-auto w-full custom-scrollbar">
+          <Table className="min-w-full">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -222,10 +223,11 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       {/* 페이지네이션 */}
-      <div className="flex items-center justify-between space-x-2 py-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 w-full">
         <div className="flex-1 text-sm text-muted-foreground">
           {enableRowSelection && (
             <>

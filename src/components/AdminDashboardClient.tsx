@@ -14,6 +14,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface AdminDashboardClientProps {
     initialCampaigns: CampaignRow[];
@@ -258,46 +259,90 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     return (
         <>
             {/* 위험 신호등 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div
-                    className="bg-gradient-to-br from-red-50 to-red-100 border-2 border-red-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => document.getElementById('critical-section')?.scrollIntoView({ behavior: 'smooth' })}
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
+                <Card 
+                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
+                  onClick={() => document.getElementById('critical-section')?.scrollIntoView({ behavior: 'smooth' })}
                 >
-                    <div className="flex items-center gap-2 mb-1">
-                        <AlertTriangle className="w-5 h-5 text-red-600" />
-                        <h3 className="font-bold text-red-900 text-sm">🔴 위험 (모집 미달 D-3)</h3>
-                    </div>
-                    <div className="text-2xl font-bold text-red-600">{criticalCampaigns.length}건</div>
-                    <p className="text-[10px] text-red-700 mt-1">즉시 조치 필요</p>
-                </div>
+                    <CardContent className="p-0 h-full">
+                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
+                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-red-500" />
+                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
+                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-red-50 text-red-500 flex-shrink-0">
+                                    <AlertTriangle className="w-5 h-5" />
+                                </div>
+                                <div className="sm:hidden p-1.5 rounded-full bg-red-50 text-red-500">
+                                    <AlertTriangle className="w-5 h-5" />
+                                </div>
+                                
+                                <div className="flex flex-col w-full sm:pr-14">
+                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">🔴 위험 (모집 미달 D-3)</p>
+                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">긴급 조치</p>
+                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">{criticalCampaigns.length}<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
+                                </div>
+                                <p className="hidden sm:block text-xs text-gray-400 font-medium">즉시 조치 필요</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                <div
-                    className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-2 border-yellow-300 rounded-xl p-4 cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => document.getElementById('warning-section')?.scrollIntoView({ behavior: 'smooth' })}
+                <Card 
+                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
+                  onClick={() => document.getElementById('warning-section')?.scrollIntoView({ behavior: 'smooth' })}
                 >
-                    <div className="flex items-center gap-2 mb-1">
-                        <Clock className="w-5 h-5 text-yellow-600" />
-                        <h3 className="font-bold text-yellow-900 text-sm">🟡 주의 (마감 임박)</h3>
-                    </div>
-                    <div className="text-2xl font-bold text-yellow-600">{warningCampaigns.length}건</div>
-                    <p className="text-[10px] text-yellow-700 mt-1">모니터링 필요</p>
-                </div>
+                    <CardContent className="p-0 h-full">
+                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
+                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-yellow-400" />
+                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
+                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-yellow-50 text-yellow-500 flex-shrink-0">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                <div className="sm:hidden p-1.5 rounded-full bg-yellow-50 text-yellow-500">
+                                    <Clock className="w-5 h-5" />
+                                </div>
+                                
+                                <div className="flex flex-col w-full sm:pr-14">
+                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">🟡 주의 (마감 임박)</p>
+                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">주의/임박</p>
+                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">{warningCampaigns.length}<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
+                                </div>
+                                <p className="hidden sm:block text-xs text-gray-400 font-medium">모니터링 필요</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border-2 border-purple-300 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                        <span className="text-lg">⚖️</span>
-                        <h3 className="font-bold text-purple-900 text-sm">법적 대응</h3>
-                    </div>
-                    <div className="text-2xl font-bold text-purple-600">0건</div>
-                    <p className="text-[10px] text-purple-700 mt-1">먹튀/미제출</p>
-                </div>
+                <Card 
+                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
+                >
+                    <CardContent className="p-0 h-full">
+                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
+                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-purple-500" />
+                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
+                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-purple-50 text-purple-500 flex-shrink-0 text-lg">
+                                    ⚖️
+                                </div>
+                                <div className="sm:hidden p-1.5 rounded-full bg-purple-50 text-purple-500 text-sm flex items-center justify-center">
+                                    ⚖️
+                                </div>
+                                
+                                <div className="flex flex-col w-full sm:pr-14">
+                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">⚖️ 법적 대응</p>
+                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">법적 대응</p>
+                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">0<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
+                                </div>
+                                <p className="hidden sm:block text-xs text-gray-400 font-medium">먹튀/미제출</p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* 🔴 긴급: 모집 미달 구조대 */}
             {criticalCampaigns.length > 0 && (
                 <div id="critical-section" className="mb-8">
-                    <div className="bg-white rounded-xl border-2 border-red-300 overflow-visible shadow-sm">
-                        <div className="bg-gradient-to-r from-red-50 to-red-100 p-4 border-b-2 border-red-200">
+                    <Card className="border-red-200 overflow-visible shadow-sm">
+                        <div className="bg-red-50/50 p-4 border-b border-red-100 border-l-4 border-l-red-500 rounded-t-xl">
                             <div className="flex justify-between items-center">
                                 <div>
                                     <h2 className="text-lg font-bold text-red-900 flex items-center gap-2">
@@ -431,15 +476,15 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                 </tbody>
                             </table>
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 
             {/* 🟡 주의: 마감 임박 */}
             {warningCampaigns.length > 0 && (
                 <div id="warning-section" className="mb-8">
-                    <div className="bg-white rounded-xl border-2 border-yellow-300 overflow-visible shadow-sm">
-                        <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 p-4 border-b-2 border-yellow-200">
+                    <Card className="border-yellow-200 overflow-visible shadow-sm bg-white">
+                        <div className="bg-yellow-50/50 p-4 border-b border-yellow-100 border-l-4 border-l-yellow-400 rounded-t-xl">
                             <h2 className="text-lg font-bold text-yellow-900 flex items-center gap-2">
                                 <Clock className="w-5 h-5" />
                                 🟡 주의: 마감 임박 / 신청률 저조
@@ -449,7 +494,8 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                             {warningCampaigns.map((campaign) => {
                                 const analysis = analyzeCampaignRisk(campaign);
                                 return (
-                                    <div key={campaign.id} className="border border-yellow-200 rounded-lg p-3 hover:bg-yellow-50 transition-colors flex justify-between items-center">
+                                    <Card key={campaign.id} className="border-l-4 border-l-yellow-400 hover:shadow-md transition-all">
+                                        <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div>
                                             <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
@@ -488,11 +534,12 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                             </DropdownMenu>
                                             <Link href={`/campaigns/${campaign.id}`} className="px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors text-sm font-bold">상세보기</Link>
                                         </div>
-                                    </div>
+                                        </CardContent>
+                                    </Card>
                                 );
                             })}
                         </div>
-                    </div>
+                    </Card>
                 </div>
             )}
 

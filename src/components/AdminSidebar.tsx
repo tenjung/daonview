@@ -14,6 +14,7 @@ import {
   LayoutDashboard,
   Mail,
   Megaphone,
+  Menu,
   MessageCircle,
   MessageSquare,
   PieChart,
@@ -60,6 +61,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('admin-sidebar-collapsed') === 'true';
   });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     '/dashboard/admin/notifications': false,
   });
@@ -144,12 +146,31 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
   );
 
   return (
-    <aside
-      className={cn(
-        'bg-white border-r border-slate-100 flex flex-col shrink-0 h-screen sticky top-0 transition-all duration-300 ease-in-out z-40',
-        isCollapsed ? 'w-[56px]' : 'w-[260px]'
+    <>
+      {/* Mobile Menu Button */}
+      <button
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-primary text-white rounded-full shadow-2xl hover:bg-rose-600 transition-all active:scale-95"
+        aria-label="메뉴"
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
       )}
-    >
+
+      <aside
+        className={cn(
+          'bg-white border-r border-slate-100 flex flex-col shrink-0 h-screen fixed lg:sticky top-0 left-0 transition-all duration-300 ease-in-out z-40 lg:shadow-none shadow-xl',
+          isCollapsed ? 'w-[56px]' : 'w-[260px]',
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
       <button
         onClick={toggleCollapse}
         className={cn(
@@ -217,6 +238,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
                           <Link
                             key={sub.href}
                             href={sub.href}
+                            onClick={() => setMobileMenuOpen(false)}
                             className={cn(
                               'flex items-center gap-3 px-4 py-2 rounded-lg font-medium transition-all text-sm',
                               subActive ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
@@ -237,6 +259,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
               <Link
                 key={link.href}
                 href={link.href}
+                onClick={() => setMobileMenuOpen(false)}
                 className={cn(
                   'flex items-center justify-between gap-3 px-4 py-2 rounded-xl font-bold transition-all group',
                   active ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
@@ -261,6 +284,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
           <div className={cn('mt-6 pt-6 border-t border-slate-50 mb-8', isCollapsed && 'px-0')}>
             <Link
               href="/"
+              onClick={() => setMobileMenuOpen(false)}
               className={cn(
                 'flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 text-xs font-bold hover:bg-slate-100 transition-colors',
                 isCollapsed && 'p-1 h-9 rounded-lg'
@@ -272,6 +296,7 @@ function AdminSidebarContent({ initialCounts }: AdminSidebarProps) {
         </nav>
       </TooltipProvider>
     </aside>
+    </>
   );
 }
 

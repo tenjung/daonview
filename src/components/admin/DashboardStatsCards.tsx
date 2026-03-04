@@ -16,21 +16,23 @@ interface StatCardProps {
 
 function StatCard({ title, value, description, icon, color, href }: StatCardProps) {
   const content = (
-    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group">
-      <CardContent className="p-0">
-        <div className="flex items-stretch h-24">
-          <div className={`w-2 ${color}`} />
-          <div className="flex-1 p-4 flex flex-col justify-between">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium text-gray-500">{title}</p>
-                <h3 className="text-xl font-bold mt-0.5 group-hover:scale-105 transition-transform origin-left">{value}</h3>
-              </div>
-              <div className={`p-2 rounded-xl ${color.replace('bg-', 'bg-opacity-10 bg-')} ${color.replace('bg-', 'text-')}`}>
-                {icon}
-              </div>
+    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group h-full">
+      <CardContent className="p-0 h-full">
+        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
+          {/* 모바일에서는 상단 라인, 데스크탑에서는 좌측 라인 */}
+          <div className={`h-1.5 sm:h-auto sm:w-2 shrink-0 ${color}`} />
+          <div className="flex-1 p-4 flex flex-col justify-center sm:justify-between items-start sm:items-start text-left relative gap-2 sm:gap-0">
+            {/* 아이콘: 모바일은 우측 상단 절대배치, 데스크탑은 우측 흐름배치 */}
+            <div className={`absolute top-4 right-4 sm:static sm:absolute sm:right-4 sm:top-1/2 sm:-translate-y-1/2 p-2 rounded-xl ${color.replace('bg-', 'bg-opacity-10 bg-')} flex-shrink-0 ${color.replace('bg-', 'text-')}`}>
+              {icon}
             </div>
-            <p className="text-xs text-gray-400 font-medium">{description}</p>
+            
+            <div className="flex flex-col w-full pr-10 sm:pr-14">
+              <p className="text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">{title}</p>
+              <h3 className="text-2xl sm:text-xl font-bold group-hover:scale-105 transition-transform origin-left">{value}</h3>
+            </div>
+            
+            <p className="hidden sm:block text-xs text-gray-400 font-medium">{description}</p>
           </div>
         </div>
       </CardContent>
@@ -55,7 +57,7 @@ interface DashboardStatsCardsProps {
 
 export function DashboardStatsCards({ stats }: DashboardStatsCardsProps) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
       <StatCard
         title="총 광고주"
         value={stats.totalAdvertisers.toLocaleString()}

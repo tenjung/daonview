@@ -55,19 +55,19 @@ export default async function AdminDashboard() {
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-                        <LayoutDashboard className="w-7 h-7 text-primary" />
+                    <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2 sm:gap-3 tracking-tight">
+                        <LayoutDashboard className="w-6 h-6 sm:w-7 sm:h-7 text-primary shrink-0" />
                         Admin Insight
                     </h1>
-                    <p className="text-gray-500 mt-1 font-medium text-sm">
+                    <p className="text-gray-500 mt-1 sm:mt-1.5 font-medium text-xs sm:text-sm">
                         실시간 플랫폼 상태와 위험 요소를 한눈에 모니터링합니다.
                     </p>
                 </div>
                 <Link
                     href="/dashboard/campaign/new"
-                    className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
+                    className="bg-gray-900 text-white w-full sm:w-auto px-5 py-2.5 sm:py-3 rounded-xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5 active:translate-y-0 text-sm"
                 >
                     + 신규 캠페인 등록
                 </Link>
