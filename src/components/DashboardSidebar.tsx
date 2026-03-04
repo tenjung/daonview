@@ -123,10 +123,10 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
             {/* Mobile Menu Button */}
             <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-primary text-white rounded-full shadow-2xl hover:bg-rose-600 transition-all active:scale-95"
-                aria-label="메뉴"
+                className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 flex items-center justify-center bg-primary text-white rounded-full shadow-[0_4px_24px_rgba(244,63,94,0.3)] hover:bg-rose-600 transition-all active:scale-95"
+                aria-label="대시보드 메뉴"
             >
-                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                {mobileMenuOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
             </button>
 
             {/* Mobile Overlay */}
