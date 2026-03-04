@@ -173,10 +173,27 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
             header: "신청 메시지",
             cell: ({ row }) => {
                 const message = row.getValue("application_message") as string;
+                if (!message) return <div className="text-sm text-gray-400">-</div>;
+
                 return (
-                    <div className="max-w-[250px] truncate text-sm text-gray-700">
-                        {message || '-'}
-                    </div>
+                    <TooltipProvider>
+                        <Tooltip delayDuration={300}>
+                            <TooltipTrigger asChild>
+                                <div className="max-w-[250px] truncate text-sm text-gray-700 cursor-help hover:text-gray-900">
+                                    {message}
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent 
+                                side="bottom" 
+                                align="start"
+                                className="max-w-[400px] z-50 p-4 border border-gray-100 shadow-xl rounded-xl"
+                            >
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap word-break break-all">
+                                    {message}
+                                </p>
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
                 );
             },
             enableSorting: false,
