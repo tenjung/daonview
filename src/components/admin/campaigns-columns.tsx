@@ -37,22 +37,26 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
     const managePath = isAdmin
         ? `/dashboard/admin/campaigns/${campaign.id}`
         : `/dashboard/advertiser/campaigns/${campaign.id}`;
+    const displayTitle = campaign.title.length > 25 
+        ? campaign.title.slice(0, 25) + '...' 
+        : campaign.title;
 
     return (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 max-w-[200px] sm:max-w-[300px] overflow-hidden">
             {campaign.main_image_url && (
                 <img
                     src={campaign.main_image_url}
                     alt={campaign.title}
-                    className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+                    className="hidden sm:block w-12 h-12 rounded-lg object-cover flex-shrink-0"
                 />
             )}
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
                 <Link
                     href={managePath}
-                    className="font-bold text-gray-900 truncate hover:text-primary transition-colors cursor-pointer block"
+                    title={campaign.title}
+                    className="font-bold text-gray-900 hover:text-primary transition-colors cursor-pointer break-keep line-clamp-2"
                 >
-                    {campaign.title}
+                    {displayTitle}
                 </Link>
                 {campaign.category && (
                     <div className="text-xs text-gray-500">

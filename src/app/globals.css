@@ -67,6 +67,15 @@ body {
     display: none;
   }
 
+  /* 네이티브 앱 같은 스와이프 경험을 위해 스크롤바 숨김 (가로 스크롤 영역에 사용) */
+  .custom-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* DAONVIEW Branding System - Optimized for stability */
   .brand-text-base {
     display: flex;

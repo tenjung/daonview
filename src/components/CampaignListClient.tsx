@@ -176,14 +176,18 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
             <div className={`sticky top-[70px] z-40 w-full bg-white border-b border-slate-100 shadow-md transition-all ${isFilterOpen ? 'py-6 md:py-8' : 'py-3 md:py-4'}`}>
                 <div className="max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
-                        <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto scrollbar-hide">
+                        <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto custom-scrollbar">
                             {['ALL', 'STEADY', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab as any)}
-                                    className={`px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
-                                    {tab === 'ALL' ? '전체보기' : tab === 'STEADY' ? '상시모집' : tab === 'VISIT' ? '방문형' : tab === 'DELIVERY' ? '배송형' : '구매평만'}
+                                    {tab === 'ALL' ? <><span className="sm:hidden">전체</span><span className="hidden sm:inline">전체보기</span></> : 
+                                     tab === 'STEADY' ? <><span className="sm:hidden">상시</span><span className="hidden sm:inline">상시모집</span></> : 
+                                     tab === 'VISIT' ? <><span className="sm:hidden">방문</span><span className="hidden sm:inline">방문형</span></> : 
+                                     tab === 'DELIVERY' ? <><span className="sm:hidden">배송</span><span className="hidden sm:inline">배송형</span></> : 
+                                     <><span className="sm:hidden">구매평</span><span className="hidden sm:inline">구매평만</span></>}
                                 </button>
                             ))}
                         </div>

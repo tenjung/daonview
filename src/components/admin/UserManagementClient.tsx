@@ -105,39 +105,39 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
     }), [users]);
 
     return (
-        <div className="flex flex-col min-h-screen bg-gray-50/30">
-            <header className="bg-white border-b border-border py-8">
-                <div className="container px-4">
+        <div className="flex flex-col w-full bg-transparent">
+            <header className="bg-white/80 backdrop-blur-sm border-b border-border py-4 sm:py-8 sticky top-0 z-10">
+                <div className="w-full px-4 sm:px-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-text-main tracking-tight flex items-center gap-3">
-                                <ShieldCheck className="text-primary w-8 h-8" />
+                            <h1 className="text-xl sm:text-3xl font-bold text-text-main tracking-tight flex items-center gap-2 sm:gap-3">
+                                <ShieldCheck className="text-primary w-6 h-6 sm:w-8 sm:h-8" />
                                 회원 통합 관리
                             </h1>
-                            <p className="text-gray-500 mt-1">플랫폼의 모든 회원을 관리하고 등급을 조정할 수 있습니다.</p>
+                            <p className="text-gray-500 mt-1 text-xs sm:text-sm">플랫폼의 모든 회원을 관리하고 등급을 조정할 수 있습니다.</p>
                         </div>
-                        <div className="flex gap-2 bg-gray-100 p-1 rounded-xl overflow-x-auto">
+                        <div className="flex gap-1.5 sm:gap-2 bg-gray-100/80 p-1 rounded-xl overflow-x-auto w-full md:w-auto custom-scrollbar">
                             <button
                                 onClick={() => setCurrentTab('all')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'all' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'all' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 전체 {stats.total}
                             </button>
                             <button
                                 onClick={() => setCurrentTab('INFLUENCER')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'INFLUENCER' ? 'bg-white shadow-sm text-rose-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'INFLUENCER' ? 'bg-white shadow-sm text-rose-600' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 인플루언서 {stats.influencer}
                             </button>
                             <button
                                 onClick={() => setCurrentTab('ADVERTISER')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'ADVERTISER' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'ADVERTISER' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 광고주 {stats.advertiser}
                             </button>
                             <button
                                 onClick={() => setCurrentTab('ADMIN')}
-                                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'ADMIN' ? 'bg-white shadow-sm text-violet-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${currentTab === 'ADMIN' ? 'bg-white shadow-sm text-violet-600' : 'text-gray-500 hover:text-gray-700'}`}
                             >
                                 관리자 {stats.admin}
                             </button>
@@ -146,7 +146,7 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
                 </div>
             </header>
 
-            <main className="container px-4 py-8 flex-1">
+            <main className="w-full px-0 sm:px-6 py-4 sm:py-8 flex-1">
                 <DataTable 
                     columns={columns}
                     data={filteredUsers}

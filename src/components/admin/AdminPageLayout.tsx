@@ -18,7 +18,7 @@ export default function AdminPageLayout({
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <AdminSidebar initialCounts={sidebarCounts} />
-      <main className="flex-1 bg-gray-50/50 p-4 md:p-6 overflow-y-auto">
+      <main className="flex-1 bg-gray-50/50 p-0 sm:p-4 md:p-6 overflow-y-auto">
         <div className={cn("max-w-full mx-auto w-full", containerClassName)}>
           {children}
         </div>

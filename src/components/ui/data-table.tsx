@@ -102,7 +102,7 @@ export function DataTable<TData, TValue>({
   return (
     <div className="w-full">
       {/* 검색 및 컬럼 표시 설정 */}
-      <div className="flex items-center justify-between py-4">
+      <div className="flex items-center justify-between py-4 px-4 sm:px-0">
         {searchKey && (
           <Input
             placeholder={searchPlaceholder}
@@ -142,7 +142,7 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* 테이블 */}
-      <div className="rounded-md border bg-white overflow-hidden w-full">
+      <div className="rounded-none sm:rounded-md border-y sm:border bg-white overflow-hidden w-full">
         <div className="overflow-x-auto w-full custom-scrollbar">
           <Table className="min-w-full">
           <TableHeader>
@@ -227,17 +227,17 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* 페이지네이션 */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 w-full">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 px-4 sm:px-0 w-full">
         <div className="flex-1 text-sm text-muted-foreground">
           {enableRowSelection && (
-            <>
+            <span>
               {table.getFilteredSelectedRowModel().rows.length}개 선택됨 (전체{" "}
               {table.getFilteredRowModel().rows.length}개)
-            </>
+            </span>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground mr-2">
             페이지 {table.getState().pagination.pageIndex + 1} /{" "}
             {table.getPageCount()}
           </div>

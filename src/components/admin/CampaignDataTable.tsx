@@ -105,12 +105,12 @@ export function CampaignDataTable({
   )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full">
       {/* 상단 통계 */}
       <StatsCards stats={stats} />
 
       {/* 필터 탭 */}
-      <div className="flex items-center justify-between w-full">
+      <div className="flex items-center justify-between w-full px-4 sm:px-0">
         <Tabs value={filter} onValueChange={setFilter} className="w-full">
           <div className="overflow-x-auto w-full pb-2 -mb-2 custom-scrollbar">
             <TabsList className="bg-gray-100/50 p-1 h-auto min-w-max flex">

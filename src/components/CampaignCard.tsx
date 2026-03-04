@@ -138,7 +138,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             {/* Content Section */}
             <div className="p-2.5 flex flex-col flex-1 gap-1.5">
                 {/* 1. Tags: Type & Platform & Region */}
-                <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden whitespace-nowrap w-full">
                     <TypeBadge type={type} />
 
                     <CampaignPlatformBadges
