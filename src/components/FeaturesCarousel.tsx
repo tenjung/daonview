@@ -46,9 +46,9 @@ const features: Feature[] = [
     },
     {
         icon: ShieldCheck,
-        title: 'AI 게시물 진단 매니저',
-        subtitle: '콘텐츠 모니터링 도구',
-        description: 'AI를 통한 기술적 참고치를 기반으로 수정방안을 마련합니다.',
+        title: '콘텐츠 리포트',
+        subtitle: 'Reporting',
+        description: '작성된 글의 분량, 이미지 수 등을 수치화하여 캠페인 진행 상태를 체계적으로 파악할 수 있는 데이터를 제공합니다.',
         gradient: 'from-rose-500/20 to-red-600/20',
         glowColor: 'group-hover:shadow-rose-500/10',
         iconColor: 'text-rose-500',
@@ -102,9 +102,9 @@ export default function FeaturesCarousel() {
                                     )}
 
                                     {/* 콘텐츠 영역 (최상위 Layer) */}
-                                    <div className={`relative z-10 flex flex-col h-full ${feature.badge ? 'pt-4' : ''}`}>
+                                    <div className={`relative z-10 flex flex-col h-full`}>
                                         {/* 타이틀 세트 - 타이포그래피 강화 */}
-                                        <div className="space-y-2 mb-4">
+                                        <div className="space-y-2 mb-4 mt-2">
                                             <p className={`text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-slate-600 transition-colors`}>
                                                 {feature.subtitle}
                                             </p>
