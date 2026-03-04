@@ -35,6 +35,8 @@ export interface BannerItem {
     includeReview?: boolean;
     includeNaver?: boolean;
     includeInstagram?: boolean;
+    region?: string;
+    sub_region?: string;
 }
 
 interface BannerProps {

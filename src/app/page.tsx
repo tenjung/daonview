@@ -51,7 +51,8 @@ export default async function Home() {
             includeReview: item.includeReview || false,
             includeNaver: item.includeNaver || false,
             includeInstagram: item.includeInstagram || false,
-            region: '',
+            region: item.region || null,
+            sub_region: item.sub_region || null,
             end_date: '',
             created_at: ''
         }));
@@ -72,7 +73,8 @@ export default async function Home() {
             includeReview: item.includeReview || false,
             includeNaver: item.includeNaver || false,
             includeInstagram: item.includeInstagram || false,
-            region: '',
+            region: item.region || null,
+            sub_region: item.sub_region || null,
             end_date: '',
             created_at: ''
         }));
@@ -93,7 +95,8 @@ export default async function Home() {
             includeReview: item.includeReview || false,
             includeNaver: item.includeNaver || false,
             includeInstagram: item.includeInstagram || false,
-            region: '',
+            region: item.region || null,
+            sub_region: item.sub_region || null,
             end_date: '',
             created_at: ''
         }));

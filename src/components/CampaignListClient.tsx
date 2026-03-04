@@ -173,7 +173,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
 
     return (
         <>
-            <div className={`sticky top-[70px] z-40 w-full bg-white border-b border-slate-100 shadow-md transition-all ${isFilterOpen ? 'py-6 md:py-8' : 'py-3 md:py-4'}`}>
+            <div className={`sticky top-[70px] z-40 w-full bg-white border-b border-slate-100 shadow-md transition-all ${isFilterOpen ? 'py-4 md:py-5' : 'py-2 md:py-2.5'}`}>
                 <div className="max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
                         <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto custom-scrollbar">
@@ -181,7 +181,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab as any)}
-                                    className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-2 rounded-full text-[13px] font-black transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     {tab === 'ALL' ? <><span className="sm:hidden">전체</span><span className="hidden sm:inline">전체보기</span></> : 
                                      tab === 'STEADY' ? <><span className="sm:hidden">상시</span><span className="hidden sm:inline">상시모집</span></> : 
@@ -199,7 +199,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                 placeholder="캠페인 검색..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-bold transition-all outline-none"
+                                className="w-full pl-12 pr-4 py-2 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-bold transition-all outline-none"
                             />
                         </div>
 
@@ -207,7 +207,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                             {hasActiveFilters && (
                                 <button
                                     onClick={clearAllFilters}
-                                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-full font-black text-xs transition-all bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm"
+                                    className="flex items-center gap-1.5 px-4 py-2 rounded-full font-semibold text-xs transition-all bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white shadow-sm"
                                 >
                                     <X className="w-3.5 h-3.5" />
                                     <span className="hidden sm:inline">전체 초기화</span>
@@ -216,7 +216,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
 
                             <button
                                 onClick={() => setIsFilterOpen(!isFilterOpen)}
-                                className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm transition-all ${isFilterOpen ? 'bg-slate-900 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
+                                className={`flex items-center gap-2 px-5 py-2 rounded-full font-semibold text-sm transition-all ${isFilterOpen ? 'bg-slate-900 text-white shadow-lg' : 'bg-rose-50 text-rose-600 hover:bg-rose-100'}`}
                             >
                                 <Filter className="w-4 h-4" />
                                 <span className="hidden lg:inline">상세설정</span>
@@ -228,7 +228,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     onClick={() => setIsSortOpen(!isSortOpen)}
                                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
                                 >
-                                    <span className="text-sm font-black text-slate-700">
+                                    <span className="text-sm font-semibold text-slate-700">
                                         {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : sortBy === 'steady' ? '상시우선' : '마감임박순'}
                                     </span>
                                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
@@ -263,7 +263,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                         <div className="mt-8 pt-8 border-t border-slate-50">
                             <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-10">
                                 <div>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Channels</p>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Channels</p>
                                     <div className="flex flex-wrap gap-2">
                                         {PLATFORMS.map(p => (
                                             <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
@@ -271,7 +271,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     </div>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Regions</p>
+                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Regions</p>
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {REGION_HIERARCHY.map(r => (
                                             <button

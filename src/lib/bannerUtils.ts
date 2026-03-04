@@ -123,6 +123,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeReview: mapped.includeReview,
                     includeNaver: mapped.includeNaver,
                     includeInstagram: mapped.includeInstagram,
+                    region: mapped.region || undefined,
+                    sub_region: mapped.sub_region || undefined,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -154,6 +156,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeReview: mapped.includeReview,
                     includeNaver: mapped.includeNaver,
                     includeInstagram: mapped.includeInstagram,
+                    region: mapped.region || undefined,
+                    sub_region: mapped.sub_region || undefined,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -179,6 +183,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeReview: mapped.includeReview,
                     includeNaver: mapped.includeNaver,
                     includeInstagram: mapped.includeInstagram,
+                    region: mapped.region || undefined,
+                    sub_region: mapped.sub_region || undefined,
                 };
             })
             .filter(item => item.image_url && item.title);

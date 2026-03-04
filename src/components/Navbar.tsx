@@ -126,7 +126,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
               }`}
           >
             캠페인
-            <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-full animate-pulse">NEW</span>
+            <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
           </Link>
           <Link
             href="/reviews"
@@ -355,7 +355,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                   }`}
               >
                 <span>캠페인</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-rose-500 to-orange-500 text-white rounded-full">NEW</span>
+                <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
               </Link>
               <Link
                 href="/reviews"

@@ -119,6 +119,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
   const step1Data = options?.step1Data || {};
+  const rawRegion = (campaign as any).region ?? step1Data.region ?? null;
+  const rawSubRegion = (campaign as any).sub_region ?? step1Data.subRegion ?? null;
   const {
     normalizedType,
     resolvedPlatform,
@@ -140,8 +142,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     total: campaign.recruit_count || 0,
     dday: (campaign.is_always || (campaign.recruit_count && campaign.recruit_count >= 999)) ? "상시" : formatDDay(campaign.end_date),
     category: campaign.category,
-    region: (campaign as any).region || null,
-    sub_region: (campaign as any).sub_region || null,
+    region: rawRegion ? String(rawRegion) : null,
+    sub_region: rawSubRegion ? String(rawSubRegion) : null,
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
     end_date: campaign.end_date,

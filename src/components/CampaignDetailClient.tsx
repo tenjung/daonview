@@ -1781,6 +1781,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     imageUrl={cardData.imageUrl}
                                                     provision={cardData.provision}
                                                     region={cardData.region}
+                                                    sub_region={cardData.sub_region}
                                                     includeReview={cardData.includeReview}
                                                     includeNaver={cardData.includeNaver}
                                                     includeInstagram={cardData.includeInstagram}

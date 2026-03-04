@@ -1,6 +1,25 @@
 import Link from 'next/link';
 import CampaignCarousel from '@/components/CampaignCarousel';
 
+type HomeCampaignCardItem = {
+  id: number | string;
+  title: string;
+  imageUrl?: string;
+  type?: string;
+  provision?: string | null;
+  dday: string;
+  applicants: number;
+  total: number;
+  platform: string;
+  includeReview?: boolean;
+  includeNaver?: boolean;
+  includeInstagram?: boolean;
+  region?: string | null;
+  sub_region?: string | null;
+  end_date?: string;
+  created_at?: string;
+};
+
 interface CampaignSectionProps {
   badge: string;
   badgeClassName: string;
@@ -9,7 +28,7 @@ interface CampaignSectionProps {
   sectionClassName: string;
   viewAllHref: string;
   viewAllClassName: string;
-  campaigns: Array<Record<string, unknown>>;
+  campaigns: HomeCampaignCardItem[];
 }
 
 export default function CampaignSection({

@@ -79,12 +79,50 @@ export const TypeBadge = ({ type }: { type?: string }) => {
 };
 
 export const RegionBadge = ({ region, sub_region }: { region?: string | null, sub_region?: string | null }) => {
-    const fullRegion = [region, sub_region].filter(Boolean).join(' ');
+    const normalizeMajorRegion = (value: string) => {
+        const trimmed = value.trim();
+        const map: Record<string, string> = {
+            '서울특별시': '서울',
+            '서울시': '서울',
+            '부산광역시': '부산',
+            '대구광역시': '대구',
+            '인천광역시': '인천',
+            '광주광역시': '광주',
+            '대전광역시': '대전',
+            '울산광역시': '울산',
+            '세종특별자치시': '세종',
+            '경기도': '경기',
+            '강원도': '강원',
+            '강원특별자치도': '강원',
+            '충청북도': '충북',
+            '충청남도': '충남',
+            '전라북도': '전북',
+            '전북특별자치도': '전북',
+            '전라남도': '전남',
+            '경상북도': '경북',
+            '경상남도': '경남',
+            '제주특별자치도': '제주',
+        };
+
+        return map[trimmed] || trimmed;
+    };
+
+    const normalizeSubRegion = (value: string) => {
+        const trimmed = value.trim();
+        const firstDepth = trimmed.split(' ')[0] || '';
+        return firstDepth.replace(/시$/, '');
+    };
+
+    const normalizedRegion = region ? normalizeMajorRegion(String(region)) : '';
+    const normalizedSubRegion = sub_region ? normalizeSubRegion(String(sub_region)) : '';
+    const regionLabel = normalizedRegion && normalizedSubRegion
+        ? `${normalizedRegion}/${normalizedSubRegion}`
+        : normalizedRegion || '전국';
+
     return (
         <BadgeBase className="bg-slate-50 text-slate-600 border-slate-200 !px-2 sm:!px-2.5 !gap-1 max-w-[80px] sm:max-w-[150px]">
             <span className="flex-shrink-0 inline-flex items-center justify-center w-[11px] h-[11px]"><MapPin size={11} /></span>
-            <span className="leading-none truncate block sm:hidden">{region || '전국'}</span>
-            <span className="leading-none truncate hidden sm:block">{fullRegion || '전국'}</span>
+            <span className="leading-none truncate">{regionLabel}</span>
         </BadgeBase>
     );
 };
