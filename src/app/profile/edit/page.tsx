@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, Suspense, useCallback, useRef } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
 import { Avatar } from '@/components/ui/avatar';
@@ -85,6 +85,7 @@ const BANK_LIST = [
 function ProfileEditContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const pathname = usePathname();
     const activeTab = (searchParams.get('tab') as TabType) || 'basic';
 
     // SNS 접두사 상수
@@ -196,7 +197,8 @@ function ProfileEditContent() {
         if (initializedRef.current) return;
 
         if (!authUser) {
-            router.push('/login');
+            const currentUrl = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
+            router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
             return;
         }
 

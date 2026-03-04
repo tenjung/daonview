@@ -68,6 +68,7 @@ import {
 } from "@/components/ui/tooltip";
 import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
+import SnsInputModal from '@/components/influencer/SnsInputModal';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
 
@@ -113,6 +114,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [relatedApi, setRelatedApi] = useState<CarouselApi>();
     const [isApplying, setIsApplying] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
+    const [showSnsModal, setShowSnsModal] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [applicationId, setApplicationId] = useState<number>(0);
     const [assignedPurchaseLink, setAssignedPurchaseLink] = useState<string>('');
@@ -433,6 +435,38 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
                     setMissingInfoType('ADDRESS');
                     setIsProfileAlertOpen(true);
+                    return;
+                }
+            }
+
+            // SNS 링크 등록 여부 확인 (구매평 제외)
+            if (!isPurchaseExperienceCampaign) {
+                const campaignOptionsObj = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+                const applyStep1Data = campaignOptionsObj?.step1Data || {};
+                
+                const { includeNaver, includeInstagram, resolvedPlatform } = resolveCampaignPlatformState({
+                    type: campaign.type,
+                    platform: campaign.platform,
+                    step1Data: applyStep1Data,
+                });
+
+                let snsMissing = false;
+                
+                if (includeNaver) {
+                    if (!profile.blog_url && !profile.sns_url) snsMissing = true;
+                }
+                
+                if (includeInstagram) {
+                    if (!profile.instagram_url) snsMissing = true;
+                }
+                
+                if (!includeNaver && !includeInstagram) {
+                     if (resolvedPlatform === 'BLOG' && !profile.blog_url && !profile.sns_url) snsMissing = true;
+                     if (resolvedPlatform === 'INSTAGRAM' && !profile.instagram_url) snsMissing = true;
+                }
+
+                if (snsMissing) {
+                    setShowSnsModal(true);
                     return;
                 }
             }
@@ -2081,6 +2115,23 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         handleApply();
                     }}
                     onClose={() => setShowPhoneModal(false)}
+                />
+            )}
+
+            {/* SNS 입력 모달 */}
+            {showSnsModal && user && (
+                <SnsInputModal
+                    isOpen={showSnsModal}
+                    onClose={() => setShowSnsModal(false)}
+                    user={user}
+                    profile={profile || { id: user.id }}
+                    onSuccess={() => {
+                        setShowSnsModal(false);
+                        // SNS 링크 변경사항을 전역 스토어에 새로고침하여 로컬 profile 정보 최신화 후 신청 진행
+                        useAuthStore.getState().fetchProfile(user.id).then(() => {
+                            handleApply();
+                        });
+                    }}
                 />
             )}
         </div>
