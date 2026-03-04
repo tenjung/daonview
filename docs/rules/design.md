@@ -49,7 +49,7 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 ### 1.8 뱃지(Badge) 블록의 Flex-nowrap 강제 수평화
 플랫폼, 제공 내역, 위치 등 배지(Sticker/Badge) 컴포넌트가 여러 개 붙을 때 화면이 좁아지면 아래쪽으로 밀리면서(Wrap) 리스트 카드 전체 높이를 비정상적으로 키우는 것을 방지합니다.
 - **수단 1 (부모):** 뱃지 그룹 컨테이너에 `flex-wrap` 대신 **무조건적인 `flex-nowrap`, `overflow-hidden`** 적용
-- **수단 2 (자식):** 긴 "단어 조합"(예: '대구 수성구')은 모바일 화면일 때 핵심 권역('대구')만 남기고 자식 요소는 숨김(`sm:hidden`) 처리하여 공간 확보
+- **수단 2 (자식):** 위치 뱃지는 `광역/상세`(예: `대구/수성구`, `경북/안동`)를 기본 표기로 유지하되, 뱃지 내부는 `truncate`로 폭 초과를 제어
 - **적용 패턴:** `<div className="flex gap-1.5 flex-nowrap overflow-hidden">`
 
 ### 1.9 모바일 탭 메뉴의 균등 분할 (Flex-1 할당)
@@ -82,3 +82,49 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 버튼, 브랜드 최상단 로고, 특수 뱃지 등 역동적인 프리미엄 느낌을 주어야 하는 곳에 사용합니다.
 - **그라데이션 흐름:** 로즈레드(`#ff385c`) → 웜핑크(`#ff5a7b`) → 소프트 바이올렛(`#b375f9`)이 혼합된 형태
 - **적용 패턴:** `bg-gradient-to-r from-rose-500 via-pink-400 to-indigo-500` 또는 `globals.css`의 `.brand-text-gradient` 사용
+
+---
+
+## 3. 타이포그래피 규정 (Typography Rules)
+
+폰트는 가독성, 위계, 밀도(특히 모바일) 관점에서 통일된 규칙을 적용합니다.  
+핵심 원칙은 **크기보다 위계**, **강조보다 일관성**입니다.
+
+### 3.1 기본 폰트 패밀리 (Current Source of Truth)
+- **기본 UI/본문 폰트:** `Pretendard`
+  - 현재 전역 기준: `src/app/globals.css`의 `body { font-family: 'Pretendard', ... }`
+- **모노 폰트:** `Geist Mono`
+  - 코드/ID/트래킹번호/숫자 정렬이 중요한 영역에 사용
+- 참고: `src/app/layout.tsx`에서 `Geist` 변수도 로드되지만, 기본 본문은 Pretendard 기준으로 운영한다.
+
+### 3.2 텍스트 역할별 Weight 규칙
+- **Page Title / Section Title:** `font-bold` (기본 700)
+- **Global Navigation (1차):** `font-medium` 기본, 활성 상태 `font-semibold` 또는 `font-bold`
+- **Filter / Tab (2차 조작 UI):** 기본 `font-medium`, 활성 상태만 `font-semibold`~`font-bold`
+- **Body / Description:** 기본(400) 또는 `font-medium`
+- **Badge / Label / Meta:** `font-semibold` (필요 시 `text-xs` 조합)
+- **금지 규칙:** `font-black` 남용 금지 (브랜드 로고/히어로 타이틀 등 특수 영역만 예외)
+
+### 3.3 크기 스케일 기본 가이드
+- **본문:** `text-sm` ~ `text-base`
+- **보조 텍스트/메타:** `text-xs` ~ `text-sm`
+- **섹션 제목:** `text-lg` ~ `text-2xl`
+- **페이지 메인 타이틀:** `text-2xl` ~ `text-4xl`
+- 모바일에서는 크기 확대보다 `line-height`, `spacing`, `color contrast`로 위계를 우선 확보한다.
+
+### 3.4 모바일 반응형 타이포 원칙
+- 모바일에서 필터/보조 UI가 헤더(1차 내비)보다 강해지지 않게 조절한다.
+- 긴 텍스트는 줄바꿈/잘림 규칙으로 제어하고(`line-clamp`, `break-keep`), 굵기로 해결하지 않는다.
+- 동일 컴포넌트 내에서 뷰포트별 텍스트 의미가 달라지지 않도록(예: 모바일/데스크톱 다른 문구 강조) weight 차이를 최소화한다.
+
+### 3.5 적용/리뷰 체크리스트
+- [ ] 이 요소가 1차 내비/핵심 CTA보다 더 굵거나 크지 않은가?
+- [ ] 활성 상태 강조가 “기본 대비 1단계”를 넘지 않는가?
+- [ ] 모바일에서 텍스트 과밀(두꺼운 폰트 + 큰 크기 + 높은 채도)이 발생하지 않는가?
+- [ ] `font-black` 사용이 브랜드/히어로 특수 케이스인가?
+
+### 3.6 1차 적용 기준값 (Campaign List + Admin Campaigns)
+- **캠페인 목록 필터 바:** 기본 `font-medium`, 활성 상태만 `font-semibold`~`font-bold`
+- **캠페인 목록 검색/정렬/상세설정:** `font-medium`~`font-semibold` 유지 (`font-black` 금지)
+- **관리자 캠페인 테이블:** 제목/핵심 수치 `font-bold`, 메타/보조 라벨 `font-medium`~`font-semibold`
+- **상시모집/상태 보조 뱃지:** 애니메이션(`animate-pulse`) 기본 금지, 색/테두리로만 강조

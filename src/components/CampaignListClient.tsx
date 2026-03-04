@@ -199,7 +199,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                 placeholder="캠페인 검색..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full pl-12 pr-4 py-2 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-bold transition-all outline-none"
+                                className="w-full pl-12 pr-4 py-2 bg-slate-50 border-2 border-transparent focus:border-rose-500 focus:bg-white rounded-full text-sm font-medium transition-all outline-none"
                             />
                         </div>
 
@@ -248,7 +248,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                                     setSortBy(opt.value);
                                                     setIsSortOpen(false);
                                                 }}
-                                                className={`w-full text-left px-4 py-2 rounded-xl text-xs font-bold transition-all ${sortBy === opt.value ? 'bg-rose-50 text-rose-500' : 'text-slate-500 hover:bg-slate-50'}`}
+                                                className={`w-full text-left px-4 py-2 rounded-xl text-xs font-medium transition-all ${sortBy === opt.value ? 'bg-rose-50 text-rose-500 font-semibold' : 'text-slate-500 hover:bg-slate-50'}`}
                                             >
                                                 {opt.label}
                                             </button>
@@ -266,7 +266,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Channels</p>
                                     <div className="flex flex-wrap gap-2">
                                         {PLATFORMS.map(p => (
-                                            <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
+                                            <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white font-semibold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
                                         ))}
                                     </div>
                                 </div>
@@ -286,7 +286,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                                         setSelectedRegions([]);
                                                     }
                                                 }}
-                                                className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedMajorRegion === r.value || (r.value === "" && selectedRegions.length === 0) ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                                                className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${selectedMajorRegion === r.value || (r.value === "" && selectedRegions.length === 0) ? 'bg-rose-500 text-white shadow-md shadow-rose-200 font-semibold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
                                             >
                                                 {r.name}
                                             </button>
@@ -299,7 +299,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                                 <button
                                                     key={c.value}
                                                     onClick={() => toggleFilter(c.value, selectedRegions, setSelectedRegions)}
-                                                    className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all ${selectedRegions.includes(c.value) ? 'bg-slate-900 text-white' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
+                                                    className={`px-4 py-1.5 rounded-xl text-xs font-medium transition-all ${selectedRegions.includes(c.value) ? 'bg-slate-900 text-white font-semibold' : 'bg-white text-slate-500 border border-slate-200 hover:border-slate-300'}`}
                                                 >
                                                     {c.name}
                                                 </button>
@@ -315,8 +315,8 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
 
             <div className="max-w-[1600px] mx-auto px-3 md:px-10 py-12">
                 <div className="flex items-center gap-3 mb-8">
-                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">캠페인 목록</h2>
-                    <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-black">{filteredData.length}</span>
+                    <h2 className="text-2xl font-bold text-slate-900 tracking-tight">캠페인 목록</h2>
+                    <span className="bg-rose-500 text-white px-3 py-1 rounded-full text-xs font-semibold">{filteredData.length}</span>
                 </div>
 
                 {filteredData.length > 0 ? (

@@ -141,7 +141,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             return (
                 <div className="text-sm whitespace-nowrap">
                     <div className="font-bold text-gray-900">
-                        {applicationsCount} / {isInfinite ? <span className="text-indigo-600 font-black text-base">∞</span> : `${recruitCount}명`}
+                        {applicationsCount} / {isInfinite ? <span className="text-indigo-600 font-bold text-base">∞</span> : `${recruitCount}명`}
                     </div>
                     <div className="text-xs text-gray-500">
                         {isInfinite ? <span className="text-rose-500 font-bold">무제한 모집</span> : `${percentage}% 달성`}
@@ -209,15 +209,15 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             return (
                 <div className="flex flex-col gap-1.5 py-1">
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-black leading-none shrink-0">시작</span>
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold leading-none shrink-0">시작</span>
                         <span className="text-[11px] font-bold text-slate-700">
                             {startDate ? new Date(startDate).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').replace(/\.$/, '') : '-'}
                         </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 text-[10px] font-black leading-none shrink-0">마감</span>
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 text-[10px] font-semibold leading-none shrink-0">마감</span>
                         {isAlwaysRecruiting ? (
-                            <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full animate-pulse border border-rose-100">상시모집</span>
+                            <span className="text-[11px] font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
                         ) : (
                             <span className="text-[11px] font-bold text-slate-700">
                                 {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').replace(/\.$/, '') : '-'}
@@ -277,7 +277,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                         {/* 시안 1: 텍스트 버튼 + 드롭다운 (가장 직관적) */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold gap-1 h-8 px-2 lg:px-2.5 min-w-8">
+                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold gap-1 h-8 px-2 lg:px-2.5 min-w-8">
                                     <span className="hidden lg:inline">관리/설정</span>
                                     <ChevronDown className="hidden lg:block h-3.5 w-3.5 text-slate-500" />
                                     <MoreHorizontal className="lg:hidden h-4 w-4 text-slate-500" />
