@@ -407,6 +407,8 @@ function ProfileEditContent() {
                     updateData.blog_url = null;
                     updateData.sns_url = null;
                 }
+                // 블로그 URL이 변경될 때 다온지수를 재계산하도록 큐에 넣기 (updated_at 초기화)
+                updateData.daon_index_updated_at = null;
             } else if (field === 'instagram') {
                 const cleanInstaId = value.trim().replace(/^https?:\/\/instagram\.com\//, "");
                 if (cleanInstaId) {

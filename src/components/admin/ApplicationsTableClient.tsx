@@ -98,6 +98,7 @@ export default function ApplicationsTableClient({
         tags: string[];
         cancellations: number;
         satisfaction: SatisfactionLevel[];
+        daonIndex?: number;
     }>>(new Map());
     const [reviewedInfluencerIds, setReviewedInfluencerIds] = useState<Set<string>>(new Set());
 
@@ -149,21 +150,30 @@ export default function ApplicationsTableClient({
                 .in('user_id', influencerIds)
                 .eq('status', 'CANCELLED');
 
+            // 3. 다온지수 가져오기
+            const { data: daonData } = await supabase
+                .from('influencer_stats')
+                .select('user_id, daon_index')
+                .in('user_id', influencerIds);
+
             const statsMap = new Map<string, {
                 tags: string[];
                 cancellations: number;
                 satisfaction: SatisfactionLevel[];
+                daonIndex?: number;
             }>();
 
             // 요약 데이터 구성
             influencerIds.forEach(id => {
                 const reviews = reviewsData?.filter(r => r.influencer_id === id) || [];
                 const cancels = cancelData?.filter(c => c.user_id === id).length || 0;
+                const daonInfo = daonData?.find(d => d.user_id === id);
 
                 statsMap.set(id, {
                     tags: reviews.flatMap(r => r.rating_tags),
                     cancellations: cancels,
-                    satisfaction: reviews.map(r => r.satisfaction).filter(Boolean) as SatisfactionLevel[]
+                    satisfaction: reviews.map(r => r.satisfaction).filter(Boolean) as SatisfactionLevel[],
+                    daonIndex: daonInfo?.daon_index !== null ? daonInfo?.daon_index : undefined
                 });
             });
 

@@ -195,6 +195,10 @@ export interface InfluencerStats {
     crawl_error?: string;
     created_at: string;
     updated_at: string;
+    
+    // 다온지수
+    daon_index?: number;
+    daon_index_updated_at?: string;
 
     [key: string]: any;
 }

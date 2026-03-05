@@ -31,6 +31,7 @@ interface ColumnContext {
         tags: string[];
         cancellations: number;
         satisfaction: SatisfactionLevel[];
+        daonIndex?: number;
     }>;
     reviewedInfluencerIds?: Set<string>;
     campaignType?: string;
@@ -82,7 +83,54 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "user",
             header: "인플루언서 정보",
-            cell: ({ row }) => <UserInfoCell user={row.original.user} />,
+            cell: ({ row }) => {
+                const userId = row.original.user_id;
+                const stats = context.influencerStats?.get(userId);
+                const daonIndex = stats?.daonIndex;
+                
+                return (
+                    <div className="flex flex-col gap-1.5 py-1">
+                        <UserInfoCell user={row.original.user} />
+                        <div className="pl-12">
+                            {daonIndex !== undefined ? (() => {
+                                // 이전 거대 점수(수만 단위)와의 하위 호환성 대응
+                                let stars = daonIndex;
+                                if (daonIndex > 5) {
+                                    if (daonIndex <= 1000) stars = 1;
+                                    else if (daonIndex <= 5000) stars = 2;
+                                    else if (daonIndex <= 20000) stars = 3;
+                                    else if (daonIndex <= 50000) stars = 4;
+                                    else stars = 5;
+                                }
+                                
+                                return (
+                                    <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-slate-50 to-gray-50 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 shadow-sm" title={`블로그 영향력 지수 (최저 1 ~ 최고 5)`}>
+                                        지수: <span className="tracking-widest text-[#FFB800] text-[11px] drop-shadow-sm">
+                                            {"★".repeat(stars || 1)}
+                                        </span>
+                                    </span>
+                                );
+                            })() : row.original.user?.sns_url ? (
+                                <TooltipProvider>
+                                    <Tooltip delayDuration={300}>
+                                        <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded text-[10px] font-bold border border-gray-200 cursor-help">
+                                                ⏳ 지수 수집 중..
+                                            </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="p-3 max-w-[250px] space-y-1.5">
+                                            <p className="text-xs font-bold text-slate-700">지수 수집 대기 중</p>
+                                            <p className="text-[11px] text-slate-500 leading-snug">
+                                                신규 회원이거나 블로그 URL이 대기열에 등록된 상태입니다. 수집 봇이 데이터를 순차적으로 분석하고 있습니다. (보통 몇 분 내 완료)
+                                            </p>
+                                        </TooltipContent>
+                                    </Tooltip>
+                                </TooltipProvider>
+                            ) : null}
+                        </div>
+                    </div>
+                );
+            },
             enableSorting: false,
             size: 250,
         },
