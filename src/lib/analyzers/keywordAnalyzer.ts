@@ -1,123 +1,88 @@
 // 키워드 분석 유틸리티
 import { Keyword } from '@/types/analysis';
+import { generateWithGemini } from '@/lib/services/googleAI';
 
 /**
- * 한국어 조사 및 어미 제거 (단순화된 형태소 분석)
+ * AI 기반 한글 키워드 분석 (Gemini API 활용)
  */
-function cleanKoreanWord(word: string): string {
-  // 제거할 조사 및 어미 목록 (가장 흔한 것들)
-  const josa = /(입니다|은|는|이|가|을|를|과|와|의|로|으로|에|에서|하고|까지|부터|요|다)$/;
-  return word.replace(josa, '');
-}
-
-/**
- * 한글 키워드 추출 (고도화 버전)
- */
-function extractKeywords(text: string): string[] {
-  // 특수문자 제거 및 공백 기준 분리
-  const rawWords = text.split(/\s+/);
-  const words: string[] = [];
-
-  for (const raw of rawWords) {
-    // 한글만 남기기
-    const onlyKorean = raw.replace(/[^\uAC00-\uD7A3]/g, '');
-    if (onlyKorean.length < 2) continue;
-
-    // 조사 제거
-    const cleaned = cleanKoreanWord(onlyKorean);
-    if (cleaned.length >= 2) {
-      words.push(cleaned);
-    }
-  }
-
-  // 복합 키워드 분석 (N-gram)
-  // 예: "동국"과 "알부민"이 연달아 나오면 "동국 알부민" 추출
-  const compoundWords: string[] = [];
-  for (let i = 0; i < words.length - 1; i++) {
-    // 두 단어 조합
-    const pair = `${words[i]} ${words[i + 1]}`;
-    compoundWords.push(pair);
-  }
-
-  return [...words, ...compoundWords];
-}
-
-/**
- * 불용어 필터링 (일반적인 단어 제거)
- */
-const STOP_WORDS = new Set([
-  '오늘', '네이버', '블로그', '포스팅', '정보', '내용', '진짜', '정말', 
-  '너무', '매우', '아주', '생각', '사람', '이것', '저것', '그것', 
-  '우리', '저희', '때문', '정도', '조금', '많이', '하루', '이번',
-  '어제', '내일', '지금', '이제', '항상', '가끔', '전혀', '별로',
-  '대해', '대한', '관한', '통해', '위해', '관련', '추천', '인기',
-  '리뷰', '후기', '사용', '구매', '가격', '방법', '이유'
-]);
-
-// ... 기존 코드는 유지하되 analyzeKeywords 함수 내부 로직 수정 ...
-
-export function analyzeKeywords(text: string): {
+export async function analyzeKeywords(text: string): Promise<{
   primary: Keyword[];
   secondary: Keyword[];
-} {
-  // 1. 키워드 추출 (복합어 포함)
-  const allWords = extractKeywords(text);
-  
-  // 2. 불용어 제거
-  const filteredWords = allWords.filter(word => !STOP_WORDS.has(word));
-  
-  // 3. 빈도 및 가중치 계산
-  const frequency = new Map<string, number>();
-  filteredWords.forEach(word => {
-    // 복합어(공백 포함)에는 더 높은 가중치 부여
-    const weight = word.includes(' ') ? 2 : 1;
-    frequency.set(word, (frequency.get(word) || 0) + weight);
-  });
-  
-  // 4. TF-IDF 계산 (단순화된 버전)
-  const totalWeight = Array.from(frequency.values()).reduce((a, b) => a + b, 0);
-  const tfidf = new Map<string, number>();
-  
-  frequency.forEach((weight, word) => {
-    const tf = weight / totalWeight;
-    const idf = Math.log(totalWeight / weight);
-    tfidf.set(word, tf * idf);
-  });
-  
-  // 5. 대표 키워드 (TF-IDF 상위 5개)
-  // 복합어를 우선적으로 상위에 노출하도록 유도
-  const primary: Keyword[] = Array.from(tfidf.entries())
-    .sort((a, b) => {
-      // 복합어 우선 순위
-      const aIsCompound = a[0].includes(' ') ? 1 : 0;
-      const bIsCompound = b[0].includes(' ') ? 1 : 0;
-      if (aIsCompound !== bIsCompound) return bIsCompound - aIsCompound;
-      return b[1] - a[1];
-    })
-    .slice(0, 5)
-    .map(([word, score]) => ({
-      word,
-      count: Math.floor(frequency.get(word) || 0),
-      score: Math.round(score * 100) / 100,
-    }));
-  
-  // 6. 세부 키워드 (단일 단어 위주)
-  const primaryWords = new Set(primary.map(k => k.word));
-  const secondary: Keyword[] = Array.from(frequency.entries())
-    .filter(([word]) => !primaryWords.has(word) && !word.includes(' '))
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 15)
-    .map(([word, count]) => ({
-      word,
-      count,
-    }));
-  
-  return {
-    primary,
-    secondary,
-  };
+  seoAdvice: string;
+}> {
+  // 텍스트가 너무 긴 경우 5000자로 절단 (토큰 절약 및 타임아웃 방지)
+  const contentToAnalyze = text.length > 5000 ? text.substring(0, 5000) + '...' : text;
+
+  const prompt = `
+당신은 현업 1타 네이버 블로그 SEO 최고 책임자이자 실무 코치입니다.
+아래 제공된 블로그 본문 텍스트를 읽고, **뻔한 교과서적인 이야기(제목에 키워드 넣어라, 대체 텍스트 삽입해라, 꾸준히 작성해라 등)는 철저히 배제**해주세요. 오직 본문의 실제 내용과 문맥에만 집중하여 날카롭고 구체적인 피드백을 제공해야 합니다.
+
+[분석 기준 및 핵심 목표]
+1. 불용어("오늘", "너무", "진짜")와 단순 조사, 어미는 배제하고 사용자가 실제로 네이버 검색창에 타이핑할 만한 "진짜 검색어" 조합을 찾아내세요.
+2. Primary(메인 핵심 키워드) 5개, Secondary(관련 세부 키워드) 10~15개를 추출.
+3. **[핵심]** 피드백(seoAdvice)은 일반적인 AI 답변이 아닌, 바로 써먹을 수 있는 "실무 코칭"이어야 합니다. 반드시 아래 2가지 단락으로만 짧고 굵게 마크다운으로 작성하세요.
+
+   **🔍 키워드 타겟팅 진단**
+   - 본문에 사용된 키워드가 얼마나 경쟁력 있고 구체적인지 짧은 평가 및 보완점 (예: 광범위한 단어 대신 지역명이나 세부 타겟이 포함된 뾰족한 키워드로 좁히라는 식의 조언)
+
+   **📝 포스팅 스타일 & 체류시간 코칭**
+   - 현재 본문의 전개 방식, 문맥을 평가하고 **"어떻게 해야 방문자가 뒤로가기를 누르지 않고 스크롤을 끝까지 내려 오래 글을 보게 할지(체류 시간 확보 전략)"**에 대한 실질적인 글쓰기 팁 (예: 도입부 이탈 방지 훅, 정보의 구조화, 타업체 비교분석 추가 등)
+
+[출력 형식 (반드시 유효한 JSON 포맷만 출력할 것)]
+{
+  "primary": [
+    {"word": "핵심키워드1", "count": 예상반복노출수(정수), "score": 중요도점수(0.1 ~ 1.0)}
+  ],
+  "secondary": [
+    {"word": "세부키워드1", "count": 예상빈도(정수)}
+  ],
+  "seoAdvice": "여기에 🔍 [키워드 타겟팅 진단] 및 📝 [포스팅 스타일 & 체류시간 코칭]의 마크다운 형식 피드백 작성 (핵심만 짧고 명확하게 명시)"
 }
 
+[블로그 본문 데이터]
+${contentToAnalyze}
+  `;
+
+  try {
+    const aiResult = await generateWithGemini(prompt, true);
+    
+    // AI 파싱 실패나 정규화되지 않은 응답 형태 방어
+    const primary = Array.isArray(aiResult?.primary) 
+      ? aiResult.primary.slice(0, 5).map((e: any) => ({
+          word: e.word || '키워드',
+          count: typeof e.count === 'number' ? e.count : 5,
+          score: typeof e.score === 'number' ? e.score : 0.8
+        }))
+      : [];
+
+    const secondary = Array.isArray(aiResult?.secondary)
+      ? aiResult.secondary.slice(0, 15).map((e: any) => ({
+          word: e.word || '세부키워드',
+          count: typeof e.count === 'number' ? e.count : 2
+        }))
+      : [];
+
+    const seoAdvice = aiResult?.seoAdvice || 'SEO 조언을 생성하는 데 실패했습니다.';
+
+    // 만약 AI가 결과를 못 가져왔을 경우 대비
+    if (primary.length === 0) {
+      throw new Error('AI 분석 결과가 비어있습니다.');
+    }
+
+    return { primary, secondary, seoAdvice };
+  } catch (error) {
+    console.error('AI 키워드 추출 실패, 기본값 반환:', error);
+    
+    // API 장애 등의 상황 발생 시 Fallback (기존 방식 유지보다는 간단하게 처리)
+    return {
+      primary: [
+        { word: '분석 지연됨', count: 1, score: 0.5 }
+      ],
+      secondary: [],
+      seoAdvice: '현재 트래픽 초과 등의 이유로 AI SEO 피드백을 받아오지 못했습니다. 잠시 후 다시 시도해주세요.'
+    };
+  }
+}
 
 /**
  * 키워드 밀도 계산 (%)
@@ -126,6 +91,7 @@ export function calculateKeywordDensity(
   keywords: Keyword[],
   totalWords: number
 ): number {
+  if (totalWords <= 0) return 0;
   const totalKeywordCount = keywords.reduce((sum, k) => sum + k.count, 0);
   return Math.round((totalKeywordCount / totalWords) * 100 * 10) / 10;
 }

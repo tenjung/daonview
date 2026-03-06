@@ -46,19 +46,22 @@ export default function KeywordSection({ primary, secondary }: KeywordSectionPro
 
       {/* 세부 키워드 */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <h4 className="text-lg font-semibold">📌 세부 키워드</h4>
-          <span className="text-sm text-gray-500">(빈도 기반)</span>
+        <div className="flex flex-col gap-1 mb-4">
+          <div className="flex items-center gap-2">
+            <h4 className="text-lg font-semibold text-amber-700">✨ 황금 세부 키워드 색인</h4>
+            <span className="text-sm text-amber-600/70 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">(AI 문맥 분석)</span>
+          </div>
+          <p className="text-sm text-gray-500">본문 내용 기반으로 추출한 틈새 공략 추천 키워드입니다.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {secondary.map((keyword, index) => (
             <Badge
               key={index}
               variant="outline"
-              className="text-sm px-3 py-1 hover:bg-gray-50 transition-colors cursor-default"
+              className="text-sm px-3 py-1 bg-amber-50/50 hover:bg-amber-100 border-amber-200 text-amber-800 transition-colors cursor-default"
             >
               {keyword.word}
-              <span className="ml-1.5 text-xs text-gray-500">
+              <span className="ml-1.5 text-xs text-amber-600/70">
                 {keyword.count}
               </span>
             </Badge>

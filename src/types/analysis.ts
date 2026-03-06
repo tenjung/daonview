@@ -30,6 +30,7 @@ export interface BlogAnalysisResult {
     secondary: Keyword[];
   };
   exposure: ExposureData[];
+  seoAdvice?: string;
 }
 
 export type AnalysisStatus = 'IDLE' | 'ANALYZING' | 'SUCCESS' | 'ERROR';

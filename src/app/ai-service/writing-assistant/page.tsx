@@ -55,10 +55,20 @@ export default function WritingAssistantPage() {
   const [loadingMsg, setLoadingMsg] = useState("");
   const [seoReport, setSeoReport] = useState<{ totalScore: number; issues: string[]; wellDone: string[] } | null>(null);
 
-  // Auth check
+  // Quota
+  const [quota, setQuota] = useState<{ count: number; limit: number } | null>(null);
+
+  // Auth & Quota check
   useEffect(() => {
     if (!isUserLoading && !user) {
       setIsAuthModalOpen(true);
+    } else if (user) {
+      fetch('/api/ai-service/quota')
+        .then(res => res.json())
+        .then(data => {
+          if (data.writing) setQuota(data.writing);
+        })
+        .catch(err => console.error(err));
     }
   }, [user, isUserLoading]);
 
@@ -286,6 +296,7 @@ export default function WritingAssistantPage() {
           handleVerifyPlace={handleVerifyPlace}
           handleSelectPlace={handleSelectPlace}
           isVerifying={isVerifying}
+          quota={quota}
         />
 
         <LoadingOverlay

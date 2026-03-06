@@ -89,10 +89,15 @@ export default function AIServicePage() {
             </span>
           </h1>
           
-          <p className="text-xl md:text-2xl text-text-secondary/80 leading-relaxed font-medium animate-in fade-in duration-1000 delay-300">
+          <p className="text-xl md:text-2xl text-text-secondary/80 leading-relaxed font-medium animate-in fade-in duration-1000 delay-300 mb-8">
             다온뷰의 독자적인 AI 기술로 당신의 인플루언서 활동을 <br className="hidden md:block" />
             <span className="text-text-main font-bold">한 단계 더 스마트하게</span> 업그레이드 하세요.
           </p>
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-50/50 border border-indigo-100/50 animate-in fade-in duration-1000 delay-500">
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            <span className="text-sm font-medium text-indigo-700">모든 AI 서비스는 <strong>매일 자정(KST 00:00)</strong> 기준 이용 횟수가 재충전됩니다.</span>
+          </div>
         </div>
 
         {/* --- 서비스 리스트 --- */}

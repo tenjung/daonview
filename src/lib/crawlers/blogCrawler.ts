@@ -9,14 +9,22 @@ export interface BlogContent {
 }
 
 /**
- * 네이버 블로그 URL 검증
+ * 네이버 블로그 URL 검증 및 정규화
+ * 모바일 URL(m.blog.naver.com)도 허용하며, 데스크탑 URL로 변환하여 반환
  */
-export function isValidNaverBlogUrl(url: string): boolean {
+export function normalizeNaverBlogUrl(url: string): string | null {
   try {
     const urlObj = new URL(url);
-    return urlObj.hostname.includes('blog.naver.com');
+    if (urlObj.hostname === 'blog.naver.com' || urlObj.hostname === 'm.blog.naver.com') {
+      // 모바일 주소를 데스크탑 주소로 변경
+      if (urlObj.hostname === 'm.blog.naver.com') {
+        urlObj.hostname = 'blog.naver.com';
+      }
+      return urlObj.toString();
+    }
+    return null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -24,13 +32,15 @@ export function isValidNaverBlogUrl(url: string): boolean {
  * 네이버 블로그 크롤링
  */
 export async function crawlNaverBlog(url: string): Promise<BlogContent> {
-  if (!isValidNaverBlogUrl(url)) {
+  const normalizedUrl = normalizeNaverBlogUrl(url);
+  
+  if (!normalizedUrl) {
     throw new Error('유효한 네이버 블로그 URL이 아닙니다.');
   }
 
   try {
     // User-Agent 설정으로 크롤링 차단 우회
-    const response = await axios.get(url, {
+    const response = await axios.get(normalizedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
@@ -81,13 +91,13 @@ export async function crawlNaverBlog(url: string): Promise<BlogContent> {
       };
     }
 
-    throw new Error('블로그 컨텐츠를 불러올 수 없습니다.');
+    throw new Error('블로그 콘텐츠를 불러올 수 없습니다. 비공개 글이거나 삭제된 게시물일 수 있습니다.');
   } catch (error) {
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNABORTED') {
         throw new Error('요청 시간이 초과되었습니다. 다시 시도해주세요.');
       }
-      throw new Error('블로그를 불러오는 중 오류가 발생했습니다.');
+      throw new Error('블로그 콘텐츠를 불러오는 중 오류가 발생했습니다.');
     }
     throw error;
   }

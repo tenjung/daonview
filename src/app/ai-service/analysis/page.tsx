@@ -1,16 +1,34 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import AnalysisForm from '@/components/ai-service/AnalysisForm';
 import StatsCard from '@/components/ai-service/StatsCard';
 import KeywordSection from '@/components/ai-service/KeywordSection';
 import ExposureChart from '@/components/ai-service/ExposureChart';
+import SeoAdviceSection from '@/components/ai-service/SeoAdviceSection';
 import { BlogAnalysisResult, AnalysisStatus } from '@/types/analysis';
 
 export default function AnalysisPage() {
   const [status, setStatus] = useState<AnalysisStatus>('IDLE');
   const [result, setResult] = useState<BlogAnalysisResult | null>(null);
+  const [quota, setQuota] = useState<{count: number; limit: number} | null>(null);
+
+  const fetchQuota = async () => {
+    try {
+      const res = await fetch('/api/ai-service/quota');
+      if (res.ok) {
+        const data = await res.json();
+        setQuota(data.analysis);
+      }
+    } catch (e) {
+      console.error('Failed to fetch quota', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchQuota();
+  }, []);
 
   const handleAnalyze = async (url: string) => {
     setStatus('ANALYZING');
@@ -34,6 +52,7 @@ export default function AnalysisPage() {
       setResult(data);
       setStatus('SUCCESS');
       toast.success('분석이 완료되었습니다!');
+      await fetchQuota(); // Refresh quota after successful analysis
     } catch (error) {
       setStatus('ERROR');
       const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
@@ -45,19 +64,12 @@ export default function AnalysisPage() {
   return (
     <div className="container py-16">
       <div className="max-w-6xl mx-auto">
-        {/* 헤더 */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">내 포스팅 분석</h1>
-          <p className="text-lg text-gray-600">
-            AI가 블로그 포스팅을 분석하여 키워드와 검색 노출도를 알려드립니다
-          </p>
-        </div>
-
-        {/* 분석 폼 */}
+        {/* 분석 폼 (Hero 영역 통합) */}
         <div className="mb-8">
           <AnalysisForm 
             onAnalyze={handleAnalyze} 
             isLoading={status === 'ANALYZING'} 
+            quota={quota}
           />
         </div>
 
@@ -76,6 +88,9 @@ export default function AnalysisPage() {
 
             {/* 통계 카드 */}
             <StatsCard result={result} />
+
+            {/* SEO 조언 섹션 */}
+            {result.seoAdvice && <SeoAdviceSection advice={result.seoAdvice} />}
 
             {/* 키워드 섹션 */}
             <KeywordSection 

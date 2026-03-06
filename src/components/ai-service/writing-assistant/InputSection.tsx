@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Sparkles, Search, PenTool, Wand2, MapPin, RefreshCw, AlertCircle, CheckCircle2 } from "lucide-react";
 import { TopicType, VerifiedInfo } from "@/types/writing-assistant";
 import { TOPIC_OPTIONS } from "@/constants/ai-service";
 import ImageUploader from "@/components/ai-service/ImageUploader";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 interface InputSectionProps {
     stage: number;
@@ -28,6 +31,7 @@ interface InputSectionProps {
     handleVerifyPlace: () => void;
     handleSelectPlace: (place: VerifiedInfo) => void;
     isVerifying: boolean;
+    quota?: { count: number; limit: number } | null;
 }
 
 export default function InputSection({
@@ -52,7 +56,27 @@ export default function InputSection({
     handleVerifyPlace,
     handleSelectPlace,
     isVerifying,
+    quota,
 }: InputSectionProps) {
+    const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
+    const onAnalyzeClick = () => {
+        if (!storeName || !menuItems) {
+            toast.error("매장명과 메뉴 정보를 입력해주세요.");
+            return;
+        }
+        if (quota && quota.count >= quota.limit) {
+            toast.error("일일 사용 가능 횟수를 초과했습니다. 내일 다시 이용해주세요.");
+            return;
+        }
+        setIsConfirmOpen(true);
+    };
+
+    const confirmAnalyze = () => {
+        setIsConfirmOpen(false);
+        handleAnalyze();
+    };
+
     return (
         <section className={`bg-white border rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 ${stage > 1 ? 'opacity-60 pointer-events-none' : 'border-primary/20 shadow-primary/5'}`}>
             <div className="flex items-center gap-4 mb-10">
@@ -248,16 +272,47 @@ export default function InputSection({
                 </div>
 
                 {stage === 0 && (
-                    <button
-                        onClick={handleAnalyze}
-                        className="w-full py-7 bg-primary text-white rounded-[2rem] font-black text-xl hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 group"
-                    >
-                        <Wand2 size={24} className="group-hover:rotate-12 transition-transform" />
-                        AI 분석 및 리포트 생성하기
-                        <Sparkles size={20} className="animate-pulse" />
-                    </button>
+                    <div className="flex flex-col items-center gap-3">
+                        <button
+                            onClick={onAnalyzeClick}
+                            className="w-full py-7 bg-primary text-white rounded-[2rem] font-black text-xl hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 group"
+                        >
+                            <Wand2 size={24} className="group-hover:rotate-12 transition-transform" />
+                            AI 분석 및 리포트 생성하기
+                            <Sparkles size={20} className="animate-pulse" />
+                        </button>
+                        {quota && (
+                            <span className={`text-[12px] font-bold px-3 py-1 rounded-md border ${
+                                quota.count >= quota.limit 
+                                ? 'bg-rose-50 text-rose-600 border-rose-100' 
+                                : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                            }`}>
+                                🔥 금일 잔여 횟수: {Math.max(0, quota.limit - quota.count)} / {quota.limit}회
+                            </span>
+                        )}
+                    </div>
                 )}
             </div>
+
+            <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>AI 분석 및 블로그 생성</DialogTitle>
+                        <DialogDescription className="pt-3 leading-relaxed">
+                            이 작업을 진행하면 AI가 관련 정보를 수집하여 <br/>
+                            최적의 키워드와 글의 뼈대를 분석하게 됩니다.<br/><br/>
+                            <span className="text-rose-500 font-bold bg-rose-50 px-2 py-1 rounded-md">
+                                최종 글 생성을 완료할 경우 일일 사용량 1회가 차감됩니다.
+                            </span><br/><br/>
+                            진행하시겠습니까?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter className="mt-4 gap-2 sm:gap-0">
+                        <button onClick={() => setIsConfirmOpen(false)} className="px-5 py-2.5 border rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">취소</button>
+                        <button onClick={confirmAnalyze} className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-sm font-bold transition-colors">확인 및 분석 시작</button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </section>
     );
 }

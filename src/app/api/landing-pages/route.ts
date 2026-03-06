@@ -63,6 +63,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
     }
 
+    // 일일 횟수 체크 (KST 기준)
+    const now = new Date();
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const kstDate = new Date(now.getTime() + kstOffset);
+    const kstToday = kstDate.toISOString().split('T')[0];
+    
+    const { count } = await supabase
+      .from('ai_landing_logs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', `${kstToday}T00:00:00+09:00`)
+      .lt('created_at', `${kstToday}T23:59:59+09:00`);
+
+    if (count !== null && count >= 2) {
+      return NextResponse.json({ error: '일일 랜딩페이지 생성 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' }, { status: 429 });
+    }
+
     // slug 생성: 영문+숫자 + 사용자 개인화 prefix
     const userPrefix = user.id.replace(/-/g, '').slice(0, 6).toLowerCase();
     const baseSlug = slugifyAscii(String(title || ''));
@@ -109,6 +126,14 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('랜딩페이지 저장 오류:', error);
       return NextResponse.json({ error: '랜딩페이지를 저장하는 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
+    // 성공적으로 분석되었으면 로깅
+    const { error: insertActivityError } = await supabase.from('ai_landing_logs').insert({
+      user_id: user.id
+    });
+    if (insertActivityError) {
+      console.warn('ai_landing_logs 테이블 누락 혹은 로깅 실패:', insertActivityError);
     }
 
     // 알림 생성
