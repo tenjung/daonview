@@ -9,6 +9,7 @@ import { ToneType, VerifiedInfo, RecommendedKeyword, RecommendedTitle, TopicType
 import { calculateSEOScore } from "@/lib/utils/seoCalculator";
 import { useAuthStore } from "@/store/authStore";
 import { resizeImage } from "@/lib/utils/imageUtils";
+import { AIQuota } from "@/types/aiQuota";
 
 // Components
 import { AuthGuardDialog } from "@/components/auth/AuthGuardDialog";
@@ -56,7 +57,7 @@ export default function WritingAssistantPage() {
   const [seoReport, setSeoReport] = useState<{ totalScore: number; issues: string[]; wellDone: string[] } | null>(null);
 
   // Quota
-  const [quota, setQuota] = useState<{ count: number; limit: number } | null>(null);
+  const [quota, setQuota] = useState<AIQuota | null>(null);
 
   // Auth & Quota check
   useEffect(() => {

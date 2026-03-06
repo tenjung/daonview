@@ -32,6 +32,7 @@ export default function AIServicePage() {
       path: "/ai-service/analysis",
       color: "bg-blue-500/10 text-blue-600",
       gradient: "from-blue-500/20 to-cyan-400/20",
+      isComingSoon: false,
     },
     {
       title: "AI 키워드 글작성 도우미",
@@ -41,6 +42,7 @@ export default function AIServicePage() {
       path: "/ai-service/writing-assistant",
       color: "bg-primary/10 text-primary",
       gradient: "from-primary/20 to-purple-500/20",
+      isComingSoon: false,
     },
     {
       title: "1분 랜딩페이지 생성기",
@@ -50,16 +52,17 @@ export default function AIServicePage() {
       path: "/ai-service/landing-builder",
       color: "bg-purple-500/10 text-purple-600",
       gradient: "from-purple-500/20 to-pink-500/20",
+      isComingSoon: false,
     },
     {
       title: "영상 제작 도우미",
-      desc: "원고와 이미지를 기반으로 AI가 영상 제작 흐름을 빠르게 구성할 수 있도록 지원합니다.",
-      mobileDesc: "원고와 이미지 기반으로 영상 제작 흐름을 빠르게 구성합니다.",
+      desc: "원고와 이미지, 영상 파편을 기반으로 AI가 음성·자막·세로 쇼츠 생성 파이프라인을 실행합니다.",
+      mobileDesc: "대본만으로도 음성·자막·세로 쇼츠를 빠르게 생성합니다.",
       icon: Wand2,
       path: "/ai-service/video-assistant",
       color: "bg-emerald-500/10 text-emerald-600",
       gradient: "from-emerald-500/20 to-teal-500/20",
-      isComingSoon: true,
+      isComingSoon: false,
     }
   ];
 

@@ -4,6 +4,7 @@ import { analyzeKeywords, calculateKeywordDensity } from '@/lib/analyzers/keywor
 import { analyzeExposure } from '@/lib/analyzers/exposureAnalyzer';
 import { BlogAnalysisRequest, BlogAnalysisResult } from '@/types/analysis';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminRole } from '@/lib/campaignPermissions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,31 +29,46 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 금일 사용 횟수 확인 (KST 기준)
-    const now = new Date();
-    const kstOffset = 9 * 60 * 60 * 1000;
-    const kstDate = new Date(now.getTime() + kstOffset);
-    const kstToday = kstDate.toISOString().split('T')[0];
-    
-    const { count, error: countError } = await supabase
-      .from('ai_analysis_logs')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', `${kstToday}T00:00:00+09:00`)
-      .lt('created_at', `${kstToday}T23:59:59+09:00`);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
 
-    if (countError) {
+    if (profileError) {
       return NextResponse.json(
-        { error: '사용 횟수 확인 중 오류가 발생했습니다.' },
+        { error: '사용자 권한 확인 중 오류가 발생했습니다.' },
         { status: 500 }
       );
     }
 
-    if (count !== null && count >= 2) {
-      return NextResponse.json(
-        { error: '일일 AI 분석 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' },
-        { status: 429 }
-      );
+    if (!isAdminRole(profile?.role)) {
+      // 금일 사용 횟수 확인 (KST 기준)
+      const now = new Date();
+      const kstOffset = 9 * 60 * 60 * 1000;
+      const kstDate = new Date(now.getTime() + kstOffset);
+      const kstToday = kstDate.toISOString().split('T')[0];
+
+      const { count, error: countError } = await supabase
+        .from('ai_analysis_logs')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', `${kstToday}T00:00:00+09:00`)
+        .lt('created_at', `${kstToday}T23:59:59+09:00`);
+
+      if (countError) {
+        return NextResponse.json(
+          { error: '사용 횟수 확인 중 오류가 발생했습니다.' },
+          { status: 500 }
+        );
+      }
+
+      if (count !== null && count >= 2) {
+        return NextResponse.json(
+          { error: '일일 AI 분석 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' },
+          { status: 429 }
+        );
+      }
     }
 
     // 1. 블로그 크롤링

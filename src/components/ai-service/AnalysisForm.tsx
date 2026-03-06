@@ -4,11 +4,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Search, Sparkles, Target, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { AIQuota } from '@/types/aiQuota';
 
 interface AnalysisFormProps {
   onAnalyze: (url: string) => void;
   isLoading: boolean;
-  quota?: { count: number; limit: number } | null;
+  quota?: AIQuota | null;
 }
 
 export default function AnalysisForm({ onAnalyze, isLoading, quota }: AnalysisFormProps) {
@@ -33,7 +34,7 @@ export default function AnalysisForm({ onAnalyze, isLoading, quota }: AnalysisFo
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (quota && quota.count >= quota.limit) {
+    if (quota && !quota.unlimited && quota.count >= quota.limit) {
       setError('일일 분석 제한 횟수를 모두 소모했습니다. 내일 다시 이용해주세요.');
       return;
     }
@@ -48,7 +49,7 @@ export default function AnalysisForm({ onAnalyze, isLoading, quota }: AnalysisFo
     }
   };
 
-  const isLimitReached = quota ? quota.count >= quota.limit : false;
+  const isLimitReached = quota ? !quota.unlimited && quota.count >= quota.limit : false;
 
   return (
     <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-b from-indigo-50/80 via-white to-purple-50/30 border border-indigo-100/50 shadow-[0_8px_40px_rgba(0,0,0,0.03)] px-6 py-16 sm:px-12 sm:py-24 mb-10">
@@ -92,8 +93,10 @@ export default function AnalysisForm({ onAnalyze, isLoading, quota }: AnalysisFo
             <span className="text-sm font-semibold text-gray-600 hidden sm:inline-block ml-2">분석할 포스팅 주소 (URL)</span>
             <div className="flex-1 sm:hidden"></div>
             {quota ? (
-              <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm border ${isLimitReached ? 'bg-red-50 text-red-600 border-red-200' : 'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
-                🔥 금일 잔여 횟수: {Math.max(0, quota.limit - quota.count)} / {quota.limit}회
+              <span className={`text-xs font-bold px-3 py-1 rounded-full shadow-sm border ${quota.unlimited ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : isLimitReached ? 'bg-red-50 text-red-600 border-red-200' : 'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
+                {quota.unlimited
+                  ? '관리자 무제한 이용'
+                  : `🔥 금일 잔여 횟수: ${Math.max(0, quota.limit - quota.count)} / ${quota.limit}회`}
               </span>
             ) : (
               <span className="text-xs font-medium text-gray-400 px-3 py-1">횟수 불러오는 중...</span>

@@ -3,6 +3,7 @@ import { generateWithGemini } from '@/lib/services/googleAI';
 import { generateAnalyticPrompt, generateFullPostPrompt } from '@/lib/ai/blogPrompts';
 import { fetchNaverPlaceDetails } from '@/lib/services/naverPlace';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminRole } from '@/lib/campaignPermissions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,21 +65,33 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: '로그인이 필요한 서비스입니다.' }, { status: 401 });
       }
 
-      // Quota check
-      const now = new Date();
-      const kstOffset = 9 * 60 * 60 * 1000;
-      const kstDate = new Date(now.getTime() + kstOffset);
-      const kstToday = kstDate.toISOString().split('T')[0];
-      
-      const { count } = await supabase
-        .from('ai_writing_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .gte('created_at', `${kstToday}T00:00:00+09:00`)
-        .lt('created_at', `${kstToday}T23:59:59+09:00`);
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
 
-      if (count !== null && count >= 2) {
-        return NextResponse.json({ error: '일일 AI 글작성 도우미 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' }, { status: 429 });
+      if (profileError) {
+        return NextResponse.json({ error: '사용자 권한 확인 중 오류가 발생했습니다.' }, { status: 500 });
+      }
+
+      if (!isAdminRole(profile?.role)) {
+        // Quota check
+        const now = new Date();
+        const kstOffset = 9 * 60 * 60 * 1000;
+        const kstDate = new Date(now.getTime() + kstOffset);
+        const kstToday = kstDate.toISOString().split('T')[0];
+
+        const { count } = await supabase
+          .from('ai_writing_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .gte('created_at', `${kstToday}T00:00:00+09:00`)
+          .lt('created_at', `${kstToday}T23:59:59+09:00`);
+
+        if (count !== null && count >= 2) {
+          return NextResponse.json({ error: '일일 AI 글작성 도우미 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' }, { status: 429 });
+        }
       }
 
       const postImagesCount = postImages?.length || 0;

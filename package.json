@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:kakao-auth": "node scripts/check-kakao-auth.js",
-    "update-types": "npx supabase gen types typescript --project-id whpyftpktolpaspeuocg > src/types/database.generated.ts"
+    "update-types": "npx supabase gen types typescript --project-id whpyftpktolpaspeuocg > src/types/database.generated.ts",
+    "video:worker": "node scripts/video-job-worker.mjs watch"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.982.0",

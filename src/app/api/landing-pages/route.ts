@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminRole } from '@/lib/campaignPermissions';
 
 function normalizeExternalUrl(raw: unknown): string {
   const value = String(raw || '').trim();
@@ -63,21 +64,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '필수 데이터가 누락되었습니다.' }, { status: 400 });
     }
 
-    // 일일 횟수 체크 (KST 기준)
-    const now = new Date();
-    const kstOffset = 9 * 60 * 60 * 1000;
-    const kstDate = new Date(now.getTime() + kstOffset);
-    const kstToday = kstDate.toISOString().split('T')[0];
-    
-    const { count } = await supabase
-      .from('ai_landing_logs')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .gte('created_at', `${kstToday}T00:00:00+09:00`)
-      .lt('created_at', `${kstToday}T23:59:59+09:00`);
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
 
-    if (count !== null && count >= 2) {
-      return NextResponse.json({ error: '일일 랜딩페이지 생성 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' }, { status: 429 });
+    if (profileError) {
+      return NextResponse.json({ error: '사용자 권한 확인 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
+    if (!isAdminRole(profile?.role)) {
+      // 일일 횟수 체크 (KST 기준)
+      const now = new Date();
+      const kstOffset = 9 * 60 * 60 * 1000;
+      const kstDate = new Date(now.getTime() + kstOffset);
+      const kstToday = kstDate.toISOString().split('T')[0];
+
+      const { count } = await supabase
+        .from('ai_landing_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .gte('created_at', `${kstToday}T00:00:00+09:00`)
+        .lt('created_at', `${kstToday}T23:59:59+09:00`);
+
+      if (count !== null && count >= 2) {
+        return NextResponse.json({ error: '일일 랜딩페이지 생성 제한 횟수(2회)를 모두 소모했습니다. 내일 다시 이용해주세요.' }, { status: 429 });
+      }
     }
 
     // slug 생성: 영문+숫자 + 사용자 개인화 prefix

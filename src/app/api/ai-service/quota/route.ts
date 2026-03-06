@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { isAdminRole } from '@/lib/campaignPermissions';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,6 +9,26 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: '로그인이 필요한 서비스입니다.' }, { status: 401 });
+    }
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (profileError) {
+      return NextResponse.json({ error: '사용자 권한 확인 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
+    if (isAdminRole(profile?.role)) {
+      const unlimitedQuota = { count: 0, limit: 0, unlimited: true };
+
+      return NextResponse.json({
+        analysis: unlimitedQuota,
+        writing: unlimitedQuota,
+        landing: unlimitedQuota
+      });
     }
 
     // 금일 사용 횟수 확인 (KST 기준)

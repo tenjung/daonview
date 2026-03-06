@@ -7,6 +7,7 @@ import { TOPIC_OPTIONS } from "@/constants/ai-service";
 import ImageUploader from "@/components/ai-service/ImageUploader";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { AIQuota } from "@/types/aiQuota";
 
 interface InputSectionProps {
     stage: number;
@@ -31,7 +32,7 @@ interface InputSectionProps {
     handleVerifyPlace: () => void;
     handleSelectPlace: (place: VerifiedInfo) => void;
     isVerifying: boolean;
-    quota?: { count: number; limit: number } | null;
+    quota?: AIQuota | null;
 }
 
 export default function InputSection({
@@ -65,7 +66,7 @@ export default function InputSection({
             toast.error("매장명과 메뉴 정보를 입력해주세요.");
             return;
         }
-        if (quota && quota.count >= quota.limit) {
+        if (quota && !quota.unlimited && quota.count >= quota.limit) {
             toast.error("일일 사용 가능 횟수를 초과했습니다. 내일 다시 이용해주세요.");
             return;
         }
@@ -283,11 +284,15 @@ export default function InputSection({
                         </button>
                         {quota && (
                             <span className={`text-[12px] font-bold px-3 py-1 rounded-md border ${
-                                quota.count >= quota.limit 
-                                ? 'bg-rose-50 text-rose-600 border-rose-100' 
-                                : 'bg-indigo-50 text-indigo-700 border-indigo-100'
+                                quota.unlimited
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                : quota.count >= quota.limit
+                                  ? 'bg-rose-50 text-rose-600 border-rose-100'
+                                  : 'bg-indigo-50 text-indigo-700 border-indigo-100'
                             }`}>
-                                🔥 금일 잔여 횟수: {Math.max(0, quota.limit - quota.count)} / {quota.limit}회
+                                {quota.unlimited
+                                  ? '관리자 무제한 이용'
+                                  : `🔥 금일 잔여 횟수: ${Math.max(0, quota.limit - quota.count)} / ${quota.limit}회`}
                             </span>
                         )}
                     </div>

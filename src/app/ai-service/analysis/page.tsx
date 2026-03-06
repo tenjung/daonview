@@ -8,11 +8,12 @@ import KeywordSection from '@/components/ai-service/KeywordSection';
 import ExposureChart from '@/components/ai-service/ExposureChart';
 import SeoAdviceSection from '@/components/ai-service/SeoAdviceSection';
 import { BlogAnalysisResult, AnalysisStatus } from '@/types/analysis';
+import { AIQuota } from '@/types/aiQuota';
 
 export default function AnalysisPage() {
   const [status, setStatus] = useState<AnalysisStatus>('IDLE');
   const [result, setResult] = useState<BlogAnalysisResult | null>(null);
-  const [quota, setQuota] = useState<{count: number; limit: number} | null>(null);
+  const [quota, setQuota] = useState<AIQuota | null>(null);
 
   const fetchQuota = async () => {
     try {
