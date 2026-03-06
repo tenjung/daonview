@@ -178,7 +178,7 @@ export default function RecommendedCampaigns() {
             </div>
             <p className="text-slate-500 font-medium max-w-2xl leading-relaxed">
               설정하신 활동 플랫폼과 관심 카테고리를 분석하여<br className="hidden md:block" />
-              가장 높은 매칭 점수를 기록한 캠페인부터 정렬했습니다.
+              가장 높은 적합도 점수를 기록한 캠페인부터 정렬했습니다.
             </p>
           </div>
           

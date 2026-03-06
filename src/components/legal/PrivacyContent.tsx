@@ -35,7 +35,7 @@ export default function PrivacyContent() {
                     <div>
                         <h3 className="text-lg font-bold text-text-main mb-3">2. 재화 또는 서비스 제공</h3>
                         <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
-                            <li>캠페인 매칭 서비스 제공</li>
+                            <li>캠페인 중개 서비스 제공</li>
                             <li>콘텐츠 제공</li>
                             <li>맞춤 서비스 제공</li>
                             <li>본인인증</li>

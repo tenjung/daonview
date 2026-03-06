@@ -424,8 +424,8 @@ export default function CampaignStep3({
                         </p>
                         <div className="pt-2 border-t border-indigo-100/60">
                             <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
-                                <strong className="font-bold">취소 및 환불 기준:</strong> 매칭 전 100% 환불, 모집 미달 시 차액 환불<br />
-                                <strong className="font-bold">환불 불가 및 제한:</strong> 매칭 후(이행 시작 시) 환불 제한, 단순 변심 환불 불가
+                                <strong className="font-bold">취소 및 환불 기준:</strong> 당첨자 선정 전 100% 환불, 모집 미달 시 차액 환불<br />
+                                <strong className="font-bold">환불 불가 및 제한:</strong> 당첨자 선정 후(이행 시작 시) 환불 제한, 단순 변심 환불 불가
                             </p>
                         </div>
                     </div>
@@ -649,7 +649,7 @@ export default function CampaignStep3({
                                 서비스 이용약관에 동의합니다 <span className="text-red-500">*</span>
                             </span>
                             <p className="text-sm text-gray-600 mt-1">
-                                캠페인 진행 및 리뷰어 매칭 서비스 이용에 대한 약관입니다.
+                                캠페인 진행 및 리뷰어 중개 서비스 이용에 대한 약관입니다.
                             </p>
                         </div>
                     </label>

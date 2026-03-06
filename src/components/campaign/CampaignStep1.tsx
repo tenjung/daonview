@@ -1959,7 +1959,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             <Info size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
                             <p className="text-[13px] text-indigo-700 font-medium leading-relaxed">
                                 {
-                                    formData.optionConfig.mode === 'RANKED' ? `인플루언서가 최대 ${formData.optionConfig.maxSelect}순위까지 우선순위를 정해 신청할 수 있어 매칭률이 높아집니다.` :
+                                    formData.optionConfig.mode === 'RANKED' ? `인플루언서가 최대 ${formData.optionConfig.maxSelect}순위까지 우선순위를 정해 신청할 수 있어 당첨 확률이 높아집니다.` :
                                         formData.optionConfig.mode === 'MULTI' ? `인플루언서가 선택한 옵션 중 최대 ${formData.optionConfig.maxSelect}개까지 당첨될 수 있는 방식입니다.` :
                                             "가장 일반적인 방식으로, 인플루언서가 하나의 옵션만 선택하여 신청합니다."
                                 }

@@ -182,7 +182,7 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
               type="text"
               value={formData.coreValue || ''}
               onChange={(e) => updateField('coreValue', e.target.value)}
-              placeholder="예: 투명한 매칭, 합리적인 가격"
+              placeholder="예: 투명한 중개, 합리적인 가격"
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
             />
           </div>
@@ -194,7 +194,7 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
             <textarea
               value={formData.services || ''}
               onChange={(e) => updateField('services', e.target.value)}
-              placeholder="예: 캠페인 매칭, 성과 분석, AI 글작성 도우미"
+              placeholder="예: 캠페인 중개, 성과 분석, AI 글작성 도우미"
               rows={3}
               className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all resize-none"
             />

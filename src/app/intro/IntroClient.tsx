@@ -483,7 +483,7 @@ export default function IntroClient() {
                             
                             <div className="space-y-6">
                                 {[
-                                    { icon: Shield, label: "품질 보장", desc: "검증된 리뷰어만 매칭" },
+                                    { icon: Shield, label: "품질 보장", desc: "검증된 리뷰어만 선정" },
                                     { icon: Clock, label: "24시간 지원", desc: "신속한 응대와 속도감" }
                                 ].map((item, i) => (
                                     <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 backdrop-blur-sm">

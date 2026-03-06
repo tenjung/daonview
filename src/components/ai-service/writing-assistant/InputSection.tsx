@@ -180,7 +180,7 @@ export default function InputSection({
                                 <div className={`py-4 px-5 rounded-2xl flex items-center justify-between border ${verifiedInfo?.isVerified ? 'bg-green-50 border-green-100 text-green-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
                                     <div className="flex items-center gap-2">
                                         {verifiedInfo?.isVerified ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                                        <span className="text-sm font-black">{verifiedInfo?.isVerified ? '데이터 검증 성공' : (placeList.length > 1 ? '매장을 선택해주세요' : '매칭 데이터 없음')}</span>
+                                        <span className="text-sm font-black">{verifiedInfo?.isVerified ? '데이터 검증 성공' : (placeList.length > 1 ? '매장을 선택해주세요' : '연동 데이터 없음')}</span>
                                     </div>
                                     <button onClick={handleVerifyPlace} className="p-2 hover:bg-white rounded-lg transition-colors">
                                         <RefreshCw size={14} className={isVerifying ? "animate-spin" : ""} />

@@ -80,7 +80,7 @@ export default function PlaceVerification({
                     </div>
                     <div className={`py-2 px-4 rounded-xl inline-flex items-center gap-2 text-[10px] font-black ${verifiedInfo?.isVerified ? 'bg-green-100 text-green-700' : 'bg-rose-100 text-rose-700'}`}>
                         {verifiedInfo?.isVerified ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                        {verifiedInfo?.isVerified ? '데이터 검증 성공' : '매칭 데이터 없음'}
+                        {verifiedInfo?.isVerified ? '데이터 검증 성공' : '연동 데이터 없음'}
                     </div>
                 </div>
             </div>

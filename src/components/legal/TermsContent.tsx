@@ -17,7 +17,7 @@ export default function TermsContent() {
                 <div className="mb-8">
                     <h3 className="text-lg font-bold text-text-main mb-3">제2조 (정의)</h3>
                     <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
-                        <li><strong>"서비스"</strong>란 회사가 제공하는 체험단 매칭 플랫폼 및 관련 제반 서비스를 의미합니다.</li>
+                        <li><strong>"서비스"</strong>란 회사가 제공하는 체험단 중개 플랫폼 및 관련 제반 서비스를 의미합니다.</li>
                         <li><strong>"회원"</strong>이란 본 약관에 동의하고 회사와 서비스 이용계약을 체결한 자를 말합니다.</li>
                         <li><strong>"인플루언서"</strong>란 캠페인에 참여하여 리뷰 및 콘텐츠를 작성하는 회원을 말합니다.</li>
                         <li><strong>"광고주"</strong>란 캠페인을 등록하고 인플루언서를 모집하는 회원을 말합니다.</li>
@@ -98,7 +98,7 @@ export default function TermsContent() {
                         회사는 다음과 같은 서비스를 제공합니다:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
-                        <li>체험단 캠페인 매칭 서비스</li>
+                        <li>체험단 캠페인 중개 서비스</li>
                         <li>리뷰 작성 및 관리 서비스</li>
                         <li>커뮤니티 서비스</li>
                         <li>AI 기반 콘텐츠 작성 지원 서비스</li>
@@ -168,7 +168,7 @@ export default function TermsContent() {
                         1. 캠페인 취소 및 환불 기준
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4 mb-4">
-                        <li><strong>인플루언서 매칭 전:</strong> 결제 후 캠페인 진행을 위한 인플루언서 매칭이 시작되기 전에는 언제든지 100% 환불이 가능합니다.</li>
+                        <li><strong>당첨자 선정 전:</strong> 결제 후 캠페인 진행을 위한 당첨자 선정이 시작되기 전에는 언제든지 100% 환불이 가능합니다.</li>
                         <li><strong>모집 미달 시:</strong> 캠페인 진행 결과 목표 인원이 모집되지 않았을 경우, 미모집 인원에 비례하여 차액을 환불해 드립니다.</li>
                     </ul>
 
@@ -176,7 +176,7 @@ export default function TermsContent() {
                         2. 환불 불가 및 제한 사항
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-text-secondary ml-4">
-                        <li><strong>인플루언서 매칭 후:</strong> 매칭이 완료되어 콘텐츠 제작이 시작된 경우, 서비스 이행이 시작된 것으로 간주하여 취소 및 환불이 제한될 수 있습니다.</li>
+                        <li><strong>당첨자 선정 후:</strong> 선정이 완료되어 콘텐츠 제작이 시작된 경우, 서비스 이행이 시작된 것으로 간주하여 취소 및 환불이 제한될 수 있습니다.</li>
                         <li><strong>결과물 불만족:</strong> 광고주 승인을 거친 콘텐츠의 단순 변심에 의한 환불은 불가합니다.</li>
                     </ul>
                 </div>

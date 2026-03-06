@@ -1503,7 +1503,7 @@ function ProfileEditContent() {
                                     disabled={saving}
                                     className="w-full py-8 text-lg font-bold bg-rose-600 hover:bg-rose-700 transition-all rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98]"
                                 >
-                                    {saving ? '관심사 저장 중...' : '매칭 관심 정보 업데이트하기'}
+                                    {saving ? '관심사 저장 중...' : '맞춤 캠페인 관심 정보 업데이트하기'}
                                 </Button>
                             </div>
                         )}

@@ -154,7 +154,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
     }
     if (step === 2) {
       return [
-        { icon: '📍', text: '지역 기반 매칭' },
+        { icon: '📍', text: '지역 기반 추천' },
         { icon: '🚗', text: '방문형 캠페인 우선' },
         { icon: '✨', text: '광고주 노출 증가' },
       ];
