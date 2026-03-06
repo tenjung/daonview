@@ -110,6 +110,11 @@ export async function POST(request: NextRequest) {
       );
 
       await insertVideoJobAssets(job.id, [...sourceAssets, ...imageAssets, ...videoAssets, ...pexelsAssets]);
+      await updateVideoJob(job.id, {
+        status: 'QUEUED',
+        progress: 0,
+        error_message: null,
+      });
     } catch (uploadError) {
       await updateVideoJob(job.id, {
         status: 'FAILED',

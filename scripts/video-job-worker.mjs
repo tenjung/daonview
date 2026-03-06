@@ -12,6 +12,19 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
 const ffprobePath = process.env.FFPROBE_PATH || 'ffprobe';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const VIDEO_WIDTH = 1080;
+const VIDEO_HEIGHT = 1920;
+const VIDEO_FPS = 30;
+const IMAGE_TARGET_SEGMENT_DURATION = 3;
+const SEGMENT_TRANSITION_DURATION = 0.35;
+const SUBTITLE_FONTS_DIR = process.env.SUBTITLE_FONTS_DIR || `${process.env.HOME || ''}/Library/Fonts`;
+const ASS_FONT_NAME = 'Dovemayo_gothic';
+const ASS_FONT_SIZE = 112;
+const ASS_MARGIN_V = 110;
+const ASS_OUTLINE = 5;
+const ASS_BACK_COLOUR = '&H55000000';
+const ASS_PRIMARY_COLOUR = '&H00FFFFFF';
+const ASS_OUTLINE_COLOUR = '&H00111111';
 const VOICE_MAP = {
   FEMALE_SOFT: 'nova',
   FEMALE_CLEAR: 'shimmer',
@@ -148,7 +161,7 @@ async function createVideoSegment(inputPath, outputPath) {
   await run(ffmpegPath, [
     '-y',
     '-i', inputPath,
-    '-vf', 'scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,fps=30,format=yuv420p',
+    '-vf', `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=increase,crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT},fps=${VIDEO_FPS},format=yuv420p`,
     '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -158,26 +171,34 @@ async function createVideoSegment(inputPath, outputPath) {
 }
 
 async function createImageSegment(inputPath, outputPath, duration) {
+  const frameCount = Math.max(1, Math.round(duration * VIDEO_FPS));
+  const maxZoom = 1.08;
+  const zoomStep = Math.max(0.00015, (maxZoom - 1) / frameCount);
   await run(ffmpegPath, [
     '-y',
-    '-loop', '1',
-    '-t', String(duration),
     '-i', inputPath,
-    '-vf', "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0008,1.15)':d=125:fps=30,format=yuv420p",
+    '-frames:v', String(frameCount),
+    '-vf', [
+      `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=increase`,
+      `crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT}`,
+      `zoompan=z='min(1+on*${zoomStep.toFixed(6)},${maxZoom})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frameCount}:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:fps=${VIDEO_FPS}`,
+      `trim=duration=${duration},setpts=PTS-STARTPTS`,
+      'format=yuv420p',
+    ].join(','),
     '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
     outputPath,
   ]);
-  return duration;
+  return getDuration(outputPath);
 }
 
 async function createTemplateSegment(outputPath, duration, color) {
   await run(ffmpegPath, [
     '-y',
     '-f', 'lavfi',
-    '-i', `color=${color}:s=1080x1920:d=${duration}`,
-    '-vf', 'fps=30,format=yuv420p',
+    '-i', `color=${color}:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:d=${duration}`,
+    '-vf', `fps=${VIDEO_FPS},format=yuv420p`,
     '-an',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
@@ -186,27 +207,166 @@ async function createTemplateSegment(outputPath, duration, color) {
   return duration;
 }
 
-async function concatSegments(listFile, outputPath) {
-  await run(ffmpegPath, ['-y', '-f', 'concat', '-safe', '0', '-i', listFile, '-c', 'copy', outputPath]);
+async function combineSegments(segmentPaths, segmentDurations, outputPath) {
+  if (segmentPaths.length === 0) {
+    throw new Error('합칠 영상 세그먼트가 없습니다.');
+  }
+
+  if (segmentPaths.length === 1) {
+    await run(ffmpegPath, ['-y', '-i', segmentPaths[0], '-c:v', 'libx264', '-preset', 'veryfast', '-pix_fmt', 'yuv420p', outputPath]);
+    return;
+  }
+
+  const transitionDuration = Math.min(
+    SEGMENT_TRANSITION_DURATION,
+    ...segmentDurations.map((duration) => Math.max(0.05, duration / 4))
+  );
+  const inputArgs = segmentPaths.flatMap((path) => ['-i', path]);
+  let cumulativeDuration = segmentDurations[0];
+  let filter = `[0:v][1:v]xfade=transition=fade:duration=${transitionDuration}:offset=${Math.max(0, cumulativeDuration - transitionDuration)}[v1]`;
+
+  for (let index = 2; index < segmentPaths.length; index += 1) {
+    cumulativeDuration += segmentDurations[index - 1] - transitionDuration;
+    filter += `;[v${index - 1}][${index}:v]xfade=transition=fade:duration=${transitionDuration}:offset=${Math.max(0, cumulativeDuration - transitionDuration)}[v${index}]`;
+  }
+
+  const finalLabel = `v${segmentPaths.length - 1}`;
+  await run(ffmpegPath, [
+    '-y',
+    ...inputArgs,
+    '-filter_complex', `${filter};[${finalLabel}]format=yuv420p[video]`,
+    '-map', '[video]',
+    '-an',
+    '-c:v', 'libx264',
+    '-preset', 'veryfast',
+    '-pix_fmt', 'yuv420p',
+    outputPath,
+  ]);
 }
 
-async function renderFinalVideo(visualPath, audioPath, subtitlePath, outputPath) {
-  const safeSubtitlePath = subtitlePath
+function buildImageSegmentPlan(imageAssets, remainingDuration) {
+  if (!imageAssets.length || remainingDuration <= 0) return [];
+
+  const totalSegments = Math.max(
+    imageAssets.length,
+    Math.ceil(remainingDuration / IMAGE_TARGET_SEGMENT_DURATION)
+  );
+  const segmentDuration = remainingDuration / totalSegments;
+
+  return Array.from({ length: totalSegments }, (_, index) => ({
+    asset: imageAssets[index % imageAssets.length],
+    duration: index === totalSegments - 1
+      ? Math.max(0.05, remainingDuration - segmentDuration * (totalSegments - 1))
+      : segmentDuration,
+  }));
+}
+
+function escapeFilterPath(value) {
+  return value
     .replace(/\\/g, '/')
     .replace(/:/g, '\\:')
     .replace(/,/g, '\\,')
     .replace(/\[/g, '\\[')
     .replace(/\]/g, '\\]')
     .replace(/'/g, "\\'");
+}
+
+function srtTimeToAss(value) {
+  const [timePart, msPart = '000'] = value.trim().split(',');
+  const [hours = '00', minutes = '00', seconds = '00'] = timePart.split(':');
+  const centiseconds = Math.round(Number(msPart) / 10)
+    .toString()
+    .padStart(2, '0');
+  return `${Number(hours)}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}.${centiseconds}`;
+}
+
+function normalizeAssText(text) {
+  const source = text
+    .replace(/\r/g, '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ');
+  const wrappedLines = [];
+  let remaining = source;
+
+  while (remaining.length > 22) {
+    wrappedLines.push(remaining.slice(0, 22).trim());
+    remaining = remaining.slice(22).trim();
+  }
+  if (remaining) {
+    wrappedLines.push(remaining);
+  }
+
+  return wrappedLines.join('\n');
+}
+
+function serializeAssText(text) {
+  return normalizeAssText(text)
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join('\\N')
+    .replace(/[{}]/g, '')
+    .replace(/\\/g, '\\\\');
+}
+
+function convertSrtToAss(subtitleText) {
+  const blocks = subtitleText
+    .trim()
+    .split(/\n\s*\n/)
+    .map((block) => block.trim())
+    .filter(Boolean);
+
+  const events = blocks.flatMap((block) => {
+    const lines = block.split('\n').map((line) => line.trim()).filter(Boolean);
+    if (lines.length < 2) return [];
+    const timeLine = lines[1].includes('-->') ? lines[1] : lines[0];
+    const textLines = lines[1].includes('-->') ? lines.slice(2) : lines.slice(1);
+    const [startRaw, endRaw] = timeLine.split('-->').map((part) => part.trim());
+    if (!startRaw || !endRaw || textLines.length === 0) return [];
+
+    return [
+      `Dialogue: 0,${srtTimeToAss(startRaw)},${srtTimeToAss(endRaw)},Default,,0,0,0,,${serializeAssText(textLines.join('\n'))}`,
+    ];
+  });
+
+  return [
+    '[Script Info]',
+    'ScriptType: v4.00+',
+    `PlayResX: ${VIDEO_WIDTH}`,
+    `PlayResY: ${VIDEO_HEIGHT}`,
+    '',
+    '[V4+ Styles]',
+    'Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding',
+    `Style: Default,${ASS_FONT_NAME},${ASS_FONT_SIZE},${ASS_PRIMARY_COLOUR},${ASS_PRIMARY_COLOUR},${ASS_OUTLINE_COLOUR},${ASS_BACK_COLOUR},0,0,0,0,100,100,0,0,1,${ASS_OUTLINE},0,2,60,60,${ASS_MARGIN_V},1`,
+    '',
+    '[Events]',
+    'Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text',
+    ...events,
+    '',
+  ].join('\n');
+}
+
+async function renderFinalVideo(visualPath, audioPath, subtitlePath, outputPath) {
+  const assPath = subtitlePath.replace(/\.srt$/i, '.ass');
+  await writeFile(assPath, Buffer.from(convertSrtToAss(await readFile(subtitlePath, 'utf8')), 'utf8'));
+  const safeSubtitlePath = escapeFilterPath(assPath);
+  const safeFontsDir = SUBTITLE_FONTS_DIR ? escapeFilterPath(SUBTITLE_FONTS_DIR) : '';
+  const subtitleFilter = [
+    `filename=${safeSubtitlePath}`,
+    safeFontsDir ? `fontsdir=${safeFontsDir}` : '',
+  ].filter(Boolean).join(':');
   await run(ffmpegPath, [
     '-y',
     '-i', visualPath,
     '-i', audioPath,
-    '-vf', `subtitles=filename=${safeSubtitlePath}:force_style='Alignment=2,FontSize=20,MarginV=80,Outline=2,Shadow=1'`,
+    '-vf', `subtitles=${subtitleFilter},format=yuv420p`,
     '-map', '0:v:0',
     '-map', '1:a:0',
     '-c:v', 'libx264',
     '-preset', 'veryfast',
+    '-pix_fmt', 'yuv420p',
     '-c:a', 'aac',
     '-shortest',
     outputPath,
@@ -281,6 +441,7 @@ async function processJob(job) {
 
     const audioDuration = Math.max(3, await getDuration(audioPath));
     const segmentPaths = [];
+    const segmentDurations = [];
     let builtDuration = 0;
     let segmentIndex = 0;
 
@@ -291,24 +452,25 @@ async function processJob(job) {
       await downloadAsset(asset.storage_path, sourcePath);
       const duration = await createVideoSegment(sourcePath, outputPath);
       segmentPaths.push(outputPath);
+      segmentDurations.push(duration);
       builtDuration += duration;
       segmentIndex += 1;
     }
 
     const imageAssets = assets.filter((item) => item.asset_type === 'IMAGE');
-    let imageCursor = 0;
-    while (builtDuration < audioDuration && imageCursor < imageAssets.length) {
-      const asset = imageAssets[imageCursor];
-      const remaining = Math.max(0, audioDuration - builtDuration);
-      const segmentDuration = Math.min(3, remaining);
+    const imageSegmentPlan = buildImageSegmentPlan(imageAssets, Math.max(0, audioDuration - builtDuration));
+    for (const plan of imageSegmentPlan) {
+      if (builtDuration >= audioDuration) break;
+      const asset = plan.asset;
+      const segmentDuration = Math.min(plan.duration, Math.max(0.05, audioDuration - builtDuration));
       const sourcePath = join(tempDir, `${segmentIndex}-${asset.storage_path.split('/').pop()}`);
       const outputPath = join(tempDir, `${segmentIndex}-image.mp4`);
       await downloadAsset(asset.storage_path, sourcePath);
-      await createImageSegment(sourcePath, outputPath, segmentDuration);
+      const duration = await createImageSegment(sourcePath, outputPath, segmentDuration);
       segmentPaths.push(outputPath);
-      builtDuration += segmentDuration;
+      segmentDurations.push(duration);
+      builtDuration += duration;
       segmentIndex += 1;
-      imageCursor += 1;
     }
 
     if (builtDuration < audioDuration) {
@@ -316,6 +478,7 @@ async function processJob(job) {
       const outputPath = join(tempDir, `${segmentIndex}-template.mp4`);
       await createTemplateSegment(outputPath, fallbackDuration, '#101828');
       segmentPaths.push(outputPath);
+      segmentDurations.push(fallbackDuration);
       builtDuration += fallbackDuration;
     }
 
@@ -323,12 +486,11 @@ async function processJob(job) {
       const outputPath = join(tempDir, `${segmentIndex}-template.mp4`);
       await createTemplateSegment(outputPath, audioDuration, '#101828');
       segmentPaths.push(outputPath);
+      segmentDurations.push(audioDuration);
     }
 
-    const concatListPath = join(tempDir, 'segments.txt');
-    await writeFile(concatListPath, segmentPaths.map((file) => `file '${file.replace(/'/g, "'\\''")}'`).join('\n'));
     const visualPath = join(tempDir, 'visual.mp4');
-    await concatSegments(concatListPath, visualPath);
+    await combineSegments(segmentPaths, segmentDurations, visualPath);
 
     const finalPath = join(tempDir, 'final.mp4');
     await renderFinalVideo(visualPath, audioPath, subtitlePath, finalPath);

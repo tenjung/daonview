@@ -200,7 +200,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                 <span className="h-1.5 w-12 rounded-full bg-white/15" />
                 <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
               </div>
-              <video src={job.video_url} controls playsInline className="aspect-[9/16] w-full rounded-[1.5rem] object-cover bg-black" />
+              <video src={job.video_url} controls playsInline className="aspect-[9/16] w-full rounded-[1.5rem] object-contain bg-black" />
             </div>
           </div>
         )}

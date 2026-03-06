@@ -1,6 +1,7 @@
 import type { AIQuota } from '@/types/aiQuota';
 
 export const VIDEO_JOB_STATUSES = [
+  'UPLOADING',
   'QUEUED',
   'PROCESSING_TTS',
   'PROCESSING_SUBTITLE',

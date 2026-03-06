@@ -139,7 +139,7 @@ export async function createVideoJob(params: {
       title: params.title || null,
       script: params.script,
       voice: params.voice,
-      status: 'QUEUED',
+      status: 'UPLOADING',
       progress: 0,
       aspect_ratio: 'VERTICAL_9_16',
     })

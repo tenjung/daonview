@@ -1,6 +1,7 @@
 import type { VideoJob } from '@/types/video-assistant';
 
 const STATUS_LABEL: Record<string, string> = {
+  UPLOADING: '원본 업로드 중',
   QUEUED: '대기 중',
   PROCESSING_TTS: '음성 생성 중',
   PROCESSING_SUBTITLE: '자막 생성 중',
@@ -9,7 +10,7 @@ const STATUS_LABEL: Record<string, string> = {
   FAILED: '실패',
 };
 
-export function JobStatusCard({ job }: { job: VideoJob | null }) {
+export function JobStatusCard({ job, statusError }: { job: VideoJob | null; statusError?: string | null }) {
   if (!job) return null;
   const inputModeLabel =
     job.input_mode === 'MEDIA_AND_SCRIPT'
@@ -36,6 +37,11 @@ export function JobStatusCard({ job }: { job: VideoJob | null }) {
         <span>진행률 {job.progress}%</span>
         <span>{inputModeLabel}</span>
       </div>
+      {statusError && (
+        <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+          상태 조회 실패: {statusError}
+        </p>
+      )}
       {job.error_message && <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">{job.error_message}</p>}
     </div>
   );

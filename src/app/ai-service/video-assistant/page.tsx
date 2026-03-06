@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Film, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,6 +34,7 @@ export default function VideoAssistantPage() {
   const [scriptFormDirty, setScriptFormDirty] = useState(false);
   const [audioFormDirty, setAudioFormDirty] = useState(false);
   const [subtitleDirty, setSubtitleDirty] = useState(false);
+  const [jobStatusError, setJobStatusError] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState(0);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const resultSectionRef = useRef<HTMLElement | null>(null);
@@ -45,6 +46,41 @@ export default function VideoAssistantPage() {
   const isWorking = useMemo(() => Boolean(job && job.status !== 'COMPLETED' && job.status !== 'FAILED'), [job]);
   const hasUnsavedChanges = scriptFormDirty || audioFormDirty || subtitleDirty;
 
+  const fetchQuota = useCallback(async () => {
+    try {
+      const response = await fetch('/api/ai-service/video/quota');
+      if (!response.ok) throw new Error('영상 서비스 사용량을 불러오지 못했습니다.');
+      const data = await response.json();
+      setQuota(data.video);
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
+
+  const fetchJob = useCallback(async (jobId: string) => {
+    try {
+      const response = await fetch(`/api/ai-service/video/jobs/${jobId}`, { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '영상 작업 조회 실패');
+      }
+      setJobStatusError(null);
+      setJob(data.job);
+      if (data.job.status === 'COMPLETED') {
+        toast.success(data.job.input_mode === 'AUDIO_SUBTITLE' ? '오디오 자막 영상 생성이 완료되었습니다.' : '쇼츠 생성이 완료되었습니다.');
+        void fetchQuota();
+      }
+      if (data.job.status === 'FAILED') {
+        toast.error(data.job.error_message || (data.job.input_mode === 'AUDIO_SUBTITLE' ? '오디오 자막 영상 생성에 실패했습니다.' : '영상 생성에 실패했습니다.'));
+        void fetchQuota();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '영상 작업 상태를 불러오지 못했습니다.';
+      console.error('[VideoAssistantPage] fetchJob failed:', error);
+      setJobStatusError(message);
+    }
+  }, [fetchQuota]);
+
   useEffect(() => {
     if (!isLoading && !user) {
       setIsAuthModalOpen(true);
@@ -54,7 +90,7 @@ export default function VideoAssistantPage() {
     if (user) {
       void fetchQuota();
     }
-  }, [user, isLoading]);
+  }, [fetchQuota, user, isLoading]);
 
   useEffect(() => {
     if (!job || !isWorking) return;
@@ -64,35 +100,7 @@ export default function VideoAssistantPage() {
     }, 4000);
 
     return () => window.clearInterval(timer);
-  }, [job, isWorking]);
-
-  const fetchQuota = async () => {
-    try {
-      const response = await fetch('/api/ai-service/video/quota');
-      if (!response.ok) throw new Error('영상 서비스 사용량을 불러오지 못했습니다.');
-      const data = await response.json();
-      setQuota(data.video);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const fetchJob = async (jobId: string) => {
-    const response = await fetch(`/api/ai-service/video/jobs/${jobId}`);
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || '영상 작업 조회 실패');
-    }
-    setJob(data.job);
-    if (data.job.status === 'COMPLETED') {
-      toast.success(data.job.input_mode === 'AUDIO_SUBTITLE' ? '오디오 자막 영상 생성이 완료되었습니다.' : '쇼츠 생성이 완료되었습니다.');
-      void fetchQuota();
-    }
-    if (data.job.status === 'FAILED') {
-      toast.error(data.job.error_message || (data.job.input_mode === 'AUDIO_SUBTITLE' ? '오디오 자막 영상 생성에 실패했습니다.' : '영상 생성에 실패했습니다.'));
-      void fetchQuota();
-    }
-  };
+  }, [fetchJob, job, isWorking]);
 
   const handleCreateJob = async (payload: {
     title: string;
@@ -133,6 +141,7 @@ export default function VideoAssistantPage() {
       setResetToken((current) => current + 1);
       setScriptFormDirty(false);
       setAudioFormDirty(false);
+      setJobStatusError(null);
       toast.success(payload.inputMode === 'AUDIO_SUBTITLE' ? '오디오 자막 영상 작업이 접수되었습니다. 워커가 순차 처리합니다.' : '영상 작업이 접수되었습니다. 워커가 순차 처리합니다.');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '영상 작업 생성 중 오류가 발생했습니다.');
@@ -369,7 +378,7 @@ export default function VideoAssistantPage() {
                 )}
               </div>
               <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-                <JobStatusCard job={job} />
+              <JobStatusCard job={job} statusError={jobStatusError} />
                 {!hasCompletedJob && <ResultCard job={job} onJobUpdated={handleJobUpdated} onDirtyChange={setSubtitleDirty} />}
                 <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
                   <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/55">운영 메모</p>
