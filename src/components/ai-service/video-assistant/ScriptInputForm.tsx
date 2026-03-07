@@ -165,7 +165,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
               value="SCRIPT_ONLY"
               className="h-full w-full rounded-[1rem] border border-transparent text-base font-black text-slate-500 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-text-main data-[state=active]:shadow-sm"
             >
-              대본만
+              대본 맞춤 이미지영상 자동 제작
             </TabsTrigger>
           </TabsList>
           <TabsContent value="MEDIA_AND_SCRIPT" className="mt-5 space-y-5">

@@ -19,7 +19,22 @@ export function JobStatusCard({ job, statusError }: { job: VideoJob | null; stat
       ? '미디어+대본 모드'
       : job.input_mode === 'AUDIO_SUBTITLE'
         ? '오디오 자막 모드'
-        : '대본만 모드';
+        : '대본 맞춤 이미지영상 제작';
+
+  let statusText = STATUS_LABEL[job.status] || job.status;
+  if (job.status === 'GENERATING_IMAGES' && job.chapters && job.chapters.length > 0) {
+    const generatingIndex = job.chapters.findIndex(c => c.status === 'GENERATING');
+    if (generatingIndex !== -1) {
+      statusText = `${generatingIndex + 1}번째 이미지 제작 중입니다 (총 ${job.chapters.length}장)`;
+    } else {
+      const completedCount = job.chapters.filter(c => c.status === 'COMPLETED').length;
+      if (completedCount < job.chapters.length) {
+        statusText = `${completedCount + 1}번째 이미지 제작 중입니다 (총 ${job.chapters.length}장)`;
+      } else {
+         statusText = '이미지 생성 완료, 렌더링 준비 중';
+      }
+    }
+  }
 
   return (
     <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
@@ -29,7 +44,7 @@ export function JobStatusCard({ job, statusError }: { job: VideoJob | null; stat
           <h3 className="mt-2 text-xl font-black leading-tight text-text-main">{job.title || '제목 없는 쇼츠'}</h3>
         </div>
         <span className={`rounded-full px-3 py-1.5 text-xs font-black ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : job.status === 'FAILED' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>
-          {STATUS_LABEL[job.status] || job.status}
+          {statusText}
         </span>
       </div>
       <div className="mt-5 h-2.5 overflow-hidden rounded-full bg-slate-100">

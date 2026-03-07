@@ -20,9 +20,9 @@ const COMFYUI_NEGATIVE_PROMPT = process.env.COMFYUI_NEGATIVE_PROMPT
   || 'text, caption, watermark, logo, low quality, blurry, distorted face, extra fingers, duplicated objects, deformed hands';
 const VIDEO_WIDTH = 1080;
 const VIDEO_HEIGHT = 1920;
-const VIDEO_FPS = 30;
+const VIDEO_FPS = 60;
 const MAX_CHAPTER_COUNT = 4;
-const IMAGE_TARGET_SEGMENT_DURATION = 3;
+const IMAGE_TARGET_SEGMENT_DURATION = 10;
 const SEGMENT_TRANSITION_DURATION = 0.35;
 const SUBTITLE_FONTS_DIR = process.env.SUBTITLE_FONTS_DIR || `${process.env.HOME || ''}/Library/Fonts`;
 const ASS_FONT_NAME = 'Dovemayo_gothic';
@@ -136,31 +136,51 @@ function tryParseHeadingSections(script) {
   for (const rawLine of lines) {
     const line = rawLine.trim();
     if (!line) continue;
+
+    // 마크다운 헤딩 (#, ##)
     if (line.startsWith('#')) {
-      if (current && (current.narration || current.visualSummary)) sections.push(current);
-      current = {
-        title: normalizeLine(line.replace(/^#+\s*/, '')),
-        narration: '',
-        visualSummary: '',
-      };
+      if (current && (current.narration || current.visualSummary || current.subtitle)) sections.push(current);
+      current = { title: normalizeLine(line.replace(/^#+\s*/, '')), narration: '', visualSummary: '', subtitle: '' };
       continue;
-    }
-    if (!current) {
-      current = { title: '', narration: '', visualSummary: '' };
     }
 
-    if (/^대사\s*:/i.test(line)) {
-      current.narration = normalizeLine(line.replace(/^대사\s*:/i, ''));
+    // 숫자 번호 형식: "1. 인트로: 강렬한 등장" 또는 "1. 정체성"
+    const numberedMatch = line.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      if (current && (current.narration || current.visualSummary || current.subtitle)) sections.push(current);
+      current = { title: normalizeLine(numberedMatch[2]), narration: '', visualSummary: '', subtitle: '' };
       continue;
     }
+
+    if (!current) {
+      current = { title: '', narration: '', visualSummary: '', subtitle: '' };
+    }
+
+    // TTS: / 대사: / 나레이션: → narration
+    if (/^(TTS|대사|나레이션|tts)\s*:/i.test(line)) {
+      current.narration = normalizeLine(line.replace(/^(TTS|대사|나레이션|tts)\s*:/i, ''));
+      continue;
+    }
+    // 자막: → subtitle + visualSummary
+    if (/^자막\s*:/i.test(line)) {
+      current.subtitle = normalizeLine(line.replace(/^자막\s*:/i, ''));
+      if (!current.visualSummary) current.visualSummary = current.subtitle;
+      continue;
+    }
+    // (화면 묘사) or 화면:
     if (/^\(.*\)$/.test(line) || /^화면\s*:/i.test(line)) {
       current.visualSummary = normalizeLine(line.replace(/^\(|\)$/g, '').replace(/^화면\s*:/i, ''));
       continue;
     }
-    current.narration = normalizeLine(`${current.narration} ${line}`);
+    // 나머지 일반 텍스트 → narration 누적
+    if (!current.narration) {
+      current.narration = normalizeLine(line);
+    } else {
+      current.narration = normalizeLine(`${current.narration} ${line}`);
+    }
   }
 
-  if (current && (current.narration || current.visualSummary)) sections.push(current);
+  if (current && (current.narration || current.visualSummary || current.subtitle)) sections.push(current);
   return sections.slice(0, MAX_CHAPTER_COUNT);
 }
 
@@ -178,7 +198,8 @@ function parseJsonPayload(text) {
 
 async function generateStoryboard(job) {
   const headingSections = tryParseHeadingSections(job.script);
-  const seedSections = headingSections.length > 0 ? headingSections : null;
+  // 줄바꿈이나 기호가 없는 통짜 대본일 경우 1개로 파싱되므로, 이때는 null로 처리해 GPT가 알아서 4등분하도록 유도
+  const seedSections = headingSections.length > 1 ? headingSections : null;
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -194,11 +215,20 @@ async function generateStoryboard(job) {
         {
           role: 'system',
           content: [
-            '너는 한국어 쇼츠 대본을 영상 제작용 챕터와 이미지 프롬프트로 바꾸는 편집 디렉터다.',
-            `챕터는 최대 ${MAX_CHAPTER_COUNT}개다.`,
+            '너는 한국어 숏폼 영상을 위한 이미지 스토리보드를 만드는 시각적 크리에이티브 디렉터다.',
+            `챕터는 최대 ${MAX_CHAPTER_COUNT}개로 구성한다.`,
+            '입력 대본에 "자막:", "TTS:", "나레이션:" 태그가 있으면 각각 subtitle, narration 필드로 인식한다.',
+            'TTS/대사 텍스트는 narration에 최대한 그대로 활용한다.',
             '반드시 JSON만 반환한다.',
-            '각 imagePrompt는 영어로 작성한다.',
-            '프롬프트에는 cinematic still, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark 를 반영한다.',
+            '⛔ imagePrompt 절대 금지어(사용시 실패): illustration, anime, cartoon, painting, artwork, fantasy, hanfu, qipao, traditional costume, chinese style, vibrant colors, bright red, colorful, digital art.',
+            '★ imagePrompt 필수 규칙:',
+            '  1. 자막/TTS 텍스트를 절대 직역/번역하지 않는다.',
+            '  2. 반드시 현대 한국인이 등장하는 실사 사진 장면으로 묘사한다 (contemporary Korean person, modern Korean urban setting).',
+            '  3. 얼굴이 선명히 보이도록 반드시 "sharp detailed face, clear facial features, well-defined eyes"를 포함한다.',
+            '  4. 챕터 감정·분위기를 장면으로 재해석: "질투" → "intense close-up face with fierce eyes, dramatic shadow, modern background".',
+            '  5. 미술/애니 스타일 절대 금지, 사진 찾네 스타일만 허용.',
+            '  6. 인물·장소·감정·조명 조합, 75토큰 이내 묘사.',
+            '  7. 필수 접미어: cinematic still, sharp focus, photorealistic, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark.',
             'chapterTitle과 narration은 한국어로 유지한다.',
           ].join(' '),
         },
@@ -258,16 +288,12 @@ async function generateStoryboard(job) {
   return normalized;
 }
 
-let comfyWorkflowTemplateCache = null;
-
 async function loadComfyWorkflowTemplate() {
   if (!COMFYUI_WORKFLOW_PATH) {
     throw new Error('COMFYUI_WORKFLOW_PATH가 설정되지 않았습니다.');
   }
-  if (!comfyWorkflowTemplateCache) {
-    comfyWorkflowTemplateCache = JSON.parse(await readFile(COMFYUI_WORKFLOW_PATH, 'utf8'));
-  }
-  return JSON.parse(JSON.stringify(comfyWorkflowTemplateCache));
+  // 캐시 없이 항상 최신 파일을 읽어 워크플로우 변경이 즉시 반영되게 한다
+  return JSON.parse(await readFile(COMFYUI_WORKFLOW_PATH, 'utf8'));
 }
 
 function replaceTemplateTokens(value, tokens) {
@@ -365,8 +391,8 @@ async function generateChapterImage(job, chapter, chapterNumber) {
   const workflow = replaceTemplateTokens(workflowTemplate, {
     PROMPT: chapter.image_prompt,
     NEGATIVE_PROMPT: COMFYUI_NEGATIVE_PROMPT,
-    WIDTH: VIDEO_WIDTH,
-    HEIGHT: VIDEO_HEIGHT,
+    WIDTH: 720,
+    HEIGHT: 1280,
     SEED: Math.floor(Math.random() * 2147483647),
     OUTPUT_PREFIX: `daonview_${job.id}_chapter_${String(chapterNumber).padStart(2, '0')}`,
   });
@@ -477,8 +503,8 @@ async function createImageSegment(inputPath, outputPath, duration) {
     '-i', inputPath,
     '-frames:v', String(frameCount),
     '-vf', [
-      `scale=${VIDEO_WIDTH}:${VIDEO_HEIGHT}:force_original_aspect_ratio=increase`,
-      `crop=${VIDEO_WIDTH}:${VIDEO_HEIGHT}`,
+      `scale=${VIDEO_WIDTH * 2}:${VIDEO_HEIGHT * 2}:force_original_aspect_ratio=increase`,
+      `crop=${VIDEO_WIDTH * 2}:${VIDEO_HEIGHT * 2}`,
       `zoompan=z='min(1+on*${zoomStep.toFixed(6)},${maxZoom})':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=${frameCount}:s=${VIDEO_WIDTH}x${VIDEO_HEIGHT}:fps=${VIDEO_FPS}`,
       `trim=duration=${duration},setpts=PTS-STARTPTS`,
       'format=yuv420p',
@@ -601,12 +627,12 @@ function normalizeAssText(text) {
 
 function serializeAssText(text) {
   return normalizeAssText(text)
+    .replace(/[{}]/g, '')
+    .replace(/\\/g, '\\\\')
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .join('\\N')
-    .replace(/[{}]/g, '')
-    .replace(/\\/g, '\\\\');
+    .join('\\N');
 }
 
 function convertSrtToAss(subtitleText) {
@@ -777,7 +803,10 @@ async function processJob(job) {
       audioContentType = audioMeta.contentType;
     } else {
       await updateJob(job.id, { status: 'PROCESSING_TTS', progress: 10, error_message: null });
-      audioBuffer = await callTts(job.script, job.voice);
+      const ttsText = chapters.length > 0
+        ? chapters.map((c) => c.narration).filter(Boolean).join(' ')
+        : job.script;
+      audioBuffer = await callTts(ttsText, job.voice);
       await writeFile(audioPath, audioBuffer);
       await updateJob(job.id, { status: 'PROCESSING_SUBTITLE', progress: 35 });
     }

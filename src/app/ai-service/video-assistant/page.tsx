@@ -357,40 +357,47 @@ export default function VideoAssistantPage() {
               </section>
             )}
 
-            <section className="mx-auto mt-8 grid max-w-6xl gap-6 xl:grid-cols-[minmax(0,1.08fr)_380px]">
-              <div className="space-y-6">
-                {selectedService === 'SHORTS_AUTO' ? (
-                  <ScriptInputForm
-                    key={`script-${resetToken}`}
-                    quota={quota}
-                    isSubmitting={isSubmitting}
-                    onDirtyChange={setScriptFormDirty}
-                    onSubmit={handleCreateJob}
-                  />
-                ) : (
-                  <AudioSubtitleForm
-                    key={`audio-${resetToken}`}
-                    quota={quota}
-                    isSubmitting={isSubmitting}
-                    onDirtyChange={setAudioFormDirty}
-                    onSubmit={handleCreateJob}
-                  />
-                )}
-              </div>
-              <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
-              <JobStatusCard job={job} statusError={jobStatusError} />
-                {!hasCompletedJob && <ResultCard job={job} onJobUpdated={handleJobUpdated} onDirtyChange={setSubtitleDirty} />}
-                <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-                  <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/55">운영 메모</p>
-                  <h3 className="mt-2 text-xl font-black text-text-main">{selectedService === 'SHORTS_AUTO' ? '제작 방식' : '자막 추출 방식'}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-                    {selectedService === 'SHORTS_AUTO'
-                      ? '지금 버전은 장면을 의미 기반으로 정밀 매칭하는 편집기가 아닙니다. 업로드한 순서대로 자동 구성하고, 결과를 빠르게 테스트하는 데 초점을 둡니다.'
-                      : '지금 버전은 업로드한 오디오를 그대로 기준으로 자막을 추출하는 후처리 도구입니다. 음성이 또렷할수록 자막 정확도가 올라갑니다.'}
-                  </p>
+            {currentStep === 1 && (
+              <section className="mx-auto mt-8 grid max-w-6xl gap-6 xl:grid-cols-[minmax(0,1.08fr)_380px]">
+                <div className="space-y-6">
+                  {selectedService === 'SHORTS_AUTO' ? (
+                    <ScriptInputForm
+                      key={`script-${resetToken}`}
+                      quota={quota}
+                      isSubmitting={isSubmitting}
+                      onDirtyChange={setScriptFormDirty}
+                      onSubmit={handleCreateJob}
+                    />
+                  ) : (
+                    <AudioSubtitleForm
+                      key={`audio-${resetToken}`}
+                      quota={quota}
+                      isSubmitting={isSubmitting}
+                      onDirtyChange={setAudioFormDirty}
+                      onSubmit={handleCreateJob}
+                    />
+                  )}
                 </div>
-              </div>
-            </section>
+                <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+                  <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
+                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/55">운영 메모</p>
+                    <h3 className="mt-2 text-xl font-black text-text-main">{selectedService === 'SHORTS_AUTO' ? '제작 방식' : '자막 추출 방식'}</h3>
+                    <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+                      {selectedService === 'SHORTS_AUTO'
+                        ? '지금 버전은 장면을 의미 기반으로 정밀 매칭하는 편집기가 아닙니다. 업로드한 순서대로 자동 구성하고, 결과를 빠르게 테스트하는 데 초점을 둡니다.'
+                        : '지금 버전은 업로드한 오디오를 그대로 기준으로 자막을 추출하는 후처리 도구입니다. 음성이 또렷할수록 자막 정확도가 올라갑니다.'}
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {currentStep >= 2 && !hasCompletedJob && (
+               <section className="mx-auto mt-8 max-w-4xl space-y-6">
+                <JobStatusCard job={job} statusError={jobStatusError} />
+                <ResultCard job={job} onJobUpdated={handleJobUpdated} onDirtyChange={setSubtitleDirty} />
+              </section>
+            )}
           </>
         )}
       </div>

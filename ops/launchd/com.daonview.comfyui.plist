@@ -3,13 +3,13 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.daonview.video-worker</string>
+    <string>com.daonview.comfyui</string>
 
     <key>ProgramArguments</key>
     <array>
       <string>/bin/zsh</string>
       <string>-lc</string>
-      <string>cd /Volumes/data/Dev/daonview && exec ./scripts/run-video-worker.sh</string>
+      <string>cd /Volumes/data/Dev/daonview && exec ./scripts/run-comfyui.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -25,10 +25,10 @@
     <integer>10</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/tenjung/Library/Logs/daonview/video-worker.log</string>
+    <string>/Users/tenjung/Library/Logs/daonview/comfyui.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/tenjung/Library/Logs/daonview/video-worker.error.log</string>
+    <string>/Users/tenjung/Library/Logs/daonview/comfyui.error.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>
