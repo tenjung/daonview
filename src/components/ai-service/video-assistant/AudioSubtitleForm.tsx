@@ -11,7 +11,6 @@ import type { PexelsSelectedAsset, VideoVoiceKey } from '@/types/video-assistant
 interface AudioSubtitleFormProps {
   quota: AIQuota | null;
   isSubmitting: boolean;
-  resetToken?: number;
   onDirtyChange?: (isDirty: boolean) => void;
   onSubmit: (payload: {
     title: string;
@@ -25,7 +24,7 @@ interface AudioSubtitleFormProps {
   }) => Promise<void>;
 }
 
-export function AudioSubtitleForm({ quota, isSubmitting, resetToken = 0, onDirtyChange, onSubmit }: AudioSubtitleFormProps) {
+export function AudioSubtitleForm({ quota, isSubmitting, onDirtyChange, onSubmit }: AudioSubtitleFormProps) {
   const [title, setTitle] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
@@ -48,14 +47,6 @@ export function AudioSubtitleForm({ quota, isSubmitting, resetToken = 0, onDirty
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
-
-  useEffect(() => {
-    setTitle('');
-    setAudioFile(null);
-    setImageFiles([]);
-    setVideoFiles([]);
-    setSelectedPexelsAssets([]);
-  }, [resetToken]);
 
   const submit = async () => {
     if (!audioFile) {

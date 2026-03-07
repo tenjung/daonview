@@ -2,7 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole } from '@/lib/campaignPermissions';
 import { VIDEO_DAILY_LIMIT, VIDEO_GENERATED_BUCKET, VIDEO_SOURCE_BUCKET } from '@/lib/video/constants';
 import type { AIQuota } from '@/types/aiQuota';
-import type { VideoAssetType, VideoInputMode, VideoJob, VideoJobAsset, VideoVoiceKey } from '@/types/video-assistant';
+import type { VideoAssetType, VideoInputMode, VideoJob, VideoJobAsset, VideoJobChapter, VideoVoiceKey } from '@/types/video-assistant';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
@@ -170,7 +170,7 @@ export async function getAuthorizedVideoJob(jobId: string, userId: string) {
 
   const { data, error } = await admin
     .from('ai_video_jobs')
-    .select('*, assets:ai_video_job_assets(*)')
+    .select('*, assets:ai_video_job_assets(*), chapters:ai_video_job_chapters(*)')
     .eq('id', jobId)
     .maybeSingle();
 
@@ -220,6 +220,60 @@ export async function getVideoJobAssets(jobId: string) {
 
   if (error) throw new Error(`영상 자산 조회 실패: ${error.message}`);
   return (data || []) as VideoJobAsset[];
+}
+
+export async function replaceVideoJobChapters(
+  jobId: string,
+  chapters: Array<Pick<VideoJobChapter, 'chapter_index' | 'chapter_title' | 'narration' | 'visual_summary' | 'image_prompt' | 'motion_prompt' | 'status'>>
+) {
+  const admin = createAdminClient();
+  const { error: deleteError } = await admin.from('ai_video_job_chapters').delete().eq('job_id', jobId);
+  if (deleteError) throw new Error(`영상 챕터 초기화 실패: ${deleteError.message}`);
+  if (chapters.length === 0) return [];
+
+  const { data, error } = await admin
+    .from('ai_video_job_chapters')
+    .insert(
+      chapters.map((chapter) => ({
+        job_id: jobId,
+        chapter_index: chapter.chapter_index,
+        chapter_title: chapter.chapter_title || null,
+        narration: chapter.narration,
+        visual_summary: chapter.visual_summary || null,
+        image_prompt: chapter.image_prompt,
+        motion_prompt: chapter.motion_prompt || null,
+        status: chapter.status,
+      }))
+    )
+    .select('*');
+
+  if (error) throw new Error(`영상 챕터 저장 실패: ${error.message}`);
+  return ((data || []) as VideoJobChapter[]).sort((a, b) => a.chapter_index - b.chapter_index);
+}
+
+export async function getVideoJobChapters(jobId: string) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('ai_video_job_chapters')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('chapter_index', { ascending: true });
+
+  if (error) throw new Error(`영상 챕터 조회 실패: ${error.message}`);
+  return (data || []) as VideoJobChapter[];
+}
+
+export async function updateVideoJobChapter(chapterId: string, patch: Partial<VideoJobChapter>) {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('ai_video_job_chapters')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', chapterId)
+    .select('*')
+    .single();
+
+  if (error) throw new Error(`영상 챕터 업데이트 실패: ${error.message}`);
+  return data as VideoJobChapter;
 }
 
 export async function uploadGeneratedAsset(params: {

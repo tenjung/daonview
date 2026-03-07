@@ -1,0 +1,10 @@
+{
+  "watch": [
+    "scripts/video-job-worker.mjs",
+    ".env.local"
+  ],
+  "ext": "mjs,local",
+  "exec": "zsh -lc 'set -a && source .env.local && set +a && node scripts/video-job-worker.mjs watch'",
+  "signal": "SIGTERM",
+  "delay": "300"
+}

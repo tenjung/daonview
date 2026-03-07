@@ -37,6 +37,10 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
   }, [job?.id, job?.subtitle_final, job?.subtitle_draft]);
 
   const subtitleText = useMemo(() => serializeBlocksToSrt(subtitleBlocks), [subtitleBlocks]);
+  const sortedChapters = useMemo(
+    () => [...(job?.chapters || [])].sort((a, b) => a.chapter_index - b.chapter_index),
+    [job?.chapters]
+  );
   const subtitleChanged = useMemo(() => {
     const base = String(job?.subtitle_final || job?.subtitle_draft || '');
     return subtitleText !== base;
@@ -191,6 +195,34 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
               </button>
             </div>
           </div>
+
+          {sortedChapters.length > 0 && (
+            <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">자동 생성 챕터</p>
+                <p className="mt-1 text-sm font-semibold text-text-secondary">대본을 분석해 만든 장면 이미지와 프롬프트입니다.</p>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {sortedChapters.map((chapter) => (
+                  <div key={chapter.id} className="overflow-hidden rounded-[1.1rem] border border-slate-200 bg-white">
+                    {chapter.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={chapter.image_url} alt={chapter.chapter_title || `챕터 ${chapter.chapter_index}`} className="aspect-[9/16] w-full object-cover" />
+                    ) : (
+                      <div className="flex aspect-[9/16] items-center justify-center bg-slate-100 text-sm font-semibold text-slate-400">
+                        생성 결과 없음
+                      </div>
+                    )}
+                    <div className="space-y-2 p-4">
+                      <p className="text-sm font-black text-text-main">{chapter.chapter_title || `챕터 ${chapter.chapter_index}`}</p>
+                      <p className="text-xs font-semibold leading-relaxed text-text-secondary">{chapter.narration}</p>
+                      <p className="text-[11px] font-medium leading-relaxed text-slate-500">{chapter.image_prompt}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         {job.video_url && (
           <div className="order-1 xl:order-2 w-full">

@@ -12,9 +12,16 @@ const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.
 const ffmpegPath = process.env.FFMPEG_PATH || 'ffmpeg';
 const ffprobePath = process.env.FFPROBE_PATH || 'ffprobe';
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_CHAT_MODEL = process.env.OPENAI_VIDEO_STORYBOARD_MODEL || 'gpt-4o-mini';
+const COMFYUI_BASE_URL = String(process.env.COMFYUI_BASE_URL || 'http://127.0.0.1:8188').replace(/\/+$/, '');
+const COMFYUI_WORKFLOW_PATH = process.env.COMFYUI_WORKFLOW_PATH || '';
+const COMFYUI_TIMEOUT_MS = Number.parseInt(process.env.COMFYUI_TIMEOUT_MS || '180000', 10);
+const COMFYUI_NEGATIVE_PROMPT = process.env.COMFYUI_NEGATIVE_PROMPT
+  || 'text, caption, watermark, logo, low quality, blurry, distorted face, extra fingers, duplicated objects, deformed hands';
 const VIDEO_WIDTH = 1080;
 const VIDEO_HEIGHT = 1920;
 const VIDEO_FPS = 30;
+const MAX_CHAPTER_COUNT = 4;
 const IMAGE_TARGET_SEGMENT_DURATION = 3;
 const SEGMENT_TRANSITION_DURATION = 0.35;
 const SUBTITLE_FONTS_DIR = process.env.SUBTITLE_FONTS_DIR || `${process.env.HOME || ''}/Library/Fonts`;
@@ -81,6 +88,297 @@ async function getAssets(jobId) {
     .order('sort_order', { ascending: true });
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+async function getChapters(jobId) {
+  const { data, error } = await supabase
+    .from('ai_video_job_chapters')
+    .select('*')
+    .eq('job_id', jobId)
+    .order('chapter_index', { ascending: true });
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
+async function replaceChapters(jobId, chapters) {
+  const { error: deleteError } = await supabase.from('ai_video_job_chapters').delete().eq('job_id', jobId);
+  if (deleteError) throw new Error(deleteError.message);
+  if (!chapters.length) return [];
+
+  const { data, error } = await supabase
+    .from('ai_video_job_chapters')
+    .insert(chapters.map((chapter) => ({ job_id: jobId, ...chapter })))
+    .select('*');
+  if (error) throw new Error(error.message);
+  return (data || []).sort((a, b) => a.chapter_index - b.chapter_index);
+}
+
+async function updateChapter(id, patch) {
+  const { data, error } = await supabase
+    .from('ai_video_job_chapters')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+function normalizeLine(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function tryParseHeadingSections(script) {
+  const lines = String(script || '').replace(/\r/g, '').split('\n');
+  const sections = [];
+  let current = null;
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (line.startsWith('#')) {
+      if (current && (current.narration || current.visualSummary)) sections.push(current);
+      current = {
+        title: normalizeLine(line.replace(/^#+\s*/, '')),
+        narration: '',
+        visualSummary: '',
+      };
+      continue;
+    }
+    if (!current) {
+      current = { title: '', narration: '', visualSummary: '' };
+    }
+
+    if (/^대사\s*:/i.test(line)) {
+      current.narration = normalizeLine(line.replace(/^대사\s*:/i, ''));
+      continue;
+    }
+    if (/^\(.*\)$/.test(line) || /^화면\s*:/i.test(line)) {
+      current.visualSummary = normalizeLine(line.replace(/^\(|\)$/g, '').replace(/^화면\s*:/i, ''));
+      continue;
+    }
+    current.narration = normalizeLine(`${current.narration} ${line}`);
+  }
+
+  if (current && (current.narration || current.visualSummary)) sections.push(current);
+  return sections.slice(0, MAX_CHAPTER_COUNT);
+}
+
+function parseJsonPayload(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) {
+      throw new Error('JSON 응답을 파싱하지 못했습니다.');
+    }
+    return JSON.parse(match[0]);
+  }
+}
+
+async function generateStoryboard(job) {
+  const headingSections = tryParseHeadingSections(job.script);
+  const seedSections = headingSections.length > 0 ? headingSections : null;
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: OPENAI_CHAT_MODEL,
+      temperature: 0.4,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: [
+            '너는 한국어 쇼츠 대본을 영상 제작용 챕터와 이미지 프롬프트로 바꾸는 편집 디렉터다.',
+            `챕터는 최대 ${MAX_CHAPTER_COUNT}개다.`,
+            '반드시 JSON만 반환한다.',
+            '각 imagePrompt는 영어로 작성한다.',
+            '프롬프트에는 cinematic still, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark 를 반영한다.',
+            'chapterTitle과 narration은 한국어로 유지한다.',
+          ].join(' '),
+        },
+        {
+          role: 'user',
+          content: JSON.stringify({
+            title: job.title || '',
+            script: job.script,
+            preferredChapterCount: seedSections?.length || MAX_CHAPTER_COUNT,
+            sections: seedSections,
+            outputShape: {
+              chapters: [
+                {
+                  chapterIndex: 1,
+                  chapterTitle: 'string',
+                  narration: 'string',
+                  visualSummary: 'string',
+                  imagePrompt: 'string',
+                },
+              ],
+            },
+          }),
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`스토리보드 생성 실패: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  const content = data?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error('스토리보드 응답이 비어 있습니다.');
+  }
+
+  const payload = parseJsonPayload(content);
+  const chapters = Array.isArray(payload?.chapters) ? payload.chapters : [];
+  const normalized = chapters
+    .slice(0, MAX_CHAPTER_COUNT)
+    .map((chapter, index) => ({
+      chapter_index: index + 1,
+      chapter_title: normalizeLine(chapter.chapterTitle || chapter.chapter_title || `챕터 ${index + 1}`),
+      narration: normalizeLine(chapter.narration || ''),
+      visual_summary: normalizeLine(chapter.visualSummary || chapter.visual_summary || ''),
+      image_prompt: normalizeLine(chapter.imagePrompt || chapter.image_prompt || ''),
+      motion_prompt: null,
+      status: 'QUEUED',
+    }))
+    .filter((chapter) => chapter.narration && chapter.image_prompt);
+
+  if (normalized.length === 0) {
+    throw new Error('스토리보드 챕터를 생성하지 못했습니다.');
+  }
+
+  return normalized;
+}
+
+let comfyWorkflowTemplateCache = null;
+
+async function loadComfyWorkflowTemplate() {
+  if (!COMFYUI_WORKFLOW_PATH) {
+    throw new Error('COMFYUI_WORKFLOW_PATH가 설정되지 않았습니다.');
+  }
+  if (!comfyWorkflowTemplateCache) {
+    comfyWorkflowTemplateCache = JSON.parse(await readFile(COMFYUI_WORKFLOW_PATH, 'utf8'));
+  }
+  return JSON.parse(JSON.stringify(comfyWorkflowTemplateCache));
+}
+
+function replaceTemplateTokens(value, tokens) {
+  if (Array.isArray(value)) {
+    return value.map((item) => replaceTemplateTokens(item, tokens));
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, replaceTemplateTokens(entry, tokens)]));
+  }
+  if (typeof value !== 'string') {
+    return value;
+  }
+
+  if (/^\{\{[A-Z0-9_]+\}\}$/.test(value)) {
+    const tokenKey = value.slice(2, -2);
+    return Object.prototype.hasOwnProperty.call(tokens, tokenKey) ? tokens[tokenKey] : value;
+  }
+
+  let next = value;
+  for (const [tokenKey, tokenValue] of Object.entries(tokens)) {
+    next = next.split(`{{${tokenKey}}}`).join(String(tokenValue));
+  }
+  return next;
+}
+
+async function queueComfyPrompt(workflow) {
+  const response = await fetch(`${COMFYUI_BASE_URL}/prompt`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt: workflow }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`ComfyUI 프롬프트 등록 실패: ${await response.text()}`);
+  }
+
+  const data = await response.json();
+  if (!data?.prompt_id) {
+    throw new Error('ComfyUI prompt_id를 받지 못했습니다.');
+  }
+
+  return data.prompt_id;
+}
+
+function extractComfyImageMeta(historyEntry) {
+  const outputs = historyEntry?.outputs || {};
+  for (const output of Object.values(outputs)) {
+    if (Array.isArray(output?.images) && output.images.length > 0) {
+      return output.images[0];
+    }
+  }
+  return null;
+}
+
+async function waitForComfyImage(promptId) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < COMFYUI_TIMEOUT_MS) {
+    const response = await fetch(`${COMFYUI_BASE_URL}/history/${promptId}`, { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`ComfyUI history 조회 실패: ${await response.text()}`);
+    }
+
+    const data = await response.json();
+    const historyEntry = data?.[promptId] || data;
+    const imageMeta = extractComfyImageMeta(historyEntry);
+    if (imageMeta) {
+      return imageMeta;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+  }
+
+  throw new Error('ComfyUI 이미지 생성 대기 시간이 초과되었습니다.');
+}
+
+async function downloadComfyImage(imageMeta) {
+  const params = new URLSearchParams({
+    filename: imageMeta.filename,
+    type: imageMeta.type || 'output',
+  });
+  if (imageMeta.subfolder) {
+    params.set('subfolder', imageMeta.subfolder);
+  }
+
+  const response = await fetch(`${COMFYUI_BASE_URL}/view?${params.toString()}`, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`ComfyUI 이미지 다운로드 실패: ${await response.text()}`);
+  }
+  return Buffer.from(await response.arrayBuffer());
+}
+
+async function generateChapterImage(job, chapter, chapterNumber) {
+  const workflowTemplate = await loadComfyWorkflowTemplate();
+  const workflow = replaceTemplateTokens(workflowTemplate, {
+    PROMPT: chapter.image_prompt,
+    NEGATIVE_PROMPT: COMFYUI_NEGATIVE_PROMPT,
+    WIDTH: VIDEO_WIDTH,
+    HEIGHT: VIDEO_HEIGHT,
+    SEED: Math.floor(Math.random() * 2147483647),
+    OUTPUT_PREFIX: `daonview_${job.id}_chapter_${String(chapterNumber).padStart(2, '0')}`,
+  });
+
+  const promptId = await queueComfyPrompt(workflow);
+  const imageMeta = await waitForComfyImage(promptId);
+  const buffer = await downloadComfyImage(imageMeta);
+
+  return {
+    buffer,
+    contentType: 'image/png',
+  };
 }
 
 async function callTts(script, voiceKey = 'FEMALE_SOFT') {
@@ -152,7 +450,7 @@ async function downloadAudioAsset(asset, tempDir) {
 async function downloadPublicFile(url) {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`생성 오디오 다운로드 실패: ${response.status}`);
+    throw new Error(`생성 파일 다운로드 실패: ${response.status}`);
   }
   return Buffer.from(await response.arrayBuffer());
 }
@@ -383,19 +681,80 @@ async function uploadGenerated(job, localPath, bucketFileName, contentType) {
   const { error } = await supabase.storage.from('video-generated-assets').upload(path, buffer, { contentType, upsert: true });
   if (error) throw new Error(`생성 파일 업로드 실패: ${error.message}`);
   const { data } = supabase.storage.from('video-generated-assets').getPublicUrl(path);
-  return data.publicUrl;
+  return {
+    path,
+    publicUrl: data.publicUrl,
+  };
+}
+
+async function resolvePlannedImageSource(asset, tempDir, segmentIndex) {
+  if (asset.localPath) {
+    return asset.localPath;
+  }
+
+  if (asset.image_url) {
+    const targetPath = join(tempDir, `${segmentIndex}-chapter-${asset.chapter_index || segmentIndex}.png`);
+    await writeFile(targetPath, await downloadPublicFile(asset.image_url));
+    return targetPath;
+  }
+
+  const targetPath = join(tempDir, `${segmentIndex}-${asset.storage_path.split('/').pop()}`);
+  await downloadAsset(asset.storage_path, targetPath);
+  return targetPath;
 }
 
 async function processJob(job) {
   const tempDir = await mkdtemp(join(tmpdir(), `daon-video-${job.id}-`));
   try {
     const assets = await getAssets(job.id);
+    let chapters = await getChapters(job.id);
+    const generatedImageAssets = [];
     let audioPath = join(tempDir, 'narration.mp3');
     let audioBuffer;
     let audioOutputFileName = 'narration.mp3';
     let audioContentType = 'audio/mpeg';
     const subtitleSource = String(job.subtitle_final || '').trim();
     const isRerender = Boolean(subtitleSource && job.audio_url);
+
+    if (!isRerender && job.input_mode === 'SCRIPT_ONLY' && assets.length === 0) {
+      await updateJob(job.id, { status: 'PROCESSING_SCRIPT', progress: 8, error_message: null });
+      const storyboard = await generateStoryboard(job);
+      chapters = await replaceChapters(job.id, storyboard);
+      await updateJob(job.id, { status: 'GENERATING_IMAGES', progress: 18, error_message: null });
+
+      for (const [index, chapter] of chapters.entries()) {
+        await updateChapter(chapter.id, { status: 'GENERATING', error_message: null });
+        try {
+          const generated = await generateChapterImage(job, chapter, index + 1);
+          const fileName = `chapter-${String(index + 1).padStart(2, '0')}.png`;
+          const localPath = join(tempDir, fileName);
+          await writeFile(localPath, generated.buffer);
+          const uploaded = await uploadGenerated(job, localPath, fileName, generated.contentType);
+          await updateChapter(chapter.id, {
+            status: 'COMPLETED',
+            image_url: uploaded.publicUrl,
+            storage_path: uploaded.path,
+            error_message: null,
+          });
+          generatedImageAssets.push({
+            chapter_index: chapter.chapter_index,
+            image_url: uploaded.publicUrl,
+            localPath,
+          });
+          await updateJob(job.id, {
+            status: 'GENERATING_IMAGES',
+            progress: 18 + Math.round(((index + 1) / chapters.length) * 22),
+            error_message: null,
+          });
+        } catch (chapterError) {
+          await updateChapter(chapter.id, {
+            status: 'FAILED',
+            error_message: chapterError instanceof Error ? chapterError.message : '챕터 이미지 생성 실패',
+          });
+          throw chapterError;
+        }
+      }
+    }
 
     if (isRerender) {
       await updateJob(job.id, { status: 'RENDERING_VIDEO', progress: 55, error_message: null });
@@ -457,15 +816,23 @@ async function processJob(job) {
       segmentIndex += 1;
     }
 
-    const imageAssets = assets.filter((item) => item.asset_type === 'IMAGE');
+    const imageAssets = [
+      ...assets.filter((item) => item.asset_type === 'IMAGE'),
+      ...generatedImageAssets,
+      ...(!generatedImageAssets.length
+        ? chapters.filter((chapter) => chapter.image_url).map((chapter) => ({
+            chapter_index: chapter.chapter_index,
+            image_url: chapter.image_url,
+          }))
+        : []),
+    ];
     const imageSegmentPlan = buildImageSegmentPlan(imageAssets, Math.max(0, audioDuration - builtDuration));
     for (const plan of imageSegmentPlan) {
       if (builtDuration >= audioDuration) break;
       const asset = plan.asset;
       const segmentDuration = Math.min(plan.duration, Math.max(0.05, audioDuration - builtDuration));
-      const sourcePath = join(tempDir, `${segmentIndex}-${asset.storage_path.split('/').pop()}`);
+      const sourcePath = await resolvePlannedImageSource(asset, tempDir, segmentIndex);
       const outputPath = join(tempDir, `${segmentIndex}-image.mp4`);
-      await downloadAsset(asset.storage_path, sourcePath);
       const duration = await createImageSegment(sourcePath, outputPath, segmentDuration);
       segmentPaths.push(outputPath);
       segmentDurations.push(duration);
@@ -498,7 +865,7 @@ async function processJob(job) {
     const thumbnailPath = join(tempDir, 'thumbnail.jpg');
     await createThumbnail(finalPath, thumbnailPath);
 
-    const [audioUrl, subtitleUrl, videoUrl, thumbnailUrl] = await Promise.all([
+    const [audioUpload, subtitleUpload, videoUpload, thumbnailUpload] = await Promise.all([
       uploadGenerated(job, audioPath, audioOutputFileName, audioContentType),
       uploadGenerated(job, subtitlePath, 'subtitle.srt', 'application/x-subrip'),
       uploadGenerated(job, finalPath, 'final.mp4', 'video/mp4'),
@@ -509,11 +876,11 @@ async function processJob(job) {
     await updateJob(job.id, {
       status: 'COMPLETED',
       progress: 100,
-      audio_url: audioUrl,
-      subtitle_url: subtitleUrl,
+      audio_url: audioUpload.publicUrl,
+      subtitle_url: subtitleUpload.publicUrl,
       subtitle_final: subtitleSource || null,
-      video_url: videoUrl,
-      thumbnail_url: thumbnailUrl,
+      video_url: videoUpload.publicUrl,
+      thumbnail_url: thumbnailUpload.publicUrl,
       duration_sec: finalDuration,
       error_message: null,
     });

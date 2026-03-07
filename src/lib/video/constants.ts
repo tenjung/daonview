@@ -1,6 +1,7 @@
 export const VIDEO_SOURCE_BUCKET = 'video-source-assets';
 export const VIDEO_GENERATED_BUCKET = 'video-generated-assets';
 export const VIDEO_DAILY_LIMIT = 2;
+export const VIDEO_MAX_CHAPTER_COUNT = 4;
 export const VIDEO_MAX_IMAGE_COUNT = 10;
 export const VIDEO_MAX_VIDEO_COUNT = 5;
 export const VIDEO_MAX_AUDIO_COUNT = 1;
@@ -21,6 +22,8 @@ export const VIDEO_ALLOWED_AUDIO_TYPES = [
 export const VIDEO_OUTPUT_WIDTH = 1080;
 export const VIDEO_OUTPUT_HEIGHT = 1920;
 export const VIDEO_OUTPUT_FPS = 30;
+export const VIDEO_CHAPTER_IMAGE_WIDTH = 1080;
+export const VIDEO_CHAPTER_IMAGE_HEIGHT = 1920;
 export const VIDEO_TEMPLATE_BACKGROUNDS = [
   '#101828',
   '#1D2939',

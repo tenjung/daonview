@@ -13,12 +13,11 @@ import type { PexelsSelectedAsset, VideoInputMode, VideoVoiceKey } from '@/types
 interface ScriptInputFormProps {
   quota: AIQuota | null;
   isSubmitting: boolean;
-  resetToken?: number;
   onDirtyChange?: (isDirty: boolean) => void;
   onSubmit: (payload: { title: string; script: string; inputMode: VideoInputMode; voice: VideoVoiceKey; audioFile: File | null; imageFiles: File[]; videoFiles: File[]; pexelsAssets: PexelsSelectedAsset[] }) => Promise<void>;
 }
 
-export function ScriptInputForm({ quota, isSubmitting, resetToken = 0, onDirtyChange, onSubmit }: ScriptInputFormProps) {
+export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }: ScriptInputFormProps) {
   const [title, setTitle] = useState('');
   const [script, setScript] = useState('');
   const [tab, setTab] = useState<Extract<VideoInputMode, 'MEDIA_AND_SCRIPT' | 'SCRIPT_ONLY'>>('MEDIA_AND_SCRIPT');
@@ -48,16 +47,6 @@ export function ScriptInputForm({ quota, isSubmitting, resetToken = 0, onDirtyCh
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
-
-  useEffect(() => {
-    setTitle('');
-    setScript('');
-    setTab('MEDIA_AND_SCRIPT');
-    setVoice('FEMALE_SOFT');
-    setImageFiles([]);
-    setVideoFiles([]);
-    setSelectedPexelsAssets([]);
-  }, [resetToken]);
 
   const submit = async () => {
     if (!script.trim()) {
@@ -208,7 +197,7 @@ export function ScriptInputForm({ quota, isSubmitting, resetToken = 0, onDirtyCh
           </TabsContent>
           <TabsContent value="SCRIPT_ONLY" className="mt-5 rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 p-5">
             <p className="text-sm font-semibold leading-relaxed text-text-secondary">
-              대본만 입력되면 기본 템플릿 배경으로 세로 쇼츠를 제작합니다. 빠르게 훅 검증용 버전을 뽑을 때 가장 적합합니다.
+              대본만 입력되면 챕터를 자동 분석한 뒤 백그라운드에서 이미지 장면을 생성하고, 그 결과로 세로 쇼츠를 제작합니다. 빠르게 훅 검증용 버전을 뽑을 때 가장 적합합니다.
             </p>
           </TabsContent>
         </Tabs>

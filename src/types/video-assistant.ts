@@ -3,6 +3,8 @@ import type { AIQuota } from '@/types/aiQuota';
 export const VIDEO_JOB_STATUSES = [
   'UPLOADING',
   'QUEUED',
+  'PROCESSING_SCRIPT',
+  'GENERATING_IMAGES',
   'PROCESSING_TTS',
   'PROCESSING_SUBTITLE',
   'RENDERING_VIDEO',
@@ -22,6 +24,7 @@ export type VideoAssetType = (typeof VIDEO_ASSET_TYPES)[number];
 export type VideoServiceType = (typeof VIDEO_SERVICE_TYPES)[number];
 export type VideoAspectRatio = (typeof VIDEO_ASPECT_RATIOS)[number];
 export type VideoVoiceKey = (typeof VIDEO_VOICE_KEYS)[number];
+export type VideoChapterStatus = 'QUEUED' | 'GENERATING' | 'COMPLETED' | 'FAILED';
 
 export interface PexelsSelectedAsset {
   id: string;
@@ -42,6 +45,23 @@ export interface VideoJobAsset {
   sort_order: number;
   duration_sec?: number | null;
   created_at?: string;
+}
+
+export interface VideoJobChapter {
+  id: string;
+  job_id: string;
+  chapter_index: number;
+  chapter_title?: string | null;
+  narration: string;
+  visual_summary?: string | null;
+  image_prompt: string;
+  motion_prompt?: string | null;
+  status: VideoChapterStatus;
+  image_url?: string | null;
+  storage_path?: string | null;
+  error_message?: string | null;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface VideoJob {
@@ -66,6 +86,7 @@ export interface VideoJob {
   created_at?: string;
   updated_at?: string;
   assets?: VideoJobAsset[];
+  chapters?: VideoJobChapter[];
 }
 
 export interface CreateVideoJobResponse {

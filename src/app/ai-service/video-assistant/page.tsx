@@ -361,17 +361,17 @@ export default function VideoAssistantPage() {
               <div className="space-y-6">
                 {selectedService === 'SHORTS_AUTO' ? (
                   <ScriptInputForm
+                    key={`script-${resetToken}`}
                     quota={quota}
                     isSubmitting={isSubmitting}
-                    resetToken={resetToken}
                     onDirtyChange={setScriptFormDirty}
                     onSubmit={handleCreateJob}
                   />
                 ) : (
                   <AudioSubtitleForm
+                    key={`audio-${resetToken}`}
                     quota={quota}
                     isSubmitting={isSubmitting}
-                    resetToken={resetToken}
                     onDirtyChange={setAudioFormDirty}
                     onSubmit={handleCreateJob}
                   />

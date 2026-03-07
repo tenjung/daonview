@@ -3,6 +3,8 @@ import type { VideoJob } from '@/types/video-assistant';
 const STATUS_LABEL: Record<string, string> = {
   UPLOADING: '원본 업로드 중',
   QUEUED: '대기 중',
+  PROCESSING_SCRIPT: '대본 분석 중',
+  GENERATING_IMAGES: '챕터 이미지 생성 중',
   PROCESSING_TTS: '음성 생성 중',
   PROCESSING_SUBTITLE: '자막 생성 중',
   RENDERING_VIDEO: '영상 렌더링 중',

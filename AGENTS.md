@@ -87,6 +87,10 @@ UI 표시: DB 값을 직접 노출하지 않고 Label/Badge로 매핑하여 표�
 
 SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 최우선으로 적용한다.
 
+워커 실행 규칙: `scripts/video-job-worker.mjs` 또는 `.env.local` 수정 시 수동으로 `video:worker`를 반복 재실행하지 말고, 개발 환경에서는 반드시 `npm run video:worker:dev`를 사용한다.
+
+워커 중복 금지: 영상 워커는 동시에 1개만 실행한다. 수동 점검용 `npm run video:worker`와 개발용 `npm run video:worker:dev`를 함께 띄우지 않는다.
+
 ---
 
 ## 6. 📋 캠페인 등록 비즈니스 규칙 (Campaign Registration Rules)

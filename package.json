@@ -9,7 +9,9 @@
     "lint": "eslint",
     "check:kakao-auth": "node scripts/check-kakao-auth.js",
     "update-types": "npx supabase gen types typescript --project-id whpyftpktolpaspeuocg > src/types/database.generated.ts",
-    "video:worker": "node scripts/video-job-worker.mjs watch"
+    "video:worker": "node scripts/video-job-worker.mjs watch",
+    "video:worker:prod": "zsh scripts/run-video-worker.sh",
+    "video:worker:dev": "nodemon"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.982.0",
@@ -113,6 +115,7 @@
     "baseline-browser-mapping": "^2.10.0",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
+    "nodemon": "^3.1.10",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"
