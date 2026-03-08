@@ -16,6 +16,7 @@ const OPENAI_CHAT_MODEL = process.env.OPENAI_VIDEO_STORYBOARD_MODEL || 'gpt-4o-m
 const COMFYUI_BASE_URL = String(process.env.COMFYUI_BASE_URL || 'http://127.0.0.1:8188').replace(/\/+$/, '');
 const COMFYUI_WORKFLOW_PATH = process.env.COMFYUI_WORKFLOW_PATH || '';
 const COMFYUI_TIMEOUT_MS = Number.parseInt(process.env.COMFYUI_TIMEOUT_MS || '180000', 10);
+const COMFYUI_CHECKPOINT = process.env.COMFYUI_CHECKPOINT || 'sd_xl_base_1.0.safetensors';
 const COMFYUI_NEGATIVE_PROMPT = process.env.COMFYUI_NEGATIVE_PROMPT
   || 'text, caption, watermark, logo, low quality, blurry, distorted face, extra fingers, duplicated objects, deformed hands';
 const VIDEO_WIDTH = 1080;
@@ -217,6 +218,7 @@ async function generateStoryboard(job) {
           content: [
             '너는 한국어 숏폼 영상을 위한 이미지 스토리보드를 만드는 시각적 크리에이티브 디렉터다.',
             `챕터는 최대 ${MAX_CHAPTER_COUNT}개로 구성한다.`,
+            '대본이 짧더라도 반드시 최소 1개 이상의 챕터를 생성해야 한다.',
             '입력 대본에 "자막:", "TTS:", "나레이션:" 태그가 있으면 각각 subtitle, narration 필드로 인식한다.',
             'TTS/대사 텍스트는 narration에 최대한 그대로 활용한다.',
             '반드시 JSON만 반환한다.',
@@ -237,7 +239,7 @@ async function generateStoryboard(job) {
           content: JSON.stringify({
             title: job.title || '',
             script: job.script,
-            preferredChapterCount: seedSections?.length || MAX_CHAPTER_COUNT,
+            preferredChapterCount: seedSections?.length || Math.max(1, MAX_CHAPTER_COUNT),
             sections: seedSections,
             outputShape: {
               chapters: [
@@ -268,7 +270,7 @@ async function generateStoryboard(job) {
 
   const payload = parseJsonPayload(content);
   const chapters = Array.isArray(payload?.chapters) ? payload.chapters : [];
-  const normalized = chapters
+  let normalized = chapters
     .slice(0, MAX_CHAPTER_COUNT)
     .map((chapter, index) => ({
       chapter_index: index + 1,
@@ -281,8 +283,20 @@ async function generateStoryboard(job) {
     }))
     .filter((chapter) => chapter.narration && chapter.image_prompt);
 
+  // 긴급 폴백: 생성된 챕터가 없거나 대본이 너무 짧아 필터링된 경우 강제로 1개 생성
   if (normalized.length === 0) {
-    throw new Error('스토리보드 챕터를 생성하지 못했습니다.');
+    console.log(`[Fallback] 챕터 생성 실패로 기본 챕터 생성 (Script: ${job.script.slice(0, 20)}...)`);
+    normalized = [
+      {
+        chapter_index: 1,
+        chapter_title: '인트로',
+        narration: normalizeLine(job.script),
+        visual_summary: normalizeLine(job.script),
+        image_prompt: 'A photorealistic cinematic portrait of a contemporary Korean person in a modern setting, sharp detailed face, clear facial features, cinematic still, sharp focus, photorealistic, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark.',
+        motion_prompt: null,
+        status: 'QUEUED',
+      },
+    ];
   }
 
   return normalized;
@@ -352,16 +366,34 @@ async function waitForComfyImage(promptId) {
   const startedAt = Date.now();
 
   while (Date.now() - startedAt < COMFYUI_TIMEOUT_MS) {
-    const response = await fetch(`${COMFYUI_BASE_URL}/history/${promptId}`, { cache: 'no-store' });
-    if (!response.ok) {
-      throw new Error(`ComfyUI history 조회 실패: ${await response.text()}`);
-    }
+    try {
+      const [queueRes, historyRes] = await Promise.all([
+        fetch(`${COMFYUI_BASE_URL}/queue`, { cache: 'no-store' }),
+        fetch(`${COMFYUI_BASE_URL}/history/${promptId}`, { cache: 'no-store' })
+      ]);
 
-    const data = await response.json();
-    const historyEntry = data?.[promptId] || data;
-    const imageMeta = extractComfyImageMeta(historyEntry);
-    if (imageMeta) {
-      return imageMeta;
+      const queueData = queueRes.ok ? await queueRes.json() : { queue_running: [], queue_pending: [] };
+      const historyData = historyRes.ok ? await historyRes.json() : {};
+      
+      const historyEntry = historyData?.[promptId];
+      if (historyEntry) {
+        const imageMeta = extractComfyImageMeta(historyEntry);
+        if (imageMeta) {
+          return imageMeta;
+        }
+        throw new Error('ComfyUI 실행이 완료되었으나 결과 이미지를 찾을 수 없습니다.');
+      }
+
+      const isRunning = (queueData.queue_running || []).some((job) => job[1] === promptId);
+      const isPending = (queueData.queue_pending || []).some((job) => job[1] === promptId);
+
+      if (!isRunning && !isPending && !historyEntry) {
+        throw new Error('ComfyUI 작업이 비정상적으로 실패했습니다. (노드 연결 에러 및 프로세스 중단)');
+      }
+    } catch (err) {
+      if (err.message.includes('비정상적으로 실패') || err.message.includes('이미지를 찾을 수 없습니다')) {
+        throw err;
+      }
     }
 
     await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -389,6 +421,7 @@ async function downloadComfyImage(imageMeta) {
 async function generateChapterImage(job, chapter, chapterNumber) {
   const workflowTemplate = await loadComfyWorkflowTemplate();
   const workflow = replaceTemplateTokens(workflowTemplate, {
+    CHECKPOINT: COMFYUI_CHECKPOINT,
     PROMPT: chapter.image_prompt,
     NEGATIVE_PROMPT: COMFYUI_NEGATIVE_PROMPT,
     WIDTH: 720,
