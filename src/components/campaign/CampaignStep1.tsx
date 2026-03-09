@@ -235,7 +235,8 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         }
     }, []);
 
-    const { user } = useAuthStore();
+    const { user, profile } = useAuthStore();
+    const isAdmin = profile?.role === 'ADMIN';
 
     // 스마트 기본값: 오늘 날짜
     const getTodayDate = () => {
@@ -247,6 +248,13 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     const getOneWeekLater = (fromDate?: string) => {
         const date = fromDate ? new Date(fromDate) : new Date();
         date.setDate(date.getDate() + 7);
+        return date.toISOString().split('T')[0];
+    };
+
+    // 빠른 모집용: 2주 뒤 날짜
+    const getTwoWeeksLater = (fromDate?: string) => {
+        const date = fromDate ? new Date(fromDate) : new Date();
+        date.setDate(date.getDate() + 14);
         return date.toISOString().split('T')[0];
     };
 
@@ -803,10 +811,12 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     // Schedule type change handler
     const handleScheduleTypeChange = (type: 'recommended' | 'custom' | 'always') => {
         if (type === 'always') {
+            const startDate = formData.recruitmentStartDate || getTodayDate();
             campaignStore.updateFields({
                 scheduleType: 'always',
-                firstSelectionDate: '', // Clear dates for 'always'
-                reviewDeadline: ''
+                recruitmentStartDate: startDate,
+                firstSelectionDate: getTwoWeeksLater(startDate), // 모집은 2주간 진행
+                reviewDeadline: getTwoWeeksLater(getTwoWeeksLater(startDate)) // 넉넉히 리뷰기간 자동 설정 처리 (백엔드 처리용)
             });
         } else {
             const startDate = formData.recruitmentStartDate || getTodayDate();
@@ -2034,7 +2044,13 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         type="button"
                                         variant="secondary"
                                         size="sm"
-                                        onClick={() => campaignStore.setField('totalRecruitment', '999')}
+                                        onClick={() => {
+                                            if (!isUnlimited && !isAdmin) {
+                                                toast.error('무제한 모집은 월 구독 광고주만 이용 가능합니다.');
+                                                return;
+                                            }
+                                            campaignStore.setField('totalRecruitment', '999');
+                                        }}
                                         className="h-11 px-4 font-bold active:scale-95 transition-transform flex items-center justify-center bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-none"
                                         title="무제한 모집"
                                     >
@@ -2109,7 +2125,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                             <div className="w-1.5 h-1.5 rounded-full bg-white" />
                                         </div>
                                     </div>
-                                    <span className={`text-sm font-bold ${formData.scheduleType === 'always' ? 'text-gray-900' : 'text-gray-500'}`}>상시 모집</span>
+                                    <span className={`text-sm font-bold ${formData.scheduleType === 'always' ? 'text-gray-900' : 'text-gray-500'}`}>빠른 모집</span>
                                 </label>
                             </div>
 
@@ -2118,7 +2134,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
                                     {formData.scheduleType === 'recommended' && "추천 일정: 최대한 빠르게 모집하여 선정되는 대로 즉시 투입하는 최적화된 모집 방식입니다."}
                                     {formData.scheduleType === 'custom' && "맞춤 설정: 캠페인 성격에 맞춰 모집, 선정, 리뷰 마감일을 수동으로 설정합니다."}
-                                    {formData.scheduleType === 'always' && "상시 모집: 별도의 종료일 없이 캠페인을 중지하기 전까지 무기한으로 인원을 모집합니다."}
+                                    {formData.scheduleType === 'always' && "빠른 모집: 모집 시작일 기준 2주 동안 대기 시간 없이 빠르고 유연하게 인플루언서 선정-리뷰가 이루어집니다."}
                                 </p>
                             </div>
                         </div>
@@ -2330,7 +2346,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                             <h4 className="text-sm font-black text-emerald-900">원할 때 언제든, 빠른 캠페인 진행!</h4>
                                         </div>
                                         <p className="text-[13px] text-emerald-700 font-medium leading-relaxed">
-                                            상시 모집은 대기 시간 없이 <strong className="text-emerald-800">빠른 모집-선정-리뷰</strong>가 가능합니다. 마음에 드는 인플루언서를 발견하면 즉시 선정하여 캠페인을 매끄럽게 진행해 보세요.
+                                            빠른 모집은 대기 시간 없이 <strong className="text-emerald-800">빠른 모집-선정-리뷰</strong>가 가능합니다. 마음에 드는 인플루언서를 발견하면 즉시 선정하여 진행해 보세요. (시작일 기준 2주간 모집 진행)
                                         </p>
                                     </div>
                                 </div>

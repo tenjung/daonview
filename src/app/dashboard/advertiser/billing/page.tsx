@@ -8,7 +8,9 @@ import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import {
+    AlertTriangle,
     ArrowRight,
     CreditCard,
     ExternalLink,
@@ -20,10 +22,12 @@ import {
 
 export default function BillingPage() {
     const { profile, user } = useAuthStore();
-    const { subscription, isUnlimited } = useSubscription();
+    const { subscription, isUnlimited, isCancelled, refetch } = useSubscription();
 
     const [payments, setPayments] = useState<any[]>([]);
     const [isPaymentsLoading, setIsPaymentsLoading] = useState(true);
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
 
     const fetchPayments = useCallback(async () => {
         if (!user) return;
@@ -51,6 +55,30 @@ export default function BillingPage() {
     useEffect(() => {
         fetchPayments();
     }, [fetchPayments]);
+
+    const handleCancelSubscription = async () => {
+        if (!user) return;
+        setIsCancelling(true);
+        try {
+            const res = await fetch('/api/payments/subscription/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                toast.success('구독이 해지되었습니다. 구독 기간까지 계속 이용하실 수 있습니다.');
+                setShowCancelModal(false);
+                refetch();
+            } else {
+                toast.error(data.message || '해지 처리에 실패했습니다.');
+            }
+        } catch {
+            toast.error('오류가 발생했습니다. 다시 시도해주세요.');
+        } finally {
+            setIsCancelling(false);
+        }
+    };
 
     const displayName = profile?.company_name || profile?.nickname || '광고주';
     const isVerified = profile?.biz_verification_status === 'APPROVED';
@@ -136,30 +164,66 @@ export default function BillingPage() {
                                                 <span className="rounded-lg bg-primary/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-primary">
                                                     Current Plan
                                                 </span>
+                                                {isCancelled && (
+                                                    <span className="rounded-lg bg-rose-50 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-rose-500 border border-rose-100">
+                                                        해지됨
+                                                    </span>
+                                                )}
                                             </div>
                                             <h2 className="mb-2 text-2xl font-black text-gray-900">
                                                 {isUnlimited ? '무제한 이용권 정기구독' : '건당 결제 (Basic)'}
                                             </h2>
                                             <p className="text-sm font-medium text-gray-500">
-                                                {isUnlimited
-                                                    ? '매월 제한 없이 캠페인을 등록할 수 있는 멤버십입니다.'
-                                                    : '필요한 만큼만 결제하여 이용하는 기본 요금제입니다.'}
+                                                {isCancelled
+                                                    ? `${format(new Date(subscription!.expires_at), 'yyyy년 MM월 dd일')}까지 이용 가능합니다. 이후 자동 갱신되지 않습니다.`
+                                                    : isUnlimited
+                                                        ? '매월 제한 없이 캠페인을 등록할 수 있는 멤버십입니다.'
+                                                        : '필요한 만큼만 결제하여 이용하는 기본 요금제입니다.'}
                                             </p>
                                         </div>
 
-                                        {isUnlimited && subscription && (
-                                            <div className="flex w-full shrink-0 flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gray-50 p-6 md:w-auto">
-                                                <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">Expiration Date</p>
-                                                <p className="text-xl font-black text-gray-900">{format(new Date(subscription.expires_at), 'yyyy.MM.dd')}</p>
-                                                <div className="mt-2 rounded-full border border-primary/10 bg-white px-3 py-1 text-xs font-black text-primary shadow-sm">
-                                                    D-{Math.ceil((new Date(subscription.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}일 남음
+                                        {/* 구독 중 - 날짜 + 해지 버튼 */}
+                                        {isUnlimited && subscription && !isCancelled && (
+                                            <div className="flex w-full shrink-0 flex-col items-center gap-3 md:w-auto">
+                                                <div className="flex flex-col items-center justify-center rounded-2xl border border-gray-100 bg-gray-50 p-6">
+                                                    <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">Expiration Date</p>
+                                                    <p className="text-xl font-black text-gray-900">{format(new Date(subscription.expires_at), 'yyyy.MM.dd')}</p>
+                                                    <div className="mt-2 rounded-full border border-primary/10 bg-white px-3 py-1 text-xs font-black text-primary shadow-sm">
+                                                        D-{Math.ceil((new Date(subscription.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}일 남음
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    onClick={() => setShowCancelModal(true)}
+                                                    className="w-full rounded-xl border border-rose-100 bg-rose-50 px-4 py-2 text-xs font-black text-rose-500 transition-all hover:bg-rose-100"
+                                                >
+                                                    구독 해지
+                                                </button>
                                             </div>
                                         )}
 
+                                        {/* 해지됨 - 만료일까지 이용 중 */}
+                                        {isUnlimited && subscription && isCancelled && (
+                                            <div className="flex w-full shrink-0 flex-col items-center gap-3 md:w-auto">
+                                                <div className="flex flex-col items-center justify-center rounded-2xl border border-rose-100 bg-rose-50/50 p-6">
+                                                    <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-rose-400">이용 종료일</p>
+                                                    <p className="text-xl font-black text-gray-900">{format(new Date(subscription.expires_at), 'yyyy.MM.dd')}</p>
+                                                    <div className="mt-2 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-black text-rose-400 shadow-sm">
+                                                        D-{Math.ceil((new Date(subscription.expires_at).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}일 후 종료
+                                                    </div>
+                                                </div>
+                                                <Link
+                                                    href="/dashboard/advertiser/pricing?tab=subscription"
+                                                    className="w-full rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 text-center text-xs font-black text-primary transition-all hover:bg-primary/10"
+                                                >
+                                                    재구독 하기
+                                                </Link>
+                                            </div>
+                                        )}
+
+                                        {/* 미구독 */}
                                         {!isUnlimited && (
                                             <Link
-                                                href="/dashboard/advertiser/pricing"
+                                                href="/dashboard/advertiser/pricing?tab=subscription"
                                                 className="w-full rounded-2xl bg-gray-900 px-8 py-4 text-center text-sm font-black text-white shadow-xl shadow-gray-200 transition-all hover:bg-black md:w-auto"
                                             >
                                                 프리미엄 구독하기
@@ -283,6 +347,40 @@ export default function BillingPage() {
                     )}
                 </div>
             </main>
+
+            {/* 구독 해지 확인 모달 */}
+            {showCancelModal && subscription && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+                    <div className="mx-4 w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+                        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50">
+                            <AlertTriangle className="h-7 w-7 text-rose-500" />
+                        </div>
+                        <h3 className="mb-2 text-xl font-black text-gray-900">구독을 해지하시겠어요?</h3>
+                        <p className="mb-1 text-sm text-gray-500">
+                            해지 후에도 <strong className="text-gray-800">{format(new Date(subscription.expires_at), 'yyyy년 MM월 dd일')}</strong>까지는 무제한 이용권을 계속 사용할 수 있습니다.
+                        </p>
+                        <p className="mb-8 text-sm text-gray-400">
+                            이후에는 자동 갱신이 중단되며, 건당 결제 방식으로 전환됩니다.
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowCancelModal(false)}
+                                className="flex-1 rounded-2xl border border-gray-200 py-3.5 text-sm font-black text-gray-600 transition-all hover:bg-gray-50"
+                                disabled={isCancelling}
+                            >
+                                돌아가기
+                            </button>
+                            <button
+                                onClick={handleCancelSubscription}
+                                disabled={isCancelling}
+                                className="flex-1 rounded-2xl bg-rose-500 py-3.5 text-sm font-black text-white shadow-lg shadow-rose-200 transition-all hover:bg-rose-600 disabled:opacity-60"
+                            >
+                                {isCancelling ? '처리 중...' : '구독 해지'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -419,7 +419,7 @@ export default function CampaignStep3({
                     <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
                     <div className="space-y-2">
                         <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
-                            <strong className="font-bold">서비스 제공 기간:</strong> 결제 완료 후 즉시 캠페인 등록 및 이용이 가능합니다.<br />
+                            <strong className="font-bold">서비스 제공 기간:</strong> 선택하신 플랜에 따라 결제 완료 후 2주 이내 서비스 제공 완료됩니다.<br />
                             (단, 캠페인은 운영진 승인 후 오픈되며 통상 인플루언서 모집 1주일, 후기 등록 1주일의 기간이 소요됩니다.)
                         </p>
                         <div className="pt-2 border-t border-indigo-100/60">

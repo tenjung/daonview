@@ -21,6 +21,10 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
   const router = useRouter()
   const { user, profile } = useAuthStore()
 
+  React.useEffect(() => {
+    setData(initialData)
+  }, [initialData])
+
   // Confirm Dialog State (Delete)
   const [confirmModal, setConfirmModal] = React.useState<{
     isOpen: boolean

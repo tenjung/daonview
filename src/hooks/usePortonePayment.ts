@@ -10,6 +10,7 @@ interface PortOnePaymentResponse {
 
 interface PortOneBrowserSDK {
     requestPayment: (request: Record<string, unknown>) => Promise<PortOnePaymentResponse>;
+    requestIssueBillingKey: (request: Record<string, unknown>) => Promise<PortOnePaymentResponse>;
 }
 
 declare global {
@@ -152,5 +153,84 @@ export const usePortonePayment = () => {
         }
     };
 
-    return { requestPayment: requestPortonePayment };
+    const requestIssueBillingKey = async ({
+        issueName,
+        customerName,
+        customerEmail,
+        customerTel,
+        userId,
+        itemType = 'UNLIMITED',
+        planMonths,
+    }: {
+        issueName: string;
+        customerName?: string;
+        customerEmail?: string;
+        customerTel?: string;
+        userId: string;
+        itemType?: 'UNLIMITED';
+        planMonths?: number;
+    }) => {
+        try {
+            const storeId = process.env.NEXT_PUBLIC_PORTONE_STORE_ID;
+            // 정기결제 전용 채널키 (env에서 읽기)
+            const channelKey = process.env.NEXT_PUBLIC_PORTONE_SUBSCRIPTION_CHANNEL_KEY;
+
+            if (!storeId || !channelKey) {
+                throw new Error('포트원 정기결제 설정이 올바르지 않습니다. 환경 변수를 확인해주세요.');
+            }
+
+            const customData = {
+                item: itemType === 'UNLIMITED' ? 'unlimited-plan' : 'campaign-payment',
+                userId,
+                ...(itemType === 'UNLIMITED' && planMonths ? { planMonths } : {}),
+            };
+
+            const portOne = await loadPortOneSdk();
+
+            // 이니시스 V2: issueId 필수
+            const issueId = [
+                ...crypto.getRandomValues(new Uint32Array(2))
+            ].map(w => w.toString(16).padStart(8, '0')).join('');
+
+            // 제공기간 (월간 정기결제: 오늘 ~ 1개월 후) - ISO8601 full format 필수
+            const now = new Date();
+            const nextMonth = new Date(now);
+            nextMonth.setMonth(now.getMonth() + 1);
+
+            const response = await portOne.requestIssueBillingKey({
+                storeId,
+                channelKey,
+                issueId,
+                billingKeyMethod: 'CARD', // 정기결제 빌링키는 CARD만 지원
+                issueName: issueName.replace(/[^a-zA-Z0-9\s가-힣]/g, '').substring(0, 40),
+                offerPeriod: {
+                    range: { from: now.toISOString(), to: nextMonth.toISOString() },
+                },
+                customer: {
+                    fullName: customerName || '구매자',
+                    email: customerEmail || 'customer@example.com',
+                    phoneNumber: customerTel?.replace(/[^0-9]/g, '') || '01000000000',
+                },
+                customData,
+            });
+
+            if (response?.code != null) {
+                if (response.message?.includes('취소')) {
+                    toast.warning(response.message);
+                } else {
+                    toast.error(response.message || '빌링키 발급에 실패했습니다.');
+                }
+                return response;
+            }
+
+            return response;
+        } catch (error: any) {
+            console.error('PortOne billing key issue error:', error);
+            const errorMessage = error.message || '빌링키 발급 요청 중 오류가 발생했습니다.';
+            toast.error(errorMessage);
+            throw error;
+        }
+    };
+
+    return { requestPayment: requestPortonePayment, requestIssueBillingKey };
 };

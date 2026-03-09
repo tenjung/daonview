@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
@@ -30,42 +31,44 @@ import {
 const FAQS = [
     {
         q: '캠페인 등록 1건당 과금이 되는 건가요?',
-        a: '단일 체험단과 1석 2조 체험단은 캠페인 등록 건당 5,000원 / 9,000원이 부과됩니다. 구독형 결제(무제한 이용권) 선택 시에는 건당 과금 없이 자유롭게 등록하실 수 있습니다.',
+        a: '단일 체험단과 1석 2조 체험단은 캠페인 등록 건당 5,000원 / 9,000원이 부과됩니다. 구독형 결제(무제한 월 이용권) 선택 시에는 건당 과금 없이 자유롭게 등록하실 수 있습니다.',
     },
     {
         q: '1석 2조 체험단은 어떤 서비스인가요?',
         a: '쇼핑몰 리뷰와 SNS 리뷰(블로그·인스타피드·인스타릴스·네이버클립·스레드 중 택1)를 한 번에 진행하는 패키지입니다. 단일 건당보다 10% 저렴하게 두 채널을 동시에 활용할 수 있습니다.',
     },
     {
-        q: '무제한 이용권 해지/환불은 어떻게 되나요?',
-        a: '월간 결제는 결제 후 7일 이내 미사용 시 전액 환불됩니다. 연간 결제는 중도 해지 시 사용 개월을 월간 정상가 기준으로 차감하고, 잔여 금액에서 해지 수수료 10%를 공제 후 환불됩니다.',
+        q: '무제한 월 이용권 해지/환불은 어떻게 되나요?',
+        a: '결제 후 7일 이내 미사용 시 전액 환불됩니다. 단, 유료 기능(캠페인 등록, 모집/선정 등) 사용 시작 후에는 당월 환불이 불가합니다.',
     },
     {
-        q: '무제한 이용권으로 등록할 수 있는 캠페인 수에 제한이 있나요?',
+        q: '무제한 월 이용권으로 등록할 수 있는 캠페인 수에 제한이 있나요?',
         a: '단일 체험단과 1석 2조 체험단 모두 무제한으로 등록 및 모집하실 수 있습니다. 단, 동시에 진행 가능한 캠페인은 최대 30개입니다.',
     },
     {
         q: '결제는 어떤 방식으로 이루어지나요?',
-        a: '신용카드, 체크카드, 계좌이체로 결제하실 수 있습니다. 구독형 결제(무제한 이용권)는 월간/연간 플랜으로 제공됩니다. 세금계산서 발행이 필요하신 경우 1:1 문의로 요청해 주세요.',
+        a: '신용카드, 체크카드, 계좌이체로 결제하실 수 있습니다. 구독형 결제인 무제한 월 이용권은 매월 결제되는 플랜입니다. 세금계산서 발행이 필요하신 경우 1:1 문의로 요청해 주세요.',
     },
 ];
 
 type PaymentMode = 'ONE_TIME' | 'SUBSCRIPTION';
-type BillingCycle = 'MONTHLY' | 'YEARLY';
 
 export default function PricingPage() {
     const { profile } = useAuthStore();
+    const searchParams = useSearchParams();
     const [openFaq, setOpenFaq] = useState<number | null>(null);
     const [paymentMode, setPaymentMode] = useState<PaymentMode>('ONE_TIME');
-    const [billingCycle, setBillingCycle] = useState<BillingCycle>('MONTHLY');
+
+    useEffect(() => {
+        const tab = searchParams.get('tab');
+        if (tab === 'subscription') {
+            setPaymentMode('SUBSCRIPTION');
+        }
+    }, [searchParams]);
 
     const displayName = profile?.company_name || profile?.nickname || '광고주';
     const isVerified = profile?.biz_verification_status === 'APPROVED';
     const monthlyPlan = UNLIMITED_PLANS[0];
-    const yearlyPlan = UNLIMITED_PLANS[3];
-    const yearlyRegularTotal = UNLIMITED_PLANS[0].pricePerMonth * 12;
-    const yearlySavedAmount = yearlyRegularTotal - UNLIMITED_PLANS[3].total;
-    const yearlyDiscountRate = Math.round((yearlySavedAmount / yearlyRegularTotal) * 100);
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
@@ -135,11 +138,14 @@ export default function PricingPage() {
                                 <button
                                     type="button"
                                     onClick={() => setPaymentMode('SUBSCRIPTION')}
-                                    className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                    className={`relative flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
                                         paymentMode === 'SUBSCRIPTION' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
                                     구독형 결제
+                                    <span className="absolute -top-2.5 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white shadow-sm shadow-primary/30">
+                                        인기
+                                    </span>
                                 </button>
                             </div>
 
@@ -292,70 +298,30 @@ export default function PricingPage() {
                             {paymentMode === 'SUBSCRIPTION' && (
                                 <div className="mb-12 mx-auto max-w-[560px]">
                                     <div className="relative flex h-full flex-col rounded-3xl border-2 border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-xl">
-                                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 rounded-full bg-gray-900 px-4 py-1 text-xs font-black tracking-wide text-white">인기</div>
                                         <div className="mb-6">
                                             <div className="mb-2 flex items-center gap-2">
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50">
                                                     <Infinity className="h-4 w-4 text-purple-600" />
                                                 </div>
-                                                <h2 className="text-xl font-black text-gray-900">무제한 이용권</h2>
+                                                <h2 className="text-xl font-black text-gray-900">무제한 월 이용권</h2>
                                             </div>
                                             <p className="text-sm leading-relaxed text-gray-500">리뷰가 많이 필요한 광고주라면, 다온뷰의 모든 체험단을 제한 없이 이용해 보세요.</p>
                                         </div>
-                                        <div className="mb-5 rounded-2xl border border-gray-200 bg-gray-50 p-1">
-                                            <div className="grid grid-cols-2 gap-1">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setBillingCycle('MONTHLY')}
-                                                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
-                                                        billingCycle === 'MONTHLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                                    }`}
-                                                >
-                                                    월간 결제
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setBillingCycle('YEARLY')}
-                                                    className={`rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
-                                                        billingCycle === 'YEARLY' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                                                    }`}
-                                                >
-                                                    연간 결제
-                                                    <span className="ml-2 inline-block rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">
-                                                        {yearlyDiscountRate}% 절약
-                                                    </span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                        <p className="mb-4 text-xs font-bold text-emerald-700">
-                                            연간 결제는 월간 12개월 기준 대비 {yearlySavedAmount.toLocaleString()}원 절약 ({yearlyDiscountRate}% 할인)됩니다.
-                                        </p>
-                                        <div
-                                            className={`mb-8 relative rounded-2xl border-2 p-5 text-left transition-all ${
-                                                billingCycle === 'YEARLY' ? 'border-primary bg-primary/5' : 'border-gray-100 bg-gray-50'
-                                            }`}
-                                        >
-                                            {billingCycle === 'YEARLY' && (
-                                                <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white">BEST</span>
-                                            )}
-                                            <p className="mb-1 text-xs font-black text-gray-500">{billingCycle === 'MONTHLY' ? monthlyPlan.period : yearlyPlan.period}</p>
-                                            <p className={`text-3xl font-black ${billingCycle === 'YEARLY' ? 'text-primary' : 'text-gray-900'}`}>
-                                                {(billingCycle === 'MONTHLY' ? monthlyPlan.pricePerMonth : yearlyPlan.pricePerMonth).toLocaleString()}
+                                        
+                                        <div className="mb-8 relative rounded-2xl border-2 border-primary bg-primary/5 p-5 text-left transition-all">
+                                            <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white">BEST</span>
+                                            <p className="mb-1 text-xs font-black text-gray-500">{monthlyPlan.period}</p>
+                                            <p className="text-3xl font-black text-primary">
+                                                {monthlyPlan.pricePerMonth.toLocaleString()}
                                                 <span className="ml-1 text-base font-bold text-gray-400">원/월</span>
                                             </p>
-                                            <p className="mt-1 text-xs text-gray-500">총 {(billingCycle === 'MONTHLY' ? monthlyPlan.total : yearlyPlan.total).toLocaleString()}원</p>
-                                            {billingCycle === 'YEARLY' ? (
-                                                <span className="mt-2 inline-block rounded-md bg-primary/10 px-2 py-0.5 text-xs font-black text-primary">
-                                                    {yearlyDiscountRate}% 할인
-                                                </span>
-                                            ) : (
-                                                <span className="mt-2 inline-block rounded-md bg-gray-200 px-2 py-0.5 text-xs font-black text-gray-600">
-                                                    매월 결제
-                                                </span>
-                                            )}
+                                            <p className="mt-1 text-xs text-gray-500">총 {monthlyPlan.total.toLocaleString()}원</p>
+                                            <span className="mt-2 inline-block rounded-md bg-gray-200 px-2 py-0.5 text-xs font-black text-gray-600">
+                                                매월 자동 결제
+                                            </span>
                                         </div>
                                         <Link
-                                            href={`/dashboard/advertiser/billing/unlimited?plan=${billingCycle === 'MONTHLY' ? 0 : 3}`}
+                                            href="/dashboard/advertiser/billing/unlimited?plan=0"
                                             className="mb-8 flex w-full items-center justify-center gap-2 rounded-2xl bg-gray-900 py-3 text-center text-sm font-bold text-white transition-all hover:bg-black"
                                         >
                                             결제 페이지로 이동
@@ -400,37 +366,26 @@ export default function PricingPage() {
                                         <div className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600">마음에 드는 인플루언서가 없어 선정을 안 하시거나, 모집 인원이 미달된 수량에 대해 <strong className="text-gray-900">100% 환불</strong>이 가능합니다.</p></div>
                                     </div>
                                     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                                        <div className="mb-3 flex items-center gap-2"><Infinity className="h-4 w-4 shrink-0 text-purple-500" /><p className="text-sm font-black text-gray-800">무제한 이용권</p></div>
+                                        <div className="mb-3 flex items-center gap-2"><Infinity className="h-4 w-4 shrink-0 text-purple-500" /><p className="text-sm font-black text-gray-800">무제한 월 이용권</p></div>
                                         <ul className="flex flex-col gap-2.5">
-                                            <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600"><strong className="text-gray-900">결제 후 7일 이내 + 미사용</strong> 상태면 월간/연간 모두 전액 환불됩니다.</p></li>
-                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">월간 결제는 유료 기능(캠페인 등록, 모집/선정 등) 사용 시작 후에는 당월 환불이 불가합니다.</p></li>
-                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">연간 결제는 중도 해지 시 사용 개월 수를 <strong className="text-gray-900">월간 정상가(170,000원)</strong>로 차감하고, 잔여 금액에서 <strong className="text-gray-900">해지 수수료 10%</strong>를 공제 후 환불됩니다.</p></li>
-                                            <li className="flex items-start gap-2"><XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" /><p className="text-sm leading-relaxed text-gray-600">차감 금액이 결제 금액 이상이면 환불 가능 금액이 없을 수 있습니다.</p></li>
+                                            <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600"><strong className="text-gray-900">결제 후 7일 이내 + 미사용</strong> 상태면 전액 환불됩니다.</p></li>
+                                            <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">결제 후 유료 기능(캠페인 등록, 모집/선정 등) 사용 시작 후에는 당월 환불이 불가합니다.</p></li>
+                                            <li className="flex items-start gap-2"><XCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" /><p className="text-sm leading-relaxed text-gray-600">환불이 완료되면 무제한 월 이용권 혜택 즉시 종료 처리됩니다.</p></li>
                                         </ul>
                                     </div>
-                                </div>
-                                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-6 py-5">
-                                    <p className="mb-2 text-xs font-black uppercase tracking-wide text-amber-700">💡 환불 예시</p>
-                                    <p className="text-sm leading-relaxed text-amber-800">
-                                        연간권(1,548,000원) 구매 후 <strong>3개월</strong> 사용 중 해지 시 →
-                                        월간 정상가 기준 차감(170,000원 × 3개월 = 510,000원) 후 잔액 1,038,000원 산정,
-                                        잔액의 10% 수수료(103,800원) 공제 후 <strong>934,200원</strong> 환불
-                                        <br />
-                                        <span className="mt-1 block text-xs text-amber-600">※ 실제 환불액은 사용 여부/결제 승인 시점/약관 적용일에 따라 달라질 수 있습니다.</span>
-                                    </p>
                                 </div>
                             </div>
 
                             <div className="mb-12">
                                 <div className="mb-5 flex items-center gap-2">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50"><CalendarClock className="h-4 w-4 text-purple-600" /></div>
-                                    <h2 className="text-xl font-black text-gray-900">무제한 이용권 적용 규정</h2>
+                                    <h2 className="text-xl font-black text-gray-900">무제한 월 이용권 적용 규정</h2>
                                 </div>
                                 <div className="divide-y divide-gray-50 rounded-2xl border border-gray-100 bg-white shadow-sm">
-                                    <div className="flex items-start gap-4 px-6 py-4"><CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" /><p className="text-sm leading-relaxed text-gray-600">무제한 이용권의 적용 기간은 <strong className="text-gray-900">결제가 확인된 날짜</strong>부터 시작됩니다. 결제가 늦어지는 경우 적용 시작일이 변경될 수 있습니다.</p></div>
+                                    <div className="flex items-start gap-4 px-6 py-4"><CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" /><p className="text-sm leading-relaxed text-gray-600">무제한 월 이용권의 적용 기간은 <strong className="text-gray-900">결제가 확인된 날짜</strong>부터 시작됩니다. 결제가 늦어지는 경우 적용 시작일이 변경될 수 있습니다.</p></div>
                                     <div className="flex items-start gap-4 px-6 py-4"><PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" /><p className="text-sm leading-relaxed text-gray-600">이용 기간이 종료되면, <strong className="text-gray-900">쇼핑몰 단일 캠페인</strong>은 자동으로 모집이 중단됩니다.</p></div>
                                     <div className="flex items-start gap-4 px-6 py-4"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" /><p className="text-sm leading-relaxed text-gray-600">이용 기간이 종료되면, <strong className="text-gray-900">선정형 캠페인</strong>의 경우 모집은 계속되지만 <span className="font-bold text-rose-500">선정이 불가</span>합니다.</p></div>
-                                    <div className="flex items-start gap-4 px-6 py-4"><PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /><p className="text-sm leading-relaxed text-gray-600">무제한 이용권을 재이용 시, 이용 기간 종료로 <strong className="text-gray-900">일시 정지된 캠페인을 그대로 이어서</strong> 이용할 수 있습니다.</p></div>
+                                    <div className="flex items-start gap-4 px-6 py-4"><PlayCircle className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" /><p className="text-sm leading-relaxed text-gray-600">무제한 월 이용권을 재이용 시, 이용 기간 종료로 <strong className="text-gray-900">일시 정지된 캠페인을 그대로 이어서</strong> 이용할 수 있습니다.</p></div>
                                 </div>
                             </div>
 

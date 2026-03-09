@@ -28,7 +28,6 @@ interface Applicant {
         type: string;
         is_always: boolean;
         end_date?: string;
-        provision?: string;
         experience_details?: string;
         product_name?: string;
         campaign_options?: any;
@@ -128,7 +127,7 @@ export default function AdvertiserApplicantsPage() {
                     assigned_purchase_link_url,
                     link_assigned_at,
                     link_updated_at,
-                    campaign:campaign_id (id, title, type, is_always, end_date, provision, experience_details, product_name, campaign_options),
+                    campaign:campaign_id (id, title, type, is_always, end_date, experience_details, product_name, campaign_options),
                     user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
                     tracking_company,
                     tracking_number,
@@ -256,7 +255,6 @@ export default function AdvertiserApplicantsPage() {
 
         const recipientName = userData?.nickname || userData?.name || '인플루언서';
         const providedItems =
-            applicant.campaign.provision ||
             applicant.campaign.experience_details ||
             applicant.campaign.product_name ||
             '캠페인 상세 페이지 참조';
