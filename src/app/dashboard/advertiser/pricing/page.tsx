@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -53,7 +53,7 @@ const FAQS = [
 
 type PaymentMode = 'ONE_TIME' | 'SUBSCRIPTION';
 
-export default function PricingPage() {
+function PricingContent() {
     const { profile } = useAuthStore();
     const searchParams = useSearchParams();
     const [openFaq, setOpenFaq] = useState<number | null>(null);
@@ -402,5 +402,17 @@ export default function PricingPage() {
                 </div>
             </main>
         </div>
+    );
+}
+
+export default function PricingPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen bg-background items-center justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+        }>
+            <PricingContent />
+        </Suspense>
     );
 }
