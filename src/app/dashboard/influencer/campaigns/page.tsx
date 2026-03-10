@@ -35,6 +35,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { ColumnDef } from '@tanstack/react-table';
+import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
+import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -51,6 +53,14 @@ interface RowCellProps {
         original: ApplicationWithCampaign;
     };
 }
+
+const mobileStatusConfig: Record<string, { label: string; tone: 'neutral' | 'orange' | 'green' | 'red' | 'blue'; className: string }> = {
+    PENDING: { label: '심사중', tone: 'orange', className: 'bg-orange-100 text-orange-600' },
+    APPROVED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
+    SELECTED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
+    REJECTED: { label: '미선정', tone: 'red', className: 'bg-red-100 text-red-600' },
+    COMPLETED: { label: '완료', tone: 'blue', className: 'bg-blue-100 text-blue-600' },
+};
 
 export default function MyCampaignsPage() {
     const { user, profile, isLoading } = useAuthStore();
@@ -369,6 +379,19 @@ export default function MyCampaignsPage() {
         }
     ];
 
+    const filterItems = [
+        { value: 'all' as CampaignFilter, label: '전체', count: counts.all, tone: 'neutral' as const },
+        { value: 'PENDING' as CampaignFilter, label: '심사중', count: counts.PENDING, tone: 'orange' as const },
+        { value: 'SELECTED' as CampaignFilter, label: '선정됨', count: counts.SELECTED, tone: 'green' as const },
+        { value: 'REJECTED' as CampaignFilter, label: '미선정', count: counts.REJECTED, tone: 'red' as const },
+        { value: 'COMPLETED' as CampaignFilter, label: '완료', count: counts.COMPLETED, tone: 'blue' as const },
+    ];
+
+    const formatDate = (value?: string | null) => {
+        if (!value) return '-';
+        return new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(value));
+    };
+
     if (loading && applications.length === 0) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -391,27 +414,65 @@ export default function MyCampaignsPage() {
                 }))}
             />
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-0 py-0 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
-                                <Megaphone className="w-10 h-10 text-primary" />
-                                My Campaigns
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
+                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
+                        <InfluencerMobileHeader
+                            icon={<Megaphone className="h-5 w-5" />}
+                            title="My Campaigns"
+                            subtitle="참여 중인 모든 캠페인의 진행 상태를 확인하세요."
+                            action={
+                                <Link
+                                    href="/campaigns"
+                                    className="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-black"
+                                >
+                                    신규 찾기
+                                </Link>
+                            }
+                        />
+                        <div className="hidden sm:block">
+                            <div>
+                                <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
+                                    <Megaphone className="w-10 h-10 text-primary" />
+                                    My Campaigns
+                                </h1>
+                                <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
+                            </div>
                         </div>
                         <Link
                             href="/campaigns"
-                            className="bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all flex items-center gap-2 transform hover:-translate-y-1"
+                            className="hidden sm:inline-flex bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all items-center gap-2 transform hover:-translate-y-1"
                         >
                             신규 캠페인 찾기
                         </Link>
                     </div>
 
                     {/* Tabs / Filters */}
-                    <div className="mb-8">
+                    <div className="border-b border-gray-100 bg-white px-4 py-4 sm:hidden">
+                        <div className="flex flex-wrap gap-2">
+                            {filterItems.map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    type="button"
+                                    onClick={() => setFilter(tab.value)}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-bold transition-colors ${
+                                        filter === tab.value
+                                            ? 'border-gray-900 bg-gray-900 text-white'
+                                            : 'border-gray-200 bg-white text-gray-500'
+                                    }`}
+                                >
+                                    {tab.label}
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                                        filter === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="mb-8 hidden sm:block">
                         <Tabs
                             defaultValue="all"
                             value={filter}
@@ -446,13 +507,114 @@ export default function MyCampaignsPage() {
                     </div>
 
                     {/* Table Section */}
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                        <DataTable
-                            columns={columns}
-                            data={applications}
-                            isLoading={loading}
-                            emptyMessage="선택한 조건의 캠페인이 없습니다."
-                        />
+                    <div className="bg-white px-4 py-4 sm:rounded-3xl sm:shadow-sm sm:border sm:border-gray-100 sm:p-8">
+                        <div className="space-y-3 sm:hidden">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                                </div>
+                            ) : applications.length > 0 ? (
+                                applications.map((app) => {
+                                    const campaign = app.campaigns;
+                                    const status = mobileStatusConfig[String(app.status || '').toUpperCase()] || {
+                                        label: String(app.status || '-'),
+                                        tone: 'neutral' as const,
+                                        className: 'bg-gray-100 text-gray-600',
+                                    };
+                                    const isSelected = app.status === 'SELECTED' || app.status === 'APPROVED';
+                                    return (
+                                        <InfluencerMobileListCard
+                                            key={app.id}
+                                            href={`/campaigns/${app.campaign_id}`}
+                                            thumbnail={
+                                                campaign?.thumbnail_url ? (
+                                                    <img
+                                                        src={campaign.thumbnail_url}
+                                                        alt={campaign.title}
+                                                        className="h-14 w-14 rounded-2xl object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-xs font-bold text-gray-400">
+                                                        없음
+                                                    </div>
+                                                )
+                                            }
+                                            title={campaign?.title || '캠페인'}
+                                            badge={<Badge className={`${status.className} border-none font-bold`}>{status.label}</Badge>}
+                                            meta={
+                                                <>
+                                                    <span>{String(campaign?.platform || '-').toUpperCase()}</span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span>{formatDate(app.created_at)}</span>
+                                                    {filter === 'SELECTED' && app.tracking_number ? (
+                                                        <>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span>{app.tracking_company || '배송중'}</span>
+                                                        </>
+                                                    ) : null}
+                                                </>
+                                            }
+                                            actions={
+                                                <>
+                                                    {isSelected && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 rounded-full border-green-200 px-3 text-xs font-bold text-green-600"
+                                                            asChild
+                                                        >
+                                                            <Link href={`/campaigns/${app.campaign_id}#guide`}>가이드</Link>
+                                                        </Button>
+                                                    )}
+                                                    {isSelected && app.campaigns?.type === 'PURCHASE' && !app.purchased_at && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 rounded-full bg-amber-500 px-3 text-xs font-bold text-white hover:bg-amber-600"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                handleConfirmPurchase(app.id);
+                                                            }}
+                                                        >
+                                                            구매 확인
+                                                        </Button>
+                                                    )}
+                                                    {isSelected && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 rounded-full bg-rose-500 px-3 text-xs font-bold text-white hover:bg-rose-600"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                setReviewModal({
+                                                                    isOpen: true,
+                                                                    appId: app.id,
+                                                                    campaignId: app.campaign_id,
+                                                                    campaignTitle: app.campaigns.title,
+                                                                    creatorId: app.campaigns.created_by
+                                                                });
+                                                            }}
+                                                        >
+                                                            리뷰 등록
+                                                        </Button>
+                                                    )}
+                                                </>
+                                            }
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+                                    선택한 조건의 캠페인이 없습니다.
+                                </div>
+                            )}
+                        </div>
+                        <div className="hidden sm:block">
+                            <DataTable
+                                columns={columns}
+                                data={applications}
+                                isLoading={loading}
+                                emptyMessage="선택한 조건의 캠페인이 없습니다."
+                            />
+                        </div>
                     </div>
                 </div>
             </main>

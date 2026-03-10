@@ -140,44 +140,51 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
   const getBenefits = () => {
     if (step === 0) {
       return [
-        { icon: '📱', text: '카톡 알림 받기' },
-        { icon: '⚡', text: '빠른 선정 안내' },
-        { icon: '🎁', text: '맞춤 캠페인 추천' },
+        { icon: '📱', text: '카톡알림' },
+        { icon: '⚡', text: '빠른선정' },
+        { icon: '🎁', text: '맞춤추천' },
       ];
     }
     if (step === 1) {
       return [
-        { icon: '🎯', text: '맞춤 캠페인 추천' },
-        { icon: '⚡', text: '선정 확률 UP' },
-        { icon: '💰', text: '더 많은 기회' },
+        { icon: '🎯', text: '맞춤추천' },
+        { icon: '⚡', text: '선정UP' },
+        { icon: '💰', text: '기회확장' },
       ];
     }
     if (step === 2) {
       return [
-        { icon: '📍', text: '지역 기반 추천' },
-        { icon: '🚗', text: '방문형 캠페인 우선' },
-        { icon: '✨', text: '광고주 노출 증가' },
+        { icon: '📍', text: '지역추천' },
+        { icon: '🚗', text: '방문우선' },
+        { icon: '✨', text: '노출증가' },
       ];
     }
     return [
-      { icon: '🎁', text: '관심사 맞춤 제안' },
-      { icon: '🔔', text: '신규 캠페인 알림' },
-      { icon: '⭐', text: '프로필 완성도 UP' },
+      { icon: '🎁', text: '관심추천' },
+      { icon: '🔔', text: '신규알림' },
+      { icon: '⭐', text: '완성도UP' },
     ];
   };
 
+  const getStepDescription = () => {
+    if (step === 0) return '선정 알림용 정보를 입력해주세요';
+    if (step === 1) return '활동 유형을 선택해주세요';
+    if (step === 2) return '선호 지역을 선택해주세요';
+    return '관심 분야를 선택해주세요';
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="bg-white h-[100dvh] w-full overflow-hidden flex flex-col shadow-2xl animate-in fade-in zoom-in duration-300 rounded-none sm:rounded-3xl sm:max-w-2xl sm:max-h-[90vh]">
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50">
-          <div className="flex items-center justify-between mb-4">
+        <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50 sm:p-6">
+          <div className="flex items-start justify-between gap-3 sm:items-center sm:mb-4">
             <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-black text-gray-900">프로필 설정</h2>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <h2 className="text-xl font-black text-gray-900 sm:text-2xl">프로필 설정</h2>
                 {/* 선택 카운터 배지 */}
                 {step === 1 && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
                     (profileMode === PROFILE_MODES.REVIEWER || selectedPlatforms.length > 0)
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -186,7 +193,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
                 {step === 2 && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
                     selectedRegions.length > 0 
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -195,7 +202,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
                 {step === 3 && (
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold transition-colors ${
+                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
                     selectedCategories.length > 0 
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -204,18 +211,15 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600 mt-1">
-                {step === 0 && '성함과 연락처를 입력해주세요'}
-                {step === 1 && '활동 유형을 선택해주세요'}
-                {step === 2 && '선호하는 지역을 선택해주세요'}
-                {step === 3 && '관심 분야를 선택해주세요'}
+              <p className="text-xs text-gray-600 mt-1 sm:text-sm">
+                {getStepDescription()}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {[0, 1, 2, 3].map(s => (
                 <div
                   key={s}
-                  className={`w-2 h-2 rounded-full transition-all duration-500 ${s === step ? 'bg-primary w-6' : s < step ? 'bg-primary' : 'bg-gray-200'
+                  className={`h-2 rounded-full transition-all duration-500 ${s === step ? 'bg-primary w-5 sm:w-6' : s < step ? 'bg-primary w-2' : 'bg-gray-200 w-2'
                     }`}
                 />
               ))}
@@ -223,35 +227,40 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
           </div>
           
           {/* 혜택 카드 */}
-          <div className="grid grid-cols-3 gap-2 mt-4">
+          <div className="mt-3 grid grid-cols-3 gap-2 sm:mt-4">
             {getBenefits().map((benefit, i) => (
-              <div key={i} className="bg-white rounded-xl p-3 text-center shadow-sm border border-rose-100">
-                <div className="text-2xl mb-1">{benefit.icon}</div>
-                <div className="text-[10px] font-bold text-gray-700 leading-tight">{benefit.text}</div>
+              <div
+                key={i}
+                className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-rose-100 bg-white px-2 py-2 text-center shadow-sm sm:min-h-[76px] sm:rounded-xl sm:flex-col sm:p-3"
+              >
+                <div className="text-sm leading-none sm:text-2xl sm:mb-1">{benefit.icon}</div>
+                <div className="text-[11px] font-bold leading-none text-gray-700 sm:text-[10px] sm:leading-tight">
+                  {benefit.text}
+                </div>
               </div>
             ))}
           </div>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
+        <div className="flex-1 overflow-y-auto px-4 py-3 scrollbar-hide sm:p-6">
           {/* Step 0: Name & Phone */}
           {step === 0 && (
-            <div className="max-w-md mx-auto space-y-6">
-              <div className="text-center mb-8">
-                <div className="text-6xl mb-4">📱</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+            <div className="max-w-md mx-auto space-y-4 sm:space-y-6">
+              <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-center sm:mb-8 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
+                <div className="hidden text-6xl mb-4 sm:block">📱</div>
+                <h3 className="text-base font-bold text-gray-900 sm:text-xl sm:mb-2">
                   캠페인 선정 시 카톡으로 알림받기
                 </h3>
-                <p className="text-sm text-gray-500">
+                <p className="text-xs text-gray-500 sm:text-sm">
                   선정되면 빠르게 알려드릴게요!
                 </p>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {/* 성함 입력 */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">
                     성함 <span className="text-primary">*</span>
                   </label>
                   <input
@@ -259,7 +268,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="실명을 입력해주세요"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors sm:py-3 sm:text-base"
                   />
                   {name.trim().length > 0 && name.trim().length < 2 && (
                     <p className="text-xs text-red-500 mt-1">
@@ -270,7 +279,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
                 {/* 연락처 입력 */}
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">
+                  <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">
                     연락처 <span className="text-primary">*</span>
                   </label>
                   <input
@@ -283,7 +292,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                       }
                     }}
                     placeholder="01012345678"
-                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors sm:py-3 sm:text-base"
                   />
                   {phoneNumber.length > 0 && phoneNumber.length < 10 && (
                     <p className="text-xs text-red-500 mt-1">
@@ -297,8 +306,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
               </div>
 
               {/* 안내 문구 */}
-              <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
-                <p className="text-xs text-gray-600 leading-relaxed">
+              <div className="bg-rose-50 rounded-xl px-3 py-2.5 border border-rose-100 sm:p-4">
+                <p className="text-[11px] text-gray-600 leading-relaxed sm:text-xs">
                   💡 <strong>선택사항</strong>이지만, 입력하시면 캠페인 선정 시 카카오톡으로 즉시 알림을 받을 수 있어요!
                 </p>
               </div>
@@ -425,28 +434,29 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
-          <div className="flex items-center justify-between gap-4">
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 sm:p-6">
+          <div className="flex items-center justify-between gap-3 sm:gap-4">
             {step > 0 ? (
               <button
                 onClick={() => setStep(step - 1)}
-                className="px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-100 transition-colors flex items-center gap-2"
+                className="px-4 py-2.5 rounded-xl font-medium text-sm text-gray-500 hover:bg-gray-100 transition-colors flex items-center gap-1.5 sm:px-6 sm:py-3 sm:text-base sm:gap-2"
               >
-                <ChevronLeft size={20} />
+                <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
                 이전
               </button>
             ) : (
               <div />
             )}
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {/* 건너뛰기 버튼 (allowSkip이 true일 때만) */}
               {allowSkip && step === 0 && (
                 <button
                   onClick={handleSkip}
-                  className="px-6 py-3 rounded-xl font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-sm"
+                  className="px-3 py-2.5 rounded-xl font-medium text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-sm sm:px-6 sm:py-3"
                 >
-                  나중에 설정하기
+                  <span className="sm:hidden">나중에</span>
+                  <span className="hidden sm:inline">나중에 설정하기</span>
                 </button>
               )}
 
@@ -454,16 +464,16 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={!canProceed()}
-                  className="px-8 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed flex items-center gap-2 shadow-sm active:scale-95"
+                  className="min-w-[108px] px-5 py-2.5 rounded-xl font-bold text-sm bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed flex items-center justify-center gap-1.5 shadow-sm active:scale-95 sm:min-w-0 sm:px-8 sm:py-3 sm:text-base sm:gap-2"
                 >
                   다음
-                  <ChevronRight size={20} />
+                  <ChevronRight size={18} className="sm:w-5 sm:h-5" />
                 </button>
               ) : (
                 <button
                   onClick={handleSubmit}
                   disabled={!canProceed() || loading}
-                  className="px-10 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-md active:scale-95 flex items-center gap-2"
+                  className="min-w-[108px] px-5 py-2.5 rounded-xl font-bold text-sm bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-md active:scale-95 flex items-center justify-center gap-1.5 sm:min-w-0 sm:px-10 sm:py-3 sm:text-base sm:gap-2"
                 >
                   {loading ? (
                     <>
@@ -480,7 +490,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
           {/* 안내 문구 */}
           {!allowSkip && (
-            <p className="text-xs text-gray-400 text-center mt-4">
+            <p className="text-[11px] text-gray-400 text-center mt-3 sm:mt-4 sm:text-xs">
               💡 설정한 정보는 언제든지 프로필에서 수정할 수 있어요
             </p>
           )}

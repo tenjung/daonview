@@ -43,32 +43,32 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl animate-in fade-in zoom-in duration-300">
+    <div className="fixed inset-0 bg-black/60 z-[100] flex items-end justify-center p-0 backdrop-blur-sm sm:items-center sm:p-4">
+      <div className="bg-white w-full shadow-2xl animate-in fade-in zoom-in duration-300 rounded-t-3xl sm:rounded-3xl sm:max-w-md">
         {/* Header */}
-        <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50 relative">
+        <div className="px-4 py-4 border-b border-gray-100 bg-gradient-to-r from-rose-50 to-pink-50 relative sm:p-6">
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 hover:bg-white/50 rounded-full transition-colors"
+            className="absolute top-3 right-3 p-1.5 hover:bg-white/50 rounded-full transition-colors sm:top-4 sm:right-4 sm:p-2"
           >
-            <X size={20} className="text-gray-500" />
+            <X size={18} className="text-gray-500 sm:w-5 sm:h-5" />
           </button>
           <div className="text-center">
-            <div className="text-5xl mb-3">📱</div>
-            <h2 className="text-2xl font-black text-gray-900 mb-2">
+            <div className="text-3xl mb-2 sm:text-5xl sm:mb-3">📱</div>
+            <h2 className="text-xl font-black text-gray-900 mb-1.5 sm:text-2xl sm:mb-2">
               전화번호가 필요해요
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs text-gray-600 sm:text-sm">
               선정되면 카카오톡으로 알림을 보내드려요
             </p>
           </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
-          <div className="space-y-4">
+        <div className="px-4 py-4 sm:p-6">
+          <div className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">
+              <label className="block text-sm font-bold text-gray-700 mb-1.5 sm:mb-2">
                 연락처 <span className="text-primary">*</span>
               </label>
               <input
@@ -81,7 +81,7 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
                   }
                 }}
                 placeholder="01012345678"
-                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-primary focus:outline-none transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors sm:py-3 sm:text-base"
                 autoFocus
               />
               {phoneNumber.length > 0 && phoneNumber.length < 10 && (
@@ -95,23 +95,23 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
             </div>
 
             {/* 혜택 안내 */}
-            <div className="bg-rose-50 rounded-xl p-4 border border-rose-100">
-              <div className="space-y-2">
+            <div className="bg-rose-50 rounded-xl px-3 py-3 border border-rose-100 sm:p-4">
+              <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-start gap-2">
                   <span className="text-sm">✨</span>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-[11px] text-gray-600 sm:text-xs">
                     캠페인 선정 시 카카오톡으로 즉시 알림
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-sm">⚡</span>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-[11px] text-gray-600 sm:text-xs">
                     중요한 공지사항 실시간 수신
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-sm">🔒</span>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-[11px] text-gray-600 sm:text-xs">
                     개인정보는 안전하게 보호됩니다
                   </p>
                 </div>
@@ -121,18 +121,18 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50">
-          <div className="flex items-center gap-3">
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 sm:p-6">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-6 py-3 rounded-xl font-medium text-gray-500 hover:bg-gray-100 transition-colors"
+              className="min-w-[76px] px-4 py-2.5 rounded-xl font-medium text-sm text-gray-500 hover:bg-gray-100 transition-colors sm:flex-1 sm:px-6 sm:py-3 sm:text-base"
             >
               취소
             </button>
             <button
               onClick={handleSubmit}
               disabled={phoneNumber.length < 10 || loading}
-              className="flex-1 px-6 py-3 rounded-xl font-bold bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-sm active:scale-95"
+              className="flex-1 px-4 py-2.5 rounded-xl font-bold text-sm bg-primary text-white hover:bg-primary-dark transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed shadow-sm active:scale-95 sm:px-6 sm:py-3 sm:text-base"
             >
               {loading ? (
                 <>
@@ -140,7 +140,10 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
                   저장 중...
                 </>
               ) : (
-                '저장하고 신청하기'
+                <>
+                  <span className="sm:hidden">저장 후 신청</span>
+                  <span className="hidden sm:inline">저장하고 신청하기</span>
+                </>
               )}
             </button>
           </div>

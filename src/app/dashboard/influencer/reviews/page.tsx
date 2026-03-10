@@ -15,6 +15,8 @@ import { Button } from '@/components/ui/button';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { Campaign } from '@/types/database';
 import { Camera, ExternalLink, MessageSquare } from 'lucide-react';
+import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
+import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 
 type CampaignLite = Pick<Campaign, 'id' | 'title' | 'platform' | 'type' | 'end_date'> & {
     created_by?: string;
@@ -296,6 +298,11 @@ export default function InfluencerReviewsPage() {
         }
     ], []);
 
+    const formatDate = (value?: string | null) => {
+        if (!value) return '-';
+        return new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(value));
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
@@ -318,25 +325,67 @@ export default function InfluencerReviewsPage() {
                 }))}
             />
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
-                    <div className="flex items-center justify-between mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                                <MessageSquare className="w-9 h-9 text-primary" />
-                                나의 리뷰
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요.</p>
+                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
+                        <InfluencerMobileHeader
+                            icon={<MessageSquare className="h-5 w-5" />}
+                            title="나의 리뷰"
+                            subtitle="작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요."
+                            action={
+                                <Link
+                                    href="/dashboard/influencer/campaigns"
+                                    className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-black"
+                                >
+                                    나의 캠페인
+                                </Link>
+                            }
+                        />
+                        <div className="hidden sm:block">
+                            <div>
+                                <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
+                                    <MessageSquare className="w-9 h-9 text-primary" />
+                                    나의 리뷰
+                                </h1>
+                                <p className="text-gray-500 mt-2 font-medium">작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요.</p>
+                            </div>
                         </div>
                         <Link
                             href="/dashboard/influencer/campaigns"
-                            className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-black transition-all"
+                            className="hidden sm:inline-flex bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-black transition-all"
                         >
                             나의 캠페인
                         </Link>
                     </div>
 
-                    <div className="mb-6">
+                    <div className="border-b border-gray-100 bg-white px-4 py-4 sm:hidden">
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                { value: 'PENDING' as ReviewTab, label: '작성 필요', count: pendingReviews.length },
+                                { value: 'SUBMITTED' as ReviewTab, label: '제출 완료', count: submittedReviews.length },
+                            ].map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    type="button"
+                                    onClick={() => setActiveTab(tab.value)}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-bold transition-colors ${
+                                        activeTab === tab.value
+                                            ? 'border-gray-900 bg-gray-900 text-white'
+                                            : 'border-gray-200 bg-white text-gray-500'
+                                    }`}
+                                >
+                                    {tab.label}
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                                        activeTab === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="mb-6 hidden sm:block">
                         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ReviewTab)}>
                             <TabsList className="bg-gray-100/70 p-1 h-auto rounded-2xl">
                                 <TabsTrigger value="PENDING" className="px-5 py-2.5 rounded-xl font-bold">
@@ -349,22 +398,120 @@ export default function InfluencerReviewsPage() {
                         </Tabs>
                     </div>
 
-                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8">
-                        {activeTab === 'PENDING' ? (
-                            <DataTable
-                                columns={pendingColumns}
-                                data={pendingReviews}
-                                isLoading={false}
-                                emptyMessage="현재 작성해야 할 리뷰가 없습니다."
-                            />
-                        ) : (
-                            <DataTable
-                                columns={submittedColumns}
-                                data={submittedReviews}
-                                isLoading={false}
-                                emptyMessage="아직 제출한 리뷰가 없습니다."
-                            />
-                        )}
+                    <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-4 sm:p-8">
+                        <div className="space-y-3 sm:hidden">
+                            {activeTab === 'PENDING' ? (
+                                pendingReviews.length > 0 ? (
+                                    pendingReviews.map((application) => {
+                                        const campaign = application.campaigns;
+                                        const rawDate = application.review_deadline || campaign?.end_date;
+
+                                        return (
+                                            <InfluencerMobileListCard
+                                                key={application.id}
+                                                href={`/campaigns/${application.campaign_id}`}
+                                                title={campaign?.title || '제목 없음'}
+                                                badge={<Badge className="bg-amber-100 text-amber-700 border-none font-bold">작성 필요</Badge>}
+                                                meta={
+                                                    <>
+                                                        <span>{String(campaign?.platform || 'UNKNOWN').toUpperCase()}</span>
+                                                        <span className="text-gray-300">•</span>
+                                                        <span>마감 {formatDate(rawDate)}</span>
+                                                    </>
+                                                }
+                                                actions={
+                                                    <Button
+                                                        size="sm"
+                                                        className="h-8 rounded-full bg-rose-500 px-3 text-xs font-bold text-white hover:bg-rose-600"
+                                                        onClick={() => setReviewModal({
+                                                            isOpen: true,
+                                                            applicationId: application.id,
+                                                            campaignId: application.campaign_id,
+                                                            campaignTitle: campaign?.title || '캠페인',
+                                                            creatorId: String(campaign?.created_by || ''),
+                                                            isPurchaseExperience: String(campaign?.type || '').toUpperCase() === 'PURCHASE',
+                                                        })}
+                                                    >
+                                                        리뷰 등록
+                                                    </Button>
+                                                }
+                                            />
+                                        );
+                                    })
+                                ) : (
+                                    <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+                                        현재 작성해야 할 리뷰가 없습니다.
+                                    </div>
+                                )
+                            ) : submittedReviews.length > 0 ? (
+                                submittedReviews.map((review) => {
+                                    const status = String(review.status || '').toUpperCase();
+                                    const badgeClass =
+                                        status === 'APPROVED'
+                                            ? 'bg-emerald-100 text-emerald-700'
+                                            : status === 'REJECTED'
+                                              ? 'bg-rose-100 text-rose-700'
+                                              : 'bg-amber-100 text-amber-700';
+                                    const badgeLabel =
+                                        status === 'APPROVED' ? '승인됨' : status === 'REJECTED' ? '반려됨' : '검수중';
+                                    const postUrl = String(review.post_url || '').trim();
+                                    const isLink = postUrl.startsWith('http://') || postUrl.startsWith('https://');
+
+                                    return (
+                                        <InfluencerMobileListCard
+                                            key={review.id}
+                                            href={`/campaigns/${review.campaign_id}`}
+                                            title={review.campaigns?.title || `캠페인 #${review.campaign_id}`}
+                                            badge={<Badge className={`${badgeClass} border-none font-bold`}>{badgeLabel}</Badge>}
+                                            meta={
+                                                <>
+                                                    <span>{String(review.platform || review.campaigns?.platform || 'UNKNOWN').toUpperCase()}</span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span>{formatDate(review.created_at)}</span>
+                                                </>
+                                            }
+                                            actions={
+                                                isLink ? (
+                                                    <a
+                                                        href={postUrl}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex h-8 items-center rounded-full bg-slate-100 px-3 text-xs font-bold text-slate-700"
+                                                    >
+                                                        링크 열기
+                                                    </a>
+                                                ) : (
+                                                    <span className="inline-flex h-8 items-center rounded-full bg-slate-100 px-3 text-xs font-bold text-slate-500">
+                                                        증빙 제출
+                                                    </span>
+                                                )
+                                            }
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+                                    아직 제출한 리뷰가 없습니다.
+                                </div>
+                            )}
+                        </div>
+                        <div className="hidden sm:block">
+                            {activeTab === 'PENDING' ? (
+                                <DataTable
+                                    columns={pendingColumns}
+                                    data={pendingReviews}
+                                    isLoading={false}
+                                    emptyMessage="현재 작성해야 할 리뷰가 없습니다."
+                                />
+                            ) : (
+                                <DataTable
+                                    columns={submittedColumns}
+                                    data={submittedReviews}
+                                    isLoading={false}
+                                    emptyMessage="아직 제출한 리뷰가 없습니다."
+                                />
+                            )}
+                        </div>
                     </div>
                 </div>
             </main>

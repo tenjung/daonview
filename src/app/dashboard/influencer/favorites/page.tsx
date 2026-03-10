@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
@@ -10,6 +10,9 @@ import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 import { INFLUENCER_LINKS } from '@/constants/navigation';
+import { Heart } from 'lucide-react';
+import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
+import { InfluencerSummaryBanner } from '@/components/influencer/InfluencerSummaryBanner';
 
 interface FavoriteCampaign {
     id: number;
@@ -25,19 +28,7 @@ export default function FavoritesPage() {
     const [favorites, setFavorites] = useState<FavoriteCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!isLoading && user) {
-            if (profile?.role === 'ADVERTISER') {
-                router.replace('/dashboard/advertiser');
-                return;
-            }
-            fetchData();
-        } else if (!isLoading && !user) {
-            setLoading(false);
-        }
-    }, [isLoading, user, profile, router]);
-
-    async function fetchData() {
+    const fetchData = useCallback(async () => {
         if (!user) return;
 
         try {
@@ -57,7 +48,23 @@ export default function FavoritesPage() {
             console.error('Error fetching favorites:', error);
             setLoading(false);
         }
-    }
+    }, [user]);
+
+    useEffect(() => {
+        if (!isLoading && user) {
+            if (profile?.role === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
+            queueMicrotask(() => {
+                void fetchData();
+            });
+        } else if (!isLoading && !user) {
+            queueMicrotask(() => {
+                setLoading(false);
+            });
+        }
+    }, [isLoading, user, profile, router, fetchData]);
 
     if (loading) {
         return (
@@ -78,17 +85,36 @@ export default function FavoritesPage() {
                 }))}
             />
 
-            <main className="flex-1 px-4 md:px-10 py-10 overflow-y-auto">
+            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 md:px-10 md:py-10">
                 <div className="max-w-[1400px]">
-                    <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-2xl font-bold text-text-main">관심 캠페인</h1>
-                        <Link href="/campaigns" className="btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
+                    <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
+                        <InfluencerMobileHeader
+                            icon={<Heart className="h-5 w-5" />}
+                            title="관심 캠페인"
+                            subtitle="저장해 둔 캠페인을 빠르게 다시 확인하세요."
+                            action={
+                                <Link href="/campaigns" className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm">
+                                    찾아보기
+                                </Link>
+                            }
+                        />
+                        <div className="hidden sm:block">
+                            <h1 className="text-2xl font-bold text-text-main">관심 캠페인</h1>
+                        </div>
+                        <Link href="/campaigns" className="hidden sm:inline-flex btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
+                    </div>
+
+                    <div className="mb-4 sm:hidden">
+                        <InfluencerSummaryBanner
+                            items={[{ label: '저장한 캠페인', value: favorites.length, tone: 'rose' }]}
+                            columns={2}
+                        />
                     </div>
 
                     {favorites.length > 0 ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 md:gap-6">
                             {favorites.map((fav) => {
-                                const cardData = mapCampaignToCard(fav.campaigns as any);
+                                const cardData = mapCampaignToCard(fav.campaigns);
                                 return (
                                     <CampaignCard
                                         key={fav.id}
@@ -104,7 +130,7 @@ export default function FavoritesPage() {
                             )}
                         </div>
                     ) : (
-                        <div className="bg-white border border-border rounded-xl p-12 text-center max-w-[800px] mx-auto">
+                        <div className="bg-white border border-border rounded-xl p-8 sm:p-12 text-center max-w-[800px] mx-auto">
                             <p className="text-lg text-gray-500 mb-4">아직 관심 캠페인이 없습니다.</p>
                             <p className="text-sm text-gray-400 mb-6">마음에 드는 캠페인을 찾아 저장해보세요!</p>
                             <Link href="/campaigns" className="btn btn-primary inline-block">

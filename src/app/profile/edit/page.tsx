@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Camera, Mail, Phone, Globe, User, Settings, Heart, ChevronRight, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Camera, Mail, Phone, Globe, User, Settings, Heart, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -60,6 +60,14 @@ const CATEGORIES = [
 
 type TabType = 'basic' | 'interests' | 'payout';
 
+interface DaumAddressData {
+    address: string;
+    addressType: string;
+    bname: string;
+    buildingName: string;
+    zonecode: string;
+}
+
 const BANK_LIST = [
     { name: '카카오뱅크', color: 'bg-[#FEE500]', text: 'text-[#3c1e1e]' },
     { name: '토스뱅크', color: 'bg-[#0050FF]', text: 'text-white' },
@@ -86,7 +94,13 @@ function ProfileEditContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
+    const searchParamsString = searchParams.toString();
     const activeTab = (searchParams.get('tab') as TabType) || 'basic';
+    const profileTabs: Array<{ id: TabType; label: string; icon: typeof User }> = [
+        { id: 'basic', label: '기본 정보', icon: User },
+        { id: 'payout', label: '배송/정산 관리', icon: CreditCard },
+        { id: 'interests', label: '관심사 설정', icon: Heart },
+    ];
 
     // SNS 접두사 상수
     const BLOG_PREFIX = "blog.naver.com/";
@@ -97,7 +111,7 @@ function ProfileEditContent() {
     // URL에서 아이디만 추출하는 함수
     const extractId = (url: string, prefix: string) => {
         if (!url) return "";
-        let clean = url.replace(/^https?:\/\//, "");
+        const clean = url.replace(/^https?:\/\//, "");
         if (clean.startsWith(prefix)) {
             return clean.replace(prefix, "").split('?')[0].split('/')[0];
         }
@@ -192,12 +206,22 @@ function ProfileEditContent() {
     const WITHDRAWAL_CONFIRM_KEYWORD = '회원탈퇴';
     const canProceedWithdrawal = withdrawAgreement && withdrawConfirmText.trim() === WITHDRAWAL_CONFIRM_KEYWORD;
 
+    const getErrorMessage = (error: unknown, fallback: string) => {
+        return error instanceof Error ? error.message : fallback;
+    };
+
+    const handleTabChange = (tab: TabType) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('tab', tab);
+        router.replace(`${pathname}?${params.toString()}`);
+    };
+
     useEffect(() => {
         if (!isInitialized) return;
         if (initializedRef.current) return;
 
         if (!authUser) {
-            const currentUrl = pathname + (searchParams.toString() ? '?' + searchParams.toString() : '');
+            const currentUrl = pathname + (searchParamsString ? '?' + searchParamsString : '');
             router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
             return;
         }
@@ -214,7 +238,11 @@ function ProfileEditContent() {
 
                 const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase 요청 타임아웃')), 10000));
                 
-                const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+                const result = await Promise.race([fetchPromise, timeoutPromise]) as {
+                    data: Profile | null;
+                    error: { message: string } | null;
+                };
+                const { data, error } = result;
 
                 if (error) throw error;
 
@@ -274,9 +302,9 @@ function ProfileEditContent() {
                     setSelectedCategories(profileData.interests || []);
                 }
                 setLoading(false); // 성공 시 로딩 해제
-            } catch (error: any) {
+            } catch (error: unknown) {
                 console.error('Error fetching profile:', error);
-                setDebugError(error?.message || '알 수 없는 에러가 발생했습니다.');
+                setDebugError(getErrorMessage(error, '알 수 없는 에러가 발생했습니다.'));
                 toast.error('프로필 정보를 불러오는 데 실패했습니다.');
                 // 에러 발생 시 setLoading(false)를 호출하지 않아 오류 메세지 UI 렌더링 유지
             }
@@ -285,12 +313,17 @@ function ProfileEditContent() {
         loadProfileData();
 
         return () => {
-            if (blogSaveTimer.current) clearTimeout(blogSaveTimer.current);
-            if (instaSaveTimer.current) clearTimeout(instaSaveTimer.current);
-            if (youtubeSaveTimer.current) clearTimeout(youtubeSaveTimer.current);
-            if (tiktokSaveTimer.current) clearTimeout(tiktokSaveTimer.current);
+            const blogTimer = blogSaveTimer.current;
+            const instagramTimer = instaSaveTimer.current;
+            const youtubeTimer = youtubeSaveTimer.current;
+            const tiktokTimer = tiktokSaveTimer.current;
+
+            if (blogTimer) clearTimeout(blogTimer);
+            if (instagramTimer) clearTimeout(instagramTimer);
+            if (youtubeTimer) clearTimeout(youtubeTimer);
+            if (tiktokTimer) clearTimeout(tiktokTimer);
         };
-    }, [isInitialized, authUser, router]);
+    }, [isInitialized, authUser, router, pathname, searchParamsString]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -306,7 +339,7 @@ function ProfileEditContent() {
                 return;
             }
 
-            const updateData: any = {
+            const updateData: Partial<Profile> = {
                 nickname: formData.nickname,
                 name: formData.name,
                 phone_number: formData.phone_number,
@@ -349,14 +382,14 @@ function ProfileEditContent() {
             toast.success('정보가 성공적으로 저장되었습니다.');
             if (user.id) await fetchProfile(user.id);
             setIsEditingPayout(false); // 저장 후 조회 모드로 전환
-        } catch (error: any) {
-            toast.error(error?.message || '업데이트에 실패했습니다.');
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, '업데이트에 실패했습니다.'));
         } finally {
             setSaving(false);
         }
     };
 
-    const handleAddressComplete = (data: any) => {
+    const handleAddressComplete = (data: DaumAddressData) => {
         let fullAddress = data.address;
         let extraAddress = '';
 
@@ -396,7 +429,7 @@ function ProfileEditContent() {
 
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
 
-            const updateData: any = {};
+            const updateData: Partial<Profile> = {};
 
             if (field === 'blog') {
                 const cleanBlogId = value.trim().replace(/^https?:\/\/blog\.naver\.com\//, "");
@@ -447,7 +480,7 @@ function ProfileEditContent() {
             }, 2000);
 
             if (user.id) await fetchProfile(user.id);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Auto-save error:', error);
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'idle' }));
             toast.error('저장에 실패했습니다.');
@@ -498,8 +531,8 @@ function ProfileEditContent() {
 
             toast.success('관심사 설정이 저장되었습니다.');
             if (user.id) await fetchProfile(user.id);
-        } catch (error: any) {
-            toast.error(error?.message || '업데이트에 실패했습니다.');
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, '업데이트에 실패했습니다.'));
         } finally {
             setSaving(false);
         }
@@ -552,8 +585,8 @@ function ProfileEditContent() {
             toast.success('회원탈퇴 요청이 접수되었습니다. 안전을 위해 로그아웃됩니다.');
             await signOut();
             router.push('/');
-        } catch (error: any) {
-            toast.error(error?.message || '회원탈퇴 요청 처리 중 오류가 발생했습니다.');
+        } catch (error: unknown) {
+            toast.error(getErrorMessage(error, '회원탈퇴 요청 처리 중 오류가 발생했습니다.'));
         } finally {
             setWithdrawing(false);
         }
@@ -598,23 +631,49 @@ function ProfileEditContent() {
                 }))}
             />
 
-            <main className="flex-1 p-6 md:p-10 overflow-y-auto bg-slate-50/50">
+            <main className="flex-1 overflow-y-auto bg-slate-50/50 px-0 py-0 md:p-10">
                 <div className="max-w-4xl mx-auto">
-                    <div className="mb-8">
+                    <div className="border-b border-gray-100 bg-white px-4 py-5 md:mb-8 md:border-none md:bg-transparent md:px-0 md:py-0">
                         <h1 className="text-3xl font-bold text-text-main tracking-tight">설정</h1>
                         <p className="text-gray-500 mt-1">회원님의 소중한 정보를 안전하게 관리하세요.</p>
                     </div>
 
-                    <div className="w-full">
+                    <div className="border-b border-gray-100 bg-white px-4 py-4 md:hidden">
+                        <div className="-mx-4 overflow-x-auto px-4 scrollbar-hide">
+                            <div className="flex flex-nowrap gap-2 min-w-max">
+                            {profileTabs.map((tab) => {
+                                const Icon = tab.icon;
+                                const active = activeTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        onClick={() => handleTabChange(tab.id)}
+                                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2.5 text-[13px] font-bold transition-colors whitespace-nowrap ${
+                                            active
+                                                ? 'border-gray-900 bg-gray-900 text-white'
+                                                : 'border-gray-200 bg-white text-gray-500'
+                                        }`}
+                                    >
+                                        <Icon size={13} />
+                                        {tab.label}
+                                    </button>
+                                );
+                            })}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full px-4 py-6 md:px-0 md:py-0">
                         {activeTab === 'basic' ? (
                             <form onSubmit={handleBasicInfoSubmit} className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <Card className="border-none shadow-xl shadow-gray-200/50 overflow-hidden rounded-3xl">
-                                    <CardHeader className="bg-gradient-to-r from-rose-500 to-rose-600 text-white pb-12">
+                                    <CardHeader className="bg-gradient-to-r from-rose-500 to-rose-600 text-white pb-10 md:pb-12">
                                         <CardTitle className="text-xl">기본 프로필</CardTitle>
                                         <CardDescription className="text-rose-100">공개되는 프로필 정보를 설정합니다.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="relative pt-0">
-                                        <div className="flex justify-center -translate-y-12 mb-[-3rem]">
+                                    <CardContent className="relative px-4 pb-5 pt-0 md:px-6 md:pb-6">
+                                        <div className="flex justify-center -translate-y-10 mb-[-2.5rem] md:-translate-y-12 md:mb-[-3rem]">
                                             <div className="relative group">
                                                 <input
                                                     type="file"
@@ -652,7 +711,7 @@ function ProfileEditContent() {
 
                                                             setFormData(prev => ({ ...prev, avatar_url: publicUrl }));
                                                             toast.success('이미지가 업로드되었습니다. 저장 버튼을 눌러주세요.');
-                                                        } catch (error: any) {
+                                                        } catch (error: unknown) {
                                                             console.error('Upload error:', error);
                                                             toast.error('이미지 업로드에 실패했습니다.');
                                                         } finally {
@@ -663,7 +722,7 @@ function ProfileEditContent() {
                                                 <Avatar
                                                     src={formData.avatar_url}
                                                     fallback={formData.nickname?.[0] || '?'}
-                                                    className={`h-24 w-24 ring-4 ring-white shadow-xl text-2xl ${avatarUploading ? 'opacity-50' : ''}`}
+                                                    className={`h-20 w-20 md:h-24 md:w-24 ring-4 ring-white shadow-xl text-2xl ${avatarUploading ? 'opacity-50' : ''}`}
                                                 />
                                                 <div 
                                                     onClick={() => fileInputRef.current?.click()}
@@ -678,7 +737,7 @@ function ProfileEditContent() {
                                             </div>
                                         </div>
 
-                                        <div className="grid gap-6 mt-8">
+                                        <div className="grid gap-5 mt-7 md:gap-6 md:mt-8">
                                             <div className="grid gap-2">
                                                 <Label htmlFor="avatar_url" className="flex items-center gap-2 text-sm font-bold text-slate-700">
                                                     <Camera className="w-4 h-4 text-rose-500" />
@@ -956,7 +1015,7 @@ function ProfileEditContent() {
                                 <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="w-full py-8 text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                                    className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
                                 >
                                     {saving ? '저장 중...' : '기본 정보 업데이트하기'}
                                 </Button>
@@ -1060,20 +1119,20 @@ function ProfileEditContent() {
                                     <CardContent className="p-4 md:p-6">
                                         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
-                                                    <ShieldCheck size={20} />
+                                                <div className="w-9 h-9 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
+                                                    <ShieldCheck size={18} />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-sm font-black text-gray-900">본인 실명확인</h3>
-                                                    <p className="text-[11px] text-gray-500 font-medium leading-tight">정확한 정산 및 본인 확인을 위해 휴대폰 본인인증이 필요합니다.</p>
+                                                    <h3 className="text-[15px] font-black text-gray-900">본인 실명확인</h3>
+                                                    <p className="text-[10px] text-gray-500 font-medium leading-tight">정확한 정산 및 본인 확인을 위해 휴대폰 본인인증이 필요합니다.</p>
                                                 </div>
                                             </div>
                                             <Button 
                                                 variant="outline"
-                                                className="w-full md:w-auto px-6 h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-xs"
+                                                className="w-full md:w-auto px-4 md:px-6 h-9 md:h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-[13px] md:text-xs"
                                                 onClick={() => toast.info('본인인증 모듈 준비 중입니다.')}
                                             >
-                                                <ShieldCheck size={14} className="mr-2" />
+                                                <ShieldCheck size={13} className="mr-1.5" />
                                                 본인인증 하기
                                             </Button>
                                         </div>
@@ -1086,30 +1145,30 @@ function ProfileEditContent() {
                                         <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden bg-white">
                                             <CardHeader className="flex flex-row items-center justify-between pb-2">
                                                 <div className="space-y-1">
-                                                    <CardTitle className="text-xl flex items-center gap-2">
-                                                        <Lock className="w-5 h-5 text-rose-500" />
+                                                    <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                                        <Lock className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
                                                         배송 및 정산 정보
                                                     </CardTitle>
-                                                    <CardDescription>현재 등록된 안전한 정보입니다.</CardDescription>
+                                                    <CardDescription className="text-xs md:text-sm">현재 등록된 안전한 정보입니다.</CardDescription>
                                                 </div>
                                                 <Button
                                                     onClick={() => setIsEditingPayout(true)}
                                                     variant="outline"
-                                                    className="rounded-xl border-slate-200 hover:bg-slate-50 gap-2 font-bold"
+                                                    className="h-8 md:h-10 rounded-xl border-slate-200 hover:bg-slate-50 gap-1.5 md:gap-2 px-3 md:px-4 text-[12px] md:text-sm font-bold"
                                                 >
-                                                    <Edit2 size={14} />
+                                                    <Edit2 size={12} />
                                                     정보 수정
                                                 </Button>
                                             </CardHeader>
-                                            <CardContent className="p-8 space-y-8">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
                                                     {/* 배송지 요약 */}
                                                     <div className="space-y-4">
                                                         <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-wider">
                                                             <MapPin size={14} />
                                                             기본 배송지
                                                         </div>
-                                                        <div className="bg-slate-50 p-6 rounded-2xl space-y-4 border border-slate-100">
+                                                        <div className="bg-slate-50 p-4 md:p-6 rounded-2xl space-y-4 border border-slate-100">
                                                             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 mb-1">
                                                                 <div className="space-y-1">
                                                                     <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">수령인 성함</div>
@@ -1140,7 +1199,7 @@ function ProfileEditContent() {
                                                             <CreditCard size={14} />
                                                             정산 계좌
                                                         </div>
-                                                        <div className={`${selectedBank?.color || 'bg-slate-900'} p-6 rounded-2xl space-y-3 shadow-lg relative overflow-hidden transition-colors duration-500`}>
+                                                        <div className={`${selectedBank?.color || 'bg-slate-900'} p-4 md:p-6 rounded-2xl space-y-3 shadow-lg relative overflow-hidden transition-colors duration-500`}>
                                                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                                                 <CreditCard size={80} className={`${selectedBank?.text || 'text-white'}`} />
                                                             </div>
@@ -1181,8 +1240,8 @@ function ProfileEditContent() {
                                         <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
                                             <CardHeader className="bg-slate-900 text-white">
                                                 <div className="flex items-center justify-between">
-                                                    <CardTitle className="text-xl flex items-center gap-2">
-                                                        <MapPin className="w-5 h-5 text-rose-500" />
+                                                    <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                                        <MapPin className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
                                                         배송지 정보 수정
                                                     </CardTitle>
                                                     {formData.bank_name && (
@@ -1190,18 +1249,18 @@ function ProfileEditContent() {
                                                             type="button"
                                                             variant="ghost"
                                                             onClick={() => setIsEditingPayout(false)}
-                                                            className="text-slate-400 hover:text-white"
+                                                            className="h-8 px-2.5 text-[12px] text-slate-400 hover:text-white"
                                                         >
                                                             취소
                                                         </Button>
                                                     )}
                                                 </div>
-                                                <CardDescription className="text-slate-400">배송형 캠페인 참여를 위한 기본 배송지입니다.</CardDescription>
+                                                <CardDescription className="text-[11px] md:text-sm text-slate-400">배송형 캠페인 참여를 위한 기본 배송지입니다.</CardDescription>
                                             </CardHeader>
-                                            <CardContent className="p-8 space-y-6">
-                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-slate-100">
+                                            <CardContent className="p-4 md:p-8 space-y-6">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pb-6 border-b border-slate-100">
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="payout_name" className="text-sm font-bold text-slate-700">수령인 성함</Label>
+                                                        <Label htmlFor="payout_name" className="text-[13px] md:text-sm font-bold text-slate-700">수령인 성함</Label>
                                                         <Input
                                                             id="payout_name"
                                                             placeholder="수령인 실명 입력"
@@ -1211,7 +1270,7 @@ function ProfileEditContent() {
                                                         />
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="payout_phone" className="text-sm font-bold text-slate-700">수령인 연락처</Label>
+                                                        <Label htmlFor="payout_phone" className="text-[13px] md:text-sm font-bold text-slate-700">수령인 연락처</Label>
                                                         <Input
                                                             id="payout_phone"
                                                             type="tel"
@@ -1225,20 +1284,20 @@ function ProfileEditContent() {
                                                 </div>
 
                                                 <div className="grid gap-2 pt-2">
-                                                    <Label className="text-sm font-bold text-slate-700">우편번호</Label>
+                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700">우편번호</Label>
                                                     <div className="flex gap-2">
                                                         <Input
                                                             value={formData.zip_code}
                                                             readOnly
                                                             placeholder="우편번호"
-                                                            className="bg-slate-100 border-none h-12 rounded-xl w-32"
+                                                            className="bg-slate-100 border-none h-11 md:h-12 rounded-xl w-28 md:w-32 text-[15px] md:text-base"
                                                         />
                                                         <Button
                                                             type="button"
                                                             onClick={() => setShowAddressSearch(!showAddressSearch)}
-                                                            className="h-12 px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-2"
+                                                            className="h-11 md:h-12 px-4 md:px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm font-bold"
                                                         >
-                                                            <Search size={16} />
+                                                            <Search size={15} />
                                                             주소 검색
                                                         </Button>
                                                     </div>
@@ -1251,7 +1310,7 @@ function ProfileEditContent() {
                                                 )}
 
                                                 <div className="grid gap-2">
-                                                    <Label className="text-sm font-bold text-slate-700">기본 주소</Label>
+                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700">기본 주소</Label>
                                                     <Input
                                                         value={formData.address_base}
                                                         readOnly
@@ -1261,7 +1320,7 @@ function ProfileEditContent() {
                                                 </div>
 
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="address_detail" className="text-sm font-bold text-slate-700">상세 주소</Label>
+                                                    <Label htmlFor="address_detail" className="text-[13px] md:text-sm font-bold text-slate-700">상세 주소</Label>
                                                     <Input
                                                         id="address_detail"
                                                         value={formData.address_detail}
@@ -1275,15 +1334,15 @@ function ProfileEditContent() {
 
                                         <Card className="border-none shadow-xl shadow-gray-200/50 rounded-3xl overflow-hidden">
                                             <CardHeader className="bg-slate-900 text-white">
-                                                <CardTitle className="text-xl flex items-center gap-2">
-                                                    <CreditCard className="w-5 h-5 text-rose-500" />
+                                                <CardTitle className="text-lg md:text-xl flex items-center gap-2">
+                                                    <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
                                                     정산 계좌 정보 수정
                                                 </CardTitle>
-                                                <CardDescription className="text-slate-400">캠페인 보상금(용역비)이 지급되는 계좌입니다.</CardDescription>
+                                                <CardDescription className="text-[11px] md:text-sm text-slate-400">캠페인 보상금(용역비)이 지급되는 계좌입니다.</CardDescription>
                                             </CardHeader>
-                                            <CardContent className="p-8 space-y-8">
+                                            <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
                                                 <div className="grid gap-4">
-                                                    <Label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700 flex items-center gap-2">
                                                         은행 선택
                                                     </Label>
                                                     <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-7 gap-2">
@@ -1292,20 +1351,20 @@ function ProfileEditContent() {
                                                                 key={bank.name}
                                                                 type="button"
                                                                 onClick={() => setFormData({ ...formData, bank_name: bank.name })}
-                                                                className={`relative group p-2.5 rounded-xl border-2 transition-all duration-300 text-center flex flex-col items-center justify-center gap-1.5 ${formData.bank_name === bank.name
+                                                                className={`relative group p-2 rounded-xl border-2 transition-all duration-300 text-center flex flex-col items-center justify-center gap-1 ${formData.bank_name === bank.name
                                                                     ? 'border-rose-500 bg-rose-50 shadow-md scale-[1.02]'
                                                                     : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
                                                                     }`}
                                                             >
                                                                 {formData.bank_name === bank.name && (
-                                                                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
-                                                                        <Check size={10} className="text-white" />
+                                                                    <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-rose-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in">
+                                                                        <Check size={9} className="text-white" />
                                                                     </div>
                                                                 )}
-                                                                <div className={`w-7 h-7 ${bank.color} rounded-full flex items-center justify-center ${bank.text} text-[8px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
+                                                                <div className={`w-6 h-6 ${bank.color} rounded-full flex items-center justify-center ${bank.text} text-[7px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
                                                                     {bank.name.substring(0, 2)}
                                                                 </div>
-                                                                <div className="text-[10px] font-bold text-slate-700 leading-tight">{bank.name}</div>
+                                                                <div className="text-[9px] font-bold text-slate-700 leading-tight">{bank.name}</div>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1313,7 +1372,7 @@ function ProfileEditContent() {
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="account_holder" className="text-sm font-bold text-slate-700">예금주</Label>
+                                                        <Label htmlFor="account_holder" className="text-[13px] md:text-sm font-bold text-slate-700">예금주</Label>
                                                         <Input
                                                             id="account_holder"
                                                             value={formData.account_holder}
@@ -1330,7 +1389,7 @@ function ProfileEditContent() {
                                                     </div>
 
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="account_number" className="text-sm font-bold text-slate-700">계좌번호</Label>
+                                                        <Label htmlFor="account_number" className="text-[13px] md:text-sm font-bold text-slate-700">계좌번호</Label>
                                                         <Input
                                                             id="account_number"
                                                             value={formData.account_number}
@@ -1347,7 +1406,7 @@ function ProfileEditContent() {
                                         <Button
                                             type="submit"
                                             disabled={saving}
-                                            className="w-full py-8 text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                                            className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
                                         >
                                             {saving ? '저장 중...' : '배송 및 정산 정보 저장하기'}
                                         </Button>
@@ -1368,7 +1427,7 @@ function ProfileEditContent() {
                                             </div>
                                         </div>
                                     </CardHeader>
-                                    <CardContent className="p-8">
+                                    <CardContent className="p-4 md:p-8">
                                         <div className="space-y-4">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                 <button
@@ -1398,13 +1457,13 @@ function ProfileEditContent() {
                                             </div>
 
                                             {profileMode === PROFILE_MODES.CREATOR ? (
-                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                                                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
                                                     {CREATOR_PLATFORM_OPTIONS.map(platform => (
                                                         <button
                                                             key={platform.id}
                                                             type="button"
                                                             onClick={() => togglePlatform(platform.id)}
-                                                            className={`relative group p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
+                                                            className={`relative group p-4 md:p-6 rounded-2xl border-2 transition-all duration-300 ${selectedPlatforms.includes(platform.id)
                                                                 ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.05]'
                                                                 : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
                                                                 }`}
@@ -1414,7 +1473,7 @@ function ProfileEditContent() {
                                                                     <Check size={14} className="text-white" />
                                                                 </div>
                                                             )}
-                                                            <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{platform.icon}</div>
+                                                            <div className="text-3xl md:text-4xl mb-2 md:mb-3 group-hover:scale-110 transition-transform">{platform.icon}</div>
                                                             <div className="text-sm font-bold text-slate-800">{platform.name}</div>
                                                         </button>
                                                     ))}
@@ -1438,18 +1497,18 @@ function ProfileEditContent() {
                                             </span>
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="p-8">
-                                        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                                    <CardContent className="p-4 md:p-8">
+                                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
                                             {REGIONS.map(region => (
                                                 <button
                                                     key={region.id}
                                                     onClick={() => toggleRegion(region.id)}
-                                                    className={`p-4 rounded-2xl border-2 transition-all group ${selectedRegions.includes(region.id)
+                                                    className={`p-3 md:p-4 rounded-2xl border-2 transition-all group ${selectedRegions.includes(region.id)
                                                         ? 'border-rose-500 bg-rose-50 text-rose-500'
                                                         : 'border-slate-50 hover:bg-slate-50 text-slate-400'
                                                         }`}
                                                 >
-                                                    <div className="text-2xl mb-1 group-hover:scale-110 transition-transform">{region.emoji}</div>
+                                                    <div className="text-xl md:text-2xl mb-1 group-hover:scale-110 transition-transform">{region.emoji}</div>
                                                     <div className="text-[11px] font-bold">{region.name}</div>
                                                 </button>
                                             ))}
@@ -1467,8 +1526,8 @@ function ProfileEditContent() {
                                         </CardTitle>
                                         <CardDescription>관심 있는 분야를 최대 3개까지 선택해주세요.</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="p-8">
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                    <CardContent className="p-4 md:p-8">
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
                                             {CATEGORIES.map(category => (
                                                 <button
                                                     key={category.id}
@@ -1478,7 +1537,7 @@ function ProfileEditContent() {
                                                         !selectedCategories.includes(category.id) &&
                                                         selectedCategories.length >= 3
                                                     }
-                                                    className={`relative group p-5 rounded-2xl border-2 transition-all duration-300 text-center ${selectedCategories.includes(category.id)
+                                                    className={`relative group p-4 md:p-5 rounded-2xl border-2 transition-all duration-300 text-center ${selectedCategories.includes(category.id)
                                                         ? 'border-rose-500 bg-rose-50 shadow-lg scale-[1.02]'
                                                         : 'border-slate-50 hover:border-slate-200 hover:bg-slate-50'
                                                         } disabled:opacity-20 disabled:grayscale disabled:cursor-not-allowed`}
@@ -1488,7 +1547,7 @@ function ProfileEditContent() {
                                                             <Check size={14} className="text-white" />
                                                         </div>
                                                     )}
-                                                    <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
+                                                    <div className="text-3xl md:text-4xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
                                                     <div className="text-sm font-bold text-slate-800 mb-1">{category.name}</div>
                                                     <div className="text-[10px] text-slate-400 line-clamp-1">{category.desc}</div>
                                                 </button>
@@ -1501,7 +1560,7 @@ function ProfileEditContent() {
                                 <Button
                                     onClick={handleInterestsSubmit}
                                     disabled={saving}
-                                    className="w-full py-8 text-lg font-bold bg-rose-600 hover:bg-rose-700 transition-all rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98]"
+                                    className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-600 hover:bg-rose-700 transition-all rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98]"
                                 >
                                     {saving ? '관심사 저장 중...' : '맞춤 캠페인 관심 정보 업데이트하기'}
                                 </Button>
