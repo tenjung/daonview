@@ -68,6 +68,8 @@ interface DaumAddressData {
     zonecode: string;
 }
 
+type ProfileUpdatePayload = Partial<Record<keyof Profile, string | string[] | null>>;
+
 const BANK_LIST = [
     { name: '카카오뱅크', color: 'bg-[#FEE500]', text: 'text-[#3c1e1e]' },
     { name: '토스뱅크', color: 'bg-[#0050FF]', text: 'text-white' },
@@ -339,7 +341,7 @@ function ProfileEditContent() {
                 return;
             }
 
-            const updateData: Partial<Profile> = {
+            const updateData: ProfileUpdatePayload = {
                 nickname: formData.nickname,
                 name: formData.name,
                 phone_number: formData.phone_number,
@@ -429,7 +431,7 @@ function ProfileEditContent() {
 
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
 
-            const updateData: Partial<Profile> = {};
+            const updateData: ProfileUpdatePayload = {};
 
             if (field === 'blog') {
                 const cleanBlogId = value.trim().replace(/^https?:\/\/blog\.naver\.com\//, "");
