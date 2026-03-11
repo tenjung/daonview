@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { resolveCampaignPlatformState } from '@/lib/campaignUtils';
+import { buildCampaignSchedule, CampaignScheduleType, formatKstDate, normalizeScheduleType } from '@/lib/campaignSchedule';
 
 // --- Types ---
 
@@ -60,7 +61,7 @@ export interface CampaignState {
     officialPrice: string;
     totalRecruitment: string;
 
-    scheduleType: 'recommended' | 'custom' | 'always';
+    scheduleType: CampaignScheduleType;
     recruitmentStartDate: string;
     firstSelectionDate: string;
     reviewDeadline: string;
@@ -152,7 +153,7 @@ const initialState: CampaignState = {
     officialPrice: '0',
     totalRecruitment: '0',
 
-    scheduleType: 'recommended',
+    scheduleType: 'DEFAULT',
     recruitmentStartDate: '',
     firstSelectionDate: '',
     reviewDeadline: '',
@@ -232,6 +233,30 @@ export const useCampaignStore = create<CampaignStore>()(
                             ? 'BLOG'
                             : defaultPlatformByType;
 
+                const normalizedScheduleType = normalizeScheduleType(s1.scheduleType);
+                const normalizedSchedule = buildCampaignSchedule(
+                    normalizedScheduleType,
+                    s1.recruitmentStartDate || campaign.recruitment_start_date || formatKstDate()
+                );
+                const hasCanonicalDates =
+                    (s1.scheduleType === 'DEFAULT' || s1.scheduleType === 'FAST') &&
+                    Boolean(campaign.recruitment_start_date) &&
+                    Boolean(campaign.end_date) &&
+                    !String(campaign.end_date).startsWith('9999');
+                const scheduleState = hasCanonicalDates
+                    ? {
+                        scheduleType: normalizedSchedule.scheduleType,
+                        recruitmentStartDate: campaign.recruitment_start_date,
+                        firstSelectionDate: campaign.first_selection_date || normalizedSchedule.firstSelectionDate,
+                        reviewDeadline: campaign.end_date,
+                    }
+                    : {
+                        scheduleType: normalizedSchedule.scheduleType,
+                        recruitmentStartDate: normalizedSchedule.recruitmentStartDate,
+                        firstSelectionDate: normalizedSchedule.firstSelectionDate,
+                        reviewDeadline: normalizedSchedule.reviewDeadline,
+                    };
+
                 set({
                     // Basic Metadata
                     currentCampaignId: campaign.id?.toString() || null,
@@ -272,10 +297,10 @@ export const useCampaignStore = create<CampaignStore>()(
                     visitNotes: s1.visitNotes || '',
                     experienceDetails: campaign.experience_details || s1.experienceDetails || '',
                     officialPrice: (options.official_price || s1.officialPrice || '').toString(),
-                    scheduleType: s1.scheduleType || 'recommended',
-                    recruitmentStartDate: s1.recruitmentStartDate || '',
-                    firstSelectionDate: s1.firstSelectionDate || '',
-                    reviewDeadline: campaign.end_date || s1.reviewDeadline || '',
+                    scheduleType: scheduleState.scheduleType,
+                    recruitmentStartDate: scheduleState.recruitmentStartDate,
+                    firstSelectionDate: scheduleState.firstSelectionDate,
+                    reviewDeadline: scheduleState.reviewDeadline,
                     reviewDeadlineDays: s1.reviewDeadlineDays || '7',
                     optionConfig: s1.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
                     stores: options.stores || s1.stores || [],

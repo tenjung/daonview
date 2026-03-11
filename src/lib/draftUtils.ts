@@ -1,6 +1,7 @@
 // 임시저장 캠페인 관리 유틸리티
 
 import { supabase } from './supabase/client';
+import { buildCampaignSchedule, formatKstDate } from './campaignSchedule';
 
 export interface DraftCampaign {
     id: string;
@@ -76,14 +77,23 @@ export const saveDraft = async (userId: string, campaignData: {
         }
 
         // 3. 날짜 형식 최적화 (YYYY-MM-DD)
-        const now = new Date().toISOString().split('T')[0];
-        const endDate = campaignData.step1Data?.reviewDeadline ||
-            campaignData.step1Data?.recruitmentStartDate ||
-            now;
+        const schedule = buildCampaignSchedule(
+            campaignData.step1Data?.scheduleType,
+            campaignData.step1Data?.recruitmentStartDate || formatKstDate()
+        );
+        const endDate = schedule.reviewDeadline;
+
+        const normalizedStep1Data = {
+            ...(campaignData.step1Data || {}),
+            scheduleType: schedule.scheduleType,
+            recruitmentStartDate: schedule.recruitmentStartDate,
+            firstSelectionDate: schedule.firstSelectionDate,
+            reviewDeadline: schedule.reviewDeadline,
+        };
 
         // 4. campaign_options 구조 (단일 객체 구조로 표준화)
         const campaignOptions = {
-            step1Data: campaignData.step1Data || {},
+            step1Data: normalizedStep1Data,
             step2Data: campaignData.step2Data || {},
             currentStep: campaignData.currentStep || 1,
             lastSavedAt: new Date().toISOString()
@@ -92,21 +102,23 @@ export const saveDraft = async (userId: string, campaignData: {
         // 전송할 데이터 페이로드 (DB 스키마 필드명과 1:1 매칭)
         // [무결성] 상태/타입 값은 UPPERCASE로 저장
         const draftPayload: any = {
-            title: campaignData.title || campaignData.step1Data?.campaignTitle || campaignData.step1Data?.productName || '제목 없음',
-            brand_id: campaignData.step1Data?.brandId || null,
-            brand_name: campaignData.step1Data?.brandName || null,
-            product_name: campaignData.step1Data?.productName || null,
-            experience_details: campaignData.step1Data?.experienceDetails || null,
+            title: campaignData.title || normalizedStep1Data?.campaignTitle || normalizedStep1Data?.productName || '제목 없음',
+            brand_id: normalizedStep1Data?.brandId || null,
+            brand_name: normalizedStep1Data?.brandName || null,
+            product_name: normalizedStep1Data?.productName || null,
+            experience_details: normalizedStep1Data?.experienceDetails || null,
             platform: mappedPlatform.toUpperCase(),
             type: mappedType,
-            end_date: campaignData.step1Data?.scheduleType === 'always' ? '9999-12-31' : endDate,
+            recruitment_start_date: schedule.recruitmentStartDate,
+            first_selection_date: schedule.firstSelectionDate,
+            end_date: endDate,
             campaign_options: campaignOptions, // jsonb 객체
-            recruit_count: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
-            total_recruitment: parseInt(campaignData.step1Data?.totalRecruitment) || 0,
+            recruit_count: parseInt(normalizedStep1Data?.totalRecruitment) || 0,
+            total_recruitment: parseInt(normalizedStep1Data?.totalRecruitment) || 0,
 
-            is_always: campaignData.step1Data?.scheduleType === 'always',
-            category: campaignData.step1Data?.category || null,
-            region: campaignData.step1Data?.region || null,
+            is_always: false,
+            category: normalizedStep1Data?.category || null,
+            region: normalizedStep1Data?.region || null,
             created_by: userId,
             status: 'DRAFT'
         };

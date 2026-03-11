@@ -95,7 +95,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 // 구매평 포함 여부 확인 (신규 includeReview 플래그 또는 레거시 platform/type 체크)
                 if (!(item.includeReview || item.platform === 'PURCHASE' || item.type === 'PURCHASE')) return false;
             } else if (activeTab === 'STEADY') {
-                if (!(item as any).is_always && item.dday !== '상시') return false;
+                if (item.scheduleType !== 'FAST') return false;
             } else if (activeTab !== 'ALL') {
                 // 일반 탭 (VISIT, DELIVERY 등) 필터링
                 if (item.type !== activeTab) return false;
@@ -138,16 +138,13 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
         }).sort((a, b) => {
             if (sortBy === 'popular') return b.applicants - a.applicants;
             if (sortBy === 'steady') {
-                const aAlways = (a as any).is_always || a.dday === '상시';
-                const bAlways = (b as any).is_always || b.dday === '상시';
-                if (aAlways && !bAlways) return -1;
-                if (!aAlways && bAlways) return 1;
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+                const aFast = a.scheduleType === 'FAST';
+                const bFast = b.scheduleType === 'FAST';
+                if (aFast && !bFast) return -1;
+                if (!aFast && bFast) return 1;
+                return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
             }
             if (sortBy === 'deadline') {
-                if (a.dday === '상시') return 1;
-                if (b.dday === '상시') return -1;
-
                 const dateA = new Date(a.end_date).getTime();
                 const dateB = new Date(b.end_date).getTime();
                 return dateA - dateB;
@@ -184,7 +181,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     {tab === 'ALL' ? <><span className="sm:hidden">전체</span><span className="hidden sm:inline">전체보기</span></> : 
-                                     tab === 'STEADY' ? <><span className="sm:hidden">상시</span><span className="hidden sm:inline">상시모집</span></> : 
+                                     tab === 'STEADY' ? <><span className="sm:hidden">빠른</span><span className="hidden sm:inline">빠른모집</span></> : 
                                      tab === 'VISIT' ? <><span className="sm:hidden">방문</span><span className="hidden sm:inline">방문형</span></> : 
                                      tab === 'DELIVERY' ? <><span className="sm:hidden">배송</span><span className="hidden sm:inline">배송형</span></> : 
                                      <><span className="sm:hidden">구매평</span><span className="hidden sm:inline">구매평만</span></>}

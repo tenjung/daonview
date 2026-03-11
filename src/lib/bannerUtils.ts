@@ -66,12 +66,12 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                 .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
                 .order('created_at', { ascending: false })
                 .limit(hotCount + 2),
-            // Always fetching some always-open campaigns
+            // 빠르게 마감되는 캠페인 모음
             supabase
                 .from('campaigns')
                 .select('*, applications(count)')
-                .eq('is_always', true)
                 .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                .order('end_date', { ascending: true })
                 .limit(4)
         ]);
 
@@ -162,7 +162,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
             })
             .filter(item => item.image_url && item.title);
 
-        // 6. Process Steady (Always) Campaigns
+        // 6. Process Steady lane
         const steadyItems: BannerItem[] = steadyRows
             .map(c => {
                 const mapped = mapCampaignToCard(c as any);
@@ -170,10 +170,10 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     id: `steady-${c.id}`,
                     type: 'STEADY' as const,
                     title: mapped.title,
-                    subtitle: mapped.provision || '상시 모집 체험 캠페인',
+                    subtitle: mapped.provision || '빠르게 참여 가능한 체험 캠페인',
                     image_url: mapped.imageUrl || 'https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&h=600&fit=crop',
                     link_url: `/campaigns/${c.id}`,
-                    badge: 'ALWAYS',
+                    badge: 'FAST',
                     extra_badge: mapped.type === 'VISIT' ? '방문' : '배송',
                     applicants: mapped.applicants || 0,
                     total: mapped.total || 0,

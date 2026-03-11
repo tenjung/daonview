@@ -1,4 +1,5 @@
 import { Campaign } from '@/types/database';
+import { normalizeScheduleType } from './campaignSchedule';
 
 export type NormalizedCampaignType = 'DELIVERY' | 'VISIT' | 'PRESS' | 'PURCHASE';
 export type NormalizedPlatform = 'BLOG' | 'INSTAGRAM' | 'PURCHASE' | 'OTHER';
@@ -92,15 +93,31 @@ export const formatDDay = (endDate: string) => {
   const end = new Date(endDate);
   const now = new Date();
 
-  // Handle 'Always' date (e.g. year 9999)
-  if (end.getFullYear() > 2100) return "상시";
-
   const diffTime = end.getTime() - now.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return "종료";
   if (diffDays === 0) return "D-0";
   return `D-${diffDays}`;
+};
+
+export const resolveCampaignScheduleDates = (campaign: Campaign | Record<string, any>) => {
+  const options = Array.isArray((campaign as any).campaign_options)
+    ? (campaign as any).campaign_options[0]
+    : (campaign as any).campaign_options;
+  const step1Data = options?.step1Data || {};
+
+  const startDate = (campaign as any).recruitment_start_date || step1Data.recruitmentStartDate || campaign.created_at || null;
+  const endDate = ((campaign as any).end_date && !String((campaign as any).end_date).startsWith('9999'))
+    ? (campaign as any).end_date
+    : (step1Data.reviewDeadline || null);
+  const firstSelectionDate = (campaign as any).first_selection_date || step1Data.firstSelectionDate || null;
+
+  return {
+    startDate,
+    endDate,
+    firstSelectionDate,
+  };
 };
 
 export const mapCampaignToCard = (campaign: Campaign & { applications?: { count: number }[] | { count: number } | number, is_always?: boolean }) => {
@@ -119,6 +136,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
   const step1Data = options?.step1Data || {};
+  const scheduleType = normalizeScheduleType(step1Data.scheduleType);
+  const { endDate } = resolveCampaignScheduleDates(campaign);
   const rawRegion = (campaign as any).region ?? step1Data.region ?? null;
   const rawSubRegion = (campaign as any).sub_region ?? step1Data.subRegion ?? null;
   const {
@@ -140,14 +159,15 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     type: normalizedType,
     applicants: applicants,
     total: campaign.recruit_count || 0,
-    dday: (campaign.is_always || (campaign.recruit_count && campaign.recruit_count >= 999)) ? "상시" : formatDDay(campaign.end_date),
+    dday: endDate ? formatDDay(endDate) : '미정',
     category: campaign.category,
     region: rawRegion ? String(rawRegion) : null,
     sub_region: rawSubRegion ? String(rawSubRegion) : null,
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
-    end_date: campaign.end_date,
+    end_date: endDate,
     created_at: campaign.created_at,
+    scheduleType,
     includeReview,
     includeNaver,
     includeInstagram,

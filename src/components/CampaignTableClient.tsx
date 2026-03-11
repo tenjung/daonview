@@ -9,6 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { PlatformBadge, TypeBadge } from '@/components/campaign/CampaignBadges';
 import { useAuthStore } from '@/store/authStore';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
+import { resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 
 interface CampaignTableClientProps {
     initialCampaigns: any[];
@@ -121,8 +122,8 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                     {campaigns.map((cam) => {
-                        // DB 필드 기반: recruitment_start_date 사용
-                        const startDate = cam.recruitment_start_date || cam.created_at;
+                        const scheduleDates = resolveCampaignScheduleDates(cam);
+                        const startDate = scheduleDates.startDate || cam.created_at;
                         const canEdit = canEditCampaignByRole({
                             role: profile?.role,
                             userId: user?.id,
@@ -185,7 +186,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                         <span className="text-sm text-gray-600">{cam.recruit_count}명</span>
                                     </div>
                                     <div className="text-[10px] text-gray-400 mt-1">
-                                        {cam.end_date ? `~ ${new Date(cam.end_date).toLocaleDateString()} 마감` : '상시 모집'}
+                                        {scheduleDates.endDate ? `~ ${new Date(scheduleDates.endDate).toLocaleDateString()} 마감` : '일정 미정'}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">

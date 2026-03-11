@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { ChevronRight, Plus, X, Users, Calendar as CalendarIcon, Save, GripVertical, Building2, Infinity, Info, Megaphone, ChevronDown } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
@@ -20,12 +20,14 @@ import { CampaignActionButtons } from './CampaignActionButtons';
 import { useCampaignStore } from '@/store/campaignStore';
 import { useSubscription } from '@/hooks/useSubscription';
 import NaverMap from './NaverMap';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { ko } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { resolveCampaignPlatformState } from '@/lib/campaignUtils';
+import {
+    buildCampaignSchedule,
+    CampaignScheduleType,
+    formatKstDate,
+    parseDateString,
+} from '@/lib/campaignSchedule';
 import {
     DndContext,
     closestCenter,
@@ -79,7 +81,7 @@ interface Step1Data {
     officialPrice: string;
     totalRecruitment: string;
 
-    scheduleType: 'recommended' | 'custom' | 'always';
+    scheduleType: CampaignScheduleType;
     recruitmentStartDate: string;
     firstSelectionDate: string;
     reviewDeadline: string;
@@ -201,6 +203,123 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
 }
 
 const DAYS_OF_WEEK = ['월', '화', '수', '목', '금', '토', '일'];
+const CALENDAR_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+interface CalendarCell {
+    date: string;
+    dayNumber: number;
+    isCurrentMonth: boolean;
+}
+
+interface CalendarWeek {
+    key: string;
+    cells: CalendarCell[];
+}
+
+interface CalendarSegment {
+    startCol: number;
+    endCol: number;
+    label: string;
+    tone: 'application' | 'selection' | 'experience';
+}
+
+function formatUtcDate(date: Date) {
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function buildCalendarWeeks(startDate: string, endDate: string): CalendarWeek[] {
+    const startMonthDate = parseDateString(startDate);
+    const endMonthDate = parseDateString(endDate);
+    const monthStart = new Date(Date.UTC(startMonthDate.getUTCFullYear(), startMonthDate.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(endMonthDate.getUTCFullYear(), endMonthDate.getUTCMonth() + 1, 0));
+    const calendarStart = new Date(monthStart);
+    calendarStart.setUTCDate(calendarStart.getUTCDate() - calendarStart.getUTCDay());
+    const calendarEnd = new Date(monthEnd);
+    calendarEnd.setUTCDate(calendarEnd.getUTCDate() + (6 - calendarEnd.getUTCDay()));
+
+    const weeks: CalendarWeek[] = [];
+    let cursor = new Date(calendarStart);
+
+    while (cursor <= calendarEnd) {
+        const cells: CalendarCell[] = [];
+        for (let index = 0; index < 7; index += 1) {
+            cells.push({
+                date: formatUtcDate(cursor),
+                dayNumber: cursor.getUTCDate(),
+                isCurrentMonth:
+                    cursor.getUTCMonth() === startMonthDate.getUTCMonth()
+                    || cursor.getUTCMonth() === endMonthDate.getUTCMonth(),
+            });
+            cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 1));
+        }
+
+        weeks.push({
+            key: cells[0].date,
+            cells,
+        });
+    }
+
+    return weeks;
+}
+
+function buildRangeSegment(week: CalendarWeek, start: string, end: string, tone: 'application' | 'experience', label: string): CalendarSegment | null {
+    const matchingIndexes = week.cells
+        .map((cell, index) => ({ cell, index }))
+        .filter(({ cell }) => cell.date >= start && cell.date <= end)
+        .map(({ index }) => index);
+
+    if (matchingIndexes.length === 0) {
+        return null;
+    }
+
+    return {
+        startCol: matchingIndexes[0] + 1,
+        endCol: matchingIndexes[matchingIndexes.length - 1] + 1,
+        label,
+        tone,
+    };
+}
+
+function buildToneRangeSegment(
+    week: CalendarWeek,
+    start: string,
+    end: string,
+    tone: 'application' | 'selection' | 'experience',
+    label: string
+): CalendarSegment | null {
+    const matchingIndexes = week.cells
+        .map((cell, index) => ({ cell, index }))
+        .filter(({ cell }) => cell.date >= start && cell.date <= end)
+        .map(({ index }) => index);
+
+    if (matchingIndexes.length === 0) {
+        return null;
+    }
+
+    return {
+        startCol: matchingIndexes[0] + 1,
+        endCol: matchingIndexes[matchingIndexes.length - 1] + 1,
+        label,
+        tone,
+    };
+}
+
+function buildSelectionSegment(week: CalendarWeek, targetDate: string): CalendarSegment | null {
+    const index = week.cells.findIndex((cell) => cell.date === targetDate);
+    if (index === -1) {
+        return null;
+    }
+
+    return {
+        startCol: index + 1,
+        endCol: index + 1,
+        label: '발표',
+        tone: 'selection',
+    };
+}
 
 export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }: CampaignStep1Props) {
     // Zustand 스토어 사용
@@ -219,44 +338,27 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         }
     }, [submitTrigger]);
 
-    // 초기 로드 시 모집 시작일이 없으면 오늘 날짜로 설정
     useEffect(() => {
-        if (!formData.recruitmentStartDate) {
-            const today = getTodayDate();
-            campaignStore.setField('recruitmentStartDate', today);
-            
-            // 추천 일정인 경우 다른 날짜들도 연동해서 설정
-            if (formData.scheduleType === 'recommended') {
-                campaignStore.updateFields({
-                    firstSelectionDate: getOneWeekLater(today),
-                    reviewDeadline: getOneWeekLater(getOneWeekLater(today))
-                });
-            }
+        const baseDate = formData.recruitmentStartDate || formatKstDate();
+        const nextSchedule = buildCampaignSchedule(formData.scheduleType, baseDate);
+
+        if (
+            formData.scheduleType !== nextSchedule.scheduleType ||
+            formData.recruitmentStartDate !== nextSchedule.recruitmentStartDate ||
+            formData.firstSelectionDate !== nextSchedule.firstSelectionDate ||
+            formData.reviewDeadline !== nextSchedule.reviewDeadline
+        ) {
+            campaignStore.updateFields({
+                scheduleType: nextSchedule.scheduleType,
+                recruitmentStartDate: nextSchedule.recruitmentStartDate,
+                firstSelectionDate: nextSchedule.firstSelectionDate,
+                reviewDeadline: nextSchedule.reviewDeadline,
+            });
         }
-    }, []);
+    }, [campaignStore, formData.firstSelectionDate, formData.recruitmentStartDate, formData.reviewDeadline, formData.scheduleType]);
 
     const { user, profile } = useAuthStore();
     const isAdmin = profile?.role === 'ADMIN';
-
-    // 스마트 기본값: 오늘 날짜
-    const getTodayDate = () => {
-        const today = new Date();
-        return today.toISOString().split('T')[0];
-    };
-
-    // 스마트 기본값: 1주일 뒤 날짜
-    const getOneWeekLater = (fromDate?: string) => {
-        const date = fromDate ? new Date(fromDate) : new Date();
-        date.setDate(date.getDate() + 7);
-        return date.toISOString().split('T')[0];
-    };
-
-    // 빠른 모집용: 2주 뒤 날짜
-    const getTwoWeeksLater = (fromDate?: string) => {
-        const date = fromDate ? new Date(fromDate) : new Date();
-        date.setDate(date.getDate() + 14);
-        return date.toISOString().split('T')[0];
-    };
 
     // 필드 업데이트 헬퍼
     const updateField = (field: string, value: any) => {
@@ -634,21 +736,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         });
     };
 
-    // 모집 시작일로부터 N주 뒤 날짜 설정
-    const setFirstSelectionDateByWeeks = (weeks: number) => {
-        if (!formData.recruitmentStartDate) {
-            toast.error('먼저 모집 시작일을 선택해주세요.');
-            return;
-        }
-
-        const startDate = new Date(formData.recruitmentStartDate);
-        const targetDate = new Date(startDate);
-        targetDate.setDate(targetDate.getDate() + (weeks * 7));
-
-        const formattedDate = targetDate.toISOString().split('T')[0];
-        campaignStore.setField('firstSelectionDate', formattedDate);
-    };
-
     // 실시간 유효성 검사
     const validateField = (fieldName: string, value: any) => {
         let isValid = false;
@@ -809,24 +896,14 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
 
     // Schedule type change handler
-    const handleScheduleTypeChange = (type: 'recommended' | 'custom' | 'always') => {
-        if (type === 'always') {
-            const startDate = formData.recruitmentStartDate || getTodayDate();
-            campaignStore.updateFields({
-                scheduleType: 'always',
-                recruitmentStartDate: startDate,
-                firstSelectionDate: getTwoWeeksLater(startDate), // 모집은 2주간 진행
-                reviewDeadline: getTwoWeeksLater(getTwoWeeksLater(startDate)) // 넉넉히 리뷰기간 자동 설정 처리 (백엔드 처리용)
-            });
-        } else {
-            const startDate = formData.recruitmentStartDate || getTodayDate();
-            campaignStore.updateFields({
-                scheduleType: type,
-                recruitmentStartDate: startDate,
-                firstSelectionDate: getOneWeekLater(startDate),
-                reviewDeadline: getOneWeekLater(getOneWeekLater(startDate))
-            });
-        }
+    const handleScheduleTypeChange = (type: CampaignScheduleType) => {
+        const nextSchedule = buildCampaignSchedule(type, formData.recruitmentStartDate || formatKstDate());
+        campaignStore.updateFields({
+            scheduleType: nextSchedule.scheduleType,
+            recruitmentStartDate: nextSchedule.recruitmentStartDate,
+            firstSelectionDate: nextSchedule.firstSelectionDate,
+            reviewDeadline: nextSchedule.reviewDeadline,
+        });
     };
 
     const handleOptionModeChange = (val: 'SINGLE' | 'RANKED' | 'MULTI') => {
@@ -839,6 +916,22 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             }
         });
     };
+
+    const todayDate = formatKstDate();
+    const schedulePreview = buildCampaignSchedule(
+        formData.scheduleType,
+        formData.recruitmentStartDate || formatKstDate()
+    );
+    const isFastSchedule = schedulePreview.scheduleType === 'FAST';
+    const scheduleDescriptions: Record<CampaignScheduleType, string> = {
+        DEFAULT: '오늘 시작, 1주 모집 후 신청 마지막날 발표하고 남은 1주 내 체험을 완료하는 기본 일정입니다.',
+        FAST: '오늘 시작 후 최대 14일 동안 캠페인을 운영하며, 신청 건별로 수시 선정 후 7일 이내 체험을 진행하는 빠른 일정입니다.',
+    };
+    const calendarWeeks = buildCalendarWeeks(
+        schedulePreview.recruitmentStartDate,
+        schedulePreview.reviewDeadline
+    );
+    const scheduleMonthTitle = `${schedulePreview.recruitmentStartDate.slice(0, 4)}년 ${Number(schedulePreview.recruitmentStartDate.slice(5, 7))}월`;
 
     return (
         <div className="w-full space-y-8 pb-10">
@@ -2077,280 +2170,216 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             <h3 className="text-lg font-semibold text-gray-800">모집 일정</h3>
                         </div>
 
-                        {/* 일정 타입 선택 */}
-                        <div className="space-y-3">
-                            <div className="flex flex-wrap items-center gap-6">
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <div className="relative flex items-center justify-center">
-                                        <input
-                                            type="radio"
-                                            name="scheduleType"
-                                            checked={formData.scheduleType === 'recommended'}
-                                            onChange={() => handleScheduleTypeChange('recommended')}
-                                            className="sr-only"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'recommended' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                        </div>
-                                    </div>
-                                    <span className={`text-sm font-bold ${formData.scheduleType === 'recommended' ? 'text-gray-900' : 'text-gray-500'}`}>추천 일정</span>
-                                </label>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {([
+                                    { value: 'DEFAULT', title: '기본일정', summary: '오늘 시작 / 1주 모집 / 1주 체험' },
+                                    { value: 'FAST', title: '빠른모집', summary: '오늘 시작 / 2주 노출 / 수시 선정' },
+                                ] as const).map((option) => {
+                                    const isActive = schedulePreview.scheduleType === option.value;
 
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <div className="relative flex items-center justify-center">
-                                        <input
-                                            type="radio"
-                                            name="scheduleType"
-                                            checked={formData.scheduleType === 'custom'}
-                                            onChange={() => handleScheduleTypeChange('custom')}
-                                            className="sr-only"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'custom' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                        </div>
-                                    </div>
-                                    <span className={`text-sm font-bold ${formData.scheduleType === 'custom' ? 'text-gray-900' : 'text-gray-500'}`}>맞춤 설정</span>
-                                </label>
-
-                                <label className="flex items-center gap-2 cursor-pointer group">
-                                    <div className="relative flex items-center justify-center">
-                                        <input
-                                            type="radio"
-                                            name="scheduleType"
-                                            checked={formData.scheduleType === 'always'}
-                                            onChange={() => handleScheduleTypeChange('always')}
-                                            className="sr-only"
-                                        />
-                                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${formData.scheduleType === 'always' ? 'border-blue-500 bg-blue-500' : 'border-gray-300 group-hover:border-gray-400'}`}>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-white" />
-                                        </div>
-                                    </div>
-                                    <span className={`text-sm font-bold ${formData.scheduleType === 'always' ? 'text-gray-900' : 'text-gray-500'}`}>빠른 모집</span>
-                                </label>
-                            </div>
-
-                            <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
-                                <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
-                                <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
-                                    {formData.scheduleType === 'recommended' && "추천 일정: 최대한 빠르게 모집하여 선정되는 대로 즉시 투입하는 최적화된 모집 방식입니다."}
-                                    {formData.scheduleType === 'custom' && "맞춤 설정: 캠페인 성격에 맞춰 모집, 선정, 리뷰 마감일을 수동으로 설정합니다."}
-                                    {formData.scheduleType === 'always' && "빠른 모집: 모집 시작일 기준 2주 동안 대기 시간 없이 빠르고 유연하게 인플루언서 선정-리뷰가 이루어집니다."}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* 날짜 입력 섹션 (좌/우 2단 레이아웃 분리) */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                            {/* 좌측: 모집 및 선정 일정 */}
-                            <div className="space-y-6">
-                                <div className="space-y-2">
-                                    <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                                        모집 시작일 <span className="text-rose-500">*</span>
-                                        {formData.recruitmentStartDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                    </label>
-                                    <div className="relative group">
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <button
-                                                    type="button"
-                                                    id="start-date"
-                                                    className={cn(
-                                                        "w-full flex justify-between items-center px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none transition-all hover:border-gray-300",
-                                                        !formData.recruitmentStartDate && "text-muted-foreground"
-                                                    )}
-                                                >
-                                                    {formData.recruitmentStartDate ? format(new Date(formData.recruitmentStartDate), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
-                                                    <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                                                </button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar
-                                                    mode="single"
-                                                    selected={formData.recruitmentStartDate ? new Date(formData.recruitmentStartDate) : undefined}
-                                                    onSelect={(date) => {
-                                                        if (date) {
-                                                            const formatted = format(date, 'yyyy-MM-dd');
-                                                            campaignStore.setField('recruitmentStartDate', formatted);
-                                                            validateField('recruitmentStartDate', formatted);
-                                                        }
-                                                    }}
-                                                    initialFocus
-                                                />
-                                            </PopoverContent>
-                                        </Popover>
-                                    </div>
-                                    <p className="text-[10px] text-gray-400 font-medium pl-1">기본값: 오늘 날짜</p>
-                                </div>
-
-                                {formData.scheduleType !== 'always' && (
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold text-gray-700 flex items-center gap-1.5">
-                                                선정 발표일 <span className="text-rose-500">*</span>
-                                                {formData.firstSelectionDate && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                            </label>
-                                            <div className="relative group">
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            className={cn(
-                                                                "w-full flex justify-between items-center px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm outline-none transition-all hover:border-gray-300",
-                                                                !formData.firstSelectionDate && "text-muted-foreground"
-                                                            )}
-                                                        >
-                                                            {formData.firstSelectionDate ? format(new Date(formData.firstSelectionDate), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
-                                                            <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                                                        </button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar
-                                                            mode="single"
-                                                            selected={formData.firstSelectionDate ? new Date(formData.firstSelectionDate) : undefined}
-                                                            onSelect={(date) => {
-                                                                if (date) {
-                                                                    campaignStore.setField('firstSelectionDate', format(date, 'yyyy-MM-dd'));
-                                                                }
-                                                            }}
-                                                            initialFocus
-                                                        />
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                        </div>
-
-                                        {/* 맞춤 설정일 경우 빠른 설정 버튼 및 안내 문구 노출 */}
-                                        {formData.scheduleType === 'custom' && (
-                                            <div className="space-y-2 mt-2">
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setFirstSelectionDateByWeeks(1)}
-                                                        className="flex-1 px-3 py-3 text-sm font-medium bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
-                                                    >
-                                                        1주일 뒤
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setFirstSelectionDateByWeeks(2)}
-                                                        className="flex-1 px-3 py-3 text-sm font-medium bg-slate-50 text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors"
-                                                    >
-                                                        2주일 뒤
-                                                    </button>
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            onClick={() => handleScheduleTypeChange(option.value)}
+                                            className={cn(
+                                                "rounded-2xl border p-4 text-left transition-all",
+                                                isActive
+                                                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                                                    : "border-slate-200 bg-white hover:border-slate-300"
+                                            )}
+                                        >
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className={cn("text-[15px] font-bold", isActive ? "text-white" : "text-slate-900")}>
+                                                        {option.title}
+                                                    </div>
+                                                    <p className={cn("mt-1 text-[12px] font-medium", isActive ? "text-slate-200" : "text-slate-500")}>
+                                                        {option.summary}
+                                                    </p>
                                                 </div>
-                                                <p className="text-[11px] text-gray-400 mt-1">
-                                                    선정이 완료되지 않으면, 모집 기간이 자동으로 7일 연장됩니다.
-                                                </p>
+                                                <div className={cn(
+                                                    "mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2",
+                                                    isActive ? "border-white bg-white" : "border-slate-300"
+                                                )}>
+                                                    {isActive && <div className="h-2 w-2 rounded-full bg-slate-900" />}
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
+                                        </button>
+                                    );
+                                })}
                             </div>
 
-                            {/* 우측: 리뷰 관련 일정 (또는 상시 모집 안내문) */}
-                            {formData.scheduleType !== 'always' ? (
-                                <div className="h-full">
-                                    <div className="bg-indigo-50/40 rounded-2xl border border-indigo-100 p-6 h-full flex flex-col gap-6">
-                                        <div className="space-y-4">
-                                            <label className="text-sm font-black flex items-center gap-1.5 text-indigo-900">
-                                                리뷰 마감일 <span className="text-rose-500">*</span>
-                                                {formData.reviewDeadline && <div className="w-4 h-4 rounded-full bg-emerald-500 flex items-center justify-center"><svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} d="M5 13l4 4L19 7" /></svg></div>}
-                                            </label>
-                                            <div className="relative group">
-                                                <Popover>
-                                                    <PopoverTrigger asChild>
-                                                        <button
-                                                            type="button"
-                                                            className={cn(
-                                                                "w-full flex justify-between items-center h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-black focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all",
-                                                                !formData.reviewDeadline && "text-muted-foreground"
-                                                            )}
-                                                        >
-                                                            {formData.reviewDeadline ? format(new Date(formData.reviewDeadline), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
-                                                            <CalendarIcon className="h-4 w-4 text-indigo-400" />
-                                                        </button>
-                                                    </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0" align="start">
-                                                        <Calendar
-                                                            mode="single"
-                                                            selected={formData.reviewDeadline ? new Date(formData.reviewDeadline) : undefined}
-                                                            onSelect={(date) => {
-                                                                if (date) {
-                                                                    campaignStore.setField('reviewDeadline', format(date, 'yyyy-MM-dd'));
-                                                                }
-                                                            }}
-                                                            initialFocus
-                                                        />
-                                                    </PopoverContent>
-                                                </Popover>
-                                            </div>
-                                            <p className="text-[11px] text-indigo-500 font-bold flex items-center gap-1">✨ 선정일 기준 1주일 뒤로 설정하는 것을 권장합니다.</p>
-                                        </div>
-
-                                        {formData.scheduleType === 'custom' && (
-                                            <div className="space-y-2 pt-6 border-t border-indigo-200/50 mt-auto">
-                                                <label className="block text-sm font-bold text-indigo-900 mb-1">
-                                                    리뷰 제출 마감일
-                                                </label>
-                                                {formData.campaignType === 'DELIVERY' ? (
-                                                    <select
-                                                        value={formData.reviewDeadlineDays || '7'}
-                                                        onChange={(e) => campaignStore.setField('reviewDeadlineDays', e.target.value)}
-                                                        className="w-full h-12 px-4 bg-white border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm outline-none transition-all font-bold text-indigo-900"
-                                                    >
-                                                        <option value="5">제품 배송 완료 후 5일 이내</option>
-                                                        <option value="7">제품 배송 완료 후 7일 이내</option>
-                                                        <option value="10">제품 배송 완료 후 10일 이내</option>
-                                                    </select>
-                                                ) : (
-                                                    <Popover>
-                                                        <PopoverTrigger asChild>
-                                                            <button
-                                                                type="button"
-                                                                className={cn(
-                                                                    "w-full flex justify-between items-center h-12 px-4 bg-white border border-indigo-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-indigo-900",
-                                                                    !formData.reviewDeadline && "text-muted-foreground"
-                                                                )}
-                                                            >
-                                                                {formData.reviewDeadline ? format(new Date(formData.reviewDeadline), 'PPP', { locale: ko }) : <span>날짜 선택</span>}
-                                                                <CalendarIcon className="h-4 w-4 text-indigo-400" />
-                                                            </button>
-                                                        </PopoverTrigger>
-                                                        <PopoverContent className="w-auto p-0" align="start">
-                                                            <Calendar
-                                                                mode="single"
-                                                                selected={formData.reviewDeadline ? new Date(formData.reviewDeadline) : undefined}
-                                                                onSelect={(date) => {
-                                                                    if (date) {
-                                                                        campaignStore.setField('reviewDeadline', format(date, 'yyyy-MM-dd'));
-                                                                    }
-                                                                }}
-                                                                initialFocus
-                                                            />
-                                                        </PopoverContent>
-                                                    </Popover>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="h-full hidden md:block">
-                                    <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl border border-emerald-100/60 p-6 h-full flex flex-col justify-center gap-2">
-                                        <div className="flex items-center gap-2.5 mb-1">
-                                            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
-                                                <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                </svg>
-                                            </div>
-                                            <h4 className="text-sm font-black text-emerald-900">원할 때 언제든, 빠른 캠페인 진행!</h4>
-                                        </div>
-                                        <p className="text-[13px] text-emerald-700 font-medium leading-relaxed">
-                                            빠른 모집은 대기 시간 없이 <strong className="text-emerald-800">빠른 모집-선정-리뷰</strong>가 가능합니다. 마음에 드는 인플루언서를 발견하면 즉시 선정하여 진행해 보세요. (시작일 기준 2주간 모집 진행)
+                            <div className="rounded-2xl border border-blue-100 bg-blue-50/70 p-3.5">
+                                <div className="flex items-start gap-3">
+                                    <Info size={18} className="mt-0.5 flex-shrink-0 text-blue-700" />
+                                    <div className="space-y-1">
+                                        <p className="text-[13px] font-bold text-blue-900">
+                                            결제 완료 시 시작일은 당일(KST)로 자동 고정됩니다.
+                                        </p>
+                                        <p className="text-[12px] leading-relaxed font-medium text-blue-700">
+                                            {scheduleDescriptions[schedulePreview.scheduleType]}
                                         </p>
                                     </div>
                                 </div>
-                            )}
+                            </div>
+
+                            <div id="start-date" className="rounded-[28px] border border-slate-200 bg-[#f8f8f7] p-3.5 md:p-4">
+                                <div className="grid gap-4 md:grid-cols-[minmax(0,9fr)_minmax(0,11fr)] md:items-start">
+                                    <div className="space-y-3 border-b border-slate-200/80 pb-3 md:border-b-0 md:border-r md:pr-4">
+                                        <div className="grid gap-2">
+                                            {schedulePreview.displayRows.map((row) => (
+                                                <div key={row.label} className="grid grid-cols-[84px_1fr] items-center gap-2 md:grid-cols-[96px_1fr]">
+                                                    <span className="text-[14px] font-bold tracking-tight text-slate-900">{row.label}</span>
+                                                    <span
+                                                        className={cn(
+                                                            "text-[14px] font-semibold tracking-tight md:text-[15px]",
+                                                            row.tone === 'selection' ? 'text-rose-500' : 'text-slate-800'
+                                                        )}
+                                                    >
+                                                        {row.value}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-1">
+                                            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400">RULE</p>
+                                            <div className="mt-2 space-y-1 text-[10px] leading-[1.5] font-medium text-slate-600">
+                                                <p>시작일은 결제 완료 시점의 KST 기준 오늘로 자동 고정된다.</p>
+                                                {isFastSchedule ? (
+                                                    <>
+                                                        <p>빠른모집은 시작일 기준 최대 14일 동안 캠페인을 운영한다.</p>
+                                                        <p>광고주는 신청 건마다 개별적으로 수시 선정할 수 있다.</p>
+                                                        <p>선정된 인플루언서는 선정 후 7일 이내 체험 및 리뷰를 진행한다.</p>
+                                                    </>
+                                                ) : (
+                                                    <p>기본일정은 2주 안에 모집과 체험이 모두 끝나도록 고정된다.</p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="w-full max-w-[450px] space-y-2">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <p className="text-[11px] font-medium text-slate-500">모집 캘린더</p>
+                                                <p className="text-[15px] font-bold tracking-tight text-slate-900 md:text-[16px]">
+                                                    {scheduleMonthTitle}
+                                                </p>
+                                            </div>
+                                            <div className="flex flex-wrap items-center justify-end gap-1">
+                                                {!isFastSchedule && (
+                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-700 px-2 text-[10px] font-bold text-white">신청</span>
+                                                )}
+                                                {!isFastSchedule && (
+                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-rose-500 px-2 text-[10px] font-bold text-white">발표</span>
+                                                )}
+                                                <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-200 px-2 text-[10px] font-bold text-slate-700">체험</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full rounded-[20px] bg-white/50 px-1.5 py-2 md:px-2 md:py-2.5">
+                                            <div className="grid grid-cols-7 gap-0.5 border-b border-slate-100 pb-1.5">
+                                                {CALENDAR_DAYS.map((day) => (
+                                                    <div key={day} className="text-center text-[10px] font-medium text-slate-500 md:text-[11px]">
+                                                        {day}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-1.5 space-y-1">
+                                                {calendarWeeks.map((week) => {
+                                                    const applicationSegment = buildRangeSegment(
+                                                        week,
+                                                        schedulePreview.calendarHighlights.application.start,
+                                                        schedulePreview.calendarHighlights.application.end,
+                                                        'application',
+                                                        isFastSchedule ? '캠페인' : '신청'
+                                                    );
+                                                    const selectionSegment = isFastSchedule
+                                                        ? null
+                                                        : buildSelectionSegment(
+                                                            week,
+                                                            schedulePreview.calendarHighlights.selection
+                                                        );
+                                                    const experienceSegment = buildRangeSegment(
+                                                        week,
+                                                        schedulePreview.calendarHighlights.experience.start,
+                                                        schedulePreview.calendarHighlights.experience.end,
+                                                        'experience',
+                                                        '체험'
+                                                    );
+
+                                                    return (
+                                                        <Fragment key={week.key}>
+                                                            <div className="grid grid-cols-7 gap-0.5">
+                                                                {week.cells.map((cell, cellIndex) => {
+                                                                    const isToday = cell.date === todayDate;
+                                                                    const isSunday = cellIndex === 0;
+
+                                                                    return (
+                                                                        <div
+                                                                            key={cell.date}
+                                                                            className="flex h-8 items-end justify-center"
+                                                                        >
+                                                                            <span
+                                                                                className={cn(
+                                                                                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold leading-none tracking-tight md:h-5.5 md:min-w-5.5 md:text-[12px]",
+                                                                                    cell.isCurrentMonth ? "text-slate-900" : "text-slate-300",
+                                                                                    isSunday && (cell.isCurrentMonth ? "text-rose-500" : "text-rose-200"),
+                                                                                    isToday && "border border-slate-400 bg-white"
+                                                                                )}
+                                                                            >
+                                                                                {cell.dayNumber}
+                                                                            </span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+
+                                                            {isFastSchedule ? (
+                                                                <div className="grid h-4 grid-cols-7 gap-0.5 pt-px">
+                                                                        {experienceSegment ? (
+                                                                            <div
+                                                                                className="flex items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-bold tracking-tight text-slate-700"
+                                                                                style={{ gridColumn: `${experienceSegment.startCol} / ${experienceSegment.endCol + 1}` }}
+                                                                            >
+                                                                                {experienceSegment.label}
+                                                                            </div>
+                                                                        ) : null}
+                                                                </div>
+                                                            ) : (
+                                                                <div className="grid h-4 grid-cols-7 gap-0.5 pt-px">
+                                                                    {[applicationSegment, selectionSegment, experienceSegment].filter(Boolean).map((segment) => {
+                                                                        if (!segment) return null;
+
+                                                                        return (
+                                                                            <div
+                                                                                key={`${segment.tone}-${segment.startCol}-${segment.endCol}`}
+                                                                                className={cn(
+                                                                                    "flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold tracking-tight",
+                                                                                    segment.tone === 'application' && "bg-slate-700 text-white",
+                                                                                    segment.tone === 'selection' && "bg-rose-500 text-white",
+                                                                                    segment.tone === 'experience' && "bg-slate-200 text-slate-700"
+                                                                                )}
+                                                                                style={{ gridColumn: `${segment.startCol} / ${segment.endCol + 1}` }}
+                                                                            >
+                                                                                {segment.label}
+                                                                            </div>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                            )}
+                                                        </Fragment>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

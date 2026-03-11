@@ -15,6 +15,7 @@ import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
+import { buildCampaignSchedule, formatKstDate } from '@/lib/campaignSchedule';
 
 export default function CampaignRegistrationContainer() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -204,6 +205,10 @@ export default function CampaignRegistrationContainer() {
     const handleSaveDraft = async () => {
         if (!user) return;
         try {
+            const draftSchedule = buildCampaignSchedule(
+                store.scheduleType,
+                store.recruitmentStartDate || formatKstDate()
+            );
             // 전역 스토어의 현재 상태를 기반으로 임시저장
             const draft = await saveDraft(user.id, {
                 id: currentCampaignId || undefined,
@@ -242,10 +247,10 @@ export default function CampaignRegistrationContainer() {
                     officialPrice: store.officialPrice,
                     totalRecruitment: store.totalRecruitment,
 
-                    scheduleType: store.scheduleType,
-                    recruitmentStartDate: store.recruitmentStartDate,
-                    firstSelectionDate: store.firstSelectionDate,
-                    reviewDeadline: store.reviewDeadline,
+                    scheduleType: draftSchedule.scheduleType,
+                    recruitmentStartDate: draftSchedule.recruitmentStartDate,
+                    firstSelectionDate: draftSchedule.firstSelectionDate,
+                    reviewDeadline: draftSchedule.reviewDeadline,
                     reviewDeadlineDays: store.reviewDeadlineDays,
                     optionConfig: store.optionConfig,
                 },
@@ -334,8 +339,8 @@ export default function CampaignRegistrationContainer() {
             }
 
             // 날짜 계산
-            const now = new Date().toISOString().split('T')[0];
-            const endDate = store.reviewDeadline || store.recruitmentStartDate || now;
+            const schedule = buildCampaignSchedule(store.scheduleType, formatKstDate());
+            const endDate = schedule.reviewDeadline;
 
             const calculateCosts = () => {
                 const recruitmentCount = (store.totalRecruitment === '무제한' || store.totalRecruitment === '999') 
@@ -411,10 +416,10 @@ export default function CampaignRegistrationContainer() {
                 officialPrice: store.officialPrice,
                 totalRecruitment: store.totalRecruitment,
 
-                scheduleType: store.scheduleType,
-                recruitmentStartDate: store.recruitmentStartDate,
-                firstSelectionDate: store.firstSelectionDate,
-                reviewDeadline: store.reviewDeadline,
+                scheduleType: schedule.scheduleType,
+                recruitmentStartDate: schedule.recruitmentStartDate,
+                firstSelectionDate: schedule.firstSelectionDate,
+                reviewDeadline: schedule.reviewDeadline,
                 reviewDeadlineDays: store.reviewDeadlineDays,
                 optionConfig: store.optionConfig,
             };
@@ -467,8 +472,10 @@ export default function CampaignRegistrationContainer() {
                 category: store.category,
                 region: store.region,
                 sub_region: store.subRegion,
-                end_date: store.scheduleType === 'always' ? '9999-12-31' : endDate,
-                is_always: store.scheduleType === 'always',
+                recruitment_start_date: schedule.recruitmentStartDate,
+                first_selection_date: schedule.firstSelectionDate,
+                end_date: endDate,
+                is_always: false,
                 total_recruitment: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
                     ? 999999
                     : parseInt(store.totalRecruitment) || 0,

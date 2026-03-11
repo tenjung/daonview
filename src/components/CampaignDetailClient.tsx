@@ -38,7 +38,8 @@ import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
-import { formatDDay, mapCampaignToCard, resolveCampaignPlatformState } from '@/lib/campaignUtils';
+import { formatDDay, mapCampaignToCard, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
+import { formatKstDate } from '@/lib/campaignSchedule';
 import {
     Dialog,
     DialogContent,
@@ -205,15 +206,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 let merged = brandData || [];
 
                 if (merged.length < 4) {
-                    const { data: alwaysData } = await supabase
+                    const { data: nearbyData } = await supabase
                         .from('campaigns')
                         .select('*')
-                        .eq('is_always', true)
                         .neq('id', campaign.id)
                         .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
+                        .order('end_date', { ascending: true })
                         .limit(8 - merged.length);
 
-                    merged = [...merged, ...(alwaysData || [])];
+                    merged = [...merged, ...(nearbyData || [])];
                 }
 
                 setRelatedCampaigns(merged);
@@ -388,11 +389,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         }
 
         // 모집 기간 종료 체크
-        if (campaign.end_date) {
-            const endDate = new Date(campaign.end_date);
+        if (scheduleDates.endDate) {
+            const endDate = new Date(scheduleDates.endDate);
             const now = new Date();
-            // 시간까지는 정확히 안 따지고 날짜 기준으로 체크하도록 함
-            if (now > endDate && !isAlwaysRecruiting) {
+            if (now > endDate) {
                 toast.error('모집 기간이 종료된 캠페인입니다.');
                 return;
             }
@@ -638,10 +638,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         normalizedCampaignPlatform === 'PURCHASE' ||
         Boolean(step1Data.includeReview);
 
-    const isAlwaysRecruiting = step1Data.scheduleType === 'always' || !campaign.end_date;
-    const showCount = !isAlwaysRecruiting || Boolean(user && (isAdmin || normalizedRole === 'ADVERTISER'));
-    const startDate = formatDateFixed(campaign.recruitment_start_date || campaign.created_at);
-    const endDateLabel = isAlwaysRecruiting ? '상시 모집' : formatDateFixed(campaign.end_date);
+    const scheduleDates = resolveCampaignScheduleDates(campaign);
+    const showCount = Boolean(scheduleDates.endDate) || Boolean(user && (isAdmin || normalizedRole === 'ADVERTISER'));
+    const startDate = formatDateFixed(scheduleDates.startDate || campaign.created_at);
+    const endDateLabel = formatDateFixed(scheduleDates.endDate);
     // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
     const getCampaignImages = () => {
         const imageSet = new Set<string>();
@@ -766,8 +766,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         : (Array.isArray(campaign.stores) ? campaign.stores : (step1Data.stores || []));
 
     // Recruitment Closure Logic
-    const nowStr = new Date().toISOString().split('T')[0];
-    const isPastDeadline = (campaign.end_date && !isAlwaysRecruiting) ? nowStr > campaign.end_date : false;
+    const nowStr = formatKstDate();
+    const isPastDeadline = scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
     const isFull = approvedCount >= campaign.recruit_count && campaign.recruit_count > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
@@ -1414,10 +1414,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    {isAlwaysRecruiting ? '상시 모집' : `${startDate} ~ ${endDateLabel}`}
+                                                    {scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
                                                 </p>
                                                 <p className="text-[10px] text-rose-500 font-bold mt-0.5">
-                                                    {isAlwaysRecruiting ? '중지 시까지' : formatDDay(campaign.end_date)}
+                                                    {scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
                                                 </p>
                                             </div>
                                         </div>
