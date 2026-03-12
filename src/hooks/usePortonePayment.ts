@@ -155,6 +155,7 @@ export const usePortonePayment = () => {
 
     const requestIssueBillingKey = async ({
         issueName,
+        displayAmount,
         customerName,
         customerEmail,
         customerTel,
@@ -163,6 +164,7 @@ export const usePortonePayment = () => {
         planMonths,
     }: {
         issueName: string;
+        displayAmount: number;
         customerName?: string;
         customerEmail?: string;
         customerTel?: string;
@@ -203,6 +205,8 @@ export const usePortonePayment = () => {
                 issueId,
                 billingKeyMethod: 'CARD', // 정기결제 빌링키는 CARD만 지원
                 issueName: issueName.replace(/[^a-zA-Z0-9\s가-힣]/g, '').substring(0, 40),
+                displayAmount: Math.floor(Number(displayAmount)),
+                currency: 'KRW',
                 offerPeriod: {
                     range: { from: now.toISOString(), to: nextMonth.toISOString() },
                 },

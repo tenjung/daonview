@@ -64,6 +64,7 @@ function UnlimitedPaymentContent() {
 
             const response = await requestIssueBillingKey({
                 issueName: `다온뷰 무제한 월 이용권 (${selectedPlan.period})`,
+                displayAmount: totalWithVat,
                 customerName: displayName,
                 customerEmail: user.email || 'customer@example.com',
                 customerTel: user.user_metadata?.phone || user.user_metadata?.mobile || '',
