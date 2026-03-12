@@ -22,55 +22,58 @@ export default function BulkActionsBar({
     }
 
     return (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-bottom-4 duration-300">
-            <div className="bg-white/90 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-gray-100 px-6 py-4 flex items-center gap-6">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white font-bold text-sm">
-                        {selectedCount}
+        <div className="fixed inset-x-0 bottom-6 z-[100] flex justify-center px-4 animate-in fade-in slide-in-from-bottom-4 duration-300">
+            <div className="w-full max-w-5xl rounded-[28px] border border-white/70 bg-white/92 px-4 py-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur-xl sm:px-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3 rounded-2xl bg-rose-50 px-4 py-3 ring-1 ring-rose-100">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-500 text-lg font-black text-white shadow-sm">
+                            {selectedCount}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-rose-500">
+                                Selected
+                            </p>
+                            <p className="whitespace-nowrap text-base font-black text-slate-800">
+                                {selectedCount}개 선택됨
+                            </p>
+                        </div>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">
-                        개 선택됨
-                    </span>
-                </div>
 
-                <div className="h-6 w-px bg-gray-200" />
-
-                <div className="flex items-center gap-2">
-                    <button
-                        onClick={onApprove}
-                        className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors font-bold text-sm shadow-sm"
-                    >
-                        <Check size={16} />
-                        일괄 승인
-                    </button>
-                    
-                    <button
-                        onClick={onReject}
-                        className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors font-bold text-sm shadow-sm"
-                    >
-                        <X size={16} />
-                        일괄 거절
-                    </button>
-
-                    {onExport && (
+                    <div className="flex flex-1 flex-wrap items-center justify-end gap-2.5">
                         <button
-                            onClick={onExport}
-                            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-bold text-sm shadow-sm"
+                            onClick={onApprove}
+                            className="inline-flex h-12 min-w-[132px] items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-emerald-600 px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(5,150,105,0.22)] transition-all hover:-translate-y-0.5 hover:bg-emerald-700"
                         >
-                            <Download size={16} />
-                            Excel 다운로드
+                            <Check size={17} />
+                            일괄 승인
                         </button>
-                    )}
+
+                        <button
+                            onClick={onReject}
+                            className="inline-flex h-12 min-w-[132px] items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-rose-600 px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(225,29,72,0.22)] transition-all hover:-translate-y-0.5 hover:bg-rose-700"
+                        >
+                            <X size={17} />
+                            일괄 거절
+                        </button>
+
+                        {onExport && (
+                            <button
+                                onClick={onExport}
+                                className="inline-flex h-12 min-w-[160px] items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-slate-900 px-5 text-sm font-black text-white shadow-[0_12px_24px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-slate-800"
+                            >
+                                <Download size={17} />
+                                Excel 다운로드
+                            </button>
+                        )}
+
+                        <button
+                            onClick={onClear}
+                            className="inline-flex h-12 items-center justify-center whitespace-nowrap rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-100 hover:text-slate-900"
+                        >
+                            선택 해제
+                        </button>
+                    </div>
                 </div>
-
-                <div className="h-6 w-px bg-gray-200" />
-
-                <button
-                    onClick={onClear}
-                    className="text-sm text-gray-500 hover:text-gray-700 font-medium"
-                >
-                    선택 해제
-                </button>
             </div>
         </div>
     );

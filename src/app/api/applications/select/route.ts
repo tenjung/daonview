@@ -13,6 +13,17 @@ interface SelectApplicationBody {
   manualLinkId?: number | null;
 }
 
+interface AssignedApplicationRow {
+  id: number;
+  status: string;
+  assigned_option_key?: string | null;
+  assigned_option_label?: string | null;
+  assigned_purchase_link_id?: number | null;
+  assigned_purchase_link_url?: string | null;
+  link_assigned_at?: string | null;
+  link_updated_at?: string | null;
+}
+
 function formatDeadlineDate(rawValue?: string | null): string {
   if (!rawValue) return '캠페인 상세 페이지 참조';
   const parsed = new Date(rawValue);
@@ -80,11 +91,26 @@ export async function POST(request: Request) {
 
     const { data: campaign, error: campaignError } = await admin
       .from('campaigns')
-      .select('id, title, created_by, end_date, provision, experience_details, product_name')
+      .select('id, title, created_by, end_date, experience_details, product_name')
       .eq('id', campaignId)
       .single();
 
-    if (campaignError || !campaign) {
+    if (campaignError) {
+      console.error('Application select campaign lookup error:', {
+        campaignId,
+        applicationId,
+        actorUserId: user.id,
+        campaignError,
+      });
+      return NextResponse.json({ error: '캠페인 조회 중 오류가 발생했습니다.' }, { status: 500 });
+    }
+
+    if (!campaign) {
+      console.error('Application select campaign not found:', {
+        campaignId,
+        applicationId,
+        actorUserId: user.id,
+      });
       return NextResponse.json({ error: '캠페인을 찾을 수 없습니다.' }, { status: 404 });
     }
 
@@ -125,25 +151,75 @@ export async function POST(request: Request) {
       }
     }
 
-    const { data: rpcRows, error: rpcError } = await admin.rpc('select_application_with_link', {
-      p_application_id: applicationId,
-      p_campaign_id: campaignId,
-      p_actor_user_id: user.id,
-      p_is_admin: isAdmin,
-      p_target_status: targetStatus,
-      p_assigned_option_label: resolvedOptionLabel,
-      p_manual_link_id: manualLinkId,
-    });
+    const assignedOptionKey = normalizeOptionKey(resolvedOptionLabel);
 
-    if (rpcError) {
-      console.error('select_application_with_link rpc error:', rpcError);
-      return NextResponse.json(
-        { error: rpcError.message || '선정 처리에 실패했습니다.' },
-        { status: 400 }
-      );
+    const { count: activeLinkCount, error: linkCountError } = await admin
+      .from('campaign_purchase_links')
+      .select('id', { count: 'exact', head: true })
+      .eq('campaign_id', campaignId)
+      .eq('is_active', true);
+
+    if (linkCountError) {
+      console.error('Application select link count error:', {
+        campaignId,
+        applicationId,
+        actorUserId: user.id,
+        linkCountError,
+      });
+      return NextResponse.json({ error: '구매링크 상태를 확인할 수 없습니다.' }, { status: 500 });
     }
 
-    const assignedRow = Array.isArray(rpcRows) ? rpcRows[0] : rpcRows;
+    let assignedRow: AssignedApplicationRow | null = null;
+
+    if ((activeLinkCount || 0) > 0) {
+      const { data: rpcRows, error: rpcError } = await admin.rpc('select_application_with_link', {
+        p_application_id: applicationId,
+        p_campaign_id: campaignId,
+        p_actor_user_id: user.id,
+        p_is_admin: isAdmin,
+        p_target_status: targetStatus,
+        p_assigned_option_label: resolvedOptionLabel,
+        p_manual_link_id: manualLinkId,
+      });
+
+      if (rpcError) {
+        console.error('select_application_with_link rpc error:', rpcError);
+        return NextResponse.json(
+          { error: rpcError.message || '선정 처리에 실패했습니다.' },
+          { status: 400 }
+        );
+      }
+
+      assignedRow = (Array.isArray(rpcRows) ? rpcRows[0] : rpcRows) as AssignedApplicationRow | null;
+    } else {
+      const { data: updatedApplication, error: updateError } = await admin
+        .from('applications')
+        .update({
+          status: targetStatus,
+          assigned_option_key: assignedOptionKey || null,
+          assigned_option_label: resolvedOptionLabel || null,
+        })
+        .eq('id', applicationId)
+        .eq('campaign_id', campaignId)
+        .select('id, status, assigned_option_key, assigned_option_label, assigned_purchase_link_id, assigned_purchase_link_url, link_assigned_at, link_updated_at')
+        .single();
+
+      if (updateError || !updatedApplication) {
+        console.error('Application select direct update error:', {
+          campaignId,
+          applicationId,
+          actorUserId: user.id,
+          updateError,
+        });
+        return NextResponse.json(
+          { error: '신청 승인 처리에 실패했습니다.' },
+          { status: 500 }
+        );
+      }
+
+      assignedRow = updatedApplication as AssignedApplicationRow;
+    }
+
     if (!assignedRow) {
       return NextResponse.json({ error: '선정 결과를 확인할 수 없습니다.' }, { status: 500 });
     }
@@ -157,7 +233,6 @@ export async function POST(request: Request) {
     }
 
     const providedItems =
-      campaign.provision ||
       campaign.experience_details ||
       campaign.product_name ||
       '캠페인 상세 페이지 참조';

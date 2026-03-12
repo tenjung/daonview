@@ -695,9 +695,8 @@ export default function ApplicationsTableClient({
         }
     };
 
-    // Excel 내보내기
-    const handleExportExcel = () => {
-        const exportData = filteredApplications.map(app => ({
+    const exportApplicationsToExcel = (targetApplications: Application[], fileLabel: string) => {
+        const exportData = targetApplications.map(app => ({
             '신청일시': new Date(app.created_at).toLocaleString('ko-KR'),
             '이름': app.user?.nickname || '',
             '이메일': app.user?.email || '',
@@ -713,8 +712,21 @@ export default function ApplicationsTableClient({
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, '신청자 목록');
-        XLSX.writeFile(wb, `${campaignTitle}_신청자_${new Date().toISOString().split('T')[0]}.xlsx`);
+        XLSX.writeFile(wb, `${campaignTitle}_${fileLabel}_${new Date().toISOString().split('T')[0]}.xlsx`);
         toast.success('Excel 파일이 다운로드되었습니다.');
+    };
+
+    // Excel 내보내기
+    const handleExportExcel = () => {
+        exportApplicationsToExcel(filteredApplications, '신청자');
+    };
+
+    const handleExportSelectedExcel = () => {
+        if (selectedApplications.length === 0) {
+            toast.error('선택된 신청자가 없습니다.');
+            return;
+        }
+        exportApplicationsToExcel(selectedApplications, '선택신청자');
     };
 
     // 컬럼 정의
@@ -775,7 +787,7 @@ export default function ApplicationsTableClient({
                     selectedCount={selectedApplications.length}
                     onApprove={handleBulkApprove}
                     onReject={handleBulkReject}
-                    onExport={handleExportExcel}
+                    onExport={handleExportSelectedExcel}
                     onClear={() => setSelectedApplications([])}
                 />
             )}

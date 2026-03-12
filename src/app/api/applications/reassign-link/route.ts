@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     const { data: campaign, error: campaignError } = await admin
       .from('campaigns')
-      .select('id, title, created_by, end_date, provision, experience_details, product_name')
+      .select('id, title, created_by, end_date, experience_details, product_name')
       .eq('id', campaignId)
       .single();
 
@@ -146,7 +146,6 @@ export async function POST(request: Request) {
     }
 
     const providedItems =
-      campaign.provision ||
       campaign.experience_details ||
       campaign.product_name ||
       '캠페인 상세 페이지 참조';
