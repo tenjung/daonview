@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { PaymentClient } from '@portone/server-sdk';
 
 interface PortOnePaymentAmount {
   total?: number;
@@ -16,6 +17,8 @@ interface PortOnePaymentCustomData {
 }
 
 export interface PortOnePaymentRecord {
+  id?: string;
+  merchantId?: string;
   merchantUid?: string | null;
   amount?: PortOnePaymentAmount;
   method?: PortOnePaymentMethod;
@@ -78,21 +81,41 @@ const normalizePlanMonths = (planMonths?: number | string) => {
 
 export async function fetchPortOnePayment(paymentId: string): Promise<PortOnePaymentRecord> {
   const apiSecret = getPortOneApiSecret();
-  const response = await fetch(`https://api.portone.io/v2/payments/${encodeURIComponent(paymentId)}`, {
-    method: 'GET',
-    headers: {
-      Authorization: `PortOne ${apiSecret}`,
-      'Content-Type': 'application/json',
-    },
-  });
+  const paymentClient = PaymentClient({ secret: apiSecret });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    console.error('PortOne API error:', errorData);
+  try {
+    const payment = await paymentClient.getPayment({ paymentId });
+    const normalizedPayment = payment as unknown as Record<string, unknown>;
+
+    return {
+      ...normalizedPayment,
+      id: typeof normalizedPayment.id === 'string' ? normalizedPayment.id : paymentId,
+      merchantId:
+        typeof normalizedPayment.merchantId === 'string' ? normalizedPayment.merchantId : undefined,
+      merchantUid:
+        typeof normalizedPayment.merchantUid === 'string'
+          ? normalizedPayment.merchantUid
+          : paymentId,
+      amount:
+        'amount' in payment && payment.amount
+          ? { total: payment.amount.total }
+          : undefined,
+      method:
+        'method' in payment && payment.method
+          ? { type: String(payment.method.type) }
+          : undefined,
+      status: typeof payment.status === 'string' ? payment.status : undefined,
+      customData:
+        'customData' in payment ? (payment.customData ?? null) : null,
+      receiptUrl:
+        'receiptUrl' in payment && typeof payment.receiptUrl === 'string'
+          ? payment.receiptUrl
+          : null,
+    };
+  } catch (error) {
+    console.error('PortOne API error:', error);
     throw new Error('결제 검증 API 호출 실패');
   }
-
-  return response.json();
 }
 
 export async function syncPortOnePayment(
