@@ -17,6 +17,7 @@ export const REVIEW_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   PENDING: '입금 대기',
   PAID: '결제 완료',
+  PARTIAL_CANCELLED: '부분 취소',
   CANCELLED: '결제 취소',
   FAILED: '결제 실패',
 };
@@ -24,8 +25,25 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
 export const PAYMENT_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
   PENDING: 'outline',
   PAID: 'default',
+  PARTIAL_CANCELLED: 'secondary',
   CANCELLED: 'destructive',
   FAILED: 'secondary',
+};
+
+export const REFUND_REQUEST_STATUS_LABELS: Record<string, string> = {
+  REQUESTED: '요청 접수',
+  APPROVED: '부분 환불 완료',
+  REJECTED: '반려됨',
+  CANCELLED: '취소됨',
+  COMPLETED: '환불 완료',
+};
+
+export const REFUND_REQUEST_STATUS_VARIANTS: Record<string, StatusBadgeVariant> = {
+  REQUESTED: 'outline',
+  APPROVED: 'secondary',
+  REJECTED: 'destructive',
+  CANCELLED: 'outline',
+  COMPLETED: 'default',
 };
 
 export const COUPON_STATUS_LABELS: Record<string, string> = {

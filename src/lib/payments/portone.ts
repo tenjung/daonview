@@ -3,7 +3,8 @@ import { PaymentClient } from '@portone/server-sdk';
 
 interface PortOnePaymentAmount {
   total?: number;
-}
+  cancelled?: number;
+  }
 
 interface PortOnePaymentMethod {
   type?: string;
@@ -25,6 +26,13 @@ export interface PortOnePaymentRecord {
   status?: string;
   customData?: PortOnePaymentCustomData | string | null;
   receiptUrl?: string | null;
+  cancellations?: Array<{
+    id?: string;
+    status?: string;
+    reason?: string;
+    cancelledAt?: string;
+    requestedAt?: string;
+  }>;
   [key: string]: unknown;
 }
 
@@ -105,7 +113,10 @@ export async function fetchPortOnePayment(paymentId: string): Promise<PortOnePay
           : paymentId,
       amount:
         'amount' in payment && payment.amount
-          ? { total: payment.amount.total }
+          ? {
+              total: payment.amount.total,
+              cancelled: payment.amount.cancelled,
+            }
           : undefined,
       method:
         'method' in payment && payment.method
@@ -118,6 +129,22 @@ export async function fetchPortOnePayment(paymentId: string): Promise<PortOnePay
         'receiptUrl' in payment && typeof payment.receiptUrl === 'string'
           ? payment.receiptUrl
           : null,
+      cancellations:
+        'cancellations' in payment && Array.isArray(payment.cancellations)
+          ? payment.cancellations.map((cancellation) => ({
+              id: 'id' in cancellation ? String(cancellation.id) : undefined,
+              status: 'status' in cancellation ? String(cancellation.status) : undefined,
+              reason: 'reason' in cancellation ? String(cancellation.reason) : undefined,
+              cancelledAt:
+                'cancelledAt' in cancellation && cancellation.cancelledAt
+                  ? String(cancellation.cancelledAt)
+                  : undefined,
+              requestedAt:
+                'requestedAt' in cancellation && cancellation.requestedAt
+                  ? String(cancellation.requestedAt)
+                  : undefined,
+            }))
+          : undefined,
     };
   } catch (error) {
     console.error('PortOne API error:', error);
@@ -159,6 +186,12 @@ export async function syncPortOnePayment(
     status,
     payment_data: payment,
     receipt_url: payment.receiptUrl || null,
+    cancelled_at:
+      payment.cancellations?.[payment.cancellations.length - 1]?.cancelledAt ||
+      payment.cancellations?.[payment.cancellations.length - 1]?.requestedAt ||
+      null,
+    cancel_reason:
+      payment.cancellations?.[payment.cancellations.length - 1]?.reason || null,
     updated_at: nowIso,
   };
 

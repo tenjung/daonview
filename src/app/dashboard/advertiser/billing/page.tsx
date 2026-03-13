@@ -13,21 +13,44 @@ import {
     AlertTriangle,
     ArrowRight,
     CreditCard,
+    FileWarning,
     ExternalLink,
     Infinity,
     RotateCcw,
     Star,
     Zap,
 } from 'lucide-react';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
+import {
+    PAYMENT_STATUS_LABELS,
+    PAYMENT_STATUS_VARIANTS,
+    REFUND_REQUEST_STATUS_LABELS,
+    REFUND_REQUEST_STATUS_VARIANTS,
+} from '@/constants/status';
+import type { RefundRequestPresenter } from '@/types/paymentRefund';
 
 export default function BillingPage() {
     const { profile, user } = useAuthStore();
     const { subscription, isUnlimited, isCancelled, refetch } = useSubscription();
 
     const [payments, setPayments] = useState<any[]>([]);
+    const [refundRequests, setRefundRequests] = useState<RefundRequestPresenter[]>([]);
     const [isPaymentsLoading, setIsPaymentsLoading] = useState(true);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const [isCancelling, setIsCancelling] = useState(false);
+    const [showRefundRequestModal, setShowRefundRequestModal] = useState(false);
+    const [selectedPaymentId, setSelectedPaymentId] = useState<string | null>(null);
+    const [refundRequestReason, setRefundRequestReason] = useState('');
+    const [isSubmittingRefundRequest, setIsSubmittingRefundRequest] = useState(false);
 
     const fetchPayments = useCallback(async () => {
         if (!user) return;
@@ -52,9 +75,27 @@ export default function BillingPage() {
         }
     }, [user]);
 
+    const fetchRefundRequests = useCallback(async () => {
+        if (!user) return;
+
+        try {
+            const response = await fetch('/api/payments/refund-requests');
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || '환불 요청 정보를 불러오지 못했습니다.');
+            }
+
+            setRefundRequests(result.requests || []);
+        } catch (error) {
+            console.error('[BillingRefundRequests] Fetch Error:', error);
+        }
+    }, [user]);
+
     useEffect(() => {
         fetchPayments();
-    }, [fetchPayments]);
+        fetchRefundRequests();
+    }, [fetchPayments, fetchRefundRequests]);
 
     const handleCancelSubscription = async () => {
         if (!user) return;
@@ -82,6 +123,50 @@ export default function BillingPage() {
 
     const displayName = profile?.company_name || profile?.nickname || '광고주';
     const isVerified = profile?.biz_verification_status === 'APPROVED';
+    const latestRefundRequestByPaymentId = refundRequests.reduce<Record<string, RefundRequestPresenter>>((acc, request) => {
+        const current = acc[request.payment_id];
+        if (!current || new Date(current.requested_at).getTime() < new Date(request.requested_at).getTime()) {
+            acc[request.payment_id] = request;
+        }
+        return acc;
+    }, {});
+
+    const openRefundRequestModal = (paymentId: string) => {
+        setSelectedPaymentId(paymentId);
+        setRefundRequestReason('');
+        setShowRefundRequestModal(true);
+    };
+
+    const submitRefundRequest = async () => {
+        if (!selectedPaymentId) return;
+
+        setIsSubmittingRefundRequest(true);
+        try {
+            const response = await fetch('/api/payments/refund-requests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paymentId: selectedPaymentId,
+                    requestReason: refundRequestReason,
+                }),
+            });
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.message || '환불 요청 접수에 실패했습니다.');
+            }
+
+            toast.success('환불 요청이 접수되었습니다. 관리자 확인 후 처리됩니다.');
+            setShowRefundRequestModal(false);
+            setSelectedPaymentId(null);
+            setRefundRequestReason('');
+            fetchRefundRequests();
+        } catch (error: any) {
+            toast.error(error.message || '환불 요청 접수 중 오류가 발생했습니다.');
+        } finally {
+            setIsSubmittingRefundRequest(false);
+        }
+    };
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
@@ -268,6 +353,7 @@ export default function BillingPage() {
                                                     <th className="px-8 py-4">항목</th>
                                                     <th className="px-8 py-4 text-right">금액</th>
                                                     <th className="px-8 py-4 text-center">상태</th>
+                                                    <th className="px-8 py-4 text-center">환불 요청</th>
                                                     <th className="px-8 py-4 text-center">증빙</th>
                                                 </tr>
                                             </thead>
@@ -275,17 +361,24 @@ export default function BillingPage() {
                                                 {isPaymentsLoading ? (
                                                     Array.from({ length: 3 }).map((_, i) => (
                                                         <tr key={i} className="animate-pulse">
-                                                            <td colSpan={5} className="h-20 bg-gray-50/20" />
+                                                            <td colSpan={6} className="h-20 bg-gray-50/20" />
                                                         </tr>
                                                     ))
                                                 ) : payments.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan={5} className="py-20 text-center font-bold italic text-gray-300">
+                                                        <td colSpan={6} className="py-20 text-center font-bold italic text-gray-300">
                                                             결제 내역이 존재하지 않습니다.
                                                         </td>
                                                     </tr>
                                                 ) : (
-                                                    payments.map((p) => (
+                                                    payments.map((p) => {
+                                                        const refundRequest = latestRefundRequestByPaymentId[p.payment_id];
+                                                        const normalizedPaymentStatus = String(p.status || '').toUpperCase();
+                                                        const canRequestRefund =
+                                                            ['PAID', 'PARTIAL_CANCELLED'].includes(normalizedPaymentStatus) &&
+                                                            !['REQUESTED', 'APPROVED'].includes(String(refundRequest?.status || '').toUpperCase());
+
+                                                        return (
                                                         <tr key={p.id} className="group transition-colors hover:bg-gray-50/50">
                                                             <td className="px-8 py-5 text-center">
                                                                 <div className="flex flex-col items-center">
@@ -306,12 +399,40 @@ export default function BillingPage() {
                                                             <td className="px-8 py-5 text-right font-black text-gray-900">{p.amount.toLocaleString()}원</td>
                                                             <td className="px-8 py-5 text-center">
                                                                 <div className="flex justify-center">
-                                                                    {p.status === 'PAID' ? (
-                                                                        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-black text-emerald-600">결제완료</span>
-                                                                    ) : p.status === 'CANCELLED' ? (
-                                                                        <span className="rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[10px] font-black text-rose-600">취소됨</span>
+                                                                    <StatusBadgeCell
+                                                                        status={p.status}
+                                                                        customLabels={PAYMENT_STATUS_LABELS}
+                                                                        customVariants={PAYMENT_STATUS_VARIANTS}
+                                                                        className="text-[10px] font-black"
+                                                                    />
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-8 py-5 text-center">
+                                                                <div className="flex flex-col items-center gap-2">
+                                                                    {refundRequest ? (
+                                                                        <>
+                                                                            <StatusBadgeCell
+                                                                                status={refundRequest.status}
+                                                                                customLabels={REFUND_REQUEST_STATUS_LABELS}
+                                                                                customVariants={REFUND_REQUEST_STATUS_VARIANTS}
+                                                                                className="text-[10px] font-black"
+                                                                            />
+                                                                            <span className="max-w-[140px] text-center text-[10px] font-bold text-gray-400 line-clamp-2">
+                                                                                {refundRequest.request_reason}
+                                                                            </span>
+                                                                        </>
                                                                     ) : (
-                                                                        <span className="rounded-full bg-gray-100 px-3 py-1 text-[10px] font-black text-gray-400">실패</span>
+                                                                        <span className="text-[10px] font-bold text-gray-300">요청 없음</span>
+                                                                    )}
+
+                                                                    {canRequestRefund && (
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => openRefundRequestModal(p.payment_id)}
+                                                                            className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-1.5 text-[10px] font-black text-amber-600 transition-all hover:bg-amber-100"
+                                                                        >
+                                                                            {normalizedPaymentStatus === 'PARTIAL_CANCELLED' ? '추가 요청' : '취소 요청'}
+                                                                        </button>
                                                                     )}
                                                                 </div>
                                                             </td>
@@ -333,7 +454,7 @@ export default function BillingPage() {
                                                                 </div>
                                                             </td>
                                                         </tr>
-                                                    ))
+                                                    )})
                                                 )}
                                             </tbody>
                                         </table>
@@ -378,6 +499,52 @@ export default function BillingPage() {
                     </div>
                 </div>
             )}
+
+            <Dialog open={showRefundRequestModal} onOpenChange={setShowRefundRequestModal}>
+                <DialogContent className="max-w-lg rounded-3xl border-none bg-white p-0 shadow-2xl">
+                    <DialogHeader className="border-b border-gray-100 px-6 py-5">
+                        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50">
+                            <FileWarning className="h-6 w-6 text-amber-500" />
+                        </div>
+                        <DialogTitle className="text-xl font-black text-gray-900">결제 취소 요청</DialogTitle>
+                        <DialogDescription className="text-sm text-gray-500">
+                            요청 접수 후 관리자가 사유를 확인하고 전액 또는 부분 환불을 처리합니다.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 px-6 py-5">
+                        <div className="rounded-2xl border border-amber-100 bg-amber-50/50 p-4 text-xs font-medium leading-relaxed text-amber-700">
+                            광고주가 결제를 직접 취소하지는 않습니다. 요청 사유를 남기면 관리자가 확인 후 환불 여부와 금액을 확정합니다.
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-black text-gray-900">취소 요청 사유</label>
+                            <Textarea
+                                value={refundRequestReason}
+                                onChange={(event) => setRefundRequestReason(event.target.value)}
+                                placeholder="취소 요청 사유를 입력해 주세요."
+                                className="min-h-[140px] rounded-2xl border-gray-200"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter className="border-t border-gray-100 px-6 py-5">
+                        <button
+                            type="button"
+                            onClick={() => setShowRefundRequestModal(false)}
+                            className="rounded-2xl border border-gray-200 px-5 py-3 text-sm font-black text-gray-600 transition-all hover:bg-gray-50"
+                            disabled={isSubmittingRefundRequest}
+                        >
+                            닫기
+                        </button>
+                        <button
+                            type="button"
+                            onClick={submitRefundRequest}
+                            className="rounded-2xl bg-gray-900 px-5 py-3 text-sm font-black text-white transition-all hover:bg-black disabled:opacity-60"
+                            disabled={isSubmittingRefundRequest || !refundRequestReason.trim()}
+                        >
+                            {isSubmittingRefundRequest ? '요청 중...' : '취소 요청 접수'}
+                        </button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
