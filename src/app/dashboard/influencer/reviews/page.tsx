@@ -319,10 +319,7 @@ export default function InfluencerReviewsPage() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS.map(link => ({
-                    ...link,
-                    active: link.href === '/dashboard/influencer/reviews'
-                }))}
+                links={INFLUENCER_LINKS}
             />
 
             <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:p-8">

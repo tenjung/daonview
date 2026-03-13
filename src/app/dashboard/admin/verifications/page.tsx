@@ -19,23 +19,23 @@ import {
     Building
 } from 'lucide-react';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
-import { useAuthStore } from '@/store/authStore';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 
 export default function AdminVerificationManagementPage() {
-    const { user, isLoading: authLoading } = useAuthStore();
+    const { user, isChecking } = useRoleGuard(['ADMIN']);
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('PENDING');
 
     useEffect(() => {
-        if (authLoading) return;
+        if (isChecking) return;
         if (!user) {
             setLoading(false);
             return;
         }
         fetchRequests();
-    }, [filter, authLoading, user?.id]);
+    }, [filter, isChecking, user?.id]);
 
     async function fetchRequests() {
         setLoading(true);

@@ -4,12 +4,14 @@ import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import Link from 'next/link';
 import { Megaphone } from 'lucide-react';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 
 // Next.js 캐싱 비활성화
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function AdminCampaignsPage() {
+    await requireDashboardRole('ADMIN');
     const supabase = await createClient();
 
     // 모든 캠페인 데이터 가져오기 (관리자는 전체를 봐야 하므로 필터 최소화)

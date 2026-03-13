@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 import { Camera, Mail, Phone, Globe, User, Settings, Heart, Check, MapPin, CreditCard, Search, Edit2, Lock, Building2, FileText, ShieldCheck, AlertTriangle } from 'lucide-react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { useAuthStore } from '@/store/authStore';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS, INFLUENCER_LINKS } from '@/constants/navigation';
+import RoleSidebar from '@/components/RoleSidebar';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
 import {
     buildPreferredPlatforms,
     CREATOR_PLATFORM_OPTIONS,
@@ -93,6 +93,7 @@ const BANK_LIST = [
 ];
 
 function ProfileEditContent() {
+    const { role: guardedRole } = useRoleGuard(['ADVERTISER', 'INFLUENCER']);
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
@@ -621,17 +622,7 @@ function ProfileEditContent() {
 
     return (
         <div className="flex min-h-screen bg-background">
-            <DashboardSidebar
-                userType={profile?.role === 'ADVERTISER' ? 'ADVERTISER' : 'INFLUENCER'}
-                userName={profile?.role === 'ADVERTISER'
-                    ? (profile?.company_name || profile?.nickname || '광고주')
-                    : (profile?.nickname || '사용자')
-                }
-                links={(profile?.role === 'ADVERTISER' ? ADVERTISER_LINKS : INFLUENCER_LINKS).map(link => ({
-                    ...link,
-                    active: link.href === '/profile/edit'
-                }))}
-            />
+            {guardedRole ? <RoleSidebar role={guardedRole} /> : null}
 
             <main className="flex-1 overflow-y-auto bg-slate-50/50 px-0 py-0 md:p-10">
                 <div className="max-w-4xl mx-auto">

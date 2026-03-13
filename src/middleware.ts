@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { coerceDashboardRole, getRoleDashboardPath } from '@/constants/role'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -40,6 +41,39 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
+  }
+
+  const pathname = request.nextUrl.pathname
+  const dashboardRoleMap = [
+    { prefix: '/dashboard/admin', role: 'ADMIN' as const },
+    { prefix: '/dashboard/advertiser', role: 'ADVERTISER' as const },
+    { prefix: '/dashboard/influencer', role: 'INFLUENCER' as const },
+  ]
+
+  const matchedDashboard = dashboardRoleMap.find(
+    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`)
+  )
+
+  if (matchedDashboard) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const currentRole = coerceDashboardRole(profile?.role || user.user_metadata?.role)
+
+    if (!currentRole) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+
+    if (currentRole !== matchedDashboard.role) {
+      const url = request.nextUrl.clone()
+      url.pathname = getRoleDashboardPath(currentRole)
+      return NextResponse.redirect(url)
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

@@ -3,24 +3,24 @@
 import { Suspense } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_NAV } from '@/constants/navigation';
+import { INFLUENCER_NAV } from '@/constants/navigation';
 
-function AdvertiserSidebarContent() {
+function InfluencerSidebarContent() {
     const { profile } = useAuthStore();
 
     return (
         <DashboardSidebar
-            userType="ADVERTISER"
-            userName={profile?.company_name || profile?.nickname || '광고주'}
-            links={ADVERTISER_NAV}
+            userType="INFLUENCER"
+            userName={profile?.nickname || '인플루언서'}
+            links={INFLUENCER_NAV}
         />
     );
 }
 
-export default function AdvertiserSidebar() {
+export default function InfluencerSidebar() {
     return (
         <Suspense fallback={<aside className="w-[260px] bg-white border-r border-border shrink-0" />}>
-            <AdvertiserSidebarContent />
+            <InfluencerSidebarContent />
         </Suspense>
     );
 }

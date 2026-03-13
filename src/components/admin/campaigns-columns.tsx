@@ -32,18 +32,15 @@ interface CampaignColumnContext {
     currentUserRole?: string | null
 }
 
-// 캠페인 정보 셀 (이미지 + 제목 + 카테고리)
+// 캠페인 정보 셀
 function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?: boolean }) {
     // 제목 클릭 시 신청자 관리 페이지로 이동
     const managePath = isAdmin
         ? `/dashboard/admin/campaigns/${campaign.id}`
         : `/dashboard/advertiser/campaigns/${campaign.id}`;
-    const displayTitle = campaign.title.length > 25 
-        ? campaign.title.slice(0, 25) + '...' 
-        : campaign.title;
 
     return (
-        <div className="flex items-center gap-3 max-w-[200px] sm:max-w-[300px] overflow-hidden">
+        <div className="flex items-center gap-3 max-w-[240px] sm:max-w-[360px] overflow-hidden">
             {campaign.main_image_url && (
                 <Image
                     src={campaign.main_image_url}
@@ -57,15 +54,10 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
                 <Link
                     href={managePath}
                     title={campaign.title}
-                    className="font-bold text-gray-900 hover:text-primary transition-colors cursor-pointer break-keep line-clamp-2"
+                    className="block text-sm font-medium leading-6 text-gray-900 hover:text-primary transition-colors cursor-pointer break-keep line-clamp-2"
                 >
-                    {displayTitle}
+                    {campaign.title}
                 </Link>
-                {campaign.category && (
-                    <div className="text-xs text-gray-500">
-                        {campaign.category}
-                    </div>
-                )}
             </div>
         </div>
     );
@@ -234,7 +226,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
     // 관리 (액션 버튼)
     columns.push({
         id: "actions",
-        header: () => <div className="text-center w-full whitespace-nowrap">캠페인 설정</div>,
+        header: () => <div className="text-center w-full whitespace-nowrap">설정</div>,
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';
@@ -277,8 +269,8 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                         {/* 시안 1: 텍스트 버튼 + 드롭다운 (가장 직관적) */}
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-semibold gap-1 h-8 px-2 lg:px-2.5 min-w-8">
-                                    <span className="hidden lg:inline">관리/설정</span>
+                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-medium gap-1 h-8 px-2 lg:px-2 min-w-8 lg:min-w-[72px]">
+                                    <span className="hidden lg:inline">설정</span>
                                     <ChevronDown className="hidden lg:block h-3.5 w-3.5 text-slate-500" />
                                     <MoreHorizontal className="lg:hidden h-4 w-4 text-slate-500" />
                                 </Button>

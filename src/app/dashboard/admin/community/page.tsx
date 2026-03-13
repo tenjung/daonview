@@ -1,12 +1,15 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import CommunityManagementClient from '@/components/admin/CommunityManagementClient';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { MessageSquare } from 'lucide-react';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCommunityPage() {
+    await requireDashboardRole('ADMIN');
+    const supabase = await createClient();
     // 1. 데이터 페칭 (posts 와 notices 테이블 모두 가져오기)
     const [postsRes, noticesRes, sidebarCounts] = await Promise.all([
         supabase

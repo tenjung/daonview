@@ -88,10 +88,7 @@ export default function BillingPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={displayName}
-                links={ADVERTISER_LINKS.map((link) => ({
-                    ...link,
-                    active: link.href === '/dashboard/advertiser/billing',
-                }))}
+                links={ADVERTISER_LINKS}
             />
 
             <main className="flex-1 overflow-y-auto bg-gray-50/50 p-8">

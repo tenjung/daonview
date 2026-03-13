@@ -81,10 +81,7 @@ export default function SettingsPage() {
             <DashboardSidebar
                 userType="INFLUENCER"
                 userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS.map(link => ({
-                    ...link,
-                    active: link.href === '/dashboard/influencer/settings'
-                }))}
+                links={INFLUENCER_LINKS}
             />
 
             <main className="flex-1 p-10 overflow-y-auto">

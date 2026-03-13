@@ -2,26 +2,25 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase/client';
-import { useAuthStore } from '@/store/authStore';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
 import { toast } from 'sonner';
-import AdminSidebar from '@/components/AdminSidebar';
 import { Edit, Trash2, Calendar, ChevronRight } from 'lucide-react';
+import { useRoleGuard } from '@/hooks/useRoleGuard';
+import RoleSidebar from '@/components/RoleSidebar';
 
 export default function DraftCampaignsPage() {
-    const { user, isLoading } = useAuthStore();
+    const { user, role, isChecking } = useRoleGuard(['ADMIN', 'ADVERTISER']);
     const router = useRouter();
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isLoading && user) {
+        if (!isChecking && user) {
             loadDrafts();
-        } else if (!isLoading && !user) {
+        } else if (!isChecking && !user) {
             router.push('/login');
         }
-    }, [isLoading, user]);
+    }, [isChecking, user]);
 
     const loadDrafts = async () => {
         if (!user) return;
@@ -55,11 +54,11 @@ export default function DraftCampaignsPage() {
         }
     };
 
-    if (loading) {
+    if (loading || isChecking || !role) {
         return (
             <div className="flex min-h-screen bg-background">
                 <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
-                     <AdminSidebar />
+                     <RoleSidebar role={role || 'ADVERTISER'} />
                 </Suspense>
                 <div className="flex-1 flex items-center justify-center">
                     <p className="text-gray-500">불러오는 중...</p>
@@ -71,7 +70,7 @@ export default function DraftCampaignsPage() {
     return (
         <div className="flex min-h-screen bg-background">
             <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
-                <AdminSidebar />
+                <RoleSidebar role={role} />
             </Suspense>
 
             <div className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50 py-8 overflow-y-auto">

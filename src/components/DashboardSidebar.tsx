@@ -1,14 +1,35 @@
 'use client';
 
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
-import { 
-    Menu, X, ChevronDown, ChevronRight, 
-    LayoutDashboard, Megaphone, Globe, Heart, UserCog, User, 
-    Truck, Tags, MessageSquare, Users, ClipboardCheck, 
-    ShieldCheck, Store, BarChart3, Image as ImageIcon, PieChart, 
-    Headset, ChevronLeft, PanelLeftClose, PanelLeftOpen,
-    CreditCard, Receipt
+import { type ComponentType, useEffect, useState } from 'react';
+import {
+    Bell,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    ClipboardCheck,
+    CreditCard,
+    FileText,
+    Globe,
+    Headset,
+    Heart,
+    Image as ImageIcon,
+    LayoutDashboard,
+    Mail,
+    Megaphone,
+    MessageCircle,
+    MessageSquare,
+    PieChart,
+    Receipt,
+    ShieldCheck,
+    Store,
+    Tags,
+    Ticket,
+    Truck,
+    User,
+    UserCog,
+    Users,
+    X,
 } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { SidebarLink } from '@/constants/navigation';
@@ -16,56 +37,141 @@ import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
+import { fetchAdminCampaignCounts, type CampaignCounts } from '@/lib/adminUtils';
+import { type DashboardRoleKey } from '@/constants/role';
 
 interface DashboardSidebarProps {
-    userType: 'INFLUENCER' | 'ADVERTISER' | 'ADMIN';
+    userType: DashboardRoleKey;
     userName: string;
     links: SidebarLink[];
+    initialCounts?: CampaignCounts;
 }
 
-const IconMap: Record<string, any> = {
-    LayoutDashboard, Megaphone, Globe, Heart, UserCog, User,
-    Truck, Tags, MessageSquare, Users, ClipboardCheck,
-    ShieldCheck, Store, BarChart3, Image: ImageIcon, PieChart,
-    Headset, CreditCard, Receipt
+const IconMap: Record<string, ComponentType<{ size?: number; className?: string }>> = {
+    Bell,
+    ClipboardCheck,
+    CreditCard,
+    FileText,
+    Globe,
+    Headset,
+    Heart,
+    Image: ImageIcon,
+    LayoutDashboard,
+    Mail,
+    Megaphone,
+    MessageCircle,
+    MessageSquare,
+    PieChart,
+    Receipt,
+    ShieldCheck,
+    Store,
+    Tags,
+    Ticket,
+    Truck,
+    User,
+    UserCog,
+    Users,
 };
 
-export default function DashboardSidebar({ userType, userName, links }: DashboardSidebarProps) {
+function getCampaignTotal(counts: CampaignCounts): number {
+    return Object.values(counts).reduce((sum, count) => sum + count, 0);
+}
+
+function isLinkActive(link: SidebarLink, pathname: string, searchParamsString: string): boolean {
+    const matchPaths = link.matchPaths?.length ? link.matchPaths : [link.href];
+
+    return matchPaths.some((path) => {
+        const url = new URL(path, 'http://localhost');
+        const pathMatches = link.exact
+            ? pathname === url.pathname
+            : pathname === url.pathname || pathname.startsWith(`${url.pathname}/`);
+
+        if (!pathMatches) return false;
+        if (!url.search) return true;
+
+        return url.searchParams.toString() === searchParamsString;
+    });
+}
+
+function hasActiveDescendant(link: SidebarLink, pathname: string, searchParamsString: string): boolean {
+    if (!link.subLinks?.length) return false;
+
+    return link.subLinks.some((subLink) =>
+        isLinkActive(subLink, pathname, searchParamsString) ||
+        hasActiveDescendant(subLink, pathname, searchParamsString)
+    );
+}
+
+export default function DashboardSidebar({
+    userType,
+    userName,
+    links,
+    initialCounts,
+}: DashboardSidebarProps) {
     const { user } = useAuthStore();
+    const pathname = usePathname();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
-    const pathname = usePathname();
     const [searchParamsString, setSearchParamsString] = useState('');
     const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
     const [reviewPendingCount, setReviewPendingCount] = useState(0);
+    const [counts, setCounts] = useState<CampaignCounts>(
+        initialCounts || {
+            pending: 0,
+            upcoming: 0,
+            active: 0,
+            completed: 0,
+            draft: 0,
+        }
+    );
 
-    // 초기 설정 및 로컬스토리지 상태 로드
     useEffect(() => {
-        const savedState = localStorage.getItem('sidebar-collapsed');
+        const savedState = localStorage.getItem(`sidebar-collapsed:${userType.toLowerCase()}`);
         if (savedState !== null) {
             setIsCollapsed(savedState === 'true');
         }
+
+        const params = window.location.search.replace(/^\?/, '');
+        setSearchParamsString(params);
         setIsLoaded(true);
-        setSearchParamsString(window.location.search.replace(/^\?/, ''));
+    }, [userType]);
 
+    useEffect(() => {
         const initialExpanded: Record<string, boolean> = {};
-        links.forEach(link => {
-            const isAnySubActive = link.subLinks?.some(sub => {
-                const subUrl = new URL(sub.href, 'http://localhost');
-                const isPathMatch = pathname === subUrl.pathname;
-                if (subUrl.search) {
-                    return isPathMatch && searchParamsString.includes(subUrl.searchParams.toString());
-                }
-                return isPathMatch;
-            });
 
-            if (isAnySubActive || link.active) {
+        links.forEach((link) => {
+            const currentActive =
+                isLinkActive(link, pathname, searchParamsString) ||
+                hasActiveDescendant(link, pathname, searchParamsString);
+
+            if (currentActive) {
                 initialExpanded[link.label] = true;
             }
         });
-        setExpandedMenus(prev => ({ ...prev, ...initialExpanded }));
+
+        setExpandedMenus((prev) => ({ ...prev, ...initialExpanded }));
     }, [links, pathname, searchParamsString]);
+
+    useEffect(() => {
+        if (userType !== 'ADMIN') return;
+
+        const fetchCounts = async () => {
+            try {
+                const nextCounts = await fetchAdminCampaignCounts(supabase);
+                setCounts(nextCounts);
+            } catch (error) {
+                console.error('Failed to fetch admin sidebar counts:', error);
+            }
+        };
+
+        void fetchCounts();
+        const interval = setInterval(() => {
+            void fetchCounts();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [userType]);
 
     useEffect(() => {
         const fetchReviewPendingCount = async () => {
@@ -90,210 +196,271 @@ export default function DashboardSidebar({ userType, userName, links }: Dashboar
             setReviewPendingCount(count || 0);
         };
 
-        fetchReviewPendingCount();
+        void fetchReviewPendingCount();
     }, [userType, user?.id]);
 
     const toggleCollapse = () => {
-        const newState = !isCollapsed;
-        setIsCollapsed(newState);
-        localStorage.setItem('sidebar-collapsed', String(newState));
+        const nextState = !isCollapsed;
+        setIsCollapsed(nextState);
+        localStorage.setItem(`sidebar-collapsed:${userType.toLowerCase()}`, String(nextState));
     };
 
     const toggleMenu = (label: string) => {
         if (isCollapsed) {
             setIsCollapsed(false);
-            localStorage.setItem('sidebar-collapsed', 'false');
+            localStorage.setItem(`sidebar-collapsed:${userType.toLowerCase()}`, 'false');
         }
-        setExpandedMenus(prev => ({
+
+        setExpandedMenus((prev) => ({
             ...prev,
-            [label]: !prev[label]
+            [label]: !prev[label],
         }));
     };
 
-    const userTypeLabel = {
-        INFLUENCER: 'INFLUENCER',
-        ADVERTISER: 'ADVERTISER',
-        ADMIN: 'ADMIN'
-    };
-
-    if (!isLoaded) return <div className="w-[280px] lg:static fixed h-screen bg-white" />;
+    if (!isLoaded) {
+        return <div className="fixed h-screen w-[260px] bg-white lg:static" />;
+    }
 
     return (
         <>
-            {/* Mobile Menu Button */}
             <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 flex items-center justify-center bg-primary text-white rounded-full shadow-[0_4px_24px_rgba(244,63,94,0.3)] hover:bg-rose-600 transition-all active:scale-95"
-                aria-label="대시보드 메뉴"
+                className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-[0_4px_24px_rgba(244,63,94,0.3)] transition-all active:scale-95 hover:bg-rose-600 lg:hidden"
+                aria-label={`${userType} 대시보드 메뉴`}
             >
                 {mobileMenuOpen ? <X size={24} /> : <LayoutDashboard size={24} />}
             </button>
 
-            {/* Mobile Overlay */}
             {mobileMenuOpen && (
                 <div
-                    className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-opacity"
+                    className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm transition-opacity lg:hidden"
                     onClick={() => setMobileMenuOpen(false)}
                 />
             )}
 
-            {/* Sidebar */}
-            <aside className={cn(
-                "bg-white border-r border-slate-100 flex flex-col shrink-0 fixed lg:static top-0 left-0 h-screen z-40 transition-all duration-300 ease-in-out shadow-xl lg:shadow-none",
-                isCollapsed ? "w-[88px]" : "w-[260px]",
-                mobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-            )}>
-                {/* Collapse Toggle Button (Desktop) */}
+            <aside
+                className={cn(
+                    'fixed top-0 left-0 z-40 flex h-screen shrink-0 flex-col border-r border-slate-100 bg-white shadow-xl transition-all duration-300 ease-in-out lg:static lg:shadow-none',
+                    isCollapsed ? 'w-[88px]' : 'w-[260px]',
+                    mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+                )}
+            >
                 <button
                     onClick={toggleCollapse}
-                    className="hidden lg:flex absolute -right-3 top-10 w-6 h-6 bg-white border border-slate-200 rounded-full items-center justify-center hover:bg-slate-50 text-slate-400 hover:text-primary transition-all z-50 shadow-sm"
+                    className="absolute -right-3 top-10 z-50 hidden h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition-all hover:bg-slate-50 hover:text-primary lg:flex"
                 >
                     {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
                 </button>
 
-                <div className={cn("mb-10 pl-2 pr-2 pt-8", isCollapsed ? "items-center" : "pl-6")}>
+                <div className={cn('mb-10 pt-8', isCollapsed ? 'px-2' : 'pl-6 pr-2')}>
                     {!isCollapsed ? (
                         <>
-                            <div className="text-[10px] font-black uppercase text-primary/40 tracking-[0.2em] mb-1">
-                                {userTypeLabel[userType]}
+                            <div className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                {userType}
                             </div>
-                            <div className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                <span className="bg-rose-500 w-1.5 h-6 rounded-full"></span>
-                                {userName} <span className="text-slate-400 font-medium">님</span>
+                            <div className="flex items-center gap-2 text-xl font-bold text-slate-900">
+                                <span className="h-6 w-1.5 rounded-full bg-rose-500" />
+                                <span className="truncate" title={userName}>
+                                    {userName}
+                                </span>
+                                <span className="font-medium text-slate-400">님</span>
                             </div>
                         </>
                     ) : (
-                        <div className="flex flex-col items-center gap-2 pt-2">
-                            <span className="bg-rose-500 w-1.5 h-6 rounded-full"></span>
+                        <div className="flex justify-center">
+                            <span className="h-6 w-1.5 rounded-full bg-rose-500" />
                         </div>
                     )}
                 </div>
 
                 <TooltipProvider delayDuration={0}>
-                    <nav className={cn("flex flex-col gap-1.5 flex-1 overflow-y-auto custom-scrollbar px-3")}>
+                    <nav className="custom-scrollbar flex flex-1 flex-col gap-1.5 overflow-y-auto px-3">
                         {links.map((link) => {
                             const Icon = link.icon ? IconMap[link.icon] : null;
-                            const hasSubLinks = link.subLinks && link.subLinks.length > 0;
+                            const hasSubLinks = Boolean(link.subLinks?.length);
+                            const isAnySubActive = hasActiveDescendant(link, pathname, searchParamsString);
+                            const isActive = isLinkActive(link, pathname, searchParamsString) || isAnySubActive;
                             const isExpanded = expandedMenus[link.label];
-                            const isAnySubActive = link.subLinks?.some(sub => {
-                                const subUrl = new URL(sub.href, 'http://localhost');
-                                return pathname === subUrl.pathname;
-                            });
-                            const isActive = link.active || isAnySubActive;
-                            const currentBadgeCount = link.badgeKey === 'reviewPending' ? reviewPendingCount : 0;
+                            const badgeCount =
+                                link.badgeKey === 'reviewPending'
+                                    ? reviewPendingCount
+                                    : link.badgeKey === 'campaignTotal'
+                                        ? getCampaignTotal(counts)
+                                        : 0;
 
-                            const content = (
+                            const item = (
                                 <div key={link.label} className="flex flex-col gap-1">
                                     {hasSubLinks ? (
                                         <button
                                             onClick={() => toggleMenu(link.label)}
                                             className={cn(
-                                                "flex items-center px-4 py-3 rounded-xl font-bold transition-all group",
+                                                'flex items-center rounded-xl px-4 py-3 font-bold transition-all group',
                                                 isActive ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-                                                isCollapsed && "justify-center px-0"
+                                                isCollapsed && 'justify-center px-0'
                                             )}
                                         >
-                                            <div className={cn("flex items-center gap-3", isCollapsed && "gap-0")}>
-                                                {Icon && <Icon size={20} className={cn(isActive ? "text-primary" : "text-slate-400 group-hover:text-slate-900")} />}
+                                            <div className={cn('flex items-center gap-3', isCollapsed && 'gap-0')}>
+                                                {Icon ? (
+                                                    <Icon
+                                                        size={20}
+                                                        className={cn(
+                                                            isActive ? 'text-primary' : 'text-slate-400 group-hover:text-slate-900'
+                                                        )}
+                                                    />
+                                                ) : null}
                                                 {!isCollapsed && (
                                                     <>
-                                                        {link.label}
-                                                        {link.tag && (
-                                                            <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
+                                                        <span>{link.label}</span>
+                                                        {link.tag ? (
+                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-black italic tracking-tighter text-white shadow-sm">
                                                                 {link.tag}
                                                             </span>
-                                                        )}
-                                                        {currentBadgeCount > 0 && (
-                                                            <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
-                                                                {currentBadgeCount > 99 ? '99+' : currentBadgeCount}
+                                                        ) : null}
+                                                        {badgeCount > 0 ? (
+                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-white">
+                                                                {badgeCount > 99 ? '99+' : badgeCount}
                                                             </span>
-                                                        )}
+                                                        ) : null}
                                                     </>
                                                 )}
                                             </div>
-                                            {!isCollapsed && (isExpanded ? <ChevronDown size={14} className="ml-auto" /> : <ChevronRight size={14} className="ml-auto" />)}
+                                            {!isCollapsed &&
+                                                (isExpanded ? (
+                                                    <ChevronDown size={14} className="ml-auto" />
+                                                ) : (
+                                                    <ChevronRight size={14} className="ml-auto" />
+                                                ))}
                                         </button>
                                     ) : (
                                         <Link
                                             href={link.href}
                                             onClick={() => setMobileMenuOpen(false)}
                                             className={cn(
-                                                "flex items-center px-4 py-3 rounded-xl font-bold transition-all group",
-                                                link.active ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
-                                                isCollapsed && "justify-center px-0"
+                                                'flex items-center rounded-xl px-4 py-3 font-bold transition-all group',
+                                                isActive ? 'bg-rose-50 text-primary' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900',
+                                                isCollapsed && 'justify-center px-0'
                                             )}
                                         >
-                                            <div className={cn("flex items-center gap-3", isCollapsed && "gap-0")}>
-                                                {Icon && <Icon size={20} className={cn(link.active ? "text-primary" : "text-slate-400 group-hover:text-slate-900")} />}
+                                            <div className={cn('flex items-center gap-3', isCollapsed && 'gap-0')}>
+                                                {Icon ? (
+                                                    <Icon
+                                                        size={20}
+                                                        className={cn(
+                                                            isActive ? 'text-primary' : 'text-slate-400 group-hover:text-slate-900'
+                                                        )}
+                                                    />
+                                                ) : null}
                                                 {!isCollapsed && (
                                                     <>
-                                                        {link.label}
-                                                        {link.tag && (
-                                                            <span className="bg-primary text-white text-[9px] font-black px-1.5 py-0.5 rounded-md italic tracking-tighter shadow-sm">
+                                                        <span>{link.label}</span>
+                                                        {link.tag ? (
+                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-black italic tracking-tighter text-white shadow-sm">
                                                                 {link.tag}
                                                             </span>
-                                                        )}
-                                                        {currentBadgeCount > 0 && (
-                                                            <span className="bg-amber-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full min-w-[18px] text-center leading-none">
-                                                                {currentBadgeCount > 99 ? '99+' : currentBadgeCount}
+                                                        ) : null}
+                                                        {badgeCount > 0 ? (
+                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-white">
+                                                                {badgeCount > 99 ? '99+' : badgeCount}
                                                             </span>
-                                                        )}
+                                                        ) : null}
                                                     </>
                                                 )}
                                             </div>
                                         </Link>
                                     )}
 
-                                    {/* Sub Links */}
-                                    {hasSubLinks && isExpanded && !isCollapsed && (
-                                        <div className="flex flex-col gap-1 ml-6 pl-4 border-l border-slate-100 mt-1 mb-2 animate-in slide-in-from-top-2 duration-300">
-                                            {link.subLinks?.map((sub) => {
-                                                const subHrefUrl = new URL(sub.href, 'http://localhost');
-                                                const isParamMatch = subHrefUrl.searchParams.toString() === searchParamsString;
-                                                const isSubActive = sub.active || (pathname === subHrefUrl.pathname && (!subHrefUrl.search || isParamMatch));
+                                    {hasSubLinks && isExpanded && !isCollapsed ? (
+                                        <div className="mt-1 mb-2 ml-6 flex flex-col gap-1 border-l border-slate-100 pl-4 animate-in slide-in-from-top-2 duration-300">
+                                            {link.subLinks?.map((subLink) => {
+                                                const isSubActive =
+                                                    isLinkActive(subLink, pathname, searchParamsString) ||
+                                                    hasActiveDescendant(subLink, pathname, searchParamsString);
+                                                const subHasChildren = Boolean(subLink.subLinks?.length);
+
+                                                if (!subHasChildren) {
+                                                    return (
+                                                        <Link
+                                                            key={subLink.href}
+                                                            href={subLink.href}
+                                                            onClick={() => setMobileMenuOpen(false)}
+                                                            className={cn(
+                                                                'rounded-lg px-4 py-2 text-sm font-semibold transition-all',
+                                                                isSubActive
+                                                                    ? 'text-primary'
+                                                                    : 'text-slate-400 hover:bg-slate-50/50 hover:text-slate-700'
+                                                            )}
+                                                        >
+                                                            {subLink.label}
+                                                        </Link>
+                                                    );
+                                                }
 
                                                 return (
-                                                    <Link
-                                                        key={sub.href}
-                                                        href={sub.href}
-                                                        onClick={() => setMobileMenuOpen(false)}
-                                                        className={cn(
-                                                            "px-4 py-2 rounded-lg text-sm font-semibold transition-all",
-                                                            isSubActive ? 'text-primary' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50/50'
-                                                        )}
-                                                    >
-                                                        {sub.label}
-                                                    </Link>
+                                                    <div key={subLink.href} className="flex flex-col gap-1">
+                                                        <div
+                                                            className={cn(
+                                                                'rounded-lg px-4 py-2 text-sm font-semibold transition-all',
+                                                                isSubActive ? 'text-primary' : 'text-slate-500'
+                                                            )}
+                                                        >
+                                                            {subLink.label}
+                                                        </div>
+                                                        <div className="ml-3 flex flex-col gap-1 border-l border-slate-100 pl-3">
+                                                            {subLink.subLinks?.map((nestedLink) => {
+                                                                const isNestedActive = isLinkActive(
+                                                                    nestedLink,
+                                                                    pathname,
+                                                                    searchParamsString
+                                                                );
+
+                                                                return (
+                                                                    <Link
+                                                                        key={nestedLink.href}
+                                                                        href={nestedLink.href}
+                                                                        onClick={() => setMobileMenuOpen(false)}
+                                                                        className={cn(
+                                                                            'rounded-lg px-3 py-2 text-sm font-medium transition-all',
+                                                                            isNestedActive
+                                                                                ? 'text-primary'
+                                                                                : 'text-slate-400 hover:bg-slate-50/50 hover:text-slate-700'
+                                                                        )}
+                                                                    >
+                                                                        {nestedLink.label}
+                                                                    </Link>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
                                                 );
                                             })}
                                         </div>
-                                    )}
+                                    ) : null}
                                 </div>
                             );
 
-                            return isCollapsed ? (
+                            if (!isCollapsed) return item;
+
+                            return (
                                 <Tooltip key={link.label}>
-                                    <TooltipTrigger asChild>
-                                        {content}
-                                    </TooltipTrigger>
+                                    <TooltipTrigger asChild>{item}</TooltipTrigger>
                                     <TooltipContent side="right" className="font-bold">
                                         {link.label}
                                     </TooltipContent>
                                 </Tooltip>
-                            ) : content;
+                            );
                         })}
                     </nav>
                 </TooltipProvider>
 
-                <div className={cn("mt-auto pt-6 border-t border-slate-50 pb-8 px-4", isCollapsed && "px-2 items-center")}>
+                <div className={cn('mt-auto border-t border-slate-50 px-4 pt-6 pb-8', isCollapsed && 'px-2')}>
                     <Link
                         href="/"
                         className={cn(
-                            "flex items-center justify-center p-3 rounded-xl bg-slate-50 text-slate-400 text-xs font-bold hover:bg-slate-100 transition-colors",
-                            isCollapsed && "p-2"
+                            'flex items-center justify-center rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-400 transition-colors hover:bg-slate-100',
+                            isCollapsed && 'p-2'
                         )}
                     >
-                        {isCollapsed ? <X size={16} /> : "홈으로 돌아가기"}
+                        {isCollapsed ? <X size={16} /> : '홈으로 돌아가기'}
                     </Link>
                 </div>
             </aside>

@@ -1,12 +1,15 @@
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
 import { LayoutDashboard } from 'lucide-react';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 
 export default async function AdminDashboard() {
+    await requireDashboardRole('ADMIN');
+    const supabase = await createClient();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 

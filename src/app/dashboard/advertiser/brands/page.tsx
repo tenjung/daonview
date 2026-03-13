@@ -209,10 +209,7 @@ export default function BrandManagementPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS.map(link => ({
-                    ...link,
-                    active: link.href === '/dashboard/advertiser/brands'
-                }))}
+                links={ADVERTISER_LINKS}
             />
 
             <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">

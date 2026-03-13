@@ -17,10 +17,7 @@ export default function AdvertiserCampaignsPage() {
             <DashboardSidebar
                 userType="ADVERTISER"
                 userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS.map(link => ({
-                    ...link,
-                    active: link.href === '/dashboard/advertiser/campaigns'
-                }))}
+                links={ADVERTISER_LINKS}
             />
 
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
@@ -51,4 +48,3 @@ export default function AdvertiserCampaignsPage() {
         </div>
     );
 }
-

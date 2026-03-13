@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
@@ -59,8 +60,32 @@ interface LinkCandidate {
     usageCount: number;
 }
 
+function getApplicantStatusMeta(applicant: Applicant) {
+    const isSelected = applicant.status === 'SELECTED' || applicant.status === 'APPROVED';
+
+    if (applicant.status === 'REJECTED') {
+        return {
+            label: '거절됨',
+            className: 'bg-gray-100 text-gray-500',
+        };
+    }
+
+    if (isSelected) {
+        return {
+            label: '선정됨',
+            className: 'bg-emerald-100 text-emerald-700',
+        };
+    }
+
+    return {
+        label: '대기중',
+        className: 'bg-blue-100 text-blue-700',
+    };
+}
+
 export default function AdvertiserApplicantsPage() {
     const { user, profile, isLoading } = useAuthStore();
+    const router = useRouter();
     const [campaignIdFilter, setCampaignIdFilter] = useState<number | null>(null);
     const [applicants, setApplicants] = useState<Applicant[]>([]);
     const [loading, setLoading] = useState(true);
@@ -83,6 +108,15 @@ export default function AdvertiserApplicantsPage() {
     }, []);
 
     useEffect(() => {
+        if (typeof window === 'undefined') return;
+        if (campaignIdFilter !== null) return;
+        if (isLoading) return;
+
+        router.replace('/dashboard/advertiser/campaigns');
+    }, [campaignIdFilter, isLoading, router]);
+
+    useEffect(() => {
+        if (campaignIdFilter === null) return;
         if (!isLoading && user) {
             fetchApplicants();
         } else if (!isLoading && !user) {
@@ -499,22 +533,36 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
+    const groupedApplicants = applicants.reduce((acc, applicant) => {
+        const campaignId = applicant.campaign.id;
+        const existingGroup = acc.get(campaignId);
+
+        if (existingGroup) {
+            existingGroup.items.push(applicant);
+            return acc;
+        }
+
+        acc.set(campaignId, {
+            campaign: applicant.campaign,
+            items: [applicant]
+        });
+
+        return acc;
+    }, new Map<number, { campaign: Applicant['campaign']; items: Applicant[] }>());
+
     return (
         <div className="flex min-h-screen bg-background text-foreground">
             <Suspense fallback={<div className="w-[280px] lg:static fixed h-screen bg-white" />}>
                 <DashboardSidebar
                     userType="ADVERTISER"
                     userName={profile?.company_name || profile?.nickname || '광고주'}
-                    links={ADVERTISER_LINKS.map(link => ({
-                        ...link,
-                        active: link.href === '/dashboard/advertiser/applicants'
-                    }))}
+                    links={ADVERTISER_LINKS}
                 />
             </Suspense>
             <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
                 <div className="max-w-6xl mx-auto">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">신청자 목록</h1>
-                    <p className="text-gray-500 mb-8">내 캠페인에 지원한 리뷰어들을 확인하고 선정하세요.</p>
+                    <p className="text-gray-500 mb-8">선택한 캠페인에 지원한 리뷰어들을 확인하고 선정하세요.</p>
 
                     {loading ? (
                         <div className="text-center py-20">Loading...</div>
@@ -523,145 +571,245 @@ export default function AdvertiserApplicantsPage() {
                             <p className="text-gray-500">아직 신청한 리뷰어가 없습니다.</p>
                         </div>
                     ) : (
-                        <div className="grid gap-4">
-                            {applicants.map((app) => {
-                                const isSelectedStatus = app.status === 'SELECTED' || app.status === 'APPROVED';
-                                const individualLinkCampaign = isIndividualLinkCampaign(app);
+                        <div className="space-y-8">
+                            {Array.from(groupedApplicants.values()).map(({ campaign, items }) => {
+                                const pendingCount = items.filter((item) => item.status === 'PENDING').length;
+                                const selectedCount = items.filter((item) => item.status === 'SELECTED' || item.status === 'APPROVED').length;
+                                const rejectedCount = items.filter((item) => item.status === 'REJECTED').length;
 
                                 return (
-                                <div key={app.id} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
-                                    <div className="flex items-center gap-6">
-                                        <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-xl">
-                                            {app.user.avatar_url ? <img src={app.user.avatar_url} className="w-full h-full rounded-full object-cover" /> : '👤'}
-                                        </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className="font-bold text-lg">{app.user.nickname}</span>
-                                                <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full font-medium">
-                                                    {app.campaign.title}
-                                                </span>
-                                            </div>
-                                            
-                                            {/* 옵션 및 메시지 표시부 */}
-                                            <div className="space-y-1.5 mb-2">
-                                                {app.selected_option && (
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-[10px] font-bold text-blue-500 bg-blue-50 px-1.5 py-0.5 rounded shrink-0 uppercase">Option</span>
-                                                        <span className="text-xs font-semibold text-blue-700">{app.selected_option}</span>
-                                                    </div>
-                                                )}
-                                                {app.assigned_option_label && (
-                                                    <div className="flex items-start gap-2">
-                                                        <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-1.5 py-0.5 rounded shrink-0 uppercase">Assigned</span>
-                                                        <span className="text-xs font-semibold text-emerald-700">{app.assigned_option_label}</span>
-                                                    </div>
-                                                )}
-                                                {app.assigned_purchase_link_url && (
-                                                    <span className="text-xs text-indigo-600 font-semibold">
-                                                        개별 링크 할당 완료
-                                                    </span>
-                                                )}
-                                                <div className="text-sm text-gray-600 line-clamp-2">{app.application_message || '지원 메시지가 없습니다.'}</div>
-                                            </div>
-
-                                            <div className="flex gap-2 text-xs text-blue-600">
-                                                {app.user.blog_url && <a href={app.user.blog_url} target="_blank" className="hover:underline flex items-center gap-1">블로그 <ExternalLink size={10}/></a>}
-                                                {app.user.instagram_url && <a href={app.user.instagram_url} target="_blank" className="hover:underline flex items-center gap-1">인스타 <ExternalLink size={10}/></a>}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        {app.status === 'PENDING' ? (
-                                            <>
-                                                <button
-                                                    onClick={() => handleStatusChange(app.id, 'SELECTED')}
-                                                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition-colors"
-                                                >
-                                                    선정하기
-                                                </button>
-                                                <button
-                                                    onClick={() => handleStatusChange(app.id, 'REJECTED')}
-                                                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors"
-                                                >
-                                                    거절
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <div className="flex flex-col items-end gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    {app.extension_status === 'PENDING' && (
-                                                        <span className="px-2 py-0.5 bg-orange-100 text-orange-600 rounded text-[10px] font-bold animate-pulse">
-                                                            연장 요청됨
+                                    <section key={campaign.id} className="space-y-4">
+                                        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+                                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                                                <div className="space-y-2">
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <h2 className="text-2xl font-black text-gray-900">{campaign.title}</h2>
+                                                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
+                                                            신청 {items.length}명
                                                         </span>
-                                                    )}
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-bold ${isSelectedStatus ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                                                        }`}>
-                                                        {isSelectedStatus ? '선정됨' : '거절됨'}
-                                                    </span>
+                                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-600">
+                                                            선정 {selectedCount}명
+                                                        </span>
+                                                        {pendingCount > 0 && (
+                                                            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-600">
+                                                                대기 {pendingCount}명
+                                                            </span>
+                                                        )}
+                                                        {rejectedCount > 0 && (
+                                                            <span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-bold text-gray-500">
+                                                                거절 {rejectedCount}명
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm text-gray-500">
+                                                        같은 캠페인 신청자를 한 묶음으로 보고 바로 선정, 거절, 배송 후속 작업까지 처리할 수 있게 정리했습니다.
+                                                    </p>
                                                 </div>
-                                                
-                                                {app.extension_status === 'PENDING' && (
-                                                    <div className="bg-orange-50 p-3 rounded-lg border border-orange-100 mt-1 max-w-[250px] text-right">
-                                                        <p className="text-xs text-orange-800 font-medium mb-2 italic">"{app.extension_reason}"</p>
-                                                        <div className="flex justify-end gap-2">
-                                                            <button 
-                                                                onClick={() => handleExtensionAction(app.id, 'APPROVED')}
-                                                                className="text-[10px] bg-orange-500 text-white px-2 py-1 rounded-md font-bold hover:bg-orange-600"
-                                                            >
-                                                                승인(+7일)
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => handleExtensionAction(app.id, 'REJECTED')}
-                                                                className="text-[10px] bg-gray-400 text-white px-2 py-1 rounded-md font-bold hover:bg-gray-500"
-                                                            >
-                                                                거절
-                                                            </button>
+                                                <div className="grid grid-cols-3 gap-2 rounded-2xl bg-gray-50 p-3 text-center text-sm">
+                                                    <div>
+                                                        <div className="text-xs font-semibold text-gray-400">캠페인 유형</div>
+                                                        <div className="mt-1 font-bold text-gray-900">{campaign.type}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs font-semibold text-gray-400">모집 상태</div>
+                                                        <div className="mt-1 font-bold text-gray-900">{campaign.is_always ? '상시' : '일반'}</div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-xs font-semibold text-gray-400">마감일</div>
+                                                        <div className="mt-1 font-bold text-gray-900">
+                                                            {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString() : '-'}
                                                         </div>
                                                     </div>
-                                                )}
-
-                                                {isSelectedStatus && app.campaign.type === 'DELIVERY' && (
-                                                    <button
-                                                        onClick={() => setEditingTracking({
-                                                            applicationId: app.id,
-                                                            company: app.tracking_company || '',
-                                                            number: app.tracking_number || ''
-                                                        })}
-                                                        className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-                                                    >
-                                                        {app.tracking_number ? '운송장 수정' : '운송장 입력'}
-                                                    </button>
-                                                )}
-
-                                                {isSelectedStatus && (
-                                                    <button
-                                                        onClick={() => handleResendSelectionNotification(app)}
-                                                        className="text-xs text-rose-600 hover:underline"
-                                                    >
-                                                        알림 재발송
-                                                    </button>
-                                                )}
-
-                                                {isSelectedStatus && individualLinkCampaign && (
-                                                    <button
-                                                        onClick={() => openSelectionModal(app, 'REASSIGN')}
-                                                        className="text-xs text-indigo-600 hover:underline"
-                                                    >
-                                                        링크 재할당
-                                                    </button>
-                                                )}
-                                                
-                                                {app.review_deadline && (
-                                                    <div className="text-[10px] text-gray-400">
-                                                        마감: {new Date(app.review_deadline).toLocaleDateString()}
-                                                    </div>
-                                                )}
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                </div>
-                            )})}
+                                        </div>
+
+                                        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+                                            <div className="hidden grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.6fr)_minmax(160px,0.8fr)_minmax(200px,1fr)] gap-4 border-b border-gray-100 bg-gray-50 px-6 py-4 text-sm font-bold text-gray-500 lg:grid">
+                                                <div>신청자</div>
+                                                <div>신청 내용</div>
+                                                <div>상태</div>
+                                                <div className="text-right">액션</div>
+                                            </div>
+
+                                            <div className="divide-y divide-gray-100">
+                                                {items.map((app) => {
+                                                    const isSelectedStatus = app.status === 'SELECTED' || app.status === 'APPROVED';
+                                                    const individualLinkCampaign = isIndividualLinkCampaign(app);
+                                                    const statusMeta = getApplicantStatusMeta(app);
+
+                                                    return (
+                                                        <div
+                                                            key={app.id}
+                                                            className="grid gap-4 px-6 py-5 lg:grid-cols-[minmax(220px,1.3fr)_minmax(260px,1.6fr)_minmax(160px,0.8fr)_minmax(200px,1fr)] lg:items-start"
+                                                        >
+                                                            <div className="flex items-start gap-4">
+                                                                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gray-100 text-xl">
+                                                                    {app.user.avatar_url ? (
+                                                                        <img
+                                                                            src={app.user.avatar_url}
+                                                                            alt={app.user.nickname}
+                                                                            className="h-full w-full object-cover"
+                                                                        />
+                                                                    ) : (
+                                                                        '👤'
+                                                                    )}
+                                                                </div>
+                                                                <div className="min-w-0 space-y-2">
+                                                                    <div>
+                                                                        <div className="text-lg font-black text-gray-900">{app.user.nickname}</div>
+                                                                        <div className="text-xs text-gray-400">
+                                                                            신청일 {new Date(app.created_at).toLocaleDateString()}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-2 text-xs text-blue-600">
+                                                                        {app.user.blog_url && (
+                                                                            <a
+                                                                                href={app.user.blog_url}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="inline-flex items-center gap-1 hover:underline"
+                                                                            >
+                                                                                블로그 <ExternalLink size={10} />
+                                                                            </a>
+                                                                        )}
+                                                                        {app.user.instagram_url && (
+                                                                            <a
+                                                                                href={app.user.instagram_url}
+                                                                                target="_blank"
+                                                                                rel="noreferrer"
+                                                                                className="inline-flex items-center gap-1 hover:underline"
+                                                                            >
+                                                                                인스타 <ExternalLink size={10} />
+                                                                            </a>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <div className="flex flex-wrap gap-2">
+                                                                    {app.selected_option && (
+                                                                        <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700">
+                                                                            신청 옵션: {app.selected_option}
+                                                                        </span>
+                                                                    )}
+                                                                    {app.assigned_option_label && (
+                                                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                                                                            확정 옵션: {app.assigned_option_label}
+                                                                        </span>
+                                                                    )}
+                                                                    {app.assigned_purchase_link_url && (
+                                                                        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700">
+                                                                            링크 할당 완료
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                                                                    {app.application_message || '지원 메시지가 없습니다.'}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="space-y-2">
+                                                                <div className="flex flex-wrap items-center gap-2">
+                                                                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusMeta.className}`}>
+                                                                        {statusMeta.label}
+                                                                    </span>
+                                                                    {app.extension_status === 'PENDING' && (
+                                                                        <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-600">
+                                                                            연장 요청
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+
+                                                                {app.review_deadline && (
+                                                                    <div className="text-xs font-medium text-gray-500">
+                                                                        리뷰 마감 {new Date(app.review_deadline).toLocaleDateString()}
+                                                                    </div>
+                                                                )}
+
+                                                                {app.extension_status === 'PENDING' && (
+                                                                    <div className="rounded-xl border border-orange-100 bg-orange-50 p-3">
+                                                                        <p className="mb-2 text-xs font-medium italic text-orange-800">
+                                                                            "{app.extension_reason}"
+                                                                        </p>
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            <button
+                                                                                onClick={() => handleExtensionAction(app.id, 'APPROVED')}
+                                                                                className="rounded-md bg-orange-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-orange-600"
+                                                                            >
+                                                                                승인(+7일)
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleExtensionAction(app.id, 'REJECTED')}
+                                                                                className="rounded-md bg-gray-400 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-gray-500"
+                                                                            >
+                                                                                거절
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            <div className="flex flex-col items-start gap-2 lg:items-end">
+                                                                {app.status === 'PENDING' ? (
+                                                                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                                                                        <button
+                                                                            onClick={() => handleStatusChange(app.id, 'SELECTED')}
+                                                                            className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                                                                        >
+                                                                            선정하기
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleStatusChange(app.id, 'REJECTED')}
+                                                                            className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                                                                        >
+                                                                            거절
+                                                                        </button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex flex-col items-start gap-2 text-sm lg:items-end">
+                                                                        {isSelectedStatus && app.campaign.type === 'DELIVERY' && (
+                                                                            <button
+                                                                                onClick={() => setEditingTracking({
+                                                                                    applicationId: app.id,
+                                                                                    company: app.tracking_company || '',
+                                                                                    number: app.tracking_number || ''
+                                                                                })}
+                                                                                className="font-semibold text-blue-600 hover:underline"
+                                                                            >
+                                                                                {app.tracking_number ? '운송장 수정' : '운송장 입력'}
+                                                                            </button>
+                                                                        )}
+
+                                                                        {isSelectedStatus && (
+                                                                            <button
+                                                                                onClick={() => handleResendSelectionNotification(app)}
+                                                                                className="font-semibold text-rose-600 hover:underline"
+                                                                            >
+                                                                                알림 재발송
+                                                                            </button>
+                                                                        )}
+
+                                                                        {isSelectedStatus && individualLinkCampaign && (
+                                                                            <button
+                                                                                onClick={() => openSelectionModal(app, 'REASSIGN')}
+                                                                                className="font-semibold text-indigo-600 hover:underline"
+                                                                            >
+                                                                                링크 재할당
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </section>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
