@@ -44,5 +44,9 @@ next-env.d.ts
 # SQL files (managed directly in Supabase)
 *.sql
 /migrations/
+/supabase/.temp/
+!/supabase/
+!/supabase/migrations/
+!/supabase/migrations/*.sql
 
 .env*.local
