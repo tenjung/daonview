@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as PortOne from '@portone/server-sdk';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { syncPortOnePayment } from '@/lib/payments/portone';
+import { PortOnePaymentNotFoundError, syncPortOnePayment } from '@/lib/payments/portone';
 
 const extractPaymentId = (webhook: PortOne.Webhook.Webhook) => {
   if (PortOne.Webhook.isUnrecognizedWebhook(webhook)) {
@@ -74,6 +74,13 @@ export async function POST(request: Request) {
         },
         { status: 401 }
       );
+    }
+
+    if (error instanceof PortOnePaymentNotFoundError) {
+      return NextResponse.json({
+        success: true,
+        message: '포트원 호출 테스트 또는 미존재 결제건으로 판단되어 동기화를 생략했습니다.',
+      });
     }
 
     console.error('PortOne webhook error:', error);

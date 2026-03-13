@@ -28,6 +28,13 @@ export interface PortOnePaymentRecord {
   [key: string]: unknown;
 }
 
+export class PortOnePaymentNotFoundError extends Error {
+  constructor(message = '포트원 결제건을 찾을 수 없습니다.') {
+    super(message);
+    this.name = 'PortOnePaymentNotFoundError';
+  }
+}
+
 const getPortOneApiSecret = () => {
   const apiSecret = process.env.PORTONE_API_SECRET;
 
@@ -114,6 +121,19 @@ export async function fetchPortOnePayment(paymentId: string): Promise<PortOnePay
     };
   } catch (error) {
     console.error('PortOne API error:', error);
+
+    if (
+      error &&
+      typeof error === 'object' &&
+      'data' in error &&
+      error.data &&
+      typeof error.data === 'object' &&
+      'type' in error.data &&
+      error.data.type === 'PAYMENT_NOT_FOUND'
+    ) {
+      throw new PortOnePaymentNotFoundError();
+    }
+
     throw new Error('결제 검증 API 호출 실패');
   }
 }
