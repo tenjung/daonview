@@ -77,6 +77,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                     </Button>
                 )
             },
+            meta: { columnLabel: "신청일시" },
             cell: ({ row }) => <DateCell date={row.getValue("created_at")} showTime={true} />,
             size: 160,
         },
@@ -84,6 +85,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "user",
             header: "인플루언서 정보",
+            meta: { columnLabel: "인플루언서 정보" },
             cell: ({ row }) => {
                 const userId = row.original.user_id;
                 const stats = context.influencerStats?.get(userId);
@@ -138,6 +140,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "user.phone_number",
             header: "연락처",
+            meta: { columnLabel: "연락처" },
             cell: ({ row }) => {
                 const phone = row.original.user?.phone_number;
                 if (!phone || phone.trim().length < 10) {
@@ -152,6 +155,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "user.sns_url",
             header: "SNS",
+            meta: { columnLabel: "SNS" },
             cell: ({ row }) => (
                 <SnsLinkCell 
                     url={row.original.user?.sns_url} 
@@ -165,6 +169,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "selected_option",
             header: "신청 옵션",
+            meta: { columnLabel: "신청 옵션" },
             cell: ({ row }) => {
                 const option = row.getValue("selected_option") as string;
                 if (!option) return '-';
@@ -220,6 +225,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             accessorKey: "application_message",
             header: "신청 메시지",
+            meta: { columnLabel: "신청 메시지" },
             cell: ({ row }) => {
                 const message = row.getValue("application_message") as string;
                 if (!message) return <div className="text-sm text-gray-400">-</div>;
@@ -252,6 +258,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         ...(context.campaignType === 'DELIVERY' ? [{
             id: "tracking",
             header: "송장 정보",
+            meta: { columnLabel: "송장 정보" },
             cell: ({ row }: { row: any }) => {
                 const app = row.original;
                 const isSelected = (app.status?.toUpperCase() === 'APPROVED' || app.status?.toUpperCase() === 'SELECTED');
@@ -284,6 +291,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             id: "deadline",
             header: "리뷰 마감",
+            meta: { columnLabel: "리뷰 마감" },
             cell: ({ row }) => {
                 const app = row.original;
                 if (!app.review_deadline) return <span className="text-gray-400">-</span>;
@@ -326,6 +334,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                     평판
                 </div>
             ),
+            meta: { columnLabel: "평판" },
             cell: ({ row }) => {
                 const userId = row.original.user_id;
                 const stats = context.influencerStats?.get(userId);
@@ -379,6 +388,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                     </Button>
                 )
             },
+            meta: { columnLabel: "상태" },
             cell: ({ row }) => <ApplicationStatusBadge status={row.getValue("status")} />,
             size: 120,
         },
@@ -386,6 +396,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
         {
             id: "actions",
             header: () => <div className="text-center w-full">관리</div>,
+            meta: { columnLabel: "관리" },
             cell: ({ row }) => {
                 const app = row.original;
                 const user = app.user;

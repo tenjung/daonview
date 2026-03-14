@@ -84,6 +84,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         {
             accessorKey: "title",
             header: "캠페인 정보",
+            meta: { columnLabel: "캠페인 정보" },
             cell: ({ row }) => <CampaignInfoCell campaign={row.original} isAdmin={context.isAdmin} />,
             enableSorting: false,
             size: 460,
@@ -95,6 +96,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         columns.push({
             accessorKey: "advertiser",
             header: "광고주",
+            meta: { columnLabel: "광고주" },
             cell: ({ row }) => {
                 const advertiser = row.original.advertiser;
                 return (
@@ -117,6 +119,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
     columns.push({
         id: "recruitment",
         header: "모집인원",
+        meta: { columnLabel: "모집인원" },
         cell: ({ row }) => {
             const campaign = row.original;
             const applicationsCount = campaign.applications?.[0]?.count || 0;
@@ -154,6 +157,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                 </Button>
             )
         },
+        meta: { columnLabel: "상태" },
         cell: ({ row }) => (
             <StatusBadgeCell
                 status={row.getValue("status")}
@@ -179,6 +183,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                 </Button>
             )
         },
+        meta: { columnLabel: "등록일" },
         cell: ({ row }) => <DateCell date={row.getValue("created_at")} />,
         size: 120,
     });
@@ -187,6 +192,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
     columns.push({
         id: "schedule",
         header: "진행 일정",
+        meta: { columnLabel: "진행 일정" },
         cell: ({ row }) => {
             const campaign = row.original;
             const startDate = campaign.recruitment_start_date || campaign.created_at;
@@ -221,6 +227,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
     columns.push({
         id: "actions",
         header: () => <div className="text-center w-full whitespace-nowrap">설정</div>,
+        meta: { columnLabel: "설정" },
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';

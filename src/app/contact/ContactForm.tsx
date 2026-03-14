@@ -23,7 +23,11 @@ const inquirySchema = z.object({
 
 type InquiryForm = z.infer<typeof inquirySchema>;
 
-export default function ContactForm() {
+interface ContactFormProps {
+    basePath?: string;
+}
+
+export default function ContactForm({ basePath = '/contact' }: ContactFormProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -49,7 +53,7 @@ export default function ContactForm() {
 
             if (!user) {
                 toast.error('로그인이 필요한 서비스입니다.');
-                router.push('/login?next=/contact');
+                router.push(`/login?next=${encodeURIComponent(basePath)}`);
                 return;
             }
 
@@ -69,7 +73,7 @@ export default function ContactForm() {
             }
 
             toast.success('문의가 성공적으로 접수되었습니다.');
-            router.push('/contact/my');
+            router.push(`${basePath}/my`);
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : '문의 접수 중 오류가 발생했습니다.';
             console.error('Error submitting inquiry:', message, error);

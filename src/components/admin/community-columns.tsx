@@ -90,6 +90,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
         {
             accessorKey: "type",
             header: "게시판",
+            meta: { columnLabel: "게시판" },
             cell: ({ row }) => {
                 const type = row.getValue("type") as string;
                 const label = typeLabels[type] || type;
@@ -106,6 +107,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
         {
             accessorKey: "title",
             header: "제목",
+            meta: { columnLabel: "제목" },
             cell: ({ row }) => {
                 const post = row.original;
                 const type = post.type;
@@ -136,6 +138,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
         {
             id: "author",
             header: "작성자",
+            meta: { columnLabel: "작성자" },
             cell: ({ row }) => {
                 const profile = row.original.profiles;
                 return (
@@ -164,6 +167,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
+            meta: { columnLabel: "조회수" },
             cell: ({ row }) => (
                 <div className="text-center font-medium text-gray-500">
                     {row.getValue("view_count")}
@@ -182,6 +186,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
                     <ArrowUpDown className="ml-2 h-4 w-4" />
                 </Button>
             ),
+            meta: { columnLabel: "작성일" },
             cell: ({ row }) => (
                 <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
                     <Calendar size={14} className="text-gray-400" />
@@ -196,6 +201,7 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
         {
             id: "actions",
             header: () => <div className="text-center w-full">관리</div>,
+            meta: { columnLabel: "관리" },
             cell: ({ row }) => {
                 const post = row.original;
                 const editType = navTypeMap[post.type] || post.type;

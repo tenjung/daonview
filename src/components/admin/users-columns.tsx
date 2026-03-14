@@ -85,6 +85,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             accessorKey: "nickname",
             header: "회원 정보",
+            meta: { columnLabel: "회원 정보" },
             cell: ({ row }) => <UserInfoCell user={row.original} />,
             enableSorting: true,
         },
@@ -92,6 +93,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             accessorKey: "role",
             header: "역할/등급",
+            meta: { columnLabel: "역할/등급" },
             cell: ({ row }) => {
                 const user = row.original;
                 const role = row.getValue("role") as string;
@@ -122,6 +124,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             accessorKey: "phone_number",
             header: "연락처",
+            meta: { columnLabel: "연락처" },
             cell: ({ row }) => (
                 <span className="text-sm font-medium text-gray-600 flex items-center gap-1.5 whitespace-nowrap">
                     <Phone size={14} className="text-gray-400" />
@@ -133,6 +136,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             id: "sns",
             header: "활동채널",
+            meta: { columnLabel: "활동채널" },
             cell: ({ row }) => (
                 <div className="flex items-center">
                     <SocialIconBadges snsUrl={row.original.sns_url} />
@@ -154,6 +158,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
                     </Button>
                 )
             },
+            meta: { columnLabel: "가입일" },
             cell: ({ row }) => (
                 <div className="flex items-center gap-2 text-sm text-gray-500 whitespace-nowrap">
                     <Calendar size={14} className="text-gray-400" />
@@ -169,6 +174,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
         {
             id: "actions",
             header: () => <div className="text-center w-full whitespace-nowrap">회원 설정</div>,
+            meta: { columnLabel: "회원 설정" },
             cell: ({ row }) => {
                 const user = row.original;
 

@@ -4,6 +4,7 @@ import * as React from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
+  HeaderContext,
   SortingState,
   VisibilityState,
   flexRender,
@@ -48,6 +49,24 @@ interface DataTableProps<TData, TValue> {
   isLoading?: boolean
   // 빈 상태 메시지
   emptyMessage?: string
+}
+
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData extends unknown, TValue> {
+    columnLabel?: string
+  }
+}
+
+function getColumnDisplayLabel<TData, TValue>(
+  column: ReturnType<ReturnType<typeof useReactTable<TData>>["getAllColumns"]>[number]
+) {
+  const metaLabel = column.columnDef.meta?.columnLabel
+  if (typeof metaLabel === "string" && metaLabel.trim()) return metaLabel
+
+  const header = column.columnDef.header
+  if (typeof header === "string" && header.trim()) return header
+
+  return column.id
 }
 
 export function DataTable<TData, TValue>({
@@ -128,13 +147,13 @@ export function DataTable<TData, TValue>({
                 return (
                   <DropdownMenuCheckboxItem
                     key={column.id}
-                    className="capitalize"
+                    className="font-medium"
                     checked={column.getIsVisible()}
                     onCheckedChange={(value) =>
                       column.toggleVisibility(!!value)
                     }
                   >
-                    {column.id}
+                    {getColumnDisplayLabel(column)}
                   </DropdownMenuCheckboxItem>
                 )
               })}

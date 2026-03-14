@@ -17,10 +17,23 @@ const PROFILE_BASIC_LINK: SidebarLink = {
     icon: 'User'
 };
 
-const CONTACT_LINKS: SidebarLink[] = [
+export const CONTACT_LINKS: SidebarLink[] = [
     { href: '/contact', label: '1:1 문의', icon: 'MessageSquare' },
     { href: '/contact/my', label: '나의 문의 확인', icon: 'FileText' }
 ];
+
+function createDashboardContactMenu(basePath: '/dashboard/advertiser' | '/dashboard/influencer'): SidebarLink {
+    return {
+        href: `${basePath}/contact`,
+        label: '문의 관리',
+        icon: 'MessageSquare',
+        matchPaths: [`${basePath}/contact`, `${basePath}/contact/my`],
+        subLinks: [
+            { href: `${basePath}/contact`, label: '1:1 문의', icon: 'MessageSquare' },
+            { href: `${basePath}/contact/my`, label: '나의 문의 확인', icon: 'FileText' }
+        ]
+    };
+}
 
 const COMMON_PROFILE_LINK: SidebarLink = {
     href: '/profile/edit',
@@ -41,7 +54,7 @@ export const INFLUENCER_MENU_FRAGMENTS: {
             { href: '/profile/edit?tab=interests', label: '관심사 설정', icon: 'Tags' }
         ]
     },
-    support: CONTACT_LINKS
+    support: [createDashboardContactMenu('/dashboard/influencer')]
 };
 
 export const ADVERTISER_MENU_FRAGMENTS: {
@@ -52,7 +65,7 @@ export const ADVERTISER_MENU_FRAGMENTS: {
         ...COMMON_PROFILE_LINK,
         subLinks: [PROFILE_BASIC_LINK]
     },
-    support: CONTACT_LINKS
+    support: [createDashboardContactMenu('/dashboard/advertiser')]
 };
 
 export const INFLUENCER_NAV: SidebarLink[] = [
