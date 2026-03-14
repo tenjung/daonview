@@ -7,7 +7,7 @@ import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, isCampaignAlwaysOpen, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 import { isRole, USER_ROLES } from '@/constants/role';
@@ -114,13 +114,15 @@ export default function RecommendedCampaigns() {
             }
 
             // 4. 가산점 및 확률 보정
-            const endDate = new Date(campaign.end_date);
-            const now = new Date();
-            const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysLeft > 0 && daysLeft <= 3) score += 5;
+            if (!isCampaignAlwaysOpen(campaign) && campaign.end_date) {
+              const endDate = new Date(campaign.end_date);
+              const now = new Date();
+              const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysLeft > 0 && daysLeft <= 3) score += 5;
+            }
 
             const applicantsCount = campaign.applicants_count || 0;
-            const recruitmentCount = campaign.recruit_count || 1;
+            const recruitmentCount = getCampaignRecruitTarget(campaign) || 1;
             const competitionRatio = applicantsCount / recruitmentCount;
             if (competitionRatio < 0.3) score += 15;
             else if (competitionRatio < 0.7) score += 5;

@@ -340,10 +340,12 @@ export default function CampaignRegistrationContainer() {
 
             // 날짜 계산
             const schedule = buildCampaignSchedule(store.scheduleType, formatKstDate());
-            const endDate = schedule.reviewDeadline;
+            const isAlwaysCampaign = String(store.scheduleType || '').toUpperCase() === 'ALWAYS';
+            const isUnlimitedRecruitment = store.totalRecruitment === '무제한' || store.totalRecruitment === '999';
+            const endDate = isAlwaysCampaign ? null : schedule.reviewDeadline;
 
             const calculateCosts = () => {
-                const recruitmentCount = (store.totalRecruitment === '무제한' || store.totalRecruitment === '999') 
+                const recruitmentCount = isUnlimitedRecruitment
                     ? 0 
                     : (parseInt(store.totalRecruitment) || 0);
 
@@ -475,13 +477,10 @@ export default function CampaignRegistrationContainer() {
                 recruitment_start_date: schedule.recruitmentStartDate,
                 first_selection_date: schedule.firstSelectionDate,
                 end_date: endDate,
-                is_always: false,
-                total_recruitment: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
-                    ? 999999
-                    : parseInt(store.totalRecruitment) || 0,
-                recruit_count: (store.totalRecruitment === '무제한' || store.totalRecruitment === '999')
-                    ? 999999
-                    : parseInt(store.totalRecruitment) || 0,
+                is_always: isAlwaysCampaign,
+                is_unlimited_recruitment: isUnlimitedRecruitment,
+                total_recruitment: isUnlimitedRecruitment ? null : parseInt(store.totalRecruitment) || 0,
+                recruit_count: isUnlimitedRecruitment ? null : parseInt(store.totalRecruitment) || 0,
 
                 campaign_images: store.campaignImages || [],
                 thumbnail_url: store.campaignImages?.[0] || null,

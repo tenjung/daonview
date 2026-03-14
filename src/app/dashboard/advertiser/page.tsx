@@ -12,6 +12,7 @@ import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { toast } from 'sonner';
+import { getCampaignRecruitTarget, isCampaignAlwaysOpen } from '@/lib/campaignUtils';
 
 export default function AdvertiserDashboard() {
     const { user, profile, isLoading } = useAuthStore();
@@ -101,8 +102,12 @@ export default function AdvertiserDashboard() {
     // 간단한 상태 분석 (경고 개수 파악용)
     function analyzeCampaign(campaign: Campaign) {
         const applicantCount = campaign.applications?.[0]?.count || 0;
-        const targetCount = campaign.recruit_count;
-        const applicationRate = (applicantCount / targetCount) * 100;
+        const targetCount = getCampaignRecruitTarget(campaign) ?? 0;
+        const applicationRate = targetCount > 0 ? (applicantCount / targetCount) * 100 : 0;
+
+        if (isCampaignAlwaysOpen(campaign) || !campaign.end_date) {
+            return applicationRate < 30 ? 'warning' : 'success';
+        }
 
         const endDate = new Date(campaign.end_date);
         const today = new Date();

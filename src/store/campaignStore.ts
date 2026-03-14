@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { resolveCampaignPlatformState } from '@/lib/campaignUtils';
+import { isCampaignAlwaysOpen, isCampaignUnlimitedRecruitment, resolveCampaignPlatformState } from '@/lib/campaignUtils';
 import { buildCampaignSchedule, CampaignScheduleType, formatKstDate, normalizeScheduleType } from '@/lib/campaignSchedule';
 
 // --- Types ---
@@ -242,7 +242,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     (s1.scheduleType === 'DEFAULT' || s1.scheduleType === 'FAST') &&
                     Boolean(campaign.recruitment_start_date) &&
                     Boolean(campaign.end_date) &&
-                    !String(campaign.end_date).startsWith('9999');
+                    !isCampaignAlwaysOpen(campaign);
                 const scheduleState = hasCanonicalDates
                     ? {
                         scheduleType: normalizedSchedule.scheduleType,
@@ -273,7 +273,9 @@ export const useCampaignStore = create<CampaignStore>()(
                     category: campaign.category || s1.category || '',
                     region: campaign.region || s1.region || '',
                     subRegion: s1.subRegion || '',
-                    totalRecruitment: (campaign.total_recruitment ?? campaign.recruit_count ?? s1.totalRecruitment ?? '0').toString(),
+                    totalRecruitment: isCampaignUnlimitedRecruitment(campaign)
+                        ? '999'
+                        : (campaign.total_recruitment ?? campaign.recruit_count ?? s1.totalRecruitment ?? '0').toString(),
 
 
                     includeReview: resolvedPlatformState.includeReview,

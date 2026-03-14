@@ -1,20 +1,13 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Calendar, MoreHorizontal, ChevronDown, Trash2, ExternalLink, User, MessageSquare, MoveRight } from "lucide-react"
+import { ArrowUpDown, Calendar, Trash2, ExternalLink, MessageSquare, MoveRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar } from "@/components/ui/avatar"
 import Link from "next/link"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
+import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
 
 export interface Post {
     id: number;
@@ -209,44 +202,36 @@ export function createCommunityColumns(context: CommunityColumnContext): ColumnD
 
                 return (
                     <div className="flex justify-center items-center">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="h-8 w-8 p-0">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[180px]">
-                                <DropdownMenuLabel>글 관리</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                
-                                <DropdownMenuItem asChild>
-                                    <Link href={`/community/write?type=${editType}&edit=${post.id}`} className="flex items-center">
-                                        <MessageSquare className="mr-2 h-4 w-4" />
-                                        <span>글 수정</span>
-                                    </Link>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="text-[10px] text-gray-400 uppercase">게시판 이동</DropdownMenuLabel>
-                                {Object.entries(typeLabels).map(([type, label]) => (
-                                    type !== post.type && (
-                                        <DropdownMenuItem key={type} onClick={() => context.onMove?.(post.id, type)}>
-                                            <MoveRight className="mr-2 h-3.5 w-3.5 text-gray-400" />
-                                            <span className="text-xs">{label}</span>
-                                        </DropdownMenuItem>
-                                    )
-                                ))}
-
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                    onClick={() => context.onDelete?.(post.id)}
-                                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>글 삭제</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <AdminListActionMenu
+                            label="글 관리"
+                            widthClass="w-[180px]"
+                            items={[
+                                {
+                                    key: "edit",
+                                    label: "글 수정",
+                                    icon: <MessageSquare className="h-4 w-4" />,
+                                    href: `/community/write?type=${editType}&edit=${post.id}`,
+                                },
+                                ...Object.entries(typeLabels)
+                                    .filter(([type]) => type !== post.type)
+                                    .map(([type, label], index) => ({
+                                        key: `move-${type}`,
+                                        label,
+                                        icon: <MoveRight className="h-3.5 w-3.5 text-gray-400" />,
+                                        onSelect: () => context.onMove?.(post.id, type),
+                                        separatorBefore: index === 0,
+                                        groupLabel: index === 0 ? "게시판 이동" : undefined,
+                                    })),
+                                {
+                                    key: "delete",
+                                    label: "글 삭제",
+                                    icon: <Trash2 className="h-4 w-4" />,
+                                    onSelect: () => context.onDelete?.(post.id),
+                                    variant: "destructive",
+                                    separatorBefore: true,
+                                },
+                            ]}
+                        />
                     </div>
                 );
             },

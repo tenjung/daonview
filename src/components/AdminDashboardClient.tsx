@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
+import { getCampaignRecruitTarget, isCampaignAlwaysOpen } from '@/lib/campaignUtils';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,9 +24,10 @@ interface AdminDashboardClientProps {
 interface CampaignRow {
     id: number;
     title: string;
-    end_date: string;
-    recruit_count: number;
+    end_date: string | null;
+    recruit_count: number | null;
     is_always?: boolean;
+    is_unlimited_recruitment?: boolean;
     profiles?: {
         company_name?: string | null;
         nickname?: string | null;
@@ -94,21 +96,20 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
     // 캠페인 위험도 분석
     function analyzeCampaignRisk(campaign: CampaignRow) {
         const applicantCount = campaign.applications?.[0]?.count || 0;
-        const targetCount = campaign.recruit_count;
-        const applicationRate = (applicantCount / targetCount) * 100;
-
-        const endDate = new Date(campaign.end_date);
+        const targetCount = getCampaignRecruitTarget(campaign) ?? 0;
+        const applicationRate = targetCount > 0 ? (applicantCount / targetCount) * 100 : 0;
+        const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
         const today = new Date();
-        const daysLeft = Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        const isAlways = campaign.is_always || campaign.recruit_count >= 999 || campaign.end_date?.startsWith('9999');
+        const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
+        const isAlways = isCampaignAlwaysOpen(campaign);
 
         let riskLevel: 'critical' | 'warning' | 'normal' = 'normal';
 
         if (isAlways) {
             riskLevel = 'normal'; // 상시는 시급성 부족
-        } else if (daysLeft <= 3 && applicationRate < 50) {
+        } else if ((daysLeft ?? Infinity) <= 3 && applicationRate < 50) {
             riskLevel = 'critical';
-        } else if (daysLeft <= 3 || applicationRate < 50) {
+        } else if ((daysLeft ?? Infinity) <= 3 || applicationRate < 50) {
             riskLevel = 'warning';
         }
 

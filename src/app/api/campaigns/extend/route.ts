@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
     const { data: campaign, error: campaignError } = await adminClient
       .from('campaigns')
-      .select('id, end_date, created_by')
+      .select('id, end_date, created_by, is_always')
       .eq('id', campaignId)
       .single();
 
@@ -61,6 +61,10 @@ export async function POST(request: Request) {
 
     if (!isAdmin && !isOwner) {
       return NextResponse.json({ error: '해당 캠페인을 연장할 권한이 없습니다.' }, { status: 403 });
+    }
+
+    if (campaign.is_always) {
+      return NextResponse.json({ error: '상시모집 캠페인은 기간 연장을 사용할 수 없습니다.' }, { status: 400 });
     }
 
     const currentEndDate = new Date(campaign.end_date);

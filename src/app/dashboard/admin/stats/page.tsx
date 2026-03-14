@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { CAMPAIGN_STATUS_LABELS } from '@/constants/campaign';
 import { APPLICATION_STATUS_LABELS, REVIEW_STATUS_LABELS } from '@/constants/status';
+import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -38,6 +39,8 @@ type CampaignProgressRow = {
   review_deadline?: string | null;
   first_selection_date?: string | null;
   recruit_count?: number | null;
+  is_always?: boolean | null;
+  is_unlimited_recruitment?: boolean | null;
   created_at?: string | null;
   applications?: Array<{ count: number }> | { count: number } | null;
 };
@@ -109,8 +112,8 @@ function getDaysLeft(date?: string | null) {
 
 function getCampaignHealth(campaign: CampaignProgressRow) {
   const applicants = getCountFromRelation(campaign.applications);
-  const target = campaign.recruit_count || 0;
-  const isAlways = target >= 999 || String(campaign.end_date || '').startsWith('9999');
+  const target = getCampaignRecruitTarget(campaign) || 0;
+  const isAlways = Boolean(campaign.is_always);
   const daysLeft = getDaysLeft(campaign.end_date);
   const reviewDaysLeft = getDaysLeft(campaign.review_deadline);
   const progressRate = target > 0 && !isAlways ? Math.round((applicants / target) * 100) : null;
@@ -236,7 +239,7 @@ export default async function AdminProgressDashboardPage() {
     supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     supabase
       .from('campaigns')
-      .select('id, title, status, type, platform, end_date, review_deadline, first_selection_date, recruit_count, created_at, applications(count)')
+      .select('id, title, status, type, platform, end_date, review_deadline, first_selection_date, recruit_count, is_always, is_unlimited_recruitment, created_at, applications(count)')
       .in('status', ['RECRUITING', 'ONGOING'])
       .order('end_date', { ascending: true })
       .limit(12),

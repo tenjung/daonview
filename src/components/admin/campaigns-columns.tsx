@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, MoreHorizontal, ExternalLink, ChevronDown } from "lucide-react"
+import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Campaign } from "@/types/database"
@@ -11,14 +11,8 @@ import { DateCell } from "@/components/data-table"
 import { StatusBadgeCell } from "@/components/data-table/cells/StatusBadgeCell"
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_VARIANTS } from "@/constants/campaign"
 import { canEditCampaign as canEditCampaignByRole } from "@/lib/campaignPermissions"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
+import { getCampaignRecruitTarget, isCampaignAlwaysOpen, isCampaignUnlimitedRecruitment } from "@/lib/campaignUtils"
 
 interface CampaignColumnContext {
     onApprove?: (id: number, title: string) => void
@@ -40,7 +34,7 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
         : `/dashboard/advertiser/campaigns/${campaign.id}`;
 
     return (
-        <div className="flex items-center gap-3 max-w-[240px] sm:max-w-[360px] overflow-hidden">
+        <div className="flex items-center gap-3 max-w-[240px] sm:max-w-[360px] lg:max-w-none overflow-hidden">
             {campaign.main_image_url && (
                 <Image
                     src={campaign.main_image_url}
@@ -54,7 +48,7 @@ function CampaignInfoCell({ campaign, isAdmin }: { campaign: Campaign; isAdmin?:
                 <Link
                     href={managePath}
                     title={campaign.title}
-                    className="block text-sm font-medium leading-6 text-gray-900 hover:text-primary transition-colors cursor-pointer break-keep line-clamp-2"
+                    className="block text-sm font-medium leading-6 text-gray-900 hover:text-primary transition-colors cursor-pointer break-keep line-clamp-2 lg:line-clamp-1"
                 >
                     {campaign.title}
                 </Link>
@@ -92,7 +86,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             header: "캠페인 정보",
             cell: ({ row }) => <CampaignInfoCell campaign={row.original} isAdmin={context.isAdmin} />,
             enableSorting: false,
-            size: 350,
+            size: 460,
         },
     ];
 
@@ -126,14 +120,14 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const applicationsCount = campaign.applications?.[0]?.count || 0;
-            const recruitCount = campaign.recruit_count || 0;
-            const isInfinite = recruitCount >= 999;
-            const percentage = recruitCount > 0 ? Math.round((applicationsCount / recruitCount) * 100) : 0;
+            const recruitCount = getCampaignRecruitTarget(campaign);
+            const isInfinite = isCampaignUnlimitedRecruitment(campaign);
+            const percentage = typeof recruitCount === 'number' && recruitCount > 0 ? Math.round((applicationsCount / recruitCount) * 100) : 0;
 
             return (
                 <div className="text-sm whitespace-nowrap">
                     <div className="font-bold text-gray-900">
-                        {applicationsCount} / {isInfinite ? <span className="text-indigo-600 font-bold text-base">∞</span> : `${recruitCount}명`}
+                        {applicationsCount} / {isInfinite ? <span className="text-indigo-600 font-bold text-base">∞</span> : `${recruitCount ?? 0}명`}
                     </div>
                     <div className="text-xs text-gray-500">
                         {isInfinite ? <span className="text-rose-500 font-bold">무제한 모집</span> : `${percentage}% 달성`}
@@ -196,7 +190,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const startDate = campaign.recruitment_start_date || campaign.created_at;
-            const isAlwaysRecruiting = campaign.recruit_count && campaign.recruit_count >= 999;
+            const isAlwaysRecruiting = isCampaignAlwaysOpen(campaign);
 
             return (
                 <div className="flex flex-col gap-1.5 py-1">
@@ -245,70 +239,67 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             return (
                 <div className="flex justify-center items-center w-full">
                     <div className="flex justify-center gap-1.5 flex-nowrap">
-                        {/* 관리자 전용: 대기 중인 캠페인 승인/거절 버튼 (주요 액션으로 노출) */}
-                        {context.isAdmin && isPending && (
-                            <>
-                                <Button
-                                    size="sm"
-                                    onClick={() => context.onApprove?.(campaign.id, campaign.title)}
-                                    className="bg-green-600 hover:bg-green-700 whitespace-nowrap h-8"
-                                >
-                                    <Check size={14} className="mr-1" /> 승인
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => context.onReject?.(campaign.id, campaign.title)}
-                                    className="whitespace-nowrap h-8"
-                                >
-                                    <X size={14} className="mr-1" /> 거절
-                                </Button>
-                            </>
-                        )}
-
-                        {/* 시안 1: 텍스트 버튼 + 드롭다운 (가장 직관적) */}
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-medium gap-1 h-8 px-2 lg:px-2 min-w-8 lg:min-w-[72px]">
-                                    <span className="hidden lg:inline">설정</span>
-                                    <ChevronDown className="hidden lg:block h-3.5 w-3.5 text-slate-500" />
-                                    <MoreHorizontal className="lg:hidden h-4 w-4 text-slate-500" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[160px]">
-                                <DropdownMenuLabel>캠페인 관리</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => context.onView?.(campaign.id)}>
-                                    <Eye className="mr-2 h-4 w-4" />
-                                    <span>신청자 관리</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => window.open(`/campaigns/${campaign.id}`, '_blank')}>
-                                    <ExternalLink className="mr-2 h-4 w-4" />
-                                    <span>상세 보기 (공개)</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                {canEdit && (
-                                    <DropdownMenuItem onClick={() => context.onEdit?.(campaign.id)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        <span>캠페인 수정</span>
-                                    </DropdownMenuItem>
-                                )}
-
-                                {!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING') && (
-                                    <DropdownMenuItem onClick={() => context.onExtend?.(campaign.id, campaign.title)}>
-                                        <Clock className="mr-2 h-4 w-4" />
-                                        <span>기간 연장</span>
-                                    </DropdownMenuItem>
-                                )}
-
-                                <DropdownMenuItem
-                                    onClick={() => context.onDelete?.(campaign.id, campaign.title)}
-                                    className="text-red-600 focus:text-red-600"
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>캠페인 삭제</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <AdminListActionMenu
+                            label="캠페인 관리"
+                            items={[
+                                ...(context.isAdmin && isPending
+                                    ? [
+                                        {
+                                            key: "approve",
+                                            label: "승인",
+                                            icon: <Check className="h-4 w-4" />,
+                                            onSelect: () => context.onApprove?.(campaign.id, campaign.title),
+                                            variant: "success" as const,
+                                        },
+                                        {
+                                            key: "reject",
+                                            label: "거절",
+                                            icon: <X className="h-4 w-4" />,
+                                            onSelect: () => context.onReject?.(campaign.id, campaign.title),
+                                        },
+                                    ]
+                                    : []),
+                                {
+                                    key: "view",
+                                    label: "신청자 관리",
+                                    icon: <Eye className="h-4 w-4" />,
+                                    onSelect: () => context.onView?.(campaign.id),
+                                    separatorBefore: context.isAdmin && isPending,
+                                },
+                                {
+                                    key: "public-view",
+                                    label: "상세 보기 (공개)",
+                                    icon: <ExternalLink className="h-4 w-4" />,
+                                    href: `/campaigns/${campaign.id}`,
+                                    external: true,
+                                },
+                                ...(canEdit
+                                    ? [{
+                                        key: "edit",
+                                        label: "캠페인 수정",
+                                        icon: <Edit className="h-4 w-4" />,
+                                        onSelect: () => context.onEdit?.(campaign.id),
+                                        separatorBefore: true,
+                                    }]
+                                    : []),
+                                ...(!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING')
+                                    ? [{
+                                        key: "extend",
+                                        label: "기간 연장",
+                                        icon: <Clock className="h-4 w-4" />,
+                                        onSelect: () => context.onExtend?.(campaign.id, campaign.title),
+                                    }]
+                                    : []),
+                                {
+                                    key: "delete",
+                                    label: "캠페인 삭제",
+                                    icon: <Trash2 className="h-4 w-4" />,
+                                    onSelect: () => context.onDelete?.(campaign.id, campaign.title),
+                                    variant: "destructive",
+                                    separatorBefore: canEdit || (!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING')),
+                                },
+                            ]}
+                        />
                     </div>
                 </div>
             );

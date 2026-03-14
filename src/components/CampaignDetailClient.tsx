@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { getCampaignRecruitTarget, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -351,7 +352,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     platform: campaign.platform,
                     region: campaign.region,
                     applicants: campaign.total_app_count || 0,
-                    total: campaign.recruit_count,
+                    total: getCampaignRecruitTarget(campaign) || 0,
                     dday: campaign.end_date || ''
                 });
                 toast.success('관심 캠페인에 추가되었습니다.');
@@ -383,7 +384,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
         // 모집 인원(선정 인원) 초과 체크 - 선정 완료된 인원 기준
         const approvedCount = campaign.approved_app_count || 0;
-        if (approvedCount >= campaign.recruit_count && campaign.recruit_count > 0) {
+        const recruitTarget = getCampaignRecruitTarget(campaign);
+        if (typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0) {
             toast.error('선정 인원이 마감되었습니다.');
             return;
         }
@@ -538,27 +540,29 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     .eq('campaign_id', id);
 
                 if (currentCount !== null) {
-                    const recruitCount = campaign.recruit_count;
-                    const milestones = [
-                        { percent: 50, count: Math.floor(recruitCount * 0.5) },
-                        { percent: 100, count: recruitCount },
-                        { percent: 120, count: Math.floor(recruitCount * 1.2) }
-                    ];
+                    const recruitCount = getCampaignRecruitTarget(campaign);
+                    if (typeof recruitCount === 'number' && recruitCount > 0) {
+                        const milestones = [
+                            { percent: 50, count: Math.floor(recruitCount * 0.5) },
+                            { percent: 100, count: recruitCount },
+                            { percent: 120, count: Math.floor(recruitCount * 1.2) }
+                        ];
 
-                    const milestone = milestones.find(m => m.count === currentCount);
+                        const milestone = milestones.find(m => m.count === currentCount);
 
-                    if (milestone) {
-                        const message = milestone.percent === 120
-                            ? `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 초과했습니다! 🔥`
-                            : `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 달성했습니다! 🎉`;
+                        if (milestone) {
+                            const message = milestone.percent === 120
+                                ? `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 초과했습니다! 🔥`
+                                : `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 달성했습니다! 🎉`;
 
-                        await supabase.from('notifications').insert({
-                            user_id: campaign.created_by,
-                            type: 'CAMPAIGN_MILESTONE',
-                            title: `📈 모집 현황 ${milestone.percent}% 달성`,
-                            content: message,
-                            link: `/dashboard/advertiser/applicants?campaignId=${id}`
-                        });
+                            await supabase.from('notifications').insert({
+                                user_id: campaign.created_by,
+                                type: 'CAMPAIGN_MILESTONE',
+                                title: `📈 모집 현황 ${milestone.percent}% 달성`,
+                                content: message,
+                                link: `/dashboard/advertiser/applicants?campaignId=${id}`
+                            });
+                        }
                     }
                 }
             }
@@ -768,7 +772,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     // Recruitment Closure Logic
     const nowStr = formatKstDate();
     const isPastDeadline = scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
-    const isFull = approvedCount >= campaign.recruit_count && campaign.recruit_count > 0;
+    const recruitTarget = getCampaignRecruitTarget(campaign);
+    const isFull = typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
     const rewardRawValue = campaign.reward_per_person ?? campaign.official_price;
@@ -1435,7 +1440,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                         <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
                                                     </p>
                                                     <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                        모집 정원: {campaign.recruit_count >= 999 ? <span className="text-indigo-600 font-black">∞</span> : `${campaign.recruit_count}명`}
+                                                        모집 정원: {isCampaignUnlimitedRecruitment(campaign) ? <span className="text-indigo-600 font-black">∞</span> : `${getCampaignRecruitTarget(campaign) ?? 0}명`}
                                                     </p>
                                                 </div>
                                             </div>

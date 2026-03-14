@@ -2,6 +2,7 @@
 
 import { supabase } from './supabase/client';
 import { buildCampaignSchedule, formatKstDate } from './campaignSchedule';
+import { isCampaignUnlimitedRecruitment } from './campaignUtils';
 
 export interface DraftCampaign {
     id: string;
@@ -81,7 +82,11 @@ export const saveDraft = async (userId: string, campaignData: {
             campaignData.step1Data?.scheduleType,
             campaignData.step1Data?.recruitmentStartDate || formatKstDate()
         );
-        const endDate = schedule.reviewDeadline;
+        const isAlwaysCampaign = campaignData.step1Data?.scheduleType === 'ALWAYS';
+        const isUnlimitedRecruitment =
+            campaignData.step1Data?.totalRecruitment === '무제한' ||
+            campaignData.step1Data?.totalRecruitment === '999';
+        const endDate = isAlwaysCampaign ? null : schedule.reviewDeadline;
 
         const normalizedStep1Data = {
             ...(campaignData.step1Data || {}),
@@ -113,10 +118,10 @@ export const saveDraft = async (userId: string, campaignData: {
             first_selection_date: schedule.firstSelectionDate,
             end_date: endDate,
             campaign_options: campaignOptions, // jsonb 객체
-            recruit_count: parseInt(normalizedStep1Data?.totalRecruitment) || 0,
-            total_recruitment: parseInt(normalizedStep1Data?.totalRecruitment) || 0,
-
-            is_always: false,
+            recruit_count: isUnlimitedRecruitment ? null : parseInt(normalizedStep1Data?.totalRecruitment) || 0,
+            total_recruitment: isUnlimitedRecruitment ? null : parseInt(normalizedStep1Data?.totalRecruitment) || 0,
+            is_always: isAlwaysCampaign,
+            is_unlimited_recruitment: isUnlimitedRecruitment,
             category: normalizedStep1Data?.category || null,
             region: normalizedStep1Data?.region || null,
             created_by: userId,
@@ -205,7 +210,9 @@ const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
         productName: dbData.product_name || options.step1Data?.productName,
         campaignTitle: dbData.title || options.step1Data?.campaignTitle || dbData.product_name,
         experienceDetails: dbData.experience_details || options.step1Data?.experienceDetails,
-        totalRecruitment: dbData.total_recruitment?.toString() || dbData.recruit_count?.toString() || options.step1Data?.totalRecruitment || '0',
+        totalRecruitment: isCampaignUnlimitedRecruitment(dbData)
+            ? '999'
+            : dbData.total_recruitment?.toString() || dbData.recruit_count?.toString() || options.step1Data?.totalRecruitment || '0',
 
         category: dbData.category || options.step1Data?.category,
         region: dbData.region || options.step1Data?.region,

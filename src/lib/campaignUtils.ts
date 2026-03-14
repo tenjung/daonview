@@ -101,6 +101,22 @@ export const formatDDay = (endDate: string) => {
   return `D-${diffDays}`;
 };
 
+export const isCampaignAlwaysOpen = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
+  return Boolean(campaign?.is_always);
+};
+
+export const isCampaignUnlimitedRecruitment = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
+  return Boolean(campaign?.is_unlimited_recruitment);
+};
+
+export const getCampaignRecruitTarget = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
+  if (!campaign || isCampaignUnlimitedRecruitment(campaign)) return null;
+
+  if (typeof campaign.recruit_count === 'number') return campaign.recruit_count;
+  if (typeof campaign.total_recruitment === 'number') return campaign.total_recruitment;
+  return null;
+};
+
 export const resolveCampaignScheduleDates = (campaign: Campaign | Record<string, any>) => {
   const options = Array.isArray((campaign as any).campaign_options)
     ? (campaign as any).campaign_options[0]
@@ -108,10 +124,12 @@ export const resolveCampaignScheduleDates = (campaign: Campaign | Record<string,
   const step1Data = options?.step1Data || {};
 
   const startDate = (campaign as any).recruitment_start_date || step1Data.recruitmentStartDate || campaign.created_at || null;
-  const endDate = ((campaign as any).end_date && !String((campaign as any).end_date).startsWith('9999'))
-    ? (campaign as any).end_date
-    : (step1Data.reviewDeadline || null);
+  const endDate = isCampaignAlwaysOpen(campaign)
+    ? null
+    : ((campaign as any).end_date || step1Data.reviewDeadline || null);
   const firstSelectionDate = (campaign as any).first_selection_date || step1Data.firstSelectionDate || null;
+
+  const recruitTarget = getCampaignRecruitTarget(campaign);
 
   return {
     startDate,
@@ -151,6 +169,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     platform: campaign.platform,
     step1Data,
   });
+  const recruitTarget = getCampaignRecruitTarget(campaign);
 
   return {
     id: campaign.id,
@@ -158,7 +177,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     platform: resolvedPlatform,
     type: normalizedType,
     applicants: applicants,
-    total: campaign.recruit_count || 0,
+    total: recruitTarget || 0,
     dday: endDate ? formatDDay(endDate) : '미정',
     category: campaign.category,
     region: rawRegion ? String(rawRegion) : null,
@@ -166,6 +185,8 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
     end_date: endDate,
+    is_always: isCampaignAlwaysOpen(campaign),
+    is_unlimited_recruitment: isCampaignUnlimitedRecruitment(campaign),
     created_at: campaign.created_at,
     scheduleType,
     includeReview,

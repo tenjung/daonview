@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Check, X, Star, ExternalLink } from "lucide-react"
+import { ArrowUpDown, Check, Star, X } from "lucide-react"
 import { Application } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -14,6 +14,7 @@ import {
     StatusBadgeCell,
 } from "@/components/data-table"
 import ApplicationStatusBadge from "@/components/admin/ApplicationStatusBadge"
+import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
 
 import { SatisfactionLevel } from "@/types/review"
 
@@ -396,25 +397,26 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 return (
                     <div className="flex justify-center items-center gap-1 flex-nowrap w-full">
                         {isPending ? (
-                            <>
-                                <Button
-                                    size="sm"
-                                    disabled={!hasPhoneNumber}
-                                    onClick={() => context.onApprove(app)}
-                                    className={`whitespace-nowrap h-8 px-2.5 ${hasPhoneNumber ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'}`}
-                                    title={!hasPhoneNumber ? "연락처가 등록되지 않은 유저는 승인할 수 없습니다." : ""}
-                                >
-                                    <Check size={14} className="mr-1" /> 승인
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => context.onReject(app.id, user?.nickname || '사용자')}
-                                    className="whitespace-nowrap h-8 px-2.5"
-                                >
-                                    <X size={14} className="mr-1" /> 거절
-                                </Button>
-                            </>
+                            <AdminListActionMenu
+                                label="신청 관리"
+                                widthClass="w-36"
+                                items={[
+                                    {
+                                        key: "approve",
+                                        label: "승인",
+                                        icon: <Check size={14} />,
+                                        onSelect: () => context.onApprove(app),
+                                        variant: "success",
+                                        disabled: !hasPhoneNumber,
+                                    },
+                                    {
+                                        key: "reject",
+                                        label: "거절",
+                                        icon: <X size={14} />,
+                                        onSelect: () => context.onReject(app.id, user?.nickname || '사용자'),
+                                    },
+                                ]}
+                            />
                         ) : isSelected ? (
                             <div className="flex gap-1 items-center justify-center">
                                 {isReviewed ? (

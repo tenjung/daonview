@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Mail, Phone, Calendar, Building2, MoreHorizontal, ChevronDown, UserCog, ShieldAlert, Trash2 } from "lucide-react"
+import { ArrowUpDown, Mail, Phone, Calendar, Building2, Trash2 } from "lucide-react"
 import { Profile } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -9,20 +9,12 @@ import { Avatar } from "@/components/ui/avatar"
 import { DateCell } from "@/components/data-table"
 import SocialIconBadges from "@/components/SocialIconBadges"
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuLabel,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
 
 interface UserColumnContext {
     onRoleChange?: (id: string, newRole: string) => void
@@ -182,42 +174,40 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
 
                 return (
                     <div className="flex justify-center items-center w-full">
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <Button variant="outline" size="sm" className="bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 font-bold gap-1 h-8 px-2.5">
-                                    설정/관리
-                                    <ChevronDown className="h-3.5 w-3.5 text-slate-500" />
-                                </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-[180px]">
-                                <DropdownMenuLabel>회원 설정</DropdownMenuLabel>
-                                <DropdownMenuSeparator />
-                                
-                                <DropdownMenuSeparator />
-                                <DropdownMenuLabel className="text-[10px] text-gray-400 uppercase">등급 변경</DropdownMenuLabel>
-                                <DropdownMenuItem onClick={() => context.onRoleChange?.(user.id, 'INFLUENCER')}>
-                                    <div className="w-2 h-2 rounded-full bg-rose-500 mr-2"></div>
-                                    <span>인플루언서로 변경</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => context.onRoleChange?.(user.id, 'ADVERTISER')}>
-                                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
-                                    <span>광고주로 변경</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => context.onRoleChange?.(user.id, 'ADMIN')}>
-                                    <div className="w-2 h-2 rounded-full bg-violet-500 mr-2"></div>
-                                    <span>관리자로 변경</span>
-                                </DropdownMenuItem>
-                                
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                    onClick={() => context.onDelete?.(user.id, user.email || '')}
-                                    className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    <span>회원 강제 탈퇴</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
+                        <AdminListActionMenu
+                            label="회원 설정"
+                            widthClass="w-[180px]"
+                            items={[
+                                {
+                                    key: "role-influencer",
+                                    label: "인플루언서로 변경",
+                                    icon: <div className="w-2 h-2 rounded-full bg-rose-500" />,
+                                    onSelect: () => context.onRoleChange?.(user.id, 'INFLUENCER'),
+                                    separatorBefore: true,
+                                    groupLabel: "등급 변경",
+                                },
+                                {
+                                    key: "role-advertiser",
+                                    label: "광고주로 변경",
+                                    icon: <div className="w-2 h-2 rounded-full bg-blue-500" />,
+                                    onSelect: () => context.onRoleChange?.(user.id, 'ADVERTISER'),
+                                },
+                                {
+                                    key: "role-admin",
+                                    label: "관리자로 변경",
+                                    icon: <div className="w-2 h-2 rounded-full bg-violet-500" />,
+                                    onSelect: () => context.onRoleChange?.(user.id, 'ADMIN'),
+                                },
+                                {
+                                    key: "delete",
+                                    label: "회원 강제 탈퇴",
+                                    icon: <Trash2 className="h-4 w-4" />,
+                                    onSelect: () => context.onDelete?.(user.id, user.email || ''),
+                                    variant: "destructive",
+                                    separatorBefore: true,
+                                },
+                            ]}
+                        />
                     </div>
                 );
             },
