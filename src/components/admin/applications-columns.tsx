@@ -93,8 +93,8 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 
                 return (
                     <div className="flex flex-col gap-1.5 py-1">
-                        <UserInfoCell user={row.original.user} />
-                        <div className="pl-12">
+                        <UserInfoCell user={row.original.user} showAvatar={false} />
+                        <div className="pl-0">
                             {daonIndex !== undefined ? (() => {
                                 // 이전 거대 점수(수만 단위)와의 하위 호환성 대응
                                 let stars = daonIndex;
