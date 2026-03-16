@@ -70,6 +70,30 @@ export default function CampaignRegistrationContainer() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [initializeFromCampaign]);
 
+    const handleCopyCampaign = useCallback((campaign: any) => {
+        if (!campaign) return;
+        
+        // 1. 기존 데이터로 초기화
+        initializeFromCampaign(campaign);
+        
+        // 2. 일회성 데이터 및 ID 초기화 덮어쓰기
+        const defaultSchedule = buildCampaignSchedule('DEFAULT', formatKstDate());
+        
+        store.updateFields({
+            currentCampaignId: null, // 새 캠페인으로 등록되도록 ID 제거
+            isEdit: false, // 수정 모드 해제
+            totalRecruitment: '0', // 모집 인원 초기화
+            scheduleType: defaultSchedule.scheduleType,
+            recruitmentStartDate: defaultSchedule.recruitmentStartDate,
+            firstSelectionDate: defaultSchedule.firstSelectionDate,
+            reviewDeadline: defaultSchedule.reviewDeadline,
+            // (추가 초기화가 필요하다면 여기에 작성)
+        });
+
+        toast.success('캠페인이 복사되었습니다. 모집 인원 및 일정을 확인해주세요.');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, [initializeFromCampaign, store]);
+
     // edit 모드: 인증/권한 확인 후 URL id 기준으로 DB 단일 조회
     useEffect(() => {
         if (!campaignIdParam) return;
@@ -677,6 +701,7 @@ export default function CampaignRegistrationContainer() {
                             toast.success('임시저장된 캠페인을 불러왔습니다.');
                         }}
                         onLoadCompleted={handleLoadCompleted}
+                        onCopyCampaign={handleCopyCampaign}
                     />
                 )}
 

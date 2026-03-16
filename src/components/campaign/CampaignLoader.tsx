@@ -11,9 +11,10 @@ interface CampaignLoaderProps {
     userId: string;
     onLoadDraft: (draft: DraftCampaign) => void;
     onLoadCompleted: (campaign: any) => void;
+    onCopyCampaign: (campaign: any) => void;
 }
 
-export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted }: CampaignLoaderProps) {
+export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted, onCopyCampaign }: CampaignLoaderProps) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState<'draft' | 'completed'>('draft');
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
@@ -190,13 +191,22 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted }:
                                             </div>
                                             <p className="font-medium text-gray-900">{campaign.title}</p>
                                         </div>
-                                        <button
-                                            onClick={() => onLoadCompleted(campaign)}
-                                            className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
-                                        >
-                                            <Download size={14} />
-                                            불러오기
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => onCopyCampaign(campaign)}
+                                                className="px-3 py-1.5 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-1"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                                복사하기
+                                            </button>
+                                            <button
+                                                onClick={() => onLoadCompleted(campaign)}
+                                                className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
+                                            >
+                                                <Download size={14} />
+                                                불러오기
+                                            </button>
+                                        </div>
                                     </div>
                                 ))
                             )}
