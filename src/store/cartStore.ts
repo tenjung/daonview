@@ -59,11 +59,13 @@ export const useCartStore = create<CartState>()(
           if (error) throw error;
 
           if (data) {
-            const formattedItems = data.map((fav: any) => mapCampaignToCard(fav.campaigns));
+            // 삭제되었거나 RLS로 인해 조회되지 않은 캠페인(favorites) 필터링 처리
+            const validFavorites = data.filter((fav: any) => fav.campaigns);
+            const formattedItems = validFavorites.map((fav: any) => mapCampaignToCard(fav.campaigns));
             set({ items: formattedItems });
           }
         } catch (error) {
-          console.error('Error fetching favorites for cartStore:', error);
+          console.error('Error fetching favorites for cartStore:', error instanceof Error ? error.message : error);
         }
       },
     }),
