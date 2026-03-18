@@ -13,6 +13,7 @@ import {
     Package,
     Heart,
     ShoppingBag,
+    Truck,
     PenTool,
     Instagram,
     PenLine,
@@ -426,14 +427,22 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
 
             const campaignType = String(campaign.type || '').toUpperCase();
-            const isPurchaseExperienceCampaign =
-                campaignType === 'PURCHASE' ||
-                String(campaign.platform || '').toUpperCase() === 'PURCHASE' ||
-                Boolean(step1Data.includeReview);
-            const isDeliveryShippingCampaign = campaignType === 'DELIVERY' && !isPurchaseExperienceCampaign;
+            const campaignOptionsObj = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+            const applyStep1Data = campaignOptionsObj?.step1Data || {};
+            const { normalizedType, includeReview, includeNaver, includeInstagram, resolvedPlatform } = resolveCampaignPlatformState({
+                type: campaign.type,
+                platform: campaign.platform,
+                step1Data: applyStep1Data,
+            });
+            const isPurchaseOnlyCampaign =
+                normalizedType === 'PURCHASE' ||
+                (normalizedType === 'DELIVERY' && includeReview && !includeNaver && !includeInstagram);
+            const needsShippingAddress = normalizedType === 'DELIVERY' && !isPurchaseOnlyCampaign;
+            const needsBlogUrl = includeNaver || (!includeNaver && !includeInstagram && resolvedPlatform === 'BLOG');
+            const needsInstagramUrl = includeInstagram || (!includeNaver && !includeInstagram && resolvedPlatform === 'INSTAGRAM');
 
             // 단순 배송형 캠페인: 신청 시 배송지 정보 필수
-            if (isDeliveryShippingCampaign) {
+            if (needsShippingAddress) {
                 if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
                     setMissingInfoType('ADDRESS');
                     setIsProfileAlertOpen(true);
@@ -441,36 +450,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 }
             }
 
-            // SNS 링크 등록 여부 확인 (구매평 제외)
-            if (!isPurchaseExperienceCampaign) {
-                const campaignOptionsObj = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
-                const applyStep1Data = campaignOptionsObj?.step1Data || {};
-                
-                const { includeNaver, includeInstagram, resolvedPlatform } = resolveCampaignPlatformState({
-                    type: campaign.type,
-                    platform: campaign.platform,
-                    step1Data: applyStep1Data,
-                });
+            // SNS 링크 등록 여부 확인: 구매평 포함 여부와 분리해서 실제 요구 채널만 검사
+            const snsMissing =
+                (needsBlogUrl && !profile.blog_url && !profile.sns_url) ||
+                (needsInstagramUrl && !profile.instagram_url);
 
-                let snsMissing = false;
-                
-                if (includeNaver) {
-                    if (!profile.blog_url && !profile.sns_url) snsMissing = true;
-                }
-                
-                if (includeInstagram) {
-                    if (!profile.instagram_url) snsMissing = true;
-                }
-                
-                if (!includeNaver && !includeInstagram) {
-                     if (resolvedPlatform === 'BLOG' && !profile.blog_url && !profile.sns_url) snsMissing = true;
-                     if (resolvedPlatform === 'INSTAGRAM' && !profile.instagram_url) snsMissing = true;
-                }
-
-                if (snsMissing) {
-                    setShowSnsModal(true);
-                    return;
-                }
+            if (snsMissing) {
+                setShowSnsModal(true);
+                return;
             }
         } catch (err) {
             console.error('Profile validation error:', err);
@@ -815,6 +802,52 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             ]
             : [platformState.resolvedPlatform === 'INSTAGRAM' ? '인스타그램' : '블로그'];
     const conditionTooltipLabel = conditionTooltipParts.length > 0 ? conditionTooltipParts.join(' + ') : '조건 확인 필요';
+    const shouldShowDeliveryFlowGuide =
+        platformState.normalizedType === 'DELIVERY';
+    const deliveryFlowLead = platformState.includeReview
+        ? platformState.includeInstagram
+            ? '선 구매 후 쇼핑몰 리뷰와 인스타 후기를 해야 하는 체험입니다.'
+            : platformState.includeNaver
+                ? '선 구매 후 쇼핑몰 리뷰와 블로그 후기를 해야 하는 체험입니다.'
+                : '선 구매 후 쇼핑몰 리뷰를 해야 하는 체험입니다.'
+        : platformState.includeInstagram
+            ? '선정된 인원에게 제품이 발송되며, 인스타 후기를 작성하는 체험입니다.'
+            : '선정된 인원에게 제품이 발송되며, 블로그 후기를 작성하는 체험입니다.';
+    const deliveryFlowSteps = platformState.includeReview
+        ? [
+            {
+                title: '쇼핑몰 구매',
+                description: '상품 구매 진행',
+            },
+            {
+                title: '리뷰 작성',
+                description: platformState.includeInstagram
+                    ? '쇼핑몰 리뷰 + 인스타 후기'
+                    : platformState.includeNaver
+                        ? '쇼핑몰 리뷰 + 블로그 후기'
+                        : '쇼핑몰 리뷰 작성',
+            },
+            {
+                title: '다온뷰 등록',
+                description: '링크 등록 후 완료',
+            },
+        ]
+        : [
+            {
+                title: '제품 발송',
+                description: '입력한 주소로 발송',
+            },
+            {
+                title: '리뷰 작성',
+                description: platformState.includeInstagram
+                    ? '인스타 후기 작성'
+                    : '블로그 후기 작성',
+            },
+            {
+                title: '다온뷰 등록',
+                description: '링크 등록 후 완료',
+            },
+        ];
 
     let closureText = '';
     if (isPastDeadline) closureText = '모집 기간이 종료되었습니다';
@@ -965,8 +998,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             </div>
 
                             <div className="space-y-6">
-
-
                                 <div className="relative overflow-hidden">
                                     <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium mb-6">
                                         {campaignIntro || '제공 내역 정보가 없습니다.'}
@@ -1015,6 +1046,52 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     )}
                                                 </div>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {shouldShowDeliveryFlowGuide && (
+                                        <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50/80 p-5">
+                                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-rose-500 shadow-sm ring-1 ring-slate-200">
+                                                        {platformState.includeReview ? (
+                                                            <ShoppingBag className="h-5 w-5" />
+                                                        ) : (
+                                                            <Truck className="h-5 w-5" />
+                                                        )}
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[15px] font-bold text-slate-900">참여 방법 안내</p>
+                                                        <p className="text-[13px] font-medium text-slate-600">{deliveryFlowLead}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-700 ring-1 ring-amber-200">
+                                                    선정된 인원만 진행 가능합니다.
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+                                                {deliveryFlowSteps.map((step, index) => (
+                                                    <div key={step.title} className="contents md:contents">
+                                                        <div className="rounded-2xl bg-white px-4 py-4 ring-1 ring-slate-200">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-900 text-[12px] font-black text-white">
+                                                                    {index + 1}
+                                                                </span>
+                                                                <p className="text-[16px] font-bold text-slate-900">{step.title}</p>
+                                                            </div>
+                                                            <p className="mt-2 text-[13px] font-medium text-slate-600">
+                                                                {step.description}
+                                                            </p>
+                                                        </div>
+                                                        {index < deliveryFlowSteps.length - 1 && (
+                                                            <div className="hidden md:flex items-center justify-center px-1 text-slate-300">
+                                                                <ArrowRight className="h-4 w-4" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 

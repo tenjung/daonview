@@ -6,6 +6,20 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
 import OnboardingModal from '@/components/OnboardingModal';
+import SnsInputModal from '@/components/influencer/SnsInputModal';
+import { Profile } from '@/types/database';
+
+function hasRegisteredSns(profile: Partial<Profile> | null | undefined) {
+    if (!profile) return false;
+
+    return Boolean(
+        profile.blog_url ||
+        profile.sns_url ||
+        profile.instagram_url ||
+        profile.youtube_url ||
+        profile.tiktok_url
+    );
+}
 
 function LoginForm() {
     const router = useRouter();
@@ -15,6 +29,25 @@ function LoginForm() {
     const [isSocialLoading, setIsSocialLoading] = useState<string | null>(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [newUserId, setNewUserId] = useState<string | null>(null);
+    const [showSnsModal, setShowSnsModal] = useState(false);
+    const [snsModalUser, setSnsModalUser] = useState<{ id: string } | null>(null);
+    const [snsModalProfile, setSnsModalProfile] = useState<Profile | null>(null);
+
+    const redirectAfterLogin = (role?: string | null) => {
+        setTimeout(() => {
+            const returnTo = searchParams.get('returnTo');
+            if (returnTo) {
+                window.location.href = returnTo;
+                return;
+            }
+
+            if (role === 'ADMIN') {
+                window.location.href = '/dashboard/admin';
+            } else {
+                window.location.href = '/';
+            }
+        }, 1000);
+    };
 
     // Load email or error from URL query parameter
     useEffect(() => {
@@ -98,17 +131,21 @@ function LoginForm() {
 
             // 🟢 인플루언서이고 관심사 미설정 시 온보딩 모달 표시
             if (profileData?.role === 'INFLUENCER') {
-                // 🟢 이번 세션에서 건너뛰었으면 표시 안함
-                if (sessionStorage.getItem('onboarding_skipped') === 'true') {
-                    // 리다이렉트 진행
-                } else {
-                    // 관심사 설정 여부 확인
-                    const { data: fullProfile } = await supabase
-                        .from('profiles')
-                        .select('preferred_platforms, preferred_regions, interests')
-                        .eq('id', authData.user?.id)
-                        .single();
+                const { data: fullProfile } = await supabase
+                    .from('profiles')
+                    .select('preferred_platforms, preferred_regions, interests, blog_url, sns_url, instagram_url, youtube_url, tiktok_url')
+                    .eq('id', authData.user?.id)
+                    .single();
 
+                if (!hasRegisteredSns(fullProfile)) {
+                    setSnsModalUser({ id: authData.user.id });
+                    setSnsModalProfile((fullProfile || profileData) as Profile);
+                    setShowSnsModal(true);
+                    return;
+                }
+
+                // 🟢 이번 세션에서 건너뛰었으면 표시 안함
+                if (sessionStorage.getItem('onboarding_skipped') !== 'true') {
                     const hasInterests = fullProfile?.interests && fullProfile.interests.length > 0;
                     const hasPlatforms = fullProfile?.preferred_platforms && fullProfile.preferred_platforms.length > 0;
                     const hasRegions = fullProfile?.preferred_regions && fullProfile.preferred_regions.length > 0;
@@ -122,21 +159,7 @@ function LoginForm() {
                 }
             }
 
-            // Redirect based on role using window.location.href for proper navigation
-            setTimeout(() => {
-                const returnTo = searchParams.get('returnTo');
-                if (returnTo) {
-                    window.location.href = returnTo;
-                    return;
-                }
-
-                if (profileData?.role === 'ADMIN') {
-                    window.location.href = '/dashboard/admin';
-                } else {
-                    // All other roles go to home page
-                    window.location.href = '/';
-                }
-            }, 1000);
+            redirectAfterLogin(profileData?.role);
 
         } catch (error: any) {
             console.error('Unexpected Login Error:', error);
@@ -276,6 +299,22 @@ function LoginForm() {
                     userId={newUserId}
                     onComplete={() => window.location.href = '/'}
                     allowSkip={true}  // 로그인 시에는 건너뛰기 허용
+                />
+            )}
+
+            {showSnsModal && snsModalUser && (
+                <SnsInputModal
+                    isOpen={showSnsModal}
+                    onClose={() => {
+                        setShowSnsModal(false);
+                        redirectAfterLogin('INFLUENCER');
+                    }}
+                    user={snsModalUser}
+                    profile={snsModalProfile}
+                    onSuccess={() => {
+                        setShowSnsModal(false);
+                        redirectAfterLogin('INFLUENCER');
+                    }}
                 />
             )}
         </div>

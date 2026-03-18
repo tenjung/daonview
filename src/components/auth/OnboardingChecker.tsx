@@ -4,6 +4,17 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { usePathname } from 'next/navigation';
 import OnboardingModal from '@/components/OnboardingModal';
+import SnsInputModal from '@/components/influencer/SnsInputModal';
+
+function hasRegisteredSns(profile: any) {
+    return Boolean(
+        profile?.blog_url ||
+        profile?.sns_url ||
+        profile?.instagram_url ||
+        profile?.youtube_url ||
+        profile?.tiktok_url
+    );
+}
 
 /**
  * 인플루언서 사용자가 관심사를 설정하지 않았을 경우
@@ -13,6 +24,7 @@ export default function OnboardingChecker() {
     const { user, profile, isLoading } = useAuthStore();
     const pathname = usePathname();
     const [showOnboarding, setShowOnboarding] = useState(false);
+    const [showSnsModal, setShowSnsModal] = useState(false);
     const [hasChecked, setHasChecked] = useState(false);
 
     useEffect(() => {
@@ -34,6 +46,12 @@ export default function OnboardingChecker() {
 
         // 🟢 이번 세션에서 건너뛰었으면 표시 안함
         if (typeof window !== 'undefined' && sessionStorage.getItem('onboarding_skipped') === 'true') {
+            setHasChecked(true);
+            return;
+        }
+
+        if (!hasRegisteredSns(profile)) {
+            setShowSnsModal(true);
             setHasChecked(true);
             return;
         }
@@ -61,13 +79,33 @@ export default function OnboardingChecker() {
         }
     };
 
-    if (!showOnboarding || !user) return null;
+    if (!user) return null;
 
     return (
-        <OnboardingModal 
-            userId={user.id} 
-            onComplete={handleComplete} 
-            allowSkip={true}  // 로그인 후에는 건너뛰기 허용
-        />
+        <>
+            {showSnsModal && (
+                <SnsInputModal
+                    isOpen={showSnsModal}
+                    onClose={() => {
+                        setShowSnsModal(false);
+                        setHasChecked(true);
+                    }}
+                    user={user}
+                    profile={profile}
+                    onSuccess={() => {
+                        setShowSnsModal(false);
+                        setHasChecked(false);
+                        useAuthStore.getState().fetchProfile(user.id);
+                    }}
+                />
+            )}
+            {showOnboarding && (
+                <OnboardingModal 
+                    userId={user.id} 
+                    onComplete={handleComplete} 
+                    allowSkip={true}  // 로그인 후에는 건너뛰기 허용
+                />
+            )}
+        </>
     );
 }
