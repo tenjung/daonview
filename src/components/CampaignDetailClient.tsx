@@ -434,10 +434,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 platform: campaign.platform,
                 step1Data: applyStep1Data,
             });
-            const isPurchaseOnlyCampaign =
+            const isPurchaseReviewCampaign =
                 normalizedType === 'PURCHASE' ||
-                (normalizedType === 'DELIVERY' && includeReview && !includeNaver && !includeInstagram);
-            const needsShippingAddress = normalizedType === 'DELIVERY' && !isPurchaseOnlyCampaign;
+                (normalizedType === 'DELIVERY' && includeReview);
+            const needsShippingAddress = normalizedType === 'DELIVERY' && !isPurchaseReviewCampaign;
             const needsBlogUrl = includeNaver || (!includeNaver && !includeInstagram && resolvedPlatform === 'BLOG');
             const needsInstagramUrl = includeInstagram || (!includeNaver && !includeInstagram && resolvedPlatform === 'INSTAGRAM');
 

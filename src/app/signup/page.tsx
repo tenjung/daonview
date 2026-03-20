@@ -275,8 +275,7 @@ function SignupForm() {
                         marketing_agreement: agreeMarketing,
                         terms_agreement: agreeTerms,
                         privacy_agreement: agreePrivacy,
-                        agreed_at: new Date().toISOString(),
-                        email_verified: false // Initially false, will be confirmed by auth
+                        agreed_at: new Date().toISOString()
                     }
                 ]);
 
@@ -720,6 +719,7 @@ function SignupForm() {
                 <OnboardingModal
                     userId={newUserId}
                     onComplete={() => window.location.href = '/'}
+                    allowSkip={true}
                 />
             )}
         </div>

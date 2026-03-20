@@ -284,6 +284,12 @@ function LoginForm() {
                 </button>
 
                 <div className="mt-8 text-center text-sm text-text-secondary">
+                    <Link
+                        href="/forgot-password"
+                        className="block mb-4 text-primary font-semibold underline"
+                    >
+                        비밀번호를 잊으셨나요?
+                    </Link>
                     아직 계정이 없으신가요?
                     <Link
                         href={`/signup${email ? `?email=${encodeURIComponent(email)}` : ''}`}
