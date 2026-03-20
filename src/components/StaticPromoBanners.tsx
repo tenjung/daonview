@@ -30,7 +30,7 @@ export default function StaticPromoBanners() {
             textColor: 'text-slate-800',
             descColor: 'text-slate-600',
             icon: Briefcase,
-            link: '/intro',
+            link: '/partner/intro',
             accentColor: 'text-rose-600',
         },
         {

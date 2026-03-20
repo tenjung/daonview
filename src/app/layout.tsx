@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Noto_Serif_KR } from "next/font/google";
 import { Toaster } from 'sonner';
 import "./globals.css";
 
@@ -11,6 +11,12 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+const notoSerifKr = Noto_Serif_KR({
+  weight: ['400', '700', '900'],
+  subsets: ["latin"],
+  variable: "--font-noto-serif-kr",
 });
 
 export const metadata: Metadata = {
@@ -163,7 +169,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} flex flex-col min-h-screen`}
+        className={`${geistSans.variable} ${geistMono.variable} ${notoSerifKr.variable} flex flex-col min-h-screen`}
         suppressHydrationWarning
       >
         {/* 서버에서 읽은 실제 세션을 Zustand store에 즉시 주입 */}
