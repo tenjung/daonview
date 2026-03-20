@@ -263,7 +263,7 @@ export default function PartnerLandingPage() {
                       <Sparkles className="w-4 h-4" /> The Solution
                   </motion.div>
                   <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-16 leading-tight">
-                      다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 전용 화장품 체험단</span>입니다
+                      다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 성과에 집중한 화장품 체험단</span>입니다
                   </motion.h2>
 
                   <div className="grid md:grid-cols-3 gap-8">
