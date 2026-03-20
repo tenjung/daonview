@@ -1119,6 +1119,22 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                 </div>
                             </div>
 
+                            {/* 사진/영상 공통 조건 */}
+                            <div className="grid grid-cols-2 gap-4 mb-10">
+                                <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
+                                    </p>
+                                    <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
+                                </div>
+                                <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
+                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
+                                    </p>
+                                    <p className="font-black text-slate-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
+                                </div>
+                            </div>
+
                             <div className="space-y-12">
                                 {/* 1. 구매평 작성 가이드 (배송형 + 구매평 미션이 있을 때) */}
                                 {(purchaseReviewGuide || purchaseNotes) && (
@@ -1160,22 +1176,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 campaign.platform?.toUpperCase().includes('INSTAGRAM') ? '인스타그램 업로드 가이드' :
                                                     `${campaign.platform || '플랫폼'} 가이드`}
                                         </h3>
-                                    </div>
-
-                                    {/* 사진/영상 조건 */}
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
-                                            </p>
-                                            <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
-                                        </div>
-                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
-                                            </p>
-                                            <p className="font-black text-slate-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
-                                        </div>
                                     </div>
 
                                     {/* 키워드 가이드 (블로그용) */}

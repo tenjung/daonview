@@ -45,7 +45,7 @@ export default function Footer() {
 
                         {/* Center: Links */}
                         <div className="flex items-center gap-5 text-xs">
-                            <Link href="/intro" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
+                            <Link href="/partner/intro" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
                             <Link href="/community/notice" className="text-text-secondary hover:text-primary transition-colors">공지사항</Link>
                             <Link href="/terms" className="text-text-secondary hover:text-primary transition-colors">운영정책</Link>
                             <Link href="/privacy" className="text-text-secondary hover:text-primary transition-colors">개인정보처리방침</Link>
