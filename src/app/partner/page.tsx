@@ -219,7 +219,7 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black mb-6 text-slate-50 tracking-tight">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black mb-6 text-slate-50 tracking-tight break-keep">
                       블로그 체험단만으로 충분하신가요?
                   </motion.h2>
               </motion.div>
@@ -262,8 +262,8 @@ export default function PartnerLandingPage() {
                   <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-rose-600 font-bold text-sm mb-6 shadow-sm">
                       <Sparkles className="w-4 h-4" /> The Solution
                   </motion.div>
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-16 leading-tight">
-                      다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 성과에 집중한 화장품 체험단</span>입니다
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-16 leading-tight break-keep">
+                      다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 성과에 집중한</span> <span className="inline-block">화장품 체험단입니다</span>
                   </motion.h2>
 
                   <div className="grid md:grid-cols-3 gap-8">
@@ -299,7 +299,7 @@ export default function PartnerLandingPage() {
               variants={staggerContainer}
               className="text-center mb-16"
             >
-                <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-black text-slate-900 mb-4">
+                <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-black text-slate-900 mb-4 break-keep">
                     이렇게 체험단이 운영됩니다
                 </motion.h2>
             </motion.div>
@@ -347,7 +347,7 @@ export default function PartnerLandingPage() {
                   className="mb-16 md:flex md:items-end justify-between"
               >
                   <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
-                    <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-white leading-tight">
+                    <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-white leading-tight break-keep">
                         화장품 숏폼은 <br className="hidden md:block"/>구조가 <span className="text-violet-400">다릅니다</span>
                     </motion.h2>
                   </div>
@@ -401,7 +401,7 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 break-keep">
                       광고주가 얻는 <span className="text-rose-500 bg-rose-50 px-2 rounded-lg">결과</span>
                   </motion.h2>
               </motion.div>
@@ -443,7 +443,7 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 tracking-tight">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 tracking-tight break-keep">
                       왜 다온뷰인가
                   </motion.h2>
               </motion.div>
