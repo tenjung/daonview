@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion, Variants } from 'framer-motion';
 import { 
   CheckCircle2, ChevronRight, XCircle, Search, 
@@ -8,6 +8,7 @@ import {
   Users, Sparkles, Building2, UserCircle2, Mail, Phone, ShoppingBag, Briefcase
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { submitPartnerInquiry } from '@/app/actions/inquiry';
 
 // Fade-in animation variants
 const fadeUp: Variants = {
@@ -37,11 +38,20 @@ export default function PartnerLandingPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // mock submit (normally API call here)
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    toast.success('문의가 안전하게 접수되었습니다. 담당자가 빠르게 평일 기준 24시간 내 연락드리겠습니다.');
-    setFormData({ companyName: '', managerName: '', phone: '', email: '', message: '' });
-    setIsSubmitting(false);
+    
+    try {
+      const res = await submitPartnerInquiry(formData);
+      if (res.success) {
+        toast.success('문의가 안전하게 접수되었습니다. 담당자가 빠르게 평일 기준 24시간 내 연락드리겠습니다.');
+        setFormData({ companyName: '', managerName: '', phone: '', email: '', message: '' });
+      } else {
+        toast.error(res.error || '문의 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      }
+    } catch (err) {
+      toast.error('문의 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -60,7 +70,7 @@ export default function PartnerLandingPage() {
     <div className="min-h-screen bg-slate-50 font-sans selection:bg-rose-200">
       
       {/* 1. Hero Section */}
-      <section className="relative pt-24 pb-16 lg:pt-28 lg:pb-24 overflow-hidden bg-white">
+      <section className="relative pt-8 pb-16 lg:pt-10 lg:pb-24 overflow-hidden bg-white">
         {/* Background Gradients */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
             <div className="absolute -top-[20%] -right-[10%] w-[50%] h-[50%] rounded-full bg-rose-50 blur-3xl opacity-70" />
@@ -79,9 +89,9 @@ export default function PartnerLandingPage() {
               <motion.div variants={fadeUp} className="inline-block px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold text-sm mb-6 shadow-sm border border-rose-200">
                 앰플 · 스킨케어 특화
               </motion.div>
-              <motion.h1 variants={fadeUp} className="text-4xl lg:text-5xl xl:text-6xl font-extrabold text-slate-900 leading-[1.2] mb-6 tracking-tight">
-                숏폼으로 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-violet-600">고객을 만드는</span><br/>
-                화장품 체험단
+              <motion.h1 variants={fadeUp} className="text-[2.5rem] md:text-5xl lg:text-5xl xl:text-6xl font-serif font-black text-slate-900 leading-[1.2] mb-6 tracking-tight break-keep">
+                <span className="inline-block">숏폼으로 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-violet-600">고객을 만드는</span></span><br/>
+                <span className="inline-block">화장품 체험단</span>
               </motion.h1>
               <motion.div variants={fadeUp} className="space-y-4 mb-10">
                   <div className="flex items-center justify-center lg:justify-start gap-3 text-slate-600 text-lg md:text-xl font-medium">
@@ -209,7 +219,7 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold mb-6 text-slate-50 tracking-tight">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black mb-6 text-slate-50 tracking-tight">
                       블로그 체험단만으로 충분하신가요?
                   </motion.h2>
               </motion.div>
@@ -252,7 +262,7 @@ export default function PartnerLandingPage() {
                   <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-rose-600 font-bold text-sm mb-6 shadow-sm">
                       <Sparkles className="w-4 h-4" /> The Solution
                   </motion.div>
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold text-slate-900 mb-16 leading-tight">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-16 leading-tight">
                       다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 전용 화장품 체험단</span>입니다
                   </motion.h2>
 
@@ -289,7 +299,7 @@ export default function PartnerLandingPage() {
               variants={staggerContainer}
               className="text-center mb-16"
             >
-                <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+                <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-black text-slate-900 mb-4">
                     이렇게 체험단이 운영됩니다
                 </motion.h2>
             </motion.div>
@@ -337,7 +347,7 @@ export default function PartnerLandingPage() {
                   className="mb-16 md:flex md:items-end justify-between"
               >
                   <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
-                    <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold text-white leading-tight">
+                    <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-white leading-tight">
                         화장품 숏폼은 <br className="hidden md:block"/>구조가 <span className="text-violet-400">다릅니다</span>
                     </motion.h2>
                   </div>
@@ -391,7 +401,7 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-bold text-slate-900">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900">
                       광고주가 얻는 <span className="text-rose-500 bg-rose-50 px-2 rounded-lg">결과</span>
                   </motion.h2>
               </motion.div>
@@ -433,16 +443,34 @@ export default function PartnerLandingPage() {
                   variants={staggerContainer}
                   className="text-center mb-16"
               >
-                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+                  <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 tracking-tight">
                       왜 다온뷰인가
                   </motion.h2>
               </motion.div>
 
               <div className="flex flex-col lg:flex-row items-stretch justify-center gap-6">
                   {[
-                      { top: "구조", bottom: "숏폼 전용 체험단", bg: "from-rose-100/50 to-white", textColor: "text-rose-600" },
-                      { top: "규격", bottom: "화장품 특화 가이드", bg: "from-violet-100/50 to-white", textColor: "text-violet-600" },
-                      { top: "성과", bottom: "조회수 기반 파워", bg: "from-orange-100/50 to-white", textColor: "text-orange-600" }
+                      { 
+                        top: "구조", 
+                        title: "조회수 나오는\n숏폼 체험단 구조", 
+                        desc: "기획 → 촬영 → 업로드까지\n전환 중심 설계",
+                        bg: "from-rose-100/50 to-white", 
+                        textColor: "text-rose-600" 
+                      },
+                      { 
+                        top: "전문성", 
+                        title: "화장품 숏폼\n검증 포맷 제공", 
+                        desc: "성분/효과 중심 콘텐츠 구조로\n이탈률 최소화",
+                        bg: "from-violet-100/50 to-white", 
+                        textColor: "text-violet-600" 
+                      },
+                      { 
+                        top: "성과", 
+                        title: "조회수 아닌\n‘구매 전환’ 기준 운영", 
+                        desc: "단순 노출이 아닌\n실제 판매 연결 구조",
+                        bg: "from-orange-100/50 to-white", 
+                        textColor: "text-orange-600" 
+                      }
                   ].map((item, idx) => (
                       <motion.div 
                           key={idx}
@@ -450,11 +478,12 @@ export default function PartnerLandingPage() {
                           whileInView={{ opacity: 1, y: 0 }}
                           viewport={{ once: true, margin: "-50px" }}
                           transition={{ delay: idx * 0.15, duration: 0.6 }}
-                          className={`flex-1 rounded-3xl p-1 bg-gradient-to-b ${item.bg} border border-slate-200 shadow-sm`}
+                          className={`flex-1 rounded-3xl p-1 bg-gradient-to-b ${item.bg} border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300`}
                       >
-                          <div className="bg-white/80 backdrop-blur-md rounded-[22px] p-10 h-full flex flex-col items-center justify-center text-center">
-                              <span className={`font-bold mb-4 tracking-widest text-sm ${item.textColor}`}>{item.top}</span>
-                              <h3 className="text-2xl lg:text-3xl font-extrabold text-slate-900 word-keep">{item.bottom}</h3>
+                          <div className="bg-white/90 backdrop-blur-md rounded-[22px] p-8 lg:p-10 h-full flex flex-col items-center justify-center text-center">
+                              <span className={`inline-block px-3 py-1 bg-slate-50 border border-slate-100 rounded-full font-bold mb-5 tracking-widest text-[13px] ${item.textColor}`}>{item.top}</span>
+                              <h3 className="text-[22px] lg:text-[24px] font-extrabold text-slate-900 mb-4 whitespace-pre-line break-keep leading-snug">{item.title}</h3>
+                              <p className="text-slate-600 font-medium whitespace-pre-line break-keep leading-relaxed text-[15px]">{item.desc}</p>
                           </div>
                       </motion.div>
                   ))}
@@ -467,9 +496,27 @@ export default function PartnerLandingPage() {
           <div className="w-full max-w-[1000px] mx-auto px-4">
               <div className="grid md:grid-cols-3 gap-6 md:gap-8">
                   {[
-                      { title: "소형 체험단 (10명)", best: false },
-                      { title: "중형 체험단 (30명)", best: true },
-                      { title: "커스텀 진행", best: false }
+                      { 
+                        title: "소형 체험단 (10명)", 
+                        features: ["콘텐츠 10개 생성", "초기 테스트용"], 
+                        target: "신제품 런칭",
+                        btn: "→ 테스트 시작하기",
+                        best: false 
+                      },
+                      { 
+                        title: "중형 체험단 (30명)", 
+                        features: ["콘텐츠 30개 생성", "노출 확산 구조"], 
+                        target: "본격 마케팅",
+                        btn: "→ 가장 많이 선택",
+                        best: true 
+                      },
+                      { 
+                        title: "커스텀 진행", 
+                        features: ["맞춤 기획", "지역/타겟 설정"], 
+                        target: null,
+                        btn: "→ 상담 요청",
+                        best: false 
+                      }
                   ].map((item, idx) => (
                       <motion.div 
                           key={idx}
@@ -477,7 +524,7 @@ export default function PartnerLandingPage() {
                           whileInView={{ opacity: 1, scale: 1 }}
                           viewport={{ once: true, margin: "-50px" }}
                           transition={{ delay: idx * 0.1 }}
-                          className={`relative rounded-3xl p-8 flex flex-col items-center text-center border-2 transition-all duration-300 ${
+                          className={`relative rounded-3xl p-6 lg:p-8 flex flex-col items-center text-center border-2 transition-all duration-300 ${
                               item.best 
                               ? 'bg-rose-50 border-rose-200 shadow-[0_10px_40px_-5px_rgba(244,63,94,0.15)] -translate-y-2' 
                               : 'bg-white border-slate-100 shadow-sm hover:border-slate-300'
@@ -488,9 +535,23 @@ export default function PartnerLandingPage() {
                                   BEST
                               </div>
                           )}
-                          <ShoppingBag className={`w-12 h-12 mb-6 ${item.best ? 'text-rose-500' : 'text-slate-400'}`} />
-                          <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-8 w-full border-b border-slate-200/60 pb-6">{item.title}</h3>
+                          <ShoppingBag className={`w-12 h-12 mb-5 ${item.best ? 'text-rose-500' : 'text-slate-400'}`} />
+                          <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-6 w-full border-b border-slate-200/60 pb-5">{item.title}</h3>
                           
+                          <div className="flex-1 flex flex-col items-center gap-3 w-full mb-8">
+                             {item.features.map((feat, i) => (
+                                <div key={i} className="flex items-center gap-2 text-slate-700 font-medium">
+                                  <CheckCircle2 className={`w-5 h-5 ${item.best ? 'text-rose-400' : 'text-slate-400'}`} />
+                                  <span>{feat}</span>
+                                </div>
+                             ))}
+                             {item.target && (
+                                <div className="mt-4 w-full text-[13px] bg-white border border-slate-200 py-2.5 rounded-xl text-slate-600 font-bold shadow-sm">
+                                  추천 대상: <span className={item.best ? 'text-rose-600' : 'text-slate-800'}>{item.target}</span>
+                                </div>
+                             )}
+                          </div>
+
                           <a 
                               href="#consulting-form"
                               onClick={scrollToForm}
@@ -500,7 +561,7 @@ export default function PartnerLandingPage() {
                                   : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                               }`}
                           >
-                              가격 및 안내 문의
+                              {item.btn}
                           </a>
                       </motion.div>
                   ))}
@@ -521,7 +582,7 @@ export default function PartnerLandingPage() {
                   viewport={{ once: true, margin: "-100px" }}
                   transition={{ duration: 0.6 }}
               >
-                  <h2 className="text-3xl md:text-5xl lg:text-5xl font-extrabold text-white mb-10 leading-normal tracking-tight">
+                  <h2 className="text-3xl md:text-5xl lg:text-5xl font-serif font-black text-white mb-10 leading-normal tracking-tight">
                       지금 숏폼 체험단으로 <br className="hidden md:block"/>브랜드를 노출하세요
                   </h2>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -530,14 +591,14 @@ export default function PartnerLandingPage() {
                           onClick={scrollToForm}
                           className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-rose-500 to-rose-400 hover:from-rose-400 hover:to-rose-300 text-white rounded-2xl font-bold text-xl shadow-[0_10px_30px_-5px_rgba(244,63,94,0.4)] hover:shadow-[0_15px_40px_-5px_rgba(244,63,94,0.6)] transition-all hover:-translate-y-1 min-h-[44px] flex items-center justify-center"
                       >
-                          무료 상담
+                          무료 상담 신청
                       </a>
                       <a 
-                          href="#consulting-form"
-                          onClick={scrollToForm}
-                          className="w-full sm:w-auto px-10 py-5 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm text-white rounded-2xl font-bold text-xl transition-all hover:-translate-y-1 min-h-[44px] flex items-center justify-center"
+                          href="#"
+                          onClick={(e) => e.preventDefault()}
+                          className="w-full sm:w-auto px-10 py-5 bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-sm text-white rounded-2xl font-bold text-xl transition-all hover:-translate-y-1 min-h-[44px] flex items-center justify-center cursor-default"
                       >
-                          체험단 문의
+                          포트폴리오 보기
                       </a>
                   </div>
               </motion.div>

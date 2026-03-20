@@ -16,6 +16,10 @@ const config: Config = {
             },
         },
         extend: {
+            fontFamily: {
+                sans: ['Pretendard', 'var(--font-geist-sans)', 'sans-serif'],
+                serif: ['var(--font-noto-serif-kr)', 'serif'],
+            },
             colors: {
                 border: "hsl(var(--border))",
                 input: "hsl(var(--input))",

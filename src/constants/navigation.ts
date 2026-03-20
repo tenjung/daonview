@@ -177,9 +177,10 @@ export const ADMIN_NAV: SidebarLink[] = [
         href: '/dashboard/admin/contact',
         label: '지원',
         icon: 'Headset',
-        matchPaths: ['/dashboard/admin/contact'],
+        matchPaths: ['/dashboard/admin/contact', '/dashboard/admin/inquiries'],
         subLinks: [
-            { href: '/dashboard/admin/contact', label: '고객센터', icon: 'Headset', matchPaths: ['/dashboard/admin/contact'] }
+            { href: '/dashboard/admin/contact', label: '고객센터', icon: 'Headset', matchPaths: ['/dashboard/admin/contact'] },
+            { href: '/dashboard/admin/inquiries', label: '제휴 문의', icon: 'Mail', matchPaths: ['/dashboard/admin/inquiries'] }
         ]
     }
 ];
