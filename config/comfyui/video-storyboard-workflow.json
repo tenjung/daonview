@@ -51,9 +51,9 @@
   },
   "6": {
     "inputs": {
-      "text": "{{PROMPT}}, masterpiece, best quality, high quality, ultra-detailed, cinematic still, highly detailed, sharp focus, photorealistic, 8k resolution",
+      "text": "{{PROMPT}}, photorealistic, realistic lighting, natural skin texture, sharp focus, no text, no watermark, vertical 9:16",
       "clip": [
-        "11",
+        "4",
         1
       ]
     },
@@ -66,7 +66,7 @@
     "inputs": {
       "text": "{{NEGATIVE_PROMPT}}",
       "clip": [
-        "11",
+        "4",
         1
       ]
     },
@@ -108,7 +108,7 @@
     "inputs": {
       "ratio": 0.4,
       "model": [
-        "11",
+        "4",
         0
       ]
     },
@@ -120,8 +120,8 @@
   "11": {
     "inputs": {
       "lora_name": "korean-instagram-xl.safetensors",
-      "strength_model": 0.8,
-      "strength_clip": 0.8,
+      "strength_model": 0.25,
+      "strength_clip": 0.2,
       "model": [
         "4",
         0

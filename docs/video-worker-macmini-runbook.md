@@ -197,3 +197,9 @@ launchctl kickstart -k gui/$(id -u)/com.daonview.video-worker
 - `npm run video:worker`와 `npm run video:worker:dev`를 동시에 띄우지 않는다.
 - `launchd` 운영 워커가 살아 있는 동안 별도 수동 워커를 띄우지 않는다.
 - 워커 코드 변경 후 반영이 안 된다고 느껴지면 먼저 `launchctl kickstart -k gui/$(id -u)/com.daonview.video-worker` 여부부터 확인한다.
+- ComfyUI 설치 루트는 `/Volumes/data/ComfyUI` 로 유지한다.
+- ComfyUI 작업물은 `/Volumes/data/ComfyUI/output`, `/Volumes/data/ComfyUI/temp`, `/Volumes/data/ComfyUI/input`, `/Volumes/data/ComfyUI/user` 로 고정한다.
+- ComfyUI 임시 디렉터리와 라이브러리 캐시는 `/Volumes/data/ComfyUI/tmp`, `/Volumes/data/ComfyUI/cache` 로 고정한다.
+- ComfyUI 관련 캐시·생성물·업로드용 입력 파일을 사용자 홈이나 내부 SSD 기본 경로로 분산시키지 않는다.
+- `TMPDIR`, `XDG_CACHE_HOME`, `HF_HOME`, `TORCH_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE` 는 모두 외장 SSD 경로를 사용한다.
+- ComfyUI 경로 정책 변경 시에는 `scripts/run-comfyui.sh` 수정 후 `launchctl kickstart -k gui/$(id -u)/com.daonview.comfyui` 로 재시작한다.

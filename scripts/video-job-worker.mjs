@@ -17,6 +17,9 @@ const COMFYUI_BASE_URL = String(process.env.COMFYUI_BASE_URL || 'http://127.0.0.
 const COMFYUI_WORKFLOW_PATH = process.env.COMFYUI_WORKFLOW_PATH || '';
 const COMFYUI_TIMEOUT_MS = Number.parseInt(process.env.COMFYUI_TIMEOUT_MS || '180000', 10);
 const COMFYUI_CHECKPOINT = process.env.COMFYUI_CHECKPOINT || 'sd_xl_base_1.0.safetensors';
+const COMFYUI_CHECKPOINT_REALISTIC = process.env.COMFYUI_CHECKPOINT_REALISTIC || COMFYUI_CHECKPOINT;
+const COMFYUI_CHECKPOINT_COMMERCIAL = process.env.COMFYUI_CHECKPOINT_COMMERCIAL || COMFYUI_CHECKPOINT;
+const COMFYUI_CHECKPOINT_BALANCED = process.env.COMFYUI_CHECKPOINT_BALANCED || COMFYUI_CHECKPOINT;
 const COMFYUI_NEGATIVE_PROMPT = process.env.COMFYUI_NEGATIVE_PROMPT
   || 'text, caption, watermark, logo, low quality, blurry, distorted face, extra fingers, duplicated objects, deformed hands';
 const VIDEO_WIDTH = 1080;
@@ -129,6 +132,46 @@ function normalizeLine(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
 
+function pickCheckpointForChapter(job, chapter) {
+  const source = [
+    job?.title || '',
+    job?.script || '',
+    chapter?.chapter_title || '',
+    chapter?.narration || '',
+    chapter?.visual_summary || '',
+    chapter?.image_prompt || '',
+  ].join(' ').toLowerCase();
+
+  const commercialSignals = [
+    '광고', '브랜드', '런칭', 'promo', 'promotional', 'campaign', 'cta', '고정댓글',
+    'offer', 'sale', 'product', 'thumbnail', 'hook', 'marketing', 'ad', 'commercial',
+  ];
+  const realisticSignals = [
+    '인터뷰', '다큐', '설명', '후기', '리뷰', '오피스', '업무', 'automation', 'api',
+    'spreadsheet', 'excel', 'customer service', 'invoice', 'office', 'documentary',
+    'realistic', 'professional', 'workflow',
+  ];
+
+  if (commercialSignals.some((signal) => source.includes(signal))) {
+    return {
+      checkpoint: COMFYUI_CHECKPOINT_COMMERCIAL,
+      profile: 'COMMERCIAL',
+    };
+  }
+
+  if (realisticSignals.some((signal) => source.includes(signal))) {
+    return {
+      checkpoint: COMFYUI_CHECKPOINT_REALISTIC,
+      profile: 'REALISTIC',
+    };
+  }
+
+  return {
+    checkpoint: COMFYUI_CHECKPOINT_BALANCED,
+    profile: 'BALANCED',
+  };
+}
+
 function tryParseHeadingSections(script) {
   const lines = String(script || '').replace(/\r/g, '').split('\n');
   const sections = [];
@@ -224,13 +267,18 @@ async function generateStoryboard(job) {
             '반드시 JSON만 반환한다.',
             '⛔ imagePrompt 절대 금지어(사용시 실패): illustration, anime, cartoon, painting, artwork, fantasy, hanfu, qipao, traditional costume, chinese style, vibrant colors, bright red, colorful, digital art.',
             '★ imagePrompt 필수 규칙:',
-            '  1. 자막/TTS 텍스트를 절대 직역/번역하지 않는다.',
-            '  2. 반드시 현대 한국인이 등장하는 실사 사진 장면으로 묘사한다 (contemporary Korean person, modern Korean urban setting).',
-            '  3. 얼굴이 선명히 보이도록 반드시 "sharp detailed face, clear facial features, well-defined eyes"를 포함한다.',
-            '  4. 챕터 감정·분위기를 장면으로 재해석: "질투" → "intense close-up face with fierce eyes, dramatic shadow, modern background".',
-            '  5. 미술/애니 스타일 절대 금지, 사진 찾네 스타일만 허용.',
-            '  6. 인물·장소·감정·조명 조합, 75토큰 이내 묘사.',
-            '  7. 필수 접미어: cinematic still, sharp focus, photorealistic, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark.',
+            '  1. 자막/TTS 텍스트를 절대 직역하지 말고, 장면으로 재해석한다.',
+            '  2. 핵심은 스타일이 아니라 장면 의미다. 누가, 어디서, 무엇을, 어떤 감정으로 하는지 먼저 묘사한다.',
+            '  3. 인물은 현대 한국인 실사 사진 톤을 기본으로 하되, 매 챕터마다 구도·거리·배경·시간대가 달라지게 만든다.',
+            '  4. close-up, medium shot, wide shot, over-the-shoulder, low angle, top view 중 장면에 맞는 구도를 하나 이상 반영한다.',
+            '  5. 얼굴이 보이는 장면이면 "sharp detailed face, clear facial features, well-defined eyes"를 포함한다.',
+            '  6. 미술/애니 스타일 절대 금지. 인스타 감성이나 특정 필터 스타일을 과하게 밀지 않는다.',
+            '  7. 한 챕터는 반드시 한 장의 스틸 이미지로 표현한다. montage, collage, split screen, multiple panels, multiple frames 같은 표현은 절대 금지한다.',
+            '  8. 프롬프트는 90토큰 이내로 유지하고, 인물·행동·장소·조명·카메라 구도 순으로 구체적으로 쓴다.',
+            '  9. 화면 속 UI나 글자를 직접 그리려고 하지 말고, 화면을 바라보는 인물과 작업 환경으로 우회해서 표현한다.',
+            '  10. 제품 데모나 자동화 장면도 모니터 화면 자체보다, 그 도구를 사용하는 사람과 책상·사무실 환경 중심으로 묘사한다.',
+            '  11. 필수 접미어는 최소한으로만 유지한다: photorealistic, realistic lighting, natural skin texture, sharp focus, vertical 9:16, no text, no watermark.',
+            '  12. 각 챕터 imagePrompt는 서로 다른 장면으로 보여야 하며, 같은 배경·같은 표정·같은 구도를 반복하지 않는다.',
             'chapterTitle과 narration은 한국어로 유지한다.',
           ].join(' '),
         },
@@ -292,7 +340,7 @@ async function generateStoryboard(job) {
         chapter_title: '인트로',
         narration: normalizeLine(job.script),
         visual_summary: normalizeLine(job.script),
-        image_prompt: 'A photorealistic cinematic portrait of a contemporary Korean person in a modern setting, sharp detailed face, clear facial features, cinematic still, sharp focus, photorealistic, commercial lighting, realistic photo, vertical 9:16, korean ad style, no text, no watermark.',
+        image_prompt: 'Contemporary Korean person in a modern setting, expressive moment tied to the script, sharp detailed face, clear facial features, realistic lighting, natural skin texture, sharp focus, photorealistic, vertical 9:16, no text, no watermark.',
         motion_prompt: null,
         status: 'QUEUED',
       },
@@ -420,8 +468,10 @@ async function downloadComfyImage(imageMeta) {
 
 async function generateChapterImage(job, chapter, chapterNumber) {
   const workflowTemplate = await loadComfyWorkflowTemplate();
+  const checkpointChoice = pickCheckpointForChapter(job, chapter);
+  console.log(`[Checkpoint] job=${job.id} chapter=${chapterNumber} profile=${checkpointChoice.profile} checkpoint=${checkpointChoice.checkpoint}`);
   const workflow = replaceTemplateTokens(workflowTemplate, {
-    CHECKPOINT: COMFYUI_CHECKPOINT,
+    CHECKPOINT: checkpointChoice.checkpoint,
     PROMPT: chapter.image_prompt,
     NEGATIVE_PROMPT: COMFYUI_NEGATIVE_PROMPT,
     WIDTH: 720,

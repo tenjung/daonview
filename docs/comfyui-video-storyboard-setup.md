@@ -54,3 +54,9 @@ OPENAI_VIDEO_STORYBOARD_MODEL=gpt-4o-mini
 - ComfyUI는 맥미니에서 항상 켜져 있어야 한다.
 - `대본만` 모드에서만 자동 챕터 이미지 생성을 기본 사용한다.
 - 워크플로우 JSON을 바꾸면 워커 재시작이 필요하다.
+- ComfyUI 설치 루트는 `/Volumes/data/ComfyUI` 로 고정한다.
+- ComfyUI 작업물은 반드시 `/Volumes/data/ComfyUI/output`, `/Volumes/data/ComfyUI/temp`, `/Volumes/data/ComfyUI/input`, `/Volumes/data/ComfyUI/user` 하위만 사용한다.
+- ComfyUI 런타임 임시 파일과 라이브러리 캐시는 `/Volumes/data/ComfyUI/tmp`, `/Volumes/data/ComfyUI/cache` 하위로 고정한다.
+- 내부 SSD 기본 경로나 사용자 홈 디렉터리 아래에 ComfyUI 작업물을 두지 않는다.
+- `TMPDIR`, `XDG_CACHE_HOME`, `HF_HOME`, `TORCH_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE` 는 모두 `/Volumes/data/ComfyUI` 하위로 강제한다.
+- ComfyUI 경로 규칙을 바꿀 때는 `scripts/run-comfyui.sh` 를 먼저 수정하고, launchd 재시작 전 실제 디렉터리 생성 여부를 확인한다.

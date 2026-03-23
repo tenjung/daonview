@@ -9,7 +9,7 @@
     <array>
       <string>/bin/zsh</string>
       <string>-lc</string>
-      <string>cd /Volumes/data/Dev/daonview && exec ./scripts/run-comfyui.sh</string>
+      <string>cd /Volumes/data/Dev/daonview &amp;&amp; exec ./scripts/run-comfyui.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
