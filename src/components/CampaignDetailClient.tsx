@@ -773,7 +773,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             includeReview: step1Data.includeReview,
             includeNaver: step1Data.includeNaver,
             includeInstagram: step1Data.includeInstagram,
-            platform: step1Data.platform,
         },
     });
 

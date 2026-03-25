@@ -1,5 +1,5 @@
 import { Campaign } from '@/types/database';
-import { normalizeScheduleType } from './campaignSchedule';
+import { buildCampaignSchedule, CampaignScheduleType, formatKstDate, normalizeScheduleType } from './campaignSchedule';
 
 export type NormalizedCampaignType = 'DELIVERY' | 'VISIT' | 'PRESS' | 'PURCHASE';
 export type NormalizedPlatform = 'BLOG' | 'INSTAGRAM' | 'PURCHASE' | 'OTHER';
@@ -27,6 +27,94 @@ export interface CampaignPlatformState {
   includeReview: boolean;
   includeNaver: boolean;
   includeInstagram: boolean;
+}
+
+type CampaignLikeRecord = Partial<Campaign> & Record<string, any>;
+
+export interface CampaignStep1Like {
+  campaignType?: unknown;
+  platform?: unknown;
+  includeReview?: unknown;
+  includeNaver?: unknown;
+  includeInstagram?: unknown;
+  recruitmentStartDate?: unknown;
+  scheduleType?: unknown;
+  totalRecruitment?: unknown;
+}
+
+export interface CampaignStep1SnapshotInput extends CampaignStep1Like {
+  productUrl?: string;
+  productUrlPrivate?: boolean;
+  productUrlIndividual?: boolean;
+  purchaseLinkPools?: unknown[];
+  productName?: string;
+  campaignTitle?: string;
+  brandName?: string;
+  brandId?: string | null;
+  productOptions?: unknown[];
+  productPrice?: string;
+  shippingCost?: string;
+  isCouponRequired?: boolean;
+  purchaseRewardMethod?: 'DIRECT' | 'DAONVIEW' | null;
+  category?: string;
+  region?: string;
+  subRegion?: string;
+  stores?: unknown[];
+  contactPhone?: string;
+  contactMethod?: string;
+  advertiserWillContact?: boolean;
+  visitTime?: string;
+  visitTimeNegotiable?: boolean;
+  visitDays?: string[];
+  visitNotes?: string;
+  experienceDetails?: string;
+  officialPrice?: string;
+  reviewDeadlineDays?: string;
+  optionConfig?: {
+    mode: 'SINGLE' | 'RANKED' | 'MULTI';
+    maxSelect: number;
+  };
+}
+
+export interface CampaignCanonicalState extends CampaignPlatformState {
+  canonicalType: 'DELIVERY' | 'VISIT' | 'PRESS';
+  canonicalPlatform: 'BLOG' | 'INSTAGRAM' | 'PURCHASE';
+  scheduleType: CampaignScheduleType;
+  recruitmentStartDate: string;
+  firstSelectionDate: string;
+  reviewDeadline: string;
+  endDate: string | null;
+  isUnlimitedRecruitment: boolean;
+  totalRecruitmentText: string;
+  totalRecruitmentValue: number | null;
+}
+
+export interface CampaignHydrationState extends CampaignCanonicalState {
+  options: Record<string, any>;
+  step1Data: Record<string, any>;
+  step2Data: Record<string, any>;
+  step3Data: Record<string, any>;
+  currentStep: number;
+}
+
+export function getCampaignOptions(campaign: CampaignLikeRecord | null | undefined) {
+  const optionsRaw = campaign?.campaign_options;
+  if (Array.isArray(optionsRaw)) {
+    return (optionsRaw[0] || {}) as Record<string, any>;
+  }
+
+  return (optionsRaw || {}) as Record<string, any>;
+}
+
+export function getCampaignScheduleType(campaign: CampaignLikeRecord | null | undefined): CampaignScheduleType {
+  const options = getCampaignOptions(campaign);
+  const step1Data = (options.step1Data || {}) as Record<string, any>;
+
+  return normalizeScheduleType(
+    step1Data.scheduleType ||
+    campaign?.schedule_type ||
+    campaign?.campaign_schedule_type
+  );
 }
 
 export function resolveCampaignPlatformState(input: {
@@ -89,6 +177,151 @@ export function resolveCampaignPlatformState(input: {
   };
 }
 
+export function deriveCampaignCanonicalState(input: {
+  type?: unknown;
+  platform?: unknown;
+  step1Data?: CampaignStep1Like | null;
+  baseDate?: string;
+  isUnlimitedRecruitment?: unknown;
+  totalRecruitment?: unknown;
+}) : CampaignCanonicalState {
+  const step1Data = input.step1Data || {};
+  const platformState = resolveCampaignPlatformState({
+    type: input.type,
+    platform: input.platform,
+    step1Data,
+  });
+
+  const canonicalType = platformState.normalizedType === 'DELIVERY'
+    ? 'DELIVERY'
+    : platformState.normalizedType === 'PRESS'
+      ? 'PRESS'
+      : 'VISIT';
+  const canonicalPlatform = platformState.resolvedPlatform === 'INSTAGRAM'
+    ? 'INSTAGRAM'
+    : platformState.resolvedPlatform === 'BLOG'
+      ? 'BLOG'
+      : 'PURCHASE';
+  const requestedScheduleType = normalizeScheduleType(step1Data.scheduleType);
+  const scheduleBaseDate = String(
+    step1Data.recruitmentStartDate ||
+    input.baseDate ||
+    formatKstDate()
+  );
+  const schedule = buildCampaignSchedule(requestedScheduleType, scheduleBaseDate);
+  const totalRecruitmentTextRaw = String(
+    step1Data.totalRecruitment ??
+    input.totalRecruitment ??
+    '0'
+  );
+  const isUnlimitedRecruitment = Boolean(input.isUnlimitedRecruitment)
+    || totalRecruitmentTextRaw === '무제한'
+    || totalRecruitmentTextRaw === '999';
+  const totalRecruitmentValue = isUnlimitedRecruitment
+    ? null
+    : (parseInt(totalRecruitmentTextRaw, 10) || 0);
+
+  return {
+    ...platformState,
+    canonicalType,
+    canonicalPlatform,
+    scheduleType: schedule.scheduleType,
+    recruitmentStartDate: schedule.recruitmentStartDate,
+    firstSelectionDate: schedule.firstSelectionDate,
+    reviewDeadline: schedule.reviewDeadline,
+    endDate: schedule.reviewDeadline,
+    isUnlimitedRecruitment,
+    totalRecruitmentText: isUnlimitedRecruitment ? '999' : String(totalRecruitmentValue ?? 0),
+    totalRecruitmentValue,
+  };
+}
+
+export function deriveCampaignHydrationState(campaign: CampaignLikeRecord): CampaignHydrationState {
+  const options = getCampaignOptions(campaign);
+  const step1Data = (options.step1Data || {}) as Record<string, any>;
+  const step2Data = (options.step2Data || {}) as Record<string, any>;
+  const step3Data = (options.step3Data || {}) as Record<string, any>;
+  const canonical = deriveCampaignCanonicalState({
+    type: campaign.type,
+    platform: campaign.platform,
+    step1Data,
+    baseDate: String(
+      campaign.recruitment_start_date || step1Data.recruitmentStartDate || formatKstDate()
+    ),
+    isUnlimitedRecruitment: campaign.is_unlimited_recruitment,
+    totalRecruitment: campaign.total_recruitment ?? step1Data.totalRecruitment,
+  });
+  const hasCanonicalDates =
+    Boolean(campaign.recruitment_start_date) &&
+    Boolean(campaign.end_date);
+
+  return {
+    ...canonical,
+    recruitmentStartDate: hasCanonicalDates
+      ? String(campaign.recruitment_start_date)
+      : canonical.recruitmentStartDate,
+    firstSelectionDate: hasCanonicalDates
+      ? String(campaign.first_selection_date || canonical.firstSelectionDate)
+      : canonical.firstSelectionDate,
+    reviewDeadline: hasCanonicalDates
+      ? String(campaign.end_date)
+      : canonical.reviewDeadline,
+    endDate: hasCanonicalDates ? String(campaign.end_date) : canonical.endDate,
+    options,
+    step1Data,
+    step2Data,
+    step3Data,
+    currentStep: Number(options.currentStep || 1),
+  };
+}
+
+export function buildCampaignStep1Snapshot(input: CampaignStep1SnapshotInput) {
+  const canonical = deriveCampaignCanonicalState({
+    type: input.campaignType,
+    platform: input.platform,
+    step1Data: input,
+    baseDate: String(input.recruitmentStartDate || ''),
+  });
+
+  return {
+    canonical,
+    step1Data: {
+      includeReview: canonical.includeReview,
+      includeNaver: canonical.includeNaver,
+      includeInstagram: canonical.includeInstagram,
+      productUrl: input.productUrl || '',
+      productUrlPrivate: Boolean(input.productUrlPrivate),
+      productUrlIndividual: Boolean(input.productUrlIndividual),
+      purchaseLinkPools: Array.isArray(input.purchaseLinkPools) ? input.purchaseLinkPools : [],
+      productName: input.productName || '',
+      campaignTitle: input.campaignTitle || '',
+      brandName: input.brandName || '',
+      brandId: input.brandId || null,
+      productOptions: Array.isArray(input.productOptions) ? input.productOptions : [],
+      productPrice: input.productPrice || '0',
+      shippingCost: input.shippingCost || '0',
+      isCouponRequired: Boolean(input.isCouponRequired),
+      purchaseRewardMethod: input.purchaseRewardMethod || null,
+      category: input.category || '',
+      region: input.region || '',
+      subRegion: input.subRegion || '',
+      stores: Array.isArray(input.stores) ? input.stores : [],
+      contactPhone: input.contactPhone || '',
+      contactMethod: input.contactMethod || 'TEXT_ONLY',
+      advertiserWillContact: Boolean(input.advertiserWillContact),
+      visitTime: input.visitTime || '',
+      visitTimeNegotiable: Boolean(input.visitTimeNegotiable),
+      visitDays: Array.isArray(input.visitDays) ? input.visitDays : [],
+      visitNotes: input.visitNotes || '',
+      experienceDetails: input.experienceDetails || '',
+      officialPrice: input.officialPrice || '',
+      scheduleType: canonical.scheduleType,
+      reviewDeadlineDays: input.reviewDeadlineDays || '7',
+      optionConfig: input.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
+    },
+  };
+}
+
 export const formatDDay = (endDate: string) => {
   const end = new Date(endDate);
   const now = new Date();
@@ -101,8 +334,8 @@ export const formatDDay = (endDate: string) => {
   return `D-${diffDays}`;
 };
 
-export const isCampaignAlwaysOpen = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
-  return Boolean(campaign?.is_always);
+export const isCampaignAutoExtendEnabled = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
+  return getCampaignScheduleType(campaign as CampaignLikeRecord) === 'FAST';
 };
 
 export const isCampaignUnlimitedRecruitment = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
@@ -112,24 +345,16 @@ export const isCampaignUnlimitedRecruitment = (campaign: Partial<Campaign> | Rec
 export const getCampaignRecruitTarget = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
   if (!campaign || isCampaignUnlimitedRecruitment(campaign)) return null;
 
-  if (typeof campaign.recruit_count === 'number') return campaign.recruit_count;
   if (typeof campaign.total_recruitment === 'number') return campaign.total_recruitment;
   return null;
 };
 
-export const resolveCampaignScheduleDates = (campaign: Campaign | Record<string, any>) => {
-  const options = Array.isArray((campaign as any).campaign_options)
-    ? (campaign as any).campaign_options[0]
-    : (campaign as any).campaign_options;
-  const step1Data = options?.step1Data || {};
+export const resolveCampaignScheduleDates = (campaign: CampaignLikeRecord) => {
+  const step1Data = getCampaignOptions(campaign)?.step1Data || {};
 
   const startDate = (campaign as any).recruitment_start_date || step1Data.recruitmentStartDate || campaign.created_at || null;
-  const endDate = isCampaignAlwaysOpen(campaign)
-    ? null
-    : ((campaign as any).end_date || step1Data.reviewDeadline || null);
+  const endDate = (campaign as any).end_date || step1Data.reviewDeadline || null;
   const firstSelectionDate = (campaign as any).first_selection_date || step1Data.firstSelectionDate || null;
-
-  const recruitTarget = getCampaignRecruitTarget(campaign);
 
   return {
     startDate,
@@ -138,7 +363,7 @@ export const resolveCampaignScheduleDates = (campaign: Campaign | Record<string,
   };
 };
 
-export const mapCampaignToCard = (campaign: Campaign & { applications?: { count: number }[] | { count: number } | number, is_always?: boolean }) => {
+export const mapCampaignToCard = (campaign: Campaign & { applications?: { count: number }[] | { count: number } | number }) => {
   // Handle Supabase count response
   let applicants = 0;
   if (Array.isArray(campaign.applications)) {
@@ -149,33 +374,21 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   }
 
   // 캠페인 옵션에서 데이터 추출 시도 (임시저장 데이터 대응)
-  const options = Array.isArray((campaign as any).campaign_options) ? (campaign as any).campaign_options[0] : (campaign as any).campaign_options;
+  const options = getCampaignOptions(campaign as CampaignLikeRecord);
   const provision = campaign.provision || (campaign as any).experience_details || options?.step1Data?.experienceDetails || '';
   const productName = (campaign as any).product_name || options?.step1Data?.productName || campaign.title;
 
-  const step1Data = options?.step1Data || {};
-  const scheduleType = normalizeScheduleType(step1Data.scheduleType);
+  const hydration = deriveCampaignHydrationState(campaign as CampaignLikeRecord);
   const { endDate } = resolveCampaignScheduleDates(campaign);
-  const rawRegion = (campaign as any).region ?? step1Data.region ?? null;
-  const rawSubRegion = (campaign as any).sub_region ?? step1Data.subRegion ?? null;
-  const {
-    normalizedType,
-    resolvedPlatform,
-    includeReview,
-    includeNaver,
-    includeInstagram,
-  } = resolveCampaignPlatformState({
-    type: campaign.type,
-    platform: campaign.platform,
-    step1Data,
-  });
+  const rawRegion = (campaign as any).region ?? hydration.step1Data.region ?? null;
+  const rawSubRegion = (campaign as any).sub_region ?? hydration.step1Data.subRegion ?? null;
   const recruitTarget = getCampaignRecruitTarget(campaign);
 
   return {
     id: campaign.id,
     title: campaign.title || productName,
-    platform: resolvedPlatform,
-    type: normalizedType,
+    platform: hydration.canonicalPlatform,
+    type: hydration.canonicalType,
     applicants: applicants,
     total: recruitTarget || 0,
     dday: endDate ? formatDDay(endDate) : '미정',
@@ -185,12 +398,11 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
     end_date: endDate,
-    is_always: isCampaignAlwaysOpen(campaign),
     is_unlimited_recruitment: isCampaignUnlimitedRecruitment(campaign),
     created_at: campaign.created_at,
-    scheduleType,
-    includeReview,
-    includeNaver,
-    includeInstagram,
+    scheduleType: getCampaignScheduleType(campaign),
+    includeReview: hydration.includeReview,
+    includeNaver: hydration.includeNaver,
+    includeInstagram: hydration.includeInstagram,
   };
 };

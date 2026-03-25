@@ -224,14 +224,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '선정 결과를 확인할 수 없습니다.' }, { status: 500 });
     }
 
-    const { error: incrementError } = await admin.rpc('increment_campaign_recruit_count', {
-      campaign_id: campaignId,
-    });
-
-    if (incrementError) {
-      console.error('increment_campaign_recruit_count rpc warning:', incrementError);
-    }
-
     const providedItems =
       campaign.experience_details ||
       campaign.product_name ||

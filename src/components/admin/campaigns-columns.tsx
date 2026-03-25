@@ -12,7 +12,7 @@ import { StatusBadgeCell } from "@/components/data-table/cells/StatusBadgeCell"
 import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_VARIANTS } from "@/constants/campaign"
 import { canEditCampaign as canEditCampaignByRole } from "@/lib/campaignPermissions"
 import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
-import { getCampaignRecruitTarget, isCampaignAlwaysOpen, isCampaignUnlimitedRecruitment } from "@/lib/campaignUtils"
+import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled, isCampaignUnlimitedRecruitment } from "@/lib/campaignUtils"
 
 interface CampaignColumnContext {
     onApprove?: (id: number, title: string) => void
@@ -196,7 +196,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const startDate = campaign.recruitment_start_date || campaign.created_at;
-            const isAlwaysRecruiting = isCampaignAlwaysOpen(campaign);
+            const isAutoExtend = isCampaignAutoExtendEnabled(campaign);
 
             return (
                 <div className="flex flex-col gap-1.5 py-1">
@@ -208,8 +208,8 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                     </div>
                     <div className="flex items-center gap-1.5">
                         <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 text-[10px] font-semibold leading-none shrink-0">마감</span>
-                        {isAlwaysRecruiting ? (
-                            <span className="text-[11px] font-semibold text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
+                        {isAutoExtend ? (
+                            <span className="text-[11px] font-semibold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">빠른모집 자동연장</span>
                         ) : (
                             <span className="text-[11px] font-bold text-slate-700">
                                 {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').replace(/\.$/, '') : '-'}

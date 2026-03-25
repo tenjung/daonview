@@ -231,13 +231,11 @@ function formatUtcDate(date: Date) {
 }
 
 function buildCalendarWeeks(startDate: string, endDate: string): CalendarWeek[] {
-    const startMonthDate = parseDateString(startDate);
-    const endMonthDate = parseDateString(endDate);
-    const monthStart = new Date(Date.UTC(startMonthDate.getUTCFullYear(), startMonthDate.getUTCMonth(), 1));
-    const monthEnd = new Date(Date.UTC(endMonthDate.getUTCFullYear(), endMonthDate.getUTCMonth() + 1, 0));
-    const calendarStart = new Date(monthStart);
+    const startRangeDate = parseDateString(startDate);
+    const endRangeDate = parseDateString(endDate);
+    const calendarStart = new Date(startRangeDate);
     calendarStart.setUTCDate(calendarStart.getUTCDate() - calendarStart.getUTCDay());
-    const calendarEnd = new Date(monthEnd);
+    const calendarEnd = new Date(endRangeDate);
     calendarEnd.setUTCDate(calendarEnd.getUTCDate() + (6 - calendarEnd.getUTCDay()));
 
     const weeks: CalendarWeek[] = [];
@@ -250,8 +248,8 @@ function buildCalendarWeeks(startDate: string, endDate: string): CalendarWeek[] 
                 date: formatUtcDate(cursor),
                 dayNumber: cursor.getUTCDate(),
                 isCurrentMonth:
-                    cursor.getUTCMonth() === startMonthDate.getUTCMonth()
-                    || cursor.getUTCMonth() === endMonthDate.getUTCMonth(),
+                    cursor.getUTCMonth() === startRangeDate.getUTCMonth()
+                    || cursor.getUTCMonth() === endRangeDate.getUTCMonth(),
             });
             cursor = new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth(), cursor.getUTCDate() + 1));
         }
@@ -319,6 +317,25 @@ function buildSelectionSegment(week: CalendarWeek, targetDate: string): Calendar
         label: '발표',
         tone: 'selection',
     };
+}
+
+function buildScheduleMonthTitle(startDate: string, endDate: string) {
+    const start = parseDateString(startDate);
+    const end = parseDateString(endDate);
+    const startYear = start.getUTCFullYear();
+    const endYear = end.getUTCFullYear();
+    const startMonth = start.getUTCMonth() + 1;
+    const endMonth = end.getUTCMonth() + 1;
+
+    if (startYear === endYear && startMonth === endMonth) {
+        return `${startYear}년 ${startMonth}월`;
+    }
+
+    if (startYear === endYear) {
+        return `${startYear}년 ${startMonth}월 ~ ${endMonth}월`;
+    }
+
+    return `${startYear}년 ${startMonth}월 ~ ${endYear}년 ${endMonth}월`;
 }
 
 export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }: CampaignStep1Props) {
@@ -922,16 +939,19 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         formData.scheduleType,
         formData.recruitmentStartDate || formatKstDate()
     );
-    const isFastSchedule = schedulePreview.scheduleType === 'FAST';
+    const isFlexibleSchedule = schedulePreview.scheduleType === 'FAST';
     const scheduleDescriptions: Record<CampaignScheduleType, string> = {
         DEFAULT: '오늘 시작, 1주 모집 후 신청 마지막날 발표하고 남은 1주 내 체험을 완료하는 기본 일정입니다.',
-        FAST: '오늘 시작 후 최대 14일 동안 캠페인을 운영하며, 신청 건별로 수시 선정 후 7일 이내 체험을 진행하는 빠른 일정입니다.',
+        FAST: '오늘 시작 후 2주 동안 노출되며, 모집 미달 시 자동 연장되고 신청 건별로 수시 선정 후 7일 이내 체험을 진행하는 빠른 일정입니다.',
     };
     const calendarWeeks = buildCalendarWeeks(
         schedulePreview.recruitmentStartDate,
         schedulePreview.reviewDeadline
     );
-    const scheduleMonthTitle = `${schedulePreview.recruitmentStartDate.slice(0, 4)}년 ${Number(schedulePreview.recruitmentStartDate.slice(5, 7))}월`;
+    const scheduleMonthTitle = buildScheduleMonthTitle(
+        schedulePreview.recruitmentStartDate,
+        schedulePreview.reviewDeadline
+    );
 
     return (
         <div className="w-full space-y-8 pb-10">
@@ -2174,7 +2194,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {([
                                     { value: 'DEFAULT', title: '기본일정', summary: '오늘 시작 / 1주 모집 / 1주 체험' },
-                                    { value: 'FAST', title: '빠른모집', summary: '오늘 시작 / 2주 노출 / 수시 선정' },
+                                    { value: 'FAST', title: '빠른모집', summary: '오늘 시작 / 2주 노출 / 수시 선정 / 모집 미달 시 자동 연장' },
                                 ] as const).map((option) => {
                                     const isActive = schedulePreview.scheduleType === option.value;
 
@@ -2248,9 +2268,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                             <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400">RULE</p>
                                             <div className="mt-2 space-y-1 text-[10px] leading-[1.5] font-medium text-slate-600">
                                                 <p>시작일은 결제 완료 시점의 KST 기준 오늘로 자동 고정된다.</p>
-                                                {isFastSchedule ? (
+                                                {isFlexibleSchedule ? (
                                                     <>
-                                                        <p>빠른모집은 시작일 기준 최대 14일 동안 캠페인을 운영한다.</p>
+                                                        <p>빠른모집은 시작일 기준 14일 동안 우선 노출되며 모집 미달 시 자동 연장된다.</p>
                                                         <p>광고주는 신청 건마다 개별적으로 수시 선정할 수 있다.</p>
                                                         <p>선정된 인플루언서는 선정 후 7일 이내 체험 및 리뷰를 진행한다.</p>
                                                     </>
@@ -2270,10 +2290,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                 </p>
                                             </div>
                                             <div className="flex flex-wrap items-center justify-end gap-1">
-                                                {!isFastSchedule && (
+                                                {!isFlexibleSchedule && (
                                                     <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-700 px-2 text-[10px] font-bold text-white">신청</span>
                                                 )}
-                                                {!isFastSchedule && (
+                                                {!isFlexibleSchedule && (
                                                     <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-rose-500 px-2 text-[10px] font-bold text-white">발표</span>
                                                 )}
                                                 <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-200 px-2 text-[10px] font-bold text-slate-700">체험</span>
@@ -2296,9 +2316,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                         schedulePreview.calendarHighlights.application.start,
                                                         schedulePreview.calendarHighlights.application.end,
                                                         'application',
-                                                        isFastSchedule ? '캠페인' : '신청'
+                                                        isFlexibleSchedule ? '캠페인' : '신청'
                                                     );
-                                                    const selectionSegment = isFastSchedule
+                                                    const selectionSegment = isFlexibleSchedule
                                                         ? null
                                                         : buildSelectionSegment(
                                                             week,
@@ -2339,7 +2359,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                                 })}
                                                             </div>
 
-                                                            {isFastSchedule ? (
+                                                            {isFlexibleSchedule ? (
                                                                 <div className="grid h-4 grid-cols-7 gap-0.5 pt-px">
                                                                         {experienceSegment ? (
                                                                             <div

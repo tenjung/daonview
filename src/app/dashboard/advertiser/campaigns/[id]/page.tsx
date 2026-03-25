@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import type { Application } from '@/types/database';
 import CampaignApplicationsClient from './CampaignApplicationsClient';
+import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -25,7 +26,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
     const [campaignRes, applicationsRes] = await Promise.all([
         supabase
             .from('campaigns')
-            .select('id, title, category, type, recruit_count, created_by, campaign_options')
+            .select('id, title, category, type, total_recruitment, created_by, campaign_options')
             .eq('id', id)
             .eq('created_by', user.id)
             .single(),
@@ -72,7 +73,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
             campaignCategory={campaign.category || ''}
             campaignType={campaign.type || ''}
             productUrlIndividual={productUrlIndividual}
-            recruitCount={campaign.recruit_count || 0}
+            recruitCount={getCampaignRecruitTarget(campaign) || 0}
             initialApplications={applications}
         />
     );

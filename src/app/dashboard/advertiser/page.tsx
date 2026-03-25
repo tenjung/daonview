@@ -12,7 +12,7 @@ import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { toast } from 'sonner';
-import { getCampaignRecruitTarget, isCampaignAlwaysOpen } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 
 export default function AdvertiserDashboard() {
     const { user, profile, isLoading } = useAuthStore();
@@ -105,7 +105,7 @@ export default function AdvertiserDashboard() {
         const targetCount = getCampaignRecruitTarget(campaign) ?? 0;
         const applicationRate = targetCount > 0 ? (applicantCount / targetCount) * 100 : 0;
 
-        if (isCampaignAlwaysOpen(campaign) || !campaign.end_date) {
+        if (isCampaignAutoExtendEnabled(campaign) || !campaign.end_date) {
             return applicationRate < 30 ? 'warning' : 'success';
         }
 

@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { CAMPAIGN_STATUS_LABELS } from '@/constants/campaign';
 import { APPLICATION_STATUS_LABELS, REVIEW_STATUS_LABELS } from '@/constants/status';
-import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -38,8 +38,8 @@ type CampaignProgressRow = {
   end_date?: string | null;
   review_deadline?: string | null;
   first_selection_date?: string | null;
-  recruit_count?: number | null;
-  is_always?: boolean | null;
+  total_recruitment?: number | null;
+  campaign_options?: Record<string, unknown> | Record<string, unknown>[] | null;
   is_unlimited_recruitment?: boolean | null;
   created_at?: string | null;
   applications?: Array<{ count: number }> | { count: number } | null;
@@ -113,13 +113,13 @@ function getDaysLeft(date?: string | null) {
 function getCampaignHealth(campaign: CampaignProgressRow) {
   const applicants = getCountFromRelation(campaign.applications);
   const target = getCampaignRecruitTarget(campaign) || 0;
-  const isAlways = Boolean(campaign.is_always);
+  const isAutoExtend = isCampaignAutoExtendEnabled(campaign);
   const daysLeft = getDaysLeft(campaign.end_date);
   const reviewDaysLeft = getDaysLeft(campaign.review_deadline);
-  const progressRate = target > 0 && !isAlways ? Math.round((applicants / target) * 100) : null;
+  const progressRate = target > 0 && !isAutoExtend ? Math.round((applicants / target) * 100) : null;
 
   let tone: 'good' | 'warning' | 'critical' = 'good';
-  if (!isAlways && target > 0) {
+  if (!isAutoExtend && target > 0) {
     if ((daysLeft !== null && daysLeft <= 3 && applicants < target * 0.5) || applicants === 0) tone = 'critical';
     else if ((daysLeft !== null && daysLeft <= 5) || applicants < target) tone = 'warning';
   }
@@ -131,7 +131,7 @@ function getCampaignHealth(campaign: CampaignProgressRow) {
     message = applicants < target ? '목표 대비 신청 부족' : '일정 확인 필요';
   }
 
-  return { applicants, target, isAlways, daysLeft, reviewDaysLeft, progressRate, tone, message };
+  return { applicants, target, isAutoExtend, daysLeft, reviewDaysLeft, progressRate, tone, message };
 }
 
 function toneClassName(tone: 'good' | 'warning' | 'critical') {
@@ -239,7 +239,7 @@ export default async function AdminProgressDashboardPage() {
     supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     supabase
       .from('campaigns')
-      .select('id, title, status, type, platform, end_date, review_deadline, first_selection_date, recruit_count, is_always, is_unlimited_recruitment, created_at, applications(count)')
+      .select('id, title, status, type, platform, end_date, review_deadline, first_selection_date, total_recruitment, campaign_options, is_unlimited_recruitment, created_at, applications(count)')
       .in('status', ['RECRUITING', 'ONGOING'])
       .order('end_date', { ascending: true })
       .limit(12),
@@ -425,14 +425,14 @@ export default async function AdminProgressDashboardPage() {
                         </div>
                         <div className={`shrink-0 rounded-2xl border px-3 py-2 text-right ${toneClassName(health.tone)}`}>
                           <div className="text-[11px] font-bold">{health.tone === 'critical' ? '긴급 체크' : health.tone === 'warning' ? '주의 필요' : '안정'}</div>
-                          <div className="mt-1 text-sm font-black">{health.progressRate !== null ? `${health.progressRate}% 모집` : '상시 모집'}</div>
+                          <div className="mt-1 text-sm font-black">{health.progressRate !== null ? `${health.progressRate}% 모집` : '자동연장 운영'}</div>
                         </div>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
                           <div className="text-[10px] font-bold text-slate-500">모집 현황</div>
-                          <div className="mt-1 text-sm font-black text-slate-900">{health.applicants} / {health.isAlways ? '∞' : health.target}</div>
+                          <div className="mt-1 text-sm font-black text-slate-900">{health.applicants} / {health.target}</div>
                         </div>
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
                           <div className="text-[10px] font-bold text-slate-500">모집 마감</div>

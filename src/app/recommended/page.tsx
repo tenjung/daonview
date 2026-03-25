@@ -7,7 +7,7 @@ import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { getCampaignRecruitTarget, isCampaignAlwaysOpen, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 import { isRole, USER_ROLES } from '@/constants/role';
@@ -114,7 +114,7 @@ export default function RecommendedCampaigns() {
             }
 
             // 4. 가산점 및 확률 보정
-            if (!isCampaignAlwaysOpen(campaign) && campaign.end_date) {
+            if (campaign.end_date) {
               const endDate = new Date(campaign.end_date);
               const now = new Date();
               const daysLeft = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));

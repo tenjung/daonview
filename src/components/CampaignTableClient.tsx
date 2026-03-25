@@ -9,7 +9,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { PlatformBadge, TypeBadge } from '@/components/campaign/CampaignBadges';
 import { useAuthStore } from '@/store/authStore';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
-import { resolveCampaignScheduleDates } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 
 interface CampaignTableClientProps {
     initialCampaigns: any[];
@@ -183,7 +183,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                             return <span className="text-sm font-bold text-primary">{applicants}</span>;
                                         })()}
                                         <span className="text-gray-300">/</span>
-                                        <span className="text-sm text-gray-600">{cam.recruit_count}명</span>
+                                        <span className="text-sm text-gray-600">{getCampaignRecruitTarget(cam) ?? 0}명</span>
                                     </div>
                                     <div className="text-[10px] text-gray-400 mt-1">
                                         {scheduleDates.endDate ? `~ ${new Date(scheduleDates.endDate).toLocaleDateString()} 마감` : '일정 미정'}

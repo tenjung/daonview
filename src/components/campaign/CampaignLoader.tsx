@@ -7,6 +7,15 @@ import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCamp
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
+interface CompletedCampaignSummary {
+    id: number;
+    title: string;
+    type?: string | null;
+    campaign_type?: string | null;
+    created_at: string;
+    [key: string]: any;
+}
+
 interface CampaignLoaderProps {
     userId: string;
     onLoadDraft: (draft: DraftCampaign) => void;
@@ -18,7 +27,7 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted, o
     const [isExpanded, setIsExpanded] = useState(false);
     const [activeTab, setActiveTab] = useState<'draft' | 'completed'>('draft');
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
-    const [completedCampaigns, setCompletedCampaigns] = useState<any[]>([]);
+    const [completedCampaigns, setCompletedCampaigns] = useState<CompletedCampaignSummary[]>([]);
     const [loading, setLoading] = useState(false);
 
     // 임시저장 목록 불러오기
@@ -182,7 +191,7 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted, o
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
                                                 <span className="inline-block px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full font-medium">
-                                                    {getCampaignTypeLabel(campaign.campaign_type)}
+                                                    {getCampaignTypeLabel(String(campaign.type || campaign.campaign_type || 'VISIT').toUpperCase())}
                                                 </span>
                                                 <span className="text-xs text-gray-500 flex items-center gap-1">
                                                     <Calendar size={12} />

@@ -14,6 +14,7 @@ import CampaignLoader from '@/components/campaign/CampaignLoader';
 import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
+import { buildCampaignStep1Snapshot } from '@/lib/campaignUtils';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 import { buildCampaignSchedule, formatKstDate } from '@/lib/campaignSchedule';
 
@@ -229,55 +230,50 @@ export default function CampaignRegistrationContainer() {
     const handleSaveDraft = async () => {
         if (!user) return;
         try {
-            const draftSchedule = buildCampaignSchedule(
-                store.scheduleType,
-                store.recruitmentStartDate || formatKstDate()
-            );
+            const { step1Data } = buildCampaignStep1Snapshot({
+                campaignType: store.campaignType,
+                includeReview: store.includeReview,
+                includeNaver: store.includeNaver,
+                includeInstagram: store.includeInstagram,
+                productUrl: store.productUrl,
+                productUrlPrivate: store.productUrlPrivate,
+                productUrlIndividual: store.productUrlIndividual,
+                purchaseLinkPools: store.purchaseLinkPools,
+                productName: store.productName,
+                campaignTitle: store.campaignTitle,
+                brandName: store.brandName,
+                brandId: store.brandId,
+                productOptions: store.productOptions,
+                productPrice: store.productPrice,
+                shippingCost: store.shippingCost,
+                isCouponRequired: store.isCouponRequired,
+                purchaseRewardMethod: store.purchaseRewardMethod,
+                platform: store.platform,
+                category: store.category,
+                region: store.region,
+                subRegion: store.subRegion,
+                stores: store.stores,
+                contactPhone: store.contactPhone,
+                contactMethod: store.contactMethod,
+                advertiserWillContact: store.advertiserWillContact,
+                visitTime: store.visitTime,
+                visitTimeNegotiable: store.visitTimeNegotiable,
+                visitDays: store.visitDays,
+                visitNotes: store.visitNotes,
+                experienceDetails: store.experienceDetails,
+                officialPrice: store.officialPrice,
+                totalRecruitment: store.totalRecruitment,
+                scheduleType: store.scheduleType,
+                recruitmentStartDate: store.recruitmentStartDate || formatKstDate(),
+                reviewDeadlineDays: store.reviewDeadlineDays,
+                optionConfig: store.optionConfig,
+            });
             // 전역 스토어의 현재 상태를 기반으로 임시저장
             const draft = await saveDraft(user.id, {
                 id: currentCampaignId || undefined,
                 title: store.campaignTitle || store.productName || '제목 없음',
                 campaignType: store.campaignType || 'VISIT',
-                step1Data: {
-                    campaignType: store.campaignType,
-                    includeReview: store.includeReview,
-                    includeNaver: store.includeNaver,
-                    includeInstagram: store.includeInstagram,
-                    productUrl: store.productUrl,
-                    productUrlPrivate: store.productUrlPrivate,
-                    productUrlIndividual: store.productUrlIndividual,
-                    purchaseLinkPools: store.purchaseLinkPools || [],
-                    productName: store.productName,
-                    campaignTitle: store.campaignTitle,
-                    brandName: store.brandName,
-                    brandId: store.brandId,
-                    productOptions: store.productOptions,
-                    productPrice: store.productPrice,
-                    shippingCost: store.shippingCost,
-                    isCouponRequired: store.isCouponRequired,
-                    platform: store.platform,
-                    category: store.category,
-                    region: store.region,
-                    subRegion: store.subRegion,
-                    stores: store.stores,
-                    contactPhone: store.contactPhone,
-                    contactMethod: store.contactMethod,
-                    advertiserWillContact: store.advertiserWillContact,
-                    visitTime: store.visitTime,
-                    visitTimeNegotiable: store.visitTimeNegotiable,
-                    visitDays: store.visitDays,
-                    visitNotes: store.visitNotes,
-                    experienceDetails: store.experienceDetails,
-                    officialPrice: store.officialPrice,
-                    totalRecruitment: store.totalRecruitment,
-
-                    scheduleType: draftSchedule.scheduleType,
-                    recruitmentStartDate: draftSchedule.recruitmentStartDate,
-                    firstSelectionDate: draftSchedule.firstSelectionDate,
-                    reviewDeadline: draftSchedule.reviewDeadline,
-                    reviewDeadlineDays: store.reviewDeadlineDays,
-                    optionConfig: store.optionConfig,
-                },
+                step1Data,
                 step2Data: {
                     campaignImages: store.campaignImages,
                     purchaseNotes: store.purchaseNotes,
@@ -306,7 +302,7 @@ export default function CampaignRegistrationContainer() {
                 store.setField('currentCampaignId', draft.id);
                 toast.success('캠페인이 임시저장되었습니다.');
             }
-        } catch (e) {
+        } catch {
             toast.error('임시저장에 실패했습니다.');
         }
     };
@@ -336,48 +332,57 @@ export default function CampaignRegistrationContainer() {
         store.setField('isSubmitting', true);
 
         try {
-            const normalizedCampaignType = (store.campaignType || 'VISIT').toUpperCase() as 'DELIVERY' | 'VISIT' | 'PRESS';
             const normalizedRole = normalizeRoleValue(roleFromAuth);
             const isAdmin = isAdminRole(normalizedRole);
-            let normalizedIncludeReview = normalizedCampaignType === 'DELIVERY' ? Boolean(store.includeReview) : false;
-            let normalizedIncludeNaver = normalizedCampaignType === 'DELIVERY'
-                ? Boolean(store.includeNaver)
-                : (String(store.platform || '').toUpperCase() === 'BLOG');
-            let normalizedIncludeInstagram = normalizedCampaignType === 'DELIVERY'
-                ? Boolean(store.includeInstagram)
-                : (String(store.platform || '').toUpperCase() === 'INSTAGRAM');
-
-            if (normalizedCampaignType === 'DELIVERY' && !normalizedIncludeReview && !normalizedIncludeNaver && !normalizedIncludeInstagram) {
-                const fallbackPlatform = String(store.platform || 'PURCHASE').toUpperCase();
-                normalizedIncludeReview = fallbackPlatform === 'PURCHASE';
-                normalizedIncludeNaver = fallbackPlatform === 'BLOG';
-                normalizedIncludeInstagram = fallbackPlatform === 'INSTAGRAM';
-            }
-
-            // 플랫폼 매핑 (배송형은 복수 선택 가능하므로 주 플랫폼 결정)
-            let mappedPlatform = (store.platform || (normalizedCampaignType === 'DELIVERY' ? 'PURCHASE' : 'BLOG')).toUpperCase();
-            if (normalizedCampaignType === 'DELIVERY') {
-                if (normalizedIncludeNaver) mappedPlatform = 'BLOG';
-                else if (normalizedIncludeInstagram) mappedPlatform = 'INSTAGRAM';
-                else mappedPlatform = 'PURCHASE';
-            }
-
-            // 날짜 계산
-            const schedule = buildCampaignSchedule(store.scheduleType, formatKstDate());
-            const isAlwaysCampaign = String(store.scheduleType || '').toUpperCase() === 'ALWAYS';
-            const isUnlimitedRecruitment = store.totalRecruitment === '무제한' || store.totalRecruitment === '999';
-            const endDate = isAlwaysCampaign ? null : schedule.reviewDeadline;
+            const { canonical, step1Data } = buildCampaignStep1Snapshot({
+                campaignType: store.campaignType,
+                includeReview: store.includeReview,
+                includeNaver: store.includeNaver,
+                includeInstagram: store.includeInstagram,
+                productUrl: store.productUrl,
+                productUrlPrivate: store.productUrlPrivate,
+                productUrlIndividual: store.productUrlIndividual,
+                purchaseLinkPools: store.purchaseLinkPools,
+                productName: store.productName,
+                campaignTitle: store.campaignTitle,
+                brandName: store.brandName,
+                brandId: store.brandId,
+                productOptions: store.productOptions,
+                productPrice: store.productPrice,
+                shippingCost: store.shippingCost,
+                isCouponRequired: store.isCouponRequired,
+                purchaseRewardMethod: store.purchaseRewardMethod,
+                platform: store.platform,
+                category: store.category,
+                region: store.region,
+                subRegion: store.subRegion,
+                stores: store.stores,
+                contactPhone: store.contactPhone,
+                contactMethod: store.contactMethod,
+                advertiserWillContact: store.advertiserWillContact,
+                visitTime: store.visitTime,
+                visitTimeNegotiable: store.visitTimeNegotiable,
+                visitDays: store.visitDays,
+                visitNotes: store.visitNotes,
+                experienceDetails: store.experienceDetails,
+                officialPrice: store.officialPrice,
+                totalRecruitment: store.totalRecruitment,
+                scheduleType: store.scheduleType,
+                recruitmentStartDate: store.recruitmentStartDate || formatKstDate(),
+                reviewDeadlineDays: store.reviewDeadlineDays,
+                optionConfig: store.optionConfig,
+            });
 
             const calculateCosts = () => {
-                const recruitmentCount = isUnlimitedRecruitment
-                    ? 0 
-                    : (parseInt(store.totalRecruitment) || 0);
+                const recruitmentCount = canonical.isUnlimitedRecruitment
+                    ? 0
+                    : (canonical.totalRecruitmentValue || 0);
 
                 let reviewCostPerPerson = 0;
-                if (normalizedCampaignType === 'DELIVERY') {
-                    if (normalizedIncludeReview) reviewCostPerPerson += 3000;
-                    if (normalizedIncludeNaver) reviewCostPerPerson += 5000;
-                    if (normalizedIncludeInstagram) reviewCostPerPerson += 5000;
+                if (canonical.canonicalType === 'DELIVERY') {
+                    if (canonical.includeReview) reviewCostPerPerson += 3000;
+                    if (canonical.includeNaver) reviewCostPerPerson += 5000;
+                    if (canonical.includeInstagram) reviewCostPerPerson += 5000;
                 } else {
                     reviewCostPerPerson = 10000;
                 }
@@ -387,7 +392,7 @@ export default function CampaignRegistrationContainer() {
                 let productPayment = 0;
                 const baseProductPrice = parseInt(store.productPrice?.replace(/,/g, '') || '0') || 0;
                 
-                if (normalizedCampaignType === 'DELIVERY' && (normalizedIncludeReview || mappedPlatform === 'PURCHASE')) {
+                if (canonical.canonicalType === 'DELIVERY' && (canonical.includeReview || canonical.canonicalPlatform === 'PURCHASE')) {
                     if (store.purchaseRewardMethod === 'DAONVIEW') {
                         const priceWithFee = Math.round(baseProductPrice * 1.1);
                         productPayment = priceWithFee * recruitmentCount;
@@ -405,50 +410,8 @@ export default function CampaignRegistrationContainer() {
                 return { totalCost };
             };
 
-            const costs = calculateCosts();
+            calculateCosts();
             const normalizedPaymentMethod = String(store.paymentMethod || '').toUpperCase();
-
-            const step1Data = {
-                campaignType: normalizedCampaignType,
-                includeReview: normalizedIncludeReview,
-                includeNaver: normalizedIncludeNaver,
-                includeInstagram: normalizedIncludeInstagram,
-                productUrl: store.productUrl,
-                productUrlPrivate: store.productUrlPrivate,
-                productUrlIndividual: store.productUrlIndividual,
-                purchaseLinkPools: store.purchaseLinkPools || [],
-                productName: store.productName,
-                campaignTitle: store.campaignTitle,
-                brandName: store.brandName,
-                brandId: store.brandId,
-                productOptions: store.productOptions,
-                productPrice: store.productPrice,
-                shippingCost: store.shippingCost,
-                isCouponRequired: store.isCouponRequired,
-                purchaseRewardMethod: store.purchaseRewardMethod,
-                platform: mappedPlatform,
-                category: store.category,
-                region: store.region,
-                subRegion: store.subRegion,
-                stores: store.stores,
-                contactPhone: store.contactPhone,
-                contactMethod: store.contactMethod,
-                advertiserWillContact: store.advertiserWillContact,
-                visitTime: store.visitTime,
-                visitTimeNegotiable: store.visitTimeNegotiable,
-                visitDays: store.visitDays,
-                visitNotes: store.visitNotes,
-                experienceDetails: store.experienceDetails,
-                officialPrice: store.officialPrice,
-                totalRecruitment: store.totalRecruitment,
-
-                scheduleType: schedule.scheduleType,
-                recruitmentStartDate: schedule.recruitmentStartDate,
-                firstSelectionDate: schedule.firstSelectionDate,
-                reviewDeadline: schedule.reviewDeadline,
-                reviewDeadlineDays: store.reviewDeadlineDays,
-                optionConfig: store.optionConfig,
-            };
 
             const step2Data = {
                 campaignImages: store.campaignImages,
@@ -493,18 +456,16 @@ export default function CampaignRegistrationContainer() {
                 brand_name: store.brandName,
                 product_name: store.productName || '',
                 title: store.campaignTitle,
-                type: normalizedCampaignType,
-                platform: mappedPlatform.toUpperCase(),
+                type: canonical.canonicalType,
+                platform: canonical.canonicalPlatform,
                 category: store.category,
                 region: store.region,
                 sub_region: store.subRegion,
-                recruitment_start_date: schedule.recruitmentStartDate,
-                first_selection_date: schedule.firstSelectionDate,
-                end_date: endDate,
-                is_always: isAlwaysCampaign,
-                is_unlimited_recruitment: isUnlimitedRecruitment,
-                total_recruitment: isUnlimitedRecruitment ? null : parseInt(store.totalRecruitment) || 0,
-                recruit_count: isUnlimitedRecruitment ? null : parseInt(store.totalRecruitment) || 0,
+                recruitment_start_date: canonical.recruitmentStartDate,
+                first_selection_date: canonical.firstSelectionDate,
+                end_date: canonical.endDate,
+                is_unlimited_recruitment: canonical.isUnlimitedRecruitment,
+                total_recruitment: canonical.totalRecruitmentValue,
 
                 campaign_images: store.campaignImages || [],
                 thumbnail_url: store.campaignImages?.[0] || null,
@@ -542,7 +503,8 @@ export default function CampaignRegistrationContainer() {
             let result;
 
             if (campaignId && !isNaN(Number(campaignId))) {
-                const { status: _status, ...updateData } = campaignDataBase;
+                const updateData = { ...campaignDataBase };
+                delete (updateData as { status?: string }).status;
                 // 수정 시 상태/소유자는 기존 값을 유지 (신규 등록시에만 결정)
 
                 let query = supabase

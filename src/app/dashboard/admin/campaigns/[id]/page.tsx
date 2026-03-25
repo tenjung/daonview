@@ -7,6 +7,7 @@ import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { Badge } from '@/components/ui/badge';
 import { Application } from '@/types/database';
+import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
 
 // Next.js 캐싱 비활성화
 export const dynamic = 'force-dynamic';
@@ -122,7 +123,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 campaignCategory={campaign.category || ''}
                 campaignType={campaign.type}
                 productUrlIndividual={productUrlIndividual}
-                recruitCount={campaign.recruit_count || 0}
+                recruitCount={getCampaignRecruitTarget(campaign) || 0}
             />
         </AdminPageLayout>
     );

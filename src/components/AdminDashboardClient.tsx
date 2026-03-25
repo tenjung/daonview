@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
-import { getCampaignRecruitTarget, isCampaignAlwaysOpen } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,8 +25,7 @@ interface CampaignRow {
     id: number;
     title: string;
     end_date: string | null;
-    recruit_count: number | null;
-    is_always?: boolean;
+    total_recruitment?: number | null;
     is_unlimited_recruitment?: boolean;
     profiles?: {
         company_name?: string | null;
@@ -101,12 +100,12 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
         const endDate = campaign.end_date ? new Date(campaign.end_date) : null;
         const today = new Date();
         const daysLeft = endDate ? Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) : null;
-        const isAlways = isCampaignAlwaysOpen(campaign);
+        const isAutoExtend = isCampaignAutoExtendEnabled(campaign);
 
         let riskLevel: 'critical' | 'warning' | 'normal' = 'normal';
 
-        if (isAlways) {
-            riskLevel = 'normal'; // 상시는 시급성 부족
+        if (isAutoExtend) {
+            riskLevel = 'normal'; // 자동연장 캠페인은 수동 개입 우선순위가 낮음
         } else if ((daysLeft ?? Infinity) <= 3 && applicationRate < 50) {
             riskLevel = 'critical';
         } else if ((daysLeft ?? Infinity) <= 3 || applicationRate < 50) {
@@ -119,7 +118,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             applicationRate,
             daysLeft,
             riskLevel,
-            isAlways
+            isAutoExtend
         };
     }
 
@@ -431,8 +430,8 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm">
-                                                    {analysis.isAlways ? (
-                                                        <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
+                                                    {analysis.isAutoExtend ? (
+                                                        <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                                     ) : (
                                                         <div className="font-bold text-red-600">D-{analysis.daysLeft}</div>
                                                     )}
@@ -500,10 +499,10 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                         <div>
                                             <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
-                                                신청 현황: {analysis.isAlways ? <span className="text-rose-500 font-extrabold">{analysis.applicantCount}</span> : `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)`} |
+                                                신청 현황: {analysis.isAutoExtend ? <span className="text-sky-600 font-extrabold">{analysis.applicantCount}명</span> : `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)`} |
                                                 <span className="ml-2 font-bold text-yellow-600">
-                                                    {analysis.isAlways ? (
-                                                        <span className="text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-100">상시모집</span>
+                                                    {analysis.isAutoExtend ? (
+                                                        <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                                     ) : `D-${analysis.daysLeft}`}
                                                 </span>
                                             </div>

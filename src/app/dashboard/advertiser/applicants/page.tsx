@@ -10,6 +10,7 @@ import { ADVERTISER_LINKS } from '@/constants/navigation';
 import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
 import { ExternalLink } from 'lucide-react';
 import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
+import { isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 
 interface Applicant {
     id: number;
@@ -27,7 +28,6 @@ interface Applicant {
         id: number;
         title: string;
         type: string;
-        is_always: boolean;
         end_date?: string;
         experience_details?: string;
         product_name?: string;
@@ -161,7 +161,7 @@ export default function AdvertiserApplicantsPage() {
                     assigned_purchase_link_url,
                     link_assigned_at,
                     link_updated_at,
-                    campaign:campaign_id (id, title, type, is_always, end_date, experience_details, product_name, campaign_options),
+                    campaign:campaign_id (id, title, type, end_date, experience_details, product_name, campaign_options),
                     user:user_id (id, nickname, blog_url, instagram_url, avatar_url),
                     tracking_company,
                     tracking_number,
@@ -612,7 +612,7 @@ export default function AdvertiserApplicantsPage() {
                                                     </div>
                                                     <div>
                                                         <div className="text-xs font-semibold text-gray-400">모집 상태</div>
-                                                        <div className="mt-1 font-bold text-gray-900">{campaign.is_always ? '상시' : '일반'}</div>
+                                                        <div className="mt-1 font-bold text-gray-900">{isCampaignAutoExtendEnabled(campaign) ? '빠른모집 자동연장' : '기본일정'}</div>
                                                     </div>
                                                     <div>
                                                         <div className="text-xs font-semibold text-gray-400">마감일</div>

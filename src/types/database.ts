@@ -45,13 +45,11 @@ export interface BaseCampaign {
     status: CampaignStatus;
 
     // Recruitment
-    recruit_count: number | null;
     total_recruitment?: number | null;
     recruitment_start_date?: string;
     end_date: string | null;
     first_selection_date?: string;
     review_deadline?: string | null;
-    is_always?: boolean;
     is_unlimited_recruitment?: boolean;
     region?: string;
     sub_region?: string;

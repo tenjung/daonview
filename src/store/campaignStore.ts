@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { isCampaignAlwaysOpen, isCampaignUnlimitedRecruitment, resolveCampaignPlatformState } from '@/lib/campaignUtils';
-import { buildCampaignSchedule, CampaignScheduleType, formatKstDate, normalizeScheduleType } from '@/lib/campaignSchedule';
+import { deriveCampaignHydrationState } from '@/lib/campaignUtils';
+import { CampaignScheduleType } from '@/lib/campaignSchedule';
 
 // --- Types ---
 
@@ -114,7 +114,7 @@ interface CampaignStore extends CampaignState {
     setField: <K extends keyof CampaignState>(field: K, value: CampaignState[K]) => void;
     updateFields: (fields: Partial<CampaignState>) => void;
     resetStore: () => void;
-    initializeFromCampaign: (campaign: any) => void;
+    initializeFromCampaign: (campaign: Record<string, any>) => void;
 }
 
 // --- Initial State ---
@@ -208,79 +208,34 @@ export const useCampaignStore = create<CampaignStore>()(
 
             resetStore: () => set(initialState),
 
-            initializeFromCampaign: (campaign: any) => {
-                const optionsRaw = campaign.campaign_options;
-                const options = Array.isArray(optionsRaw) ? (optionsRaw[0] || {}) : (optionsRaw || {});
-                const s1 = options.step1Data || {};
-                const s2 = options.step2Data || {};
-                const s3 = options.step3Data || {};
-                const resolvedPlatformState = resolveCampaignPlatformState({
-                    type: campaign.type,
-                    platform: campaign.platform,
-                    step1Data: s1,
-                });
-                const normalizedCampaignType = resolvedPlatformState.normalizedType === 'DELIVERY'
-                    ? 'DELIVERY'
-                    : resolvedPlatformState.normalizedType === 'PRESS'
-                        ? 'PRESS'
-                        : 'VISIT';
-                const defaultPlatformByType = normalizedCampaignType === 'DELIVERY' ? 'PURCHASE' : 'BLOG';
-                const normalizedPlatform = resolvedPlatformState.resolvedPlatform === 'INSTAGRAM'
-                    ? 'INSTAGRAM'
-                    : resolvedPlatformState.resolvedPlatform === 'PURCHASE'
-                        ? 'PURCHASE'
-                        : resolvedPlatformState.resolvedPlatform === 'BLOG'
-                            ? 'BLOG'
-                            : defaultPlatformByType;
-
-                const normalizedScheduleType = normalizeScheduleType(s1.scheduleType);
-                const normalizedSchedule = buildCampaignSchedule(
-                    normalizedScheduleType,
-                    s1.recruitmentStartDate || campaign.recruitment_start_date || formatKstDate()
-                );
-                const hasCanonicalDates =
-                    (s1.scheduleType === 'DEFAULT' || s1.scheduleType === 'FAST') &&
-                    Boolean(campaign.recruitment_start_date) &&
-                    Boolean(campaign.end_date) &&
-                    !isCampaignAlwaysOpen(campaign);
-                const scheduleState = hasCanonicalDates
-                    ? {
-                        scheduleType: normalizedSchedule.scheduleType,
-                        recruitmentStartDate: campaign.recruitment_start_date,
-                        firstSelectionDate: campaign.first_selection_date || normalizedSchedule.firstSelectionDate,
-                        reviewDeadline: campaign.end_date,
-                    }
-                    : {
-                        scheduleType: normalizedSchedule.scheduleType,
-                        recruitmentStartDate: normalizedSchedule.recruitmentStartDate,
-                        firstSelectionDate: normalizedSchedule.firstSelectionDate,
-                        reviewDeadline: normalizedSchedule.reviewDeadline,
-                    };
+            initializeFromCampaign: (campaign: Record<string, any>) => {
+                const hydration = deriveCampaignHydrationState(campaign);
+                const s1 = hydration.step1Data;
+                const s2 = hydration.step2Data;
+                const s3 = hydration.step3Data;
 
                 set({
                     // Basic Metadata
                     currentCampaignId: campaign.id?.toString() || null,
-                    currentStep: options.currentStep || 1,
+                    currentStep: hydration.currentStep || 1,
                     isEdit: true,
 
                     // Step 1 normalization
-                    campaignType: normalizedCampaignType,
+                    campaignType: hydration.canonicalType,
                     brandId: campaign.brand_id || s1.brandId || null,
                     brandName: campaign.brand_name || s1.brandName || '',
                     productName: campaign.product_name || s1.productName || '',
                     campaignTitle: campaign.title || s1.campaignTitle || campaign.product_name || '',
-                    platform: normalizedPlatform,
+                    platform: hydration.canonicalPlatform,
                     category: campaign.category || s1.category || '',
                     region: campaign.region || s1.region || '',
-                    subRegion: s1.subRegion || '',
-                    totalRecruitment: isCampaignUnlimitedRecruitment(campaign)
-                        ? '999'
-                        : (campaign.total_recruitment ?? campaign.recruit_count ?? s1.totalRecruitment ?? '0').toString(),
+                    subRegion: campaign.sub_region || s1.subRegion || '',
+                    totalRecruitment: hydration.totalRecruitmentText,
 
 
-                    includeReview: resolvedPlatformState.includeReview,
-                    includeNaver: resolvedPlatformState.includeNaver,
-                    includeInstagram: resolvedPlatformState.includeInstagram,
+                    includeReview: hydration.includeReview,
+                    includeNaver: hydration.includeNaver,
+                    includeInstagram: hydration.includeInstagram,
                     productUrl: campaign.product_url || s1.productUrl || '',
                     productUrlPrivate: s1.productUrlPrivate || false,
                     productUrlIndividual: s1.productUrlIndividual || false,
@@ -290,22 +245,22 @@ export const useCampaignStore = create<CampaignStore>()(
                     shippingCost: (s1.shippingCost || '0').toString(),
                     isCouponRequired: s1.isCouponRequired || false,
                     purchaseRewardMethod: s1.purchaseRewardMethod || null,
-                    contactPhone: options.contact_phone || s1.contactPhone || '',
-                    contactMethod: campaign.contact_method || options.contact_method || s1.contactMethod || 'TEXT_ONLY',
+                    contactPhone: hydration.options.contact_phone || s1.contactPhone || '',
+                    contactMethod: campaign.contact_method || hydration.options.contact_method || s1.contactMethod || 'TEXT_ONLY',
                     advertiserWillContact: s1.advertiserWillContact || false,
                     visitTime: s1.visitTime || '',
                     visitTimeNegotiable: s1.visitTimeNegotiable || false,
                     visitDays: Array.isArray(s1.visitDays) ? s1.visitDays : [],
                     visitNotes: s1.visitNotes || '',
                     experienceDetails: campaign.experience_details || s1.experienceDetails || '',
-                    officialPrice: (options.official_price || s1.officialPrice || '').toString(),
-                    scheduleType: scheduleState.scheduleType,
-                    recruitmentStartDate: scheduleState.recruitmentStartDate,
-                    firstSelectionDate: scheduleState.firstSelectionDate,
-                    reviewDeadline: scheduleState.reviewDeadline,
+                    officialPrice: (hydration.options.official_price || s1.officialPrice || '').toString(),
+                    scheduleType: hydration.scheduleType,
+                    recruitmentStartDate: hydration.recruitmentStartDate,
+                    firstSelectionDate: hydration.firstSelectionDate,
+                    reviewDeadline: hydration.reviewDeadline,
                     reviewDeadlineDays: s1.reviewDeadlineDays || '7',
                     optionConfig: s1.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
-                    stores: options.stores || s1.stores || [],
+                    stores: campaign.store_locations || hydration.options.stores || s1.stores || [],
 
                     // Step 2 normalization
                     campaignImages: (Array.isArray(campaign.campaign_images) && campaign.campaign_images.length > 0)
@@ -316,7 +271,7 @@ export const useCampaignStore = create<CampaignStore>()(
                     textLength: s2.textLength || 'free',
                     photoCount: s2.photoCount || '3',
                     videoRequired: s2.videoRequired || 'no',
-                    missionGuide: options.mission_guide || s2.missionGuide || '',
+                    missionGuide: hydration.options.mission_guide || s2.missionGuide || '',
                     keywords: Array.isArray(campaign.keywords) ? campaign.keywords : (Array.isArray(s2.keywords) ? s2.keywords : []),
                     prohibitedWords: s2.prohibitedWords || [],
                     additionalNotes: s2.additionalNotes || '',
