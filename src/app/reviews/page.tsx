@@ -5,11 +5,11 @@ import ReviewsClient from './ReviewsClient';
 
 export const metadata: Metadata = {
   title: '리뷰 모아보기',
-  description: '다온뷰 체험단에 참가한 인플루언서들의 실제 리뷰를 모아보세요. 블로그, 인스타그램, 유튜브 수십만 리뷰어 전원 리뷰 모음.',
-  keywords: ['체험단 리뷰', '블로그 체험단 후기', '인스타 체험단 후기', '유튜브 리뷰', '다온뷰 후기', '인플루언서 리뷰'],
+  description: '다온뷰 체험단 참여자들의 실제 후기와 리뷰 사례를 모아보고 플랫폼 운영 결과를 확인하세요.',
+  keywords: ['체험단 후기', '체험단 리뷰', '블로그 후기', '인스타그램 후기', '리뷰 사례', '다온뷰 리뷰'],
   openGraph: {
     title: '리뷰 모아보기 | 다온뷰',
-    description: '다온뷰 체험단에 참가한 인플루언서들의 실제 리뷰를 모아보세요.',
+    description: '다온뷰 체험단 참여자들의 실제 후기와 리뷰 사례를 모아보고 플랫폼 운영 결과를 확인하세요.',
     url: 'https://daonview.com/reviews',
     images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
   },

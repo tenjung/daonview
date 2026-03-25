@@ -22,19 +22,19 @@ const notoSerifKr = Noto_Serif_KR({
 export const metadata: Metadata = {
   metadataBase: new URL('https://daonview.com'),
   title: {
-    default: "다온뷰 | DAONVIEW - 혜택이 다가온 체험단 플랫폼",
+    default: "다온뷰 | DAONVIEW",
     template: "%s | 다온뷰",
   },
-  description: "블로그·인스타·유튜브 체험단 혜택이 다온뷰에서 시작됩니다. 다양한 브랜드와의 협업 기회를 만나보세요.",
-  keywords: ["체험단", "블로그체험단", "인스타체험단", "마케팅플랫폼", "다온뷰", "바이럴마케팅", "인플루언서", "리뷰플랫폼"],
+  description: "다온뷰는 브랜드와 인플루언서를 연결하는 체험단 플랫폼입니다.",
+  keywords: ["다온뷰", "DAONVIEW", "체험단 플랫폼", "인플루언서 마케팅", "브랜드 협업", "리뷰 플랫폼"],
   icons: {
     icon: "/favicon.ico",
     shortcut: "/favicon.ico",
     apple: "/favicon.ico",
   },
   openGraph: {
-    title: "DAONVIEW | 혜택으로 다가온 리뷰",
-    description: "블로그·인스타·유튜브 체험단 혜택, 다온뷰에서 시작하세요",
+    title: "다온뷰 | DAONVIEW",
+    description: "다온뷰는 브랜드와 인플루언서를 연결하는 체험단 플랫폼입니다.",
     url: "https://daonview.com",
     siteName: "다온뷰",
     images: [

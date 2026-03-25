@@ -205,9 +205,27 @@ function ProfileEditContent() {
     const [withdrawAgreement, setWithdrawAgreement] = useState(false);
     const [withdrawReason, setWithdrawReason] = useState('');
     const [withdrawing, setWithdrawing] = useState(false);
+    const withdrawalSectionRef = useRef<HTMLDivElement | null>(null);
 
     const WITHDRAWAL_CONFIRM_KEYWORD = '회원탈퇴';
     const canProceedWithdrawal = withdrawAgreement && withdrawConfirmText.trim() === WITHDRAWAL_CONFIRM_KEYWORD;
+
+    useEffect(() => {
+        if (typeof window === 'undefined' || window.location.hash !== '#withdrawal') {
+            return;
+        }
+
+        setShowWithdrawalConfirm(true);
+
+        const timer = window.setTimeout(() => {
+            withdrawalSectionRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+        }, 120);
+
+        return () => window.clearTimeout(timer);
+    }, []);
 
     const getErrorMessage = (error: unknown, fallback: string) => {
         return error instanceof Error ? error.message : fallback;
@@ -1013,6 +1031,7 @@ function ProfileEditContent() {
                                     {saving ? '저장 중...' : '기본 정보 업데이트하기'}
                                 </Button>
 
+                                <div id="withdrawal" ref={withdrawalSectionRef}>
                                 <Card className="border border-rose-200 bg-rose-50/40 rounded-3xl shadow-none">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-lg text-rose-700 flex items-center gap-2">
@@ -1104,6 +1123,7 @@ function ProfileEditContent() {
                                         )}
                                     </CardContent>
                                 </Card>
+                                </div>
                             </form>
                         ) : activeTab === 'payout' ? (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
