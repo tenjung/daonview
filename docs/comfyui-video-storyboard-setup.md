@@ -39,9 +39,11 @@ OPENAI_VIDEO_STORYBOARD_MODEL=gpt-4o-mini
 - 웹에서 `대본만` 모드로 작업 생성
 - 워커가 대본을 최대 4개 챕터로 분석
 - 각 챕터별 영어 이미지 프롬프트 생성
+- 챕터 이미지 생성이 필요한 시점에만 워커가 ComfyUI를 온디맨드로 기동
 - ComfyUI API `/prompt` 로 큐 등록
 - `/history/{prompt_id}` 결과 대기
 - 생성 이미지 다운로드 후 Supabase Storage 업로드
+- 작업 종료 후 유휴 시간이 지나면 워커가 ComfyUI를 종료
 - 이후 같은 이미지를 배경으로 영상 렌더링
 
 ## 실패 기준
@@ -51,7 +53,8 @@ OPENAI_VIDEO_STORYBOARD_MODEL=gpt-4o-mini
 - 챕터 상태가 `FAILED`: `ai_video_job_chapters.error_message` 와 워커 로그를 함께 확인
 
 ## 운영 원칙
-- ComfyUI는 맥미니에서 항상 켜져 있어야 한다.
+- ComfyUI는 독립 상시 서비스가 아니라 `video-worker` 종속 온디맨드 프로세스로만 운영한다.
+- `com.daonview.comfyui` 같은 별도 LaunchAgent를 상시 등록/기동하지 않는다.
 - `대본만` 모드에서만 자동 챕터 이미지 생성을 기본 사용한다.
 - 워크플로우 JSON을 바꾸면 워커 재시작이 필요하다.
 - ComfyUI 설치 루트는 `/Volumes/data/ComfyUI` 로 고정한다.
@@ -59,4 +62,4 @@ OPENAI_VIDEO_STORYBOARD_MODEL=gpt-4o-mini
 - ComfyUI 런타임 임시 파일과 라이브러리 캐시는 `/Volumes/data/ComfyUI/tmp`, `/Volumes/data/ComfyUI/cache` 하위로 고정한다.
 - 내부 SSD 기본 경로나 사용자 홈 디렉터리 아래에 ComfyUI 작업물을 두지 않는다.
 - `TMPDIR`, `XDG_CACHE_HOME`, `HF_HOME`, `TORCH_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE` 는 모두 `/Volumes/data/ComfyUI` 하위로 강제한다.
-- ComfyUI 경로 규칙을 바꿀 때는 `scripts/run-comfyui.sh` 를 먼저 수정하고, launchd 재시작 전 실제 디렉터리 생성 여부를 확인한다.
+- ComfyUI 경로 규칙을 바꿀 때는 `scripts/run-comfyui.sh` 와 `scripts/run-video-worker.sh` 를 함께 확인하고, `video-worker`만 재시작한다.

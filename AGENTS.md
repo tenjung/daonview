@@ -113,6 +113,8 @@ SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 �
 
 워커 중복 금지: 영상 워커는 동시에 1개만 실행한다. 수동 점검용 `npm run video:worker`와 개발용 `npm run video:worker:dev`를 함께 띄우지 않는다.
 
+ComfyUI 운영 규칙: ComfyUI는 독립 상시 서비스가 아니라 `video-worker` 종속 온디맨드 프로세스로만 실행한다. 영상 제작 요청이 없으면 내려가 있어야 하며, `com.daonview.comfyui` 같은 별도 LaunchAgent를 상시 운영하지 않는다.
+
 ---
 
 ## 6. 📋 캠페인 등록 비즈니스 규칙 (Campaign Registration Rules)
@@ -175,5 +177,4 @@ SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 �
   - `any` 남발 금지 (불가피하면 사유+최소 범위)
   - 주석으로 버그 숨기기 금지
   - “TODO 나중에”만 남기고 끝내기 금지
-
 

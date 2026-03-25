@@ -4,7 +4,7 @@
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
 
-COMFYUI_ROOT="/Volumes/data/ComfyUI"
+COMFYUI_ROOT="${COMFYUI_ROOT:-/Volumes/data/ComfyUI}"
 COMFYUI_OUTPUT_DIR="$COMFYUI_ROOT/output"
 COMFYUI_TEMP_DIR="$COMFYUI_ROOT/temp"
 COMFYUI_INPUT_DIR="$COMFYUI_ROOT/input"

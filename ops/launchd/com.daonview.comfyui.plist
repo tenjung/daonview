@@ -16,10 +16,10 @@
     <string>/Volumes/data/Dev/daonview</string>
 
     <key>RunAtLoad</key>
-    <true/>
+    <false/>
 
     <key>KeepAlive</key>
-    <true/>
+    <false/>
 
     <key>ThrottleInterval</key>
     <integer>10</integer>

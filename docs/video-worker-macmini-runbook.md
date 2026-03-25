@@ -75,6 +75,7 @@ OPENAI_VIDEO_STORYBOARD_MODEL=gpt-4o-mini
 - Vercel에도 같은 계열 키가 필요하지만, 맥미니에서 웹 서버를 띄우지는 않는다.
 - 대본만 모드의 자동 챕터 이미지 생성은 ComfyUI 설정이 완료돼야 동작한다.
 - ComfyUI 워크플로우 템플릿 규칙은 `docs/comfyui-video-storyboard-setup.md` 를 따른다.
+- ComfyUI는 `video-worker`가 요청 시에만 올리고 유휴 시 내리는 종속 온디맨드 프로세스로 운영한다.
 
 ## 4. 수동 단발 검증
 작업 등록 후 아래 명령으로 직접 워커를 실행한다.
@@ -197,9 +198,10 @@ launchctl kickstart -k gui/$(id -u)/com.daonview.video-worker
 - `npm run video:worker`와 `npm run video:worker:dev`를 동시에 띄우지 않는다.
 - `launchd` 운영 워커가 살아 있는 동안 별도 수동 워커를 띄우지 않는다.
 - 워커 코드 변경 후 반영이 안 된다고 느껴지면 먼저 `launchctl kickstart -k gui/$(id -u)/com.daonview.video-worker` 여부부터 확인한다.
+- `com.daonview.comfyui` 같은 독립 ComfyUI LaunchAgent를 별도로 운영하지 않는다.
 - ComfyUI 설치 루트는 `/Volumes/data/ComfyUI` 로 유지한다.
 - ComfyUI 작업물은 `/Volumes/data/ComfyUI/output`, `/Volumes/data/ComfyUI/temp`, `/Volumes/data/ComfyUI/input`, `/Volumes/data/ComfyUI/user` 로 고정한다.
 - ComfyUI 임시 디렉터리와 라이브러리 캐시는 `/Volumes/data/ComfyUI/tmp`, `/Volumes/data/ComfyUI/cache` 로 고정한다.
 - ComfyUI 관련 캐시·생성물·업로드용 입력 파일을 사용자 홈이나 내부 SSD 기본 경로로 분산시키지 않는다.
 - `TMPDIR`, `XDG_CACHE_HOME`, `HF_HOME`, `TORCH_HOME`, `TRANSFORMERS_CACHE`, `HF_DATASETS_CACHE` 는 모두 외장 SSD 경로를 사용한다.
-- ComfyUI 경로 정책 변경 시에는 `scripts/run-comfyui.sh` 수정 후 `launchctl kickstart -k gui/$(id -u)/com.daonview.comfyui` 로 재시작한다.
+- ComfyUI 경로 정책 변경 시에는 `scripts/run-comfyui.sh` 수정 후 `launchctl kickstart -k gui/$(id -u)/com.daonview.video-worker` 로 반영한다.

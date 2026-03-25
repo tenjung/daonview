@@ -2,10 +2,27 @@ import { createClient } from '@supabase/supabase-js';
 import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { execFile } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const COMFYUI_MANAGED = String(process.env.COMFYUI_MANAGED || '1').trim() !== '0';
+const COMFYUI_START_COMMAND = process.env.COMFYUI_START_COMMAND || '/bin/zsh -lc "cd /Volumes/data/Dev/daonview && exec ./scripts/run-comfyui.sh"';
+const COMFYUI_STOP_COMMAND = process.env.COMFYUI_STOP_COMMAND || '';
+const COMFYUI_HEALTH_PATH = process.env.COMFYUI_HEALTH_PATH || '/system_stats';
+const COMFYUI_BOOT_TIMEOUT_MS = Number.parseInt(process.env.COMFYUI_BOOT_TIMEOUT_MS || '120000', 10);
+const COMFYUI_IDLE_TIMEOUT_MS = Number.parseInt(process.env.COMFYUI_IDLE_TIMEOUT_MS || '300000', 10);
+const COMFYUI_SHUTDOWN_GRACE_MS = Number.parseInt(process.env.COMFYUI_SHUTDOWN_GRACE_MS || '15000', 10);
+const COMFYUI_PORT = Number.parseInt(process.env.COMFYUI_PORT || '8188', 10);
+const COMFYUI_PROCESS_MATCH = process.env.COMFYUI_PROCESS_MATCH || `main.py --listen 127.0.0.1 --port ${COMFYUI_PORT}`;
+const COMFYUI_KILL_RETRIES = Number.parseInt(process.env.COMFYUI_KILL_RETRIES || '20', 10);
+const COMFYUI_KILL_RETRY_DELAY_MS = Number.parseInt(process.env.COMFYUI_KILL_RETRY_DELAY_MS || '1000', 10);
+const ACTIVE_VIDEO_JOB_STATUSES = ['PROCESSING_SCRIPT', 'GENERATING_IMAGES', 'PROCESSING_TTS', 'PROCESSING_SUBTITLE', 'RENDERING_VIDEO'];
+let comfyEnsurePromise = null;
+let comfyIdleTimer = null;
+let comfyLastUsedAt = 0;
+
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -61,6 +78,37 @@ async function updateJob(id, patch) {
   if (error) throw new Error(`작업 업데이트 실패: ${error.message}`);
 }
 
+async function logJobState(label, id) {
+  console.log('[Job] getNextJob scanning');
+  const { data, error } = await supabase
+    .from('ai_video_jobs')
+    .select('id,status,progress,error_message,updated_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) {
+    console.error(`[Job] ${label} state check failed`, error.message);
+    return null;
+  }
+  console.log(`[Job] ${label}`, data);
+  return data;
+}
+
+async function safeFetch(label, url, init = undefined) {
+  try {
+    console.log(`[Fetch] ${label} start`, typeof url === 'string' ? url : String(url));
+    const response = await fetch(url, init);
+    console.log(`[Fetch] ${label} response`, { status: response.status, ok: response.ok, url: response.url });
+    return response;
+  } catch (error) {
+    console.error(`[Fetch] ${label} failed`, {
+      message: error instanceof Error ? error.message : String(error),
+      cause: error instanceof Error && 'cause' in error ? error.cause : undefined,
+      url: typeof url === 'string' ? url : String(url),
+    });
+    throw error;
+  }
+}
+
 async function getNextJob() {
   const { data, error } = await supabase
     .from('ai_video_jobs')
@@ -71,6 +119,7 @@ async function getNextJob() {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
+  console.log('[Job] found queued job', { id: data.id, status: data.status, updated_at: data.updated_at });
 
   const { data: claimed, error: claimError } = await supabase
     .from('ai_video_jobs')
@@ -81,6 +130,7 @@ async function getNextJob() {
     .maybeSingle();
 
   if (claimError) throw new Error(claimError.message);
+  console.log('[Job] claim result', claimed ? { id: claimed.id, status: claimed.status } : null);
   return claimed || null;
 }
 
@@ -102,6 +152,16 @@ async function getChapters(jobId) {
     .order('chapter_index', { ascending: true });
   if (error) throw new Error(error.message);
   return data || [];
+}
+
+async function hasActiveVideoJobs() {
+  const { data, error } = await supabase
+    .from('ai_video_jobs')
+    .select('id,status')
+    .in('status', ACTIVE_VIDEO_JOB_STATUSES)
+    .limit(1);
+  if (error) throw new Error(error.message);
+  return Array.isArray(data) && data.length > 0;
 }
 
 async function replaceChapters(jobId, chapters) {
@@ -245,7 +305,7 @@ async function generateStoryboard(job) {
   // 줄바꿈이나 기호가 없는 통짜 대본일 경우 1개로 파싱되므로, 이때는 null로 처리해 GPT가 알아서 4등분하도록 유도
   const seedSections = headingSections.length > 1 ? headingSections : null;
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await safeFetch('openai-chat', 'https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -311,6 +371,7 @@ async function generateStoryboard(job) {
   }
 
   const data = await response.json();
+  console.log('[ComfyUI] queue prompt ok', { promptId: data?.prompt_id || null });
   const content = data?.choices?.[0]?.message?.content;
   if (!content) {
     throw new Error('스토리보드 응답이 비어 있습니다.');
@@ -381,8 +442,204 @@ function replaceTemplateTokens(value, tokens) {
   return next;
 }
 
+function touchComfyUiUsage() {
+  comfyLastUsedAt = Date.now();
+  if (comfyIdleTimer) {
+    clearTimeout(comfyIdleTimer);
+  }
+  if (COMFYUI_MANAGED) {
+    comfyIdleTimer = setTimeout(() => {
+      stopComfyUiIfIdle().catch((error) => {
+        console.error('[ComfyUI] idle stop failed', error);
+      });
+    }, COMFYUI_IDLE_TIMEOUT_MS);
+    if (typeof comfyIdleTimer.unref === 'function') comfyIdleTimer.unref();
+  }
+}
+
+async function isComfyUiReachable() {
+  try {
+    const response = await safeFetch('comfy-health', `${COMFYUI_BASE_URL}${COMFYUI_HEALTH_PATH}`, { cache: 'no-store' });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function listComfyUiPids() {
+  try {
+    const { stdout } = await execFileAsync('/bin/ps', ['-axo', 'pid=,command=']);
+    return String(stdout || '')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => line.includes(COMFYUI_PROCESS_MATCH))
+      .map((line) => Number.parseInt(line.split(/\s+/, 1)[0], 10))
+      .filter((pid) => Number.isFinite(pid));
+  } catch {
+    return [];
+  }
+}
+
+async function hasComfyUiProcess() {
+  const pids = await listComfyUiPids();
+  return pids.length > 0;
+}
+
+async function waitForComfyUiDown() {
+  for (let i = 0; i < COMFYUI_KILL_RETRIES; i += 1) {
+    if (!(await isComfyUiReachable()) && !(await hasComfyUiProcess())) return true;
+    await sleep(COMFYUI_KILL_RETRY_DELAY_MS);
+  }
+  return !(await isComfyUiReachable()) && !(await hasComfyUiProcess());
+}
+
+async function killComfyUiProcessTree() {
+  for (let i = 0; i < COMFYUI_KILL_RETRIES; i += 1) {
+    const pids = await listComfyUiPids();
+    if (!pids.length) break;
+    for (const pid of pids) {
+      try {
+        process.kill(pid, 'SIGTERM');
+      } catch {}
+    }
+    await sleep(COMFYUI_KILL_RETRY_DELAY_MS);
+  }
+
+  const remaining = await listComfyUiPids();
+  for (const pid of remaining) {
+    try {
+      process.kill(pid, 'SIGKILL');
+    } catch {}
+  }
+  await sleep(500);
+}
+
+function spawnDetached(command) {
+  const child = spawn('/bin/zsh', ['-lc', command], {
+    detached: true,
+    stdio: 'ignore',
+    env: process.env,
+  });
+  child.unref();
+}
+
+async function ensureComfyUi() {
+  if (!COMFYUI_MANAGED) return;
+  if (await isComfyUiReachable()) {
+    touchComfyUiUsage();
+    return;
+  }
+
+  if (await hasComfyUiProcess()) {
+    const ready = await waitForComfyUiDown();
+    if (!ready && await isComfyUiReachable()) {
+      touchComfyUiUsage();
+      return;
+    }
+    if (!ready) {
+      await killComfyUiProcessTree();
+    }
+  }
+
+  if (!comfyEnsurePromise) {
+    comfyEnsurePromise = (async () => {
+      console.log('[ComfyUI] starting on demand...');
+      spawnDetached(COMFYUI_START_COMMAND);
+      const startedAt = Date.now();
+      while (Date.now() - startedAt < COMFYUI_BOOT_TIMEOUT_MS) {
+        if (await isComfyUiReachable()) {
+          console.log('[ComfyUI] ready');
+          touchComfyUiUsage();
+          return;
+        }
+        await sleep(1500);
+      }
+      throw new Error('ComfyUI 기동 대기 시간이 초과되었습니다.');
+    })().finally(() => {
+      comfyEnsurePromise = null;
+    });
+  }
+
+  await comfyEnsurePromise;
+}
+
+async function stopComfyUiIfIdle(force = false) {
+  if (!COMFYUI_MANAGED) return;
+
+  if (!force) {
+    const idleFor = Date.now() - comfyLastUsedAt;
+    if (idleFor < COMFYUI_IDLE_TIMEOUT_MS) return;
+  }
+
+  if (!(await hasComfyUiProcess())) {
+    return;
+  }
+
+  try {
+    const queueRes = await safeFetch('comfy-queue', `${COMFYUI_BASE_URL}/queue`, { cache: 'no-store' });
+    if (queueRes.ok) {
+      const queueData = await queueRes.json();
+      const running = Array.isArray(queueData.queue_running) ? queueData.queue_running.length : 0;
+      const pending = Array.isArray(queueData.queue_pending) ? queueData.queue_pending.length : 0;
+      if (!force && (running > 0 || pending > 0)) {
+        touchComfyUiUsage();
+        return;
+      }
+    }
+  } catch {
+    if (!(await hasComfyUiProcess())) {
+      return;
+    }
+    return;
+  }
+
+  console.log('[ComfyUI] stopping after idle');
+  if (COMFYUI_STOP_COMMAND) {
+    try {
+      await execFileAsync('/bin/zsh', ['-lc', COMFYUI_STOP_COMMAND], { timeout: COMFYUI_SHUTDOWN_GRACE_MS });
+      const stopped = await waitForComfyUiDown();
+      if (stopped) return;
+      console.warn('[ComfyUI] custom stop command completed but process still alive; falling back');
+    } catch (error) {
+      console.error('[ComfyUI] custom stop command failed', error);
+    }
+  }
+
+  try {
+    await safeFetch('comfy-interrupt', `${COMFYUI_BASE_URL}/interrupt`, { method: 'POST' });
+  } catch {}
+
+  try {
+    await killComfyUiProcessTree();
+    await waitForComfyUiDown();
+  } catch {}
+}
+
+async function reconcileComfyUiOwnership() {
+  if (!COMFYUI_MANAGED) return;
+
+  const [hasProcess, hasActiveJobs] = await Promise.all([
+    hasComfyUiProcess(),
+    hasActiveVideoJobs(),
+  ]);
+
+  if (!hasProcess || hasActiveJobs) {
+    if (hasActiveJobs) {
+      touchComfyUiUsage();
+    }
+    return;
+  }
+
+  console.log('[ComfyUI] stopping stale standalone process before polling jobs');
+  await stopComfyUiIfIdle(true);
+}
+
 async function queueComfyPrompt(workflow) {
-  const response = await fetch(`${COMFYUI_BASE_URL}/prompt`, {
+  await ensureComfyUi();
+  touchComfyUiUsage();
+  console.log('[ComfyUI] queue prompt start', { baseUrl: COMFYUI_BASE_URL });
+  const response = await safeFetch('comfy-prompt', `${COMFYUI_BASE_URL}/prompt`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ prompt: workflow }),
@@ -412,6 +669,7 @@ function extractComfyImageMeta(historyEntry) {
 
 async function waitForComfyImage(promptId) {
   const startedAt = Date.now();
+  console.log('[ComfyUI] wait image start', { promptId });
 
   while (Date.now() - startedAt < COMFYUI_TIMEOUT_MS) {
     try {
@@ -425,6 +683,7 @@ async function waitForComfyImage(promptId) {
       
       const historyEntry = historyData?.[promptId];
       if (historyEntry) {
+        touchComfyUiUsage();
         const imageMeta = extractComfyImageMeta(historyEntry);
         if (imageMeta) {
           return imageMeta;
@@ -432,6 +691,7 @@ async function waitForComfyImage(promptId) {
         throw new Error('ComfyUI 실행이 완료되었으나 결과 이미지를 찾을 수 없습니다.');
       }
 
+      touchComfyUiUsage();
       const isRunning = (queueData.queue_running || []).some((job) => job[1] === promptId);
       const isPending = (queueData.queue_pending || []).some((job) => job[1] === promptId);
 
@@ -439,6 +699,7 @@ async function waitForComfyImage(promptId) {
         throw new Error('ComfyUI 작업이 비정상적으로 실패했습니다. (노드 연결 에러 및 프로세스 중단)');
       }
     } catch (err) {
+      console.error('[ComfyUI] wait image poll error', { promptId, message: err instanceof Error ? err.message : String(err) });
       if (err.message.includes('비정상적으로 실패') || err.message.includes('이미지를 찾을 수 없습니다')) {
         throw err;
       }
@@ -451,6 +712,7 @@ async function waitForComfyImage(promptId) {
 }
 
 async function downloadComfyImage(imageMeta) {
+  console.log('[ComfyUI] download image start', imageMeta);
   const params = new URLSearchParams({
     filename: imageMeta.filename,
     type: imageMeta.type || 'output',
@@ -459,6 +721,7 @@ async function downloadComfyImage(imageMeta) {
     params.set('subfolder', imageMeta.subfolder);
   }
 
+  touchComfyUiUsage();
   const response = await fetch(`${COMFYUI_BASE_URL}/view?${params.toString()}`, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`ComfyUI 이미지 다운로드 실패: ${await response.text()}`);
@@ -467,6 +730,7 @@ async function downloadComfyImage(imageMeta) {
 }
 
 async function generateChapterImage(job, chapter, chapterNumber) {
+  console.log('[ComfyUI] generate chapter image start', { jobId: job.id, chapterNumber, chapterId: chapter.id });
   const workflowTemplate = await loadComfyWorkflowTemplate();
   const checkpointChoice = pickCheckpointForChapter(job, chapter);
   console.log(`[Checkpoint] job=${job.id} chapter=${chapterNumber} profile=${checkpointChoice.profile} checkpoint=${checkpointChoice.checkpoint}`);
@@ -481,6 +745,7 @@ async function generateChapterImage(job, chapter, chapterNumber) {
   });
 
   const promptId = await queueComfyPrompt(workflow);
+  console.log('[ComfyUI] prompt queued', { jobId: job.id, chapterNumber, promptId });
   const imageMeta = await waitForComfyImage(promptId);
   const buffer = await downloadComfyImage(imageMeta);
 
@@ -492,7 +757,8 @@ async function generateChapterImage(job, chapter, chapterNumber) {
 
 async function callTts(script, voiceKey = 'FEMALE_SOFT') {
   const openAiVoice = VOICE_MAP[voiceKey] || VOICE_MAP.FEMALE_SOFT;
-  const response = await fetch('https://api.openai.com/v1/audio/speech', {
+  console.log('[TTS] start', { voiceKey, length: String(script || '').length });
+  const response = await safeFetch('openai-tts', 'https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -501,6 +767,7 @@ async function callTts(script, voiceKey = 'FEMALE_SOFT') {
     body: JSON.stringify({ model: 'tts-1', voice: openAiVoice, input: script, format: 'mp3' }),
   });
   if (!response.ok) throw new Error(`TTS 실패: ${await response.text()}`);
+  console.log('[TTS] ok');
   return Buffer.from(await response.arrayBuffer());
 }
 
@@ -520,12 +787,14 @@ async function callWhisper(audioBuffer, fileName = 'narration.mp3', contentType 
   formData.append('model', 'whisper-1');
   formData.append('response_format', 'srt');
   formData.append('language', 'ko');
-  const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+  console.log('[Whisper] start', { fileName, contentType, size: audioBuffer?.length || 0 });
+  const response = await safeFetch('openai-whisper', 'https://api.openai.com/v1/audio/transcriptions', {
     method: 'POST',
     headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
     body: formData,
   });
   if (!response.ok) throw new Error(`Whisper 실패: ${await response.text()}`);
+  console.log('[Whisper] ok');
   return Buffer.from(await response.text(), 'utf8');
 }
 
@@ -815,8 +1084,10 @@ async function resolvePlannedImageSource(asset, tempDir, segmentIndex) {
 async function processJob(job) {
   const tempDir = await mkdtemp(join(tmpdir(), `daon-video-${job.id}-`));
   try {
+    console.log('[Job] load assets/chapters start');
     const assets = await getAssets(job.id);
     let chapters = await getChapters(job.id);
+    console.log('[Job] loaded assets/chapters', { assets: assets.length, chapters: chapters.length });
     const generatedImageAssets = [];
     let audioPath = join(tempDir, 'narration.mp3');
     let audioBuffer;
@@ -997,6 +1268,7 @@ async function processJob(job) {
       error_message: null,
     });
   } catch (error) {
+    console.error('[Job] process error detail', error);
     await updateJob(job.id, {
       status: 'FAILED',
       progress: 100,
@@ -1010,6 +1282,8 @@ async function processJob(job) {
 
 async function main() {
   const mode = process.argv[2] || 'once';
+  await reconcileComfyUiOwnership();
+
   do {
     const job = await getNextJob();
     if (!job) {
@@ -1017,7 +1291,8 @@ async function main() {
         console.log('대기 중인 영상 작업이 없습니다.');
         return;
       }
-      await new Promise((resolve) => setTimeout(resolve, 5000));
+      await stopComfyUiIfIdle();
+      await sleep(5000);
       continue;
     }
 
@@ -1035,4 +1310,6 @@ async function main() {
 main().catch((error) => {
   console.error(error);
   process.exit(1);
+}).finally(async () => {
+  await stopComfyUiIfIdle(true);
 });
