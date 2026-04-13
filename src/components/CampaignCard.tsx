@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Instagram, Youtube, MapPin, Package, ShoppingBag, Gift, PenTool, Heart, Store } from 'lucide-react';
+import { Gift, Heart } from 'lucide-react';
 import { TypeBadge, RegionBadge, DDayBadge } from './campaign/CampaignBadges';
 import CampaignPlatformBadges from './campaign/CampaignPlatformBadges';
 import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
-import { normalizeRole } from '@/constants/role';
 
 interface CampaignProps {
     id?: number | string;
@@ -24,11 +23,13 @@ interface CampaignProps {
     includeReview?: boolean;
     includeNaver?: boolean;
     includeInstagram?: boolean;
+    is_unlimited_recruitment?: boolean;
+    scheduleType?: string | null;
     sub_region?: string | null;
 }
 
 
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram, is_unlimited_recruitment, scheduleType }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -38,17 +39,13 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const linkHref = id ? `/campaigns/${id}` : '#';
     const isVisit = type?.toUpperCase() === 'VISIT';
 
-    // Calculate percentage
-    const isInfinite = total >= 999;
+    // FAST campaigns are displayed like ongoing recruitment even when DB target is null.
+    const isInfinite = Boolean(is_unlimited_recruitment) || scheduleType?.toUpperCase() === 'FAST' || total >= 999;
     const percentage = total > 0 ? (isInfinite ? 0 : Math.min(Math.round((applicants / total) * 100), 100)) : 0;
 
-    const { user, profile } = useAuthStore();
+    const { user } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
     const isWished = id ? isInCart(id) : false;
-
-    const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
-    const isPublicUser = !user || normalizedRole === 'INFLUENCER';
-    const showCount = !isInfinite || !isPublicUser;
 
     const toggleWish = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -119,7 +116,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                 {/* Overlay Elements: D-Day (Left) & Wishlist (Right) */}
                 <div className="absolute top-3 left-3 z-10">
-                    <DDayBadge dday={dday} />
+                    <DDayBadge dday={isInfinite ? '상시' : dday} />
                 </div>
 
                 <div className="absolute top-3 right-3 z-10">
@@ -177,18 +174,16 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                         {isInfinite ? (
                             <div className="flex items-center gap-1.5 font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
                                 <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
-                                ON
+                                LIVE
                             </div>
                         ) : (
                             <span className="font-bold text-blue-600">{percentage}%</span>
                         )}
 
                         {/* Count Text */}
-                        {showCount && (
-                            <span className="text-gray-400 font-medium">
-                                <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
-                            </span>
-                        )}
+                        <span className="text-gray-400 font-medium">
+                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
+                        </span>
                     </div>
 
                     {/* Progress Bar (Infinite Wave for isInfinite) */}

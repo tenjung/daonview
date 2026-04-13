@@ -383,6 +383,9 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const rawRegion = (campaign as any).region ?? hydration.step1Data.region ?? null;
   const rawSubRegion = (campaign as any).sub_region ?? hydration.step1Data.subRegion ?? null;
   const recruitTarget = getCampaignRecruitTarget(campaign);
+  const scheduleType = getCampaignScheduleType(campaign);
+  const isUnlimitedRecruitment = isCampaignUnlimitedRecruitment(campaign);
+  const isAlwaysRecruitmentDisplay = isUnlimitedRecruitment || scheduleType === 'FAST';
 
   return {
     id: campaign.id,
@@ -391,16 +394,16 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     type: hydration.canonicalType,
     applicants: applicants,
     total: recruitTarget || 0,
-    dday: endDate ? formatDDay(endDate) : '미정',
+    dday: isAlwaysRecruitmentDisplay ? '상시' : endDate ? formatDDay(endDate) : '미정',
     category: campaign.category,
     region: rawRegion ? String(rawRegion) : null,
     sub_region: rawSubRegion ? String(rawSubRegion) : null,
     imageUrl: campaign.thumbnail_url || '',
     provision: provision,
     end_date: endDate,
-    is_unlimited_recruitment: isCampaignUnlimitedRecruitment(campaign),
+    is_unlimited_recruitment: isUnlimitedRecruitment,
     created_at: campaign.created_at,
-    scheduleType: getCampaignScheduleType(campaign),
+    scheduleType,
     includeReview: hydration.includeReview,
     includeNaver: hydration.includeNaver,
     includeInstagram: hydration.includeInstagram,
