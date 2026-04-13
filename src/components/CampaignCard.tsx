@@ -25,11 +25,12 @@ interface CampaignProps {
     includeInstagram?: boolean;
     is_unlimited_recruitment?: boolean;
     scheduleType?: string | null;
+    density?: 'default' | 'compact';
     sub_region?: string | null;
 }
 
 
-export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram, is_unlimited_recruitment, scheduleType }: CampaignProps) {
+export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram, is_unlimited_recruitment, scheduleType, density = 'default' }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
@@ -46,6 +47,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const { user } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
     const isWished = id ? isInCart(id) : false;
+    const isCompact = density === 'compact';
+    const imageAspectClass = isCompact ? 'aspect-[1.58/1] lg:aspect-[4/3]' : 'aspect-[4/3]';
+    const contentClass = isCompact ? 'p-2 lg:p-2.5 gap-1 lg:gap-1.5' : 'p-2.5 gap-1.5';
+    const titleClass = isCompact ? 'text-[13px] lg:text-sm' : 'text-sm';
+    const benefitClass = isCompact ? 'text-[10px] lg:text-[11px]' : 'text-[11px]';
+    const progressClass = isCompact ? 'pt-1 lg:pt-1.5' : 'pt-1.5';
 
     const toggleWish = async (e: React.MouseEvent) => {
         e.preventDefault();
@@ -96,7 +103,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     return (
         <Link href={linkHref} className="card group border border-border rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
             {/* Image Section */}
-            <div className="w-full aspect-[4/3] bg-gray-100 relative overflow-hidden">
+            <div className={`w-full ${imageAspectClass} bg-gray-100 relative overflow-hidden`}>
                 {imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -133,7 +140,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
             </div>
 
             {/* Content Section */}
-            <div className="p-2.5 flex flex-col flex-1 gap-1.5">
+            <div className={`${contentClass} flex flex-col flex-1`}>
                 {/* 1. Tags: Type & Platform & Region */}
                 <div className="flex items-center gap-1.5 flex-nowrap overflow-hidden whitespace-nowrap w-full">
                     <TypeBadge type={type} />
@@ -152,12 +159,12 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
 
                 {/* 2. Title */}
-                <h3 className="text-sm font-bold text-gray-900 leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+                <h3 className={`${titleClass} font-bold text-gray-900 leading-snug line-clamp-1 group-hover:text-primary transition-colors`}>
                     {title}
                 </h3>
 
                 {/* 3. Benefit (public-safe label) */}
-                <div className="flex flex-col gap-1 text-[11px] text-gray-500 items-start">
+                <div className={`flex flex-col gap-1 ${benefitClass} text-gray-500 items-start`}>
                     <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
                         체험단 혜택
                     </span>
@@ -167,7 +174,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
 
                 {/* Spacer to push bottom section down */}
-                <div className="mt-auto pt-1.5 border-t border-gray-50 text-slate-800">
+                <div className={`mt-auto ${progressClass} border-t border-gray-50 text-slate-800`}>
                     {/* 4. Progress Section */}
                     <div className="flex items-center justify-between text-xs mb-1.5">
                         {/* Percentage or ON Indicator */}

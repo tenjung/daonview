@@ -1,16 +1,49 @@
 'use client';
 
 import { useState, useMemo, useEffect, Suspense } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import { useSearchParams } from 'next/navigation';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
-import { Filter, X, ChevronDown, ChevronUp, Search, MapPin, Puzzle, Rocket, Shield, BarChart3 } from 'lucide-react';
+import { Filter, X, ChevronDown, ChevronUp, Search } from 'lucide-react';
 
 interface CampaignListClientProps {
-    initialCampaigns: any[];
+    initialCampaigns: CampaignListItem[];
 }
 
+type CampaignTab = 'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE_REVIEW' | 'STEADY';
+type SortBy = 'new' | 'popular' | 'steady' | 'deadline';
+
+type CampaignListItem = {
+    id?: number | string;
+    title: string;
+    platform: string;
+    type?: string;
+    applicants: number;
+    total: number;
+    dday: string;
+    imageUrl?: string;
+    category?: string | null;
+    provision?: string | null;
+    region?: string | null;
+    includeReview?: boolean;
+    includeNaver?: boolean;
+    includeInstagram?: boolean;
+    is_unlimited_recruitment?: boolean;
+    scheduleType?: string | null;
+    sub_region?: string | null;
+    end_date?: string | null;
+    created_at?: string | null;
+};
+
 const PLATFORMS = ["BLOG", "INSTAGRAM", "YOUTUBE", "REELS", "TIKTOK"];
+const CAMPAIGN_TABS: CampaignTab[] = ['ALL', 'STEADY', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'];
+const SORT_OPTIONS: { label: string; value: SortBy }[] = [
+    { label: '최신순', value: 'new' },
+    { label: '인기순', value: 'popular' },
+    { label: '상시우선', value: 'steady' },
+    { label: '마감임박순', value: 'deadline' }
+];
 
 const REGION_HIERARCHY = [
     { name: "전체", value: "" },
@@ -56,15 +89,14 @@ const REGION_HIERARCHY = [
 function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
     const searchParams = useSearchParams();
     const [campaigns, setCampaigns] = useState(initialCampaigns);
-    const [activeTab, setActiveTab] = useState<'ALL' | 'VISIT' | 'DELIVERY' | 'PURCHASE_REVIEW' | 'STEADY'>('ALL');
-    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+    const [activeTab, setActiveTab] = useState<CampaignTab>('ALL');
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
     const [selectedRegions, setSelectedRegions] = useState<string[]>([]);
     const [selectedMajorRegion, setSelectedMajorRegion] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [isSortOpen, setIsSortOpen] = useState(false);
-    const [sortBy, setSortBy] = useState('new');
+    const [sortBy, setSortBy] = useState<SortBy>('new');
 
     // URL 파라미터 감지 (예: ?sort=steady)
     useEffect(() => {
@@ -142,20 +174,20 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 const bFast = b.scheduleType === 'FAST';
                 if (aFast && !bFast) return -1;
                 if (!aFast && bFast) return 1;
-                return new Date(a.end_date).getTime() - new Date(b.end_date).getTime();
+                return new Date(a.end_date ?? 0).getTime() - new Date(b.end_date ?? 0).getTime();
             }
             if (sortBy === 'deadline') {
-                const dateA = new Date(a.end_date).getTime();
-                const dateB = new Date(b.end_date).getTime();
+                const dateA = new Date(a.end_date ?? 0).getTime();
+                const dateB = new Date(b.end_date ?? 0).getTime();
                 return dateA - dateB;
             }
-            const timeA = new Date(a.created_at).getTime();
-            const timeB = new Date(b.created_at).getTime();
+            const timeA = new Date(a.created_at ?? 0).getTime();
+            const timeB = new Date(b.created_at ?? 0).getTime();
             return timeB - timeA;
         });
     }, [activeTab, campaigns, searchQuery, selectedPlatforms, selectedRegions, selectedMajorRegion, sortBy]);
 
-    const toggleFilter = (item: string, list: string[], setter: any) => {
+    const toggleFilter = (item: string, list: string[], setter: Dispatch<SetStateAction<string[]>>) => {
         setter(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
@@ -174,10 +206,10 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 <div className="max-w-[1200px] mx-auto px-4 md:px-10">
                     <div className="flex flex-col md:flex-row items-center gap-3 md:gap-6">
                         <div className="flex bg-slate-100 p-1 rounded-full w-full md:w-auto overflow-x-auto custom-scrollbar">
-                            {['ALL', 'STEADY', 'VISIT', 'DELIVERY', 'PURCHASE_REVIEW'].map(tab => (
+                            {CAMPAIGN_TABS.map(tab => (
                                 <button
                                     key={tab}
-                                    onClick={() => setActiveTab(tab as any)}
+                                    onClick={() => setActiveTab(tab)}
                                     className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     {tab === 'ALL' ? <><span className="sm:hidden">전체</span><span className="hidden sm:inline">전체보기</span></> : 
@@ -233,12 +265,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
 
                                 {isSortOpen && (
                                     <div className="absolute right-0 mt-2 w-36 bg-white border border-slate-100 shadow-2xl rounded-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                        {[
-                                            { label: '최신순', value: 'new' },
-                                            { label: '인기순', value: 'popular' },
-                                            { label: '상시우선', value: 'steady' },
-                                            { label: '마감임박순', value: 'deadline' }
-                                        ].map((opt) => (
+                                        {SORT_OPTIONS.map((opt) => (
                                             <button
                                                 key={opt.value}
                                                 onClick={() => {
@@ -317,12 +344,12 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 </div>
 
                 {filteredData.length > 0 ? (
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 md:gap-6">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4 xl:gap-6">
                         {filteredData.map(item => (
-                            <CampaignCard key={item.id} {...item} />
+                            <CampaignCard key={item.id} {...item} density="compact" />
                         ))}
                         {[...Array(Math.max(15 - filteredData.length, (5 - (filteredData.length % 5)) % 5))].map((_, i) => (
-                            <CampaignSkeleton key={`skel-fill-${i}`} />
+                            <CampaignSkeleton key={`skel-fill-${i}`} density="compact" />
                         ))}
                     </div>
                 ) : (
