@@ -120,7 +120,7 @@ export default async function RootLayout({
         "url": "https://daonview.com",
         "name": "다온뷰",
         "alternateName": "DAONVIEW",
-        "description": "블로그·인스타·유튜브 체험단 혜택이 다온뷰에서 시작됩니다.",
+        "description": "다온뷰는 브랜드와 인플루언서를 연결하는 체험단 플랫폼입니다.",
         "inLanguage": "ko-KR",
         "potentialAction": {
           "@type": "SearchAction",
@@ -146,13 +146,44 @@ export default async function RootLayout({
         ]
       },
       {
-        "@type": "SiteLinksSearchBox",
-        "url": "https://daonview.com",
-        "potentialAction": [
+        "@type": "SiteNavigationElement",
+        "@id": "https://daonview.com/#site-navigation",
+        "name": "다온뷰 주요 메뉴",
+        "hasPart": [
           {
-            "@type": "SearchAction",
-            "target": "https://daonview.com/campaigns?search={search_term_string}",
-            "query-input": "required name=search_term_string"
+            "@type": "SiteNavigationElement",
+            "name": "캠페인",
+            "url": "https://daonview.com/campaigns"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "리뷰",
+            "url": "https://daonview.com/reviews"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "AI 인텔리전스",
+            "url": "https://daonview.com/ai-service"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "광고주 파트너십",
+            "url": "https://daonview.com/partner/intro"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "숏폼 체험단",
+            "url": "https://daonview.com/partner"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "브랜드 영상제작",
+            "url": "https://daonview.com/partner/brand-video"
+          },
+          {
+            "@type": "SiteNavigationElement",
+            "name": "문의하기",
+            "url": "https://daonview.com/contact"
           }
         ]
       }

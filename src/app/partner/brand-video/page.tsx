@@ -1,6 +1,22 @@
+import type { Metadata } from 'next';
 import React from 'react';
 import { PlayCircle, Video, MonitorPlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+
+export const metadata: Metadata = {
+  title: '브랜드 영상제작',
+  description: 'CF, 브랜드 필름, 바이럴 영상, 숏폼 콘텐츠 제작을 위한 다온뷰 브랜드 영상제작 서비스입니다.',
+  keywords: ['브랜드 영상제작', '브랜드 필름', 'CF 제작', '바이럴 영상', '숏폼 영상 제작', '다온뷰 프로덕션'],
+  openGraph: {
+    title: '브랜드 영상제작 | 다온뷰',
+    description: 'CF, 브랜드 필름, 바이럴 영상, 숏폼 콘텐츠 제작을 위한 다온뷰 브랜드 영상제작 서비스입니다.',
+    url: 'https://daonview.com/partner/brand-video',
+    images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
+  },
+  alternates: {
+    canonical: 'https://daonview.com/partner/brand-video',
+  },
+};
 
 export default function BrandVideoPage() {
   return (

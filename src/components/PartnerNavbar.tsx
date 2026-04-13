@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
-import { Menu, X, LayoutDashboard, Settings, LogOut, ShieldCheck, ChevronUp, ChevronDown } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Settings, LogOut, ShieldCheck } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
@@ -42,7 +42,6 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
 
   const showSkeleton = isLoading && initialUser === undefined && storeUser === null;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleLogout = async () => {
@@ -106,7 +105,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
               : 'text-white/60 border-transparent hover:text-white'
               }`}
           >
-            서비스 소개
+            광고주 파트너십
           </Link>
           <Link
             href="/partner"
@@ -283,7 +282,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                   : 'text-slate-400 border-transparent hover:bg-slate-800 hover:text-white'
                   }`}
               >
-                서비스 소개
+                광고주 파트너십
               </Link>
               <Link
                 href="/partner"

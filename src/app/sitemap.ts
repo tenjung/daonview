@@ -52,7 +52,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 4. 정적 페이지들
   const staticPages = [
     { url: '', priority: 1.0, changeFrequency: 'daily' as const },
-    { url: '/intro', priority: 0.9, changeFrequency: 'monthly' as const },
     { url: '/campaigns', priority: 0.9, changeFrequency: 'daily' as const },
     { url: '/reviews', priority: 0.8, changeFrequency: 'weekly' as const },
     { url: '/community', priority: 0.8, changeFrequency: 'daily' as const },
@@ -62,6 +61,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: '/ai-service', priority: 0.8, changeFrequency: 'weekly' as const },
     { url: '/ai-service/writing-assistant', priority: 0.8, changeFrequency: 'monthly' as const },
     { url: '/partner', priority: 0.8, changeFrequency: 'weekly' as const },
+    { url: '/partner/intro', priority: 0.8, changeFrequency: 'monthly' as const },
+    { url: '/partner/brand-video', priority: 0.8, changeFrequency: 'monthly' as const },
     { url: '/contact', priority: 0.6, changeFrequency: 'monthly' as const },
   ].map((page) => ({
     url: `${baseUrl}${page.url}`,

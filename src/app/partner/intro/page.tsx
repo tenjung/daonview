@@ -2,12 +2,12 @@ import type { Metadata } from 'next';
 import IntroClient from './IntroClient';
 
 export const metadata: Metadata = {
-  title: '서비스 소개',
-  description: '다온뷰의 체험단 마케팅 서비스를 소개합니다. 블로그·인스타·유튜브 리뷰어와 브랜드를 연결하는 고성능 리뷰 솔루션으로 매출을 극대화하세요.',
-  keywords: ['체험단 서비스', '다온뷰 소개', '인플루언서 마케팅', '브랜드 체험단', '리뷰 마케팅', '광고주 서비스'],
+  title: '광고주 파트너십',
+  description: '기업과 브랜드를 위한 다온뷰 광고주 파트너십입니다. 체험단 마케팅, 리뷰 운영, 숏폼 콘텐츠로 브랜드 성장 전략을 상담하세요.',
+  keywords: ['광고주 파트너십', '기업 파트너십', '체험단 마케팅', '리뷰 운영', '브랜드 성장', '다온뷰 광고주'],
   openGraph: {
-    title: '서비스 소개 | 다온뷰',
-    description: '다온뷰의 체험단 마케팅 서비스를 소개합니다. 블로그·인스타·유튜브 리뷰어와 브랜드를 연결하는 고성능 리뷰 솔루션.',
+    title: '광고주 파트너십 | 다온뷰',
+    description: '기업과 브랜드를 위한 다온뷰 광고주 파트너십입니다. 체험단 마케팅, 리뷰 운영, 숏폼 콘텐츠로 브랜드 성장 전략을 상담하세요.',
     url: 'https://daonview.com/partner/intro',
     images: [{ url: '/og-daon.png', width: 1200, height: 630 }],
   },

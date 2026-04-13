@@ -2,13 +2,12 @@
 
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import CompanyInfo from '@/components/CompanyInfo';
 import BrandLogo from '@/components/BrandLogo';
 
 export default function Footer() {
     const [isExpanded, setIsExpanded] = useState(false);
-    const footerRef = useRef<HTMLElement>(null);
 
     const handleToggle = () => {
         setIsExpanded(!isExpanded);
@@ -45,7 +44,9 @@ export default function Footer() {
 
                         {/* Center: Links */}
                         <div className="flex items-center gap-5 text-xs">
-                            <Link href="/partner/intro" className="text-text-secondary hover:text-primary transition-colors">서비스소개</Link>
+                            <Link href="/partner/intro" className="text-text-secondary hover:text-primary transition-colors">광고주 파트너십</Link>
+                            <Link href="/partner" className="text-text-secondary hover:text-primary transition-colors">숏폼 체험단</Link>
+                            <Link href="/partner/brand-video" className="text-text-secondary hover:text-primary transition-colors">브랜드 영상제작</Link>
                             <Link href="/community/notice" className="text-text-secondary hover:text-primary transition-colors">공지사항</Link>
                             <Link href="/terms" className="text-text-secondary hover:text-primary transition-colors">운영정책</Link>
                             <Link href="/privacy" className="text-text-secondary hover:text-primary transition-colors">개인정보처리방침</Link>
