@@ -167,13 +167,18 @@ export default async function RootLayout({
           },
           {
             "@type": "SiteNavigationElement",
+            "name": "기업 파트너십",
+            "url": "https://daonview.com/partner"
+          },
+          {
+            "@type": "SiteNavigationElement",
             "name": "광고주 파트너십",
             "url": "https://daonview.com/partner/intro"
           },
           {
             "@type": "SiteNavigationElement",
             "name": "숏폼 체험단",
-            "url": "https://daonview.com/partner"
+            "url": "https://daonview.com/partner/short-form"
           },
           {
             "@type": "SiteNavigationElement",

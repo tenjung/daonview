@@ -22,15 +22,15 @@ export default function StaticPromoBanners() {
         {
             id: 2,
             title: '광고주 전용',
-            subtitle: '확실한 매출 상승 비결',
-            description: '상위 노출부터 브랜딩까지, 결과로 증명하는 솔루션',
+            subtitle: '기업 파트너십',
+            description: '체험단 신뢰부터 판로 확장까지, 매출 구조를 설계합니다',
             cardTone: 'bg-rose-50/85',
             iconTone: 'bg-rose-100/90',
             iconColor: 'text-rose-600',
             textColor: 'text-slate-800',
             descColor: 'text-slate-600',
             icon: Briefcase,
-            link: '/partner/intro',
+            link: '/partner',
             accentColor: 'text-rose-600',
         },
         {

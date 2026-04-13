@@ -3,14 +3,52 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
-import { Loader2, Mail, Phone, Building2, UserCircle2 } from 'lucide-react';
+import { Building2, Download, FileText, Loader2, Mail, Phone, UserCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { getPartnerInquiryFileUrl } from '@/app/actions/inquiry';
+
+type PartnerInquiry = {
+    id: string;
+    company_name: string;
+    manager_name: string;
+    phone: string;
+    email: string | null;
+    message: string | null;
+    status: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED';
+    created_at: string;
+    updated_at: string | null;
+    requested_channels?: string[] | null;
+    product_file_path?: string | null;
+    product_file_name?: string | null;
+    product_file_mime?: string | null;
+    product_file_size?: number | null;
+    inquiry_source?: string | null;
+};
+
+const CHANNEL_LABELS: Record<string, string> = {
+    OFFLINE: '오프라인',
+    CLOSED_MALL: '폐쇄몰',
+    GROUP_BUY: '공동구매',
+    GLOBAL: '해외',
+    RECOMMEND_ALL: '전체 추천',
+};
+
+const formatChannels = (channels?: string[] | null) => {
+    if (!channels || channels.length === 0) return '미선택';
+    return channels.map((channel) => CHANNEL_LABELS[channel] || channel).join(', ');
+};
+
+const formatFileSize = (size?: number | null) => {
+    if (!size) return '';
+    return `${(size / 1024 / 1024).toFixed(1)}MB`;
+};
 
 export default function InquiriesClient() {
-    const [inquiries, setInquiries] = useState<any[]>([]);
+    const [inquiries, setInquiries] = useState<PartnerInquiry[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedInquiry, setSelectedInquiry] = useState<any | null>(null);
+    const [selectedInquiry, setSelectedInquiry] = useState<PartnerInquiry | null>(null);
+    const [downloadingFilePath, setDownloadingFilePath] = useState<string | null>(null);
 
     const fetchInquiries = async () => {
         setLoading(true);
@@ -20,13 +58,33 @@ export default function InquiriesClient() {
             .order('created_at', { ascending: false });
 
         if (!error && data) {
-            setInquiries(data);
+            setInquiries(data as PartnerInquiry[]);
         }
         setLoading(false);
     };
 
     useEffect(() => {
-        fetchInquiries();
+        let ignore = false;
+
+        const loadInquiries = async () => {
+            const { data, error } = await supabase
+                .from('partner_inquiries')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (ignore) return;
+
+            if (!error && data) {
+                setInquiries(data as PartnerInquiry[]);
+            }
+            setLoading(false);
+        };
+
+        void loadInquiries();
+
+        return () => {
+            ignore = true;
+        };
     }, []);
 
     const updateStatus = async (id: string, currentStatus: string) => {
@@ -43,6 +101,24 @@ export default function InquiriesClient() {
         } else {
             toast.error('상태 변경에 실패했습니다.');
         }
+    };
+
+    const handleDownloadFile = async (inquiry: PartnerInquiry) => {
+        if (!inquiry.product_file_path) {
+            toast.error('업로드된 제품소개서가 없습니다.');
+            return;
+        }
+
+        setDownloadingFilePath(inquiry.product_file_path);
+        const result = await getPartnerInquiryFileUrl(inquiry.product_file_path);
+        setDownloadingFilePath(null);
+
+        if (!result.success) {
+            toast.error(result.error);
+            return;
+        }
+
+        window.open(result.signedUrl, '_blank', 'noopener,noreferrer');
     };
 
     return (
@@ -63,6 +139,8 @@ export default function InquiriesClient() {
                                 <th className="p-4 whitespace-nowrap">회사명</th>
                                 <th className="p-4 whitespace-nowrap">담당자명</th>
                                 <th className="p-4 whitespace-nowrap">연락처</th>
+                                <th className="p-4 whitespace-nowrap">희망 채널</th>
+                                <th className="p-4 whitespace-nowrap">제품소개서</th>
                                 <th className="p-4 min-w-[200px]">문의 내용</th>
                                 <th className="p-4 text-center whitespace-nowrap">진행 상태</th>
                             </tr>
@@ -70,14 +148,14 @@ export default function InquiriesClient() {
                         <tbody className="divide-y divide-slate-100/80">
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-400">
+                                    <td colSpan={8} className="p-12 text-center text-slate-400">
                                         <Loader2 className="w-8 h-8 animate-spin mx-auto text-rose-400 mb-3" />
                                         데이터를 불러오는 중입니다...
                                     </td>
                                 </tr>
                             ) : inquiries.length === 0 ? (
                                 <tr>
-                                    <td colSpan={6} className="p-12 text-center text-slate-400 font-medium bg-slate-50/30">
+                                    <td colSpan={8} className="p-12 text-center text-slate-400 font-medium bg-slate-50/30">
                                         아직 접수된 제휴 문의가 없습니다.
                                     </td>
                                 </tr>
@@ -99,6 +177,29 @@ export default function InquiriesClient() {
                                         </td>
                                         <td className="p-4 text-sm font-medium text-slate-600 whitespace-nowrap">
                                             {inquiry.phone}
+                                        </td>
+                                        <td className="p-4 text-sm font-semibold text-slate-600 whitespace-nowrap">
+                                            {formatChannels(inquiry.requested_channels)}
+                                        </td>
+                                        <td className="p-4 text-sm text-slate-600 whitespace-nowrap">
+                                            {inquiry.product_file_path ? (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleDownloadFile(inquiry);
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700 transition hover:border-rose-300 hover:text-rose-600"
+                                                >
+                                                    {downloadingFilePath === inquiry.product_file_path ? (
+                                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    ) : (
+                                                        <Download className="h-3.5 w-3.5" />
+                                                    )}
+                                                    다운로드
+                                                </button>
+                                            ) : (
+                                                <span className="text-slate-300">없음</span>
+                                            )}
                                         </td>
                                         <td className="p-4 text-sm text-slate-600 break-keep max-w-[200px] truncate">
                                             {inquiry.message || <span className="text-slate-300 italic">내용 없음</span>}
@@ -166,8 +267,38 @@ export default function InquiriesClient() {
                                          <span className="text-green-600">답변완료</span>}
                                     </div>
                                 </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1">
+                                        <FileText className="w-4 h-4" /> 희망 채널
+                                    </div>
+                                    <div className="text-sm font-bold text-slate-800">{formatChannels(selectedInquiry.requested_channels)}</div>
+                                </div>
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500 mb-1">
+                                        <Download className="w-4 h-4" /> 제품소개서
+                                    </div>
+                                    {selectedInquiry.product_file_path ? (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDownloadFile(selectedInquiry)}
+                                            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:bg-rose-600"
+                                        >
+                                            {downloadingFilePath === selectedInquiry.product_file_path ? (
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            ) : (
+                                                <Download className="h-3.5 w-3.5" />
+                                            )}
+                                            {selectedInquiry.product_file_name || '제품소개서'}
+                                            {formatFileSize(selectedInquiry.product_file_size) && (
+                                                <span className="text-white/60">({formatFileSize(selectedInquiry.product_file_size)})</span>
+                                            )}
+                                        </button>
+                                    ) : (
+                                        <div className="text-sm text-slate-400">업로드 파일 없음</div>
+                                    )}
+                                </div>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <div className="text-xs font-medium text-slate-500">문의 내용</div>
                                 <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-800 whitespace-pre-wrap min-h-[100px] border border-slate-100">

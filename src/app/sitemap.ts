@@ -60,8 +60,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: '/community/academy', priority: 0.8, changeFrequency: 'daily' as const },
     { url: '/ai-service', priority: 0.8, changeFrequency: 'weekly' as const },
     { url: '/ai-service/writing-assistant', priority: 0.8, changeFrequency: 'monthly' as const },
-    { url: '/partner', priority: 0.8, changeFrequency: 'weekly' as const },
+    { url: '/partner', priority: 0.9, changeFrequency: 'weekly' as const },
     { url: '/partner/intro', priority: 0.8, changeFrequency: 'monthly' as const },
+    { url: '/partner/short-form', priority: 0.8, changeFrequency: 'monthly' as const },
     { url: '/partner/brand-video', priority: 0.8, changeFrequency: 'monthly' as const },
     { url: '/contact', priority: 0.6, changeFrequency: 'monthly' as const },
   ].map((page) => ({

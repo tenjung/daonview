@@ -93,11 +93,20 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
         <div className="flex items-center gap-2">
           <BrandLogo size="lg" />
           <div className="h-6 w-[1px] bg-white/20 mx-2 hidden lg:block"></div>
-          <span className="text-white/80 font-semibold tracking-wider text-sm hidden lg:block">기업 파트너십</span>
+          <span className="text-white/80 font-semibold tracking-wider text-sm hidden lg:block">다온컴퍼니</span>
         </div>
 
         {/* Desktop Navigation */}
-        <div className="hidden lg:flex items-center gap-8 h-full">
+        <div className="hidden lg:flex items-center gap-6 h-full">
+          <Link
+            href="/partner"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${pathname === '/partner'
+              ? 'text-white border-primary glow'
+              : 'text-white/60 border-transparent hover:text-white'
+              }`}
+          >
+            기업 파트너십
+          </Link>
           <Link
             href="/partner/intro"
             className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${pathname === '/partner/intro'
@@ -108,8 +117,8 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
             광고주 파트너십
           </Link>
           <Link
-            href="/partner"
-            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${pathname === '/partner'
+            href="/partner/short-form"
+            className={`font-medium transition-colors h-full flex items-center border-b-[3px] ${pathname === '/partner/short-form'
               ? 'text-white border-primary glow'
               : 'text-white/60 border-transparent hover:text-white'
               }`}
@@ -275,6 +284,16 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
 
           <div className="p-4 flex flex-col gap-2">
               <Link
+                href="/partner"
+                onClick={closeMobileMenu}
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${pathname === '/partner'
+                  ? 'bg-slate-800 text-white border-primary'
+                  : 'text-slate-400 border-transparent hover:bg-slate-800 hover:text-white'
+                  }`}
+              >
+                기업 파트너십
+              </Link>
+              <Link
                 href="/partner/intro"
                 onClick={closeMobileMenu}
                 className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${pathname === '/partner/intro'
@@ -285,9 +304,9 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                 광고주 파트너십
               </Link>
               <Link
-                href="/partner"
+                href="/partner/short-form"
                 onClick={closeMobileMenu}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${pathname === '/partner'
+                className={`px-4 py-3 rounded-lg font-medium transition-colors border-l-4 ${pathname === '/partner/short-form'
                   ? 'bg-slate-800 text-white border-primary'
                   : 'text-slate-400 border-transparent hover:bg-slate-800 hover:text-white'
                   }`}
