@@ -5,6 +5,7 @@ import type { AIQuota } from '@/types/aiQuota';
 import type { VideoAssetType, VideoInputMode, VideoJob, VideoJobAsset, VideoJobChapter, VideoVoiceKey } from '@/types/video-assistant';
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+const VIDEO_RESULT_TTL_MS = 3 * 60 * 60 * 1000;
 
 function getKstBounds() {
   const now = new Date();
@@ -208,6 +209,33 @@ export async function updateVideoJob(jobId: string, patch: Partial<VideoJob>) {
 
   if (error) throw new Error(`영상 작업 상태 업데이트 실패: ${error.message}`);
   return data as VideoJob;
+}
+
+export async function markVideoJobResultViewed(jobId: string, userId: string) {
+  const job = await getAuthorizedVideoJob(jobId, userId);
+
+  if (job.status !== 'COMPLETED') {
+    throw new Error('완료된 영상만 조회 기록을 남길 수 있습니다.');
+  }
+
+  if (job.purged_at || !job.video_url) {
+    return job;
+  }
+
+  if (job.result_viewed_at) {
+    return job;
+  }
+
+  const viewedAt = new Date();
+  const purgeAfter = new Date(viewedAt.getTime() + VIDEO_RESULT_TTL_MS);
+
+  await updateVideoJob(jobId, {
+    result_viewed_at: viewedAt.toISOString(),
+    purge_after: purgeAfter.toISOString(),
+    purge_error: null,
+  });
+
+  return getAuthorizedVideoJob(jobId, userId);
 }
 
 export async function getVideoJobAssets(jobId: string) {

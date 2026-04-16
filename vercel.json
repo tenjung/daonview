@@ -20,6 +20,10 @@
         {
             "path": "/api/cron/extend-fast-campaigns",
             "schedule": "0 0 * * *"
+        },
+        {
+            "path": "/api/cron/purge-video-assets",
+            "schedule": "0 * * * *"
         }
     ]
 }

@@ -81,6 +81,10 @@ export interface VideoJob {
   subtitle_draft?: string | null;
   subtitle_final?: string | null;
   thumbnail_url?: string | null;
+  result_viewed_at?: string | null;
+  purge_after?: string | null;
+  purged_at?: string | null;
+  purge_error?: string | null;
   duration_sec?: number | null;
   aspect_ratio: VideoAspectRatio;
   created_at?: string;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Download, FileAudio, FileText, Image as ImageIcon, Loader2, RotateCcw, Save, Video } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatTimeRangeToSeconds, parseSrtToBlocks, serializeBlocksToSrt, type SrtBlock } from '@/lib/video/srt';
@@ -31,6 +31,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
   const [subtitleBlocks, setSubtitleBlocks] = useState<SrtBlock[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isRerendering, setIsRerendering] = useState(false);
+  const viewedRequestJobIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     setSubtitleBlocks(parseSrtToBlocks(String(job?.subtitle_final || job?.subtitle_draft || '')));
@@ -50,7 +51,42 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
     onDirtyChange?.(subtitleChanged);
   }, [onDirtyChange, subtitleChanged]);
 
+  const isResultPurged = Boolean(job?.purged_at || (job?.status === 'COMPLETED' && !job.video_url));
+
+  const markViewed = useCallback(async () => {
+    if (!job || job.status !== 'COMPLETED' || isResultPurged || job.result_viewed_at) return;
+    if (viewedRequestJobIdRef.current === job.id) return;
+
+    viewedRequestJobIdRef.current = job.id;
+
+    try {
+      const response = await fetch(`/api/ai-service/video/jobs/${job.id}/viewed`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '영상 조회 기록에 실패했습니다.');
+      }
+      onJobUpdated?.(data.job);
+    } catch (error) {
+      console.error('[ResultCard] mark viewed failed:', error);
+      viewedRequestJobIdRef.current = null;
+    }
+  }, [isResultPurged, job, onJobUpdated]);
+
   if (!job || job.status !== 'COMPLETED') return null;
+
+  if (isResultPurged) {
+    return (
+      <div className="rounded-[2.2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_65px_rgba(15,23,42,0.08)] md:p-6">
+        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">보관 만료</p>
+        <h3 className="mt-2 text-2xl font-black leading-tight text-text-main">보관 시간이 만료되어 결과 파일이 삭제되었습니다</h3>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
+          결과 영상과 관련 이미지·오디오·자막 파일은 첫 재생 후 3시간 동안만 보관됩니다. 작업 기록은 사용량 확인을 위해 최소 정보만 남아 있습니다.
+        </p>
+      </div>
+    );
+  }
 
   const audioLabel = job.input_mode === 'AUDIO_SUBTITLE' ? '원본 오디오' : 'MP3 음성';
 
@@ -232,7 +268,13 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                 <span className="h-1.5 w-12 rounded-full bg-white/15" />
                 <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
               </div>
-              <video src={job.video_url} controls playsInline className="aspect-[9/16] w-full rounded-[1.5rem] object-contain bg-black" />
+              <video
+                src={job.video_url}
+                controls
+                playsInline
+                onPlay={markViewed}
+                className="aspect-[9/16] w-full rounded-[1.5rem] object-contain bg-black"
+              />
             </div>
           </div>
         )}
