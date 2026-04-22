@@ -914,7 +914,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
     // Schedule type change handler
     const handleScheduleTypeChange = (type: CampaignScheduleType) => {
-        const nextSchedule = buildCampaignSchedule(type, formData.recruitmentStartDate || formatKstDate());
+        const nextSchedule = buildCampaignSchedule(type, formatKstDate());
         campaignStore.updateFields({
             scheduleType: nextSchedule.scheduleType,
             recruitmentStartDate: nextSchedule.recruitmentStartDate,

@@ -14,7 +14,7 @@ import CampaignLoader from '@/components/campaign/CampaignLoader';
 import CampaignSuccess from '@/components/campaign/CampaignSuccess';
 import { saveDraft, loadDraft } from '@/lib/draftUtils';
 import { useCampaignStore } from '@/store/campaignStore';
-import { buildCampaignStep1Snapshot } from '@/lib/campaignUtils';
+import { buildCampaignStep1Snapshot, getCampaignScheduleType } from '@/lib/campaignUtils';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 import { buildCampaignSchedule, formatKstDate } from '@/lib/campaignSchedule';
 
@@ -40,6 +40,7 @@ export default function CampaignRegistrationContainer() {
     const [isInitialDataReady, setIsInitialDataReady] = useState(!campaignIdParam && !draftIdParam);
     const deniedRef = useRef(false);
     const hasFetchedRef = useRef(false);
+    const loadedScheduleTypeRef = useRef<string | null>(null);
 
     // --- 캠페인 데이터 로드 로직 ---
 
@@ -67,6 +68,7 @@ export default function CampaignRegistrationContainer() {
     const handleLoadCompleted = useCallback((campaign: any, silent = false) => {
         if (!campaign) return;
         initializeFromCampaign(campaign);
+        loadedScheduleTypeRef.current = getCampaignScheduleType(campaign);
         if (!silent) toast.success('캠페인 데이터를 성공적으로 불러왔습니다.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, [initializeFromCampaign]);
@@ -90,6 +92,7 @@ export default function CampaignRegistrationContainer() {
             reviewDeadline: defaultSchedule.reviewDeadline,
             // (추가 초기화가 필요하다면 여기에 작성)
         });
+        loadedScheduleTypeRef.current = null;
 
         toast.success('캠페인이 복사되었습니다. 모집 인원 및 일정을 확인해주세요.');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -334,6 +337,19 @@ export default function CampaignRegistrationContainer() {
         try {
             const normalizedRole = normalizeRoleValue(roleFromAuth);
             const isAdmin = isAdminRole(normalizedRole);
+            const today = formatKstDate();
+            const scheduleTypeChanged =
+                Boolean(campaignIdParam) &&
+                Boolean(loadedScheduleTypeRef.current) &&
+                loadedScheduleTypeRef.current !== store.scheduleType;
+            const isStaleFastSchedule =
+                store.scheduleType === 'FAST' &&
+                Boolean(store.reviewDeadline) &&
+                store.reviewDeadline < today;
+            const scheduleBaseDate = scheduleTypeChanged
+                || isStaleFastSchedule
+                ? today
+                : (store.recruitmentStartDate || today);
             const { canonical, step1Data } = buildCampaignStep1Snapshot({
                 campaignType: store.campaignType,
                 includeReview: store.includeReview,
@@ -368,7 +384,7 @@ export default function CampaignRegistrationContainer() {
                 officialPrice: store.officialPrice,
                 totalRecruitment: store.totalRecruitment,
                 scheduleType: store.scheduleType,
-                recruitmentStartDate: store.recruitmentStartDate || formatKstDate(),
+                recruitmentStartDate: scheduleBaseDate,
                 reviewDeadlineDays: store.reviewDeadlineDays,
                 optionConfig: store.optionConfig,
             });

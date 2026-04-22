@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getCampaignRecruitTarget, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -391,8 +391,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        const scheduleType = getCampaignScheduleType(campaign);
+        const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
+
         // 모집 기간 종료 체크
-        if (scheduleDates.endDate) {
+        if (!isAlwaysRecruitmentCampaign && scheduleDates.endDate) {
             const endDate = new Date(scheduleDates.endDate);
             const now = new Date();
             if (now > endDate) {
@@ -633,6 +636,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const showCount = Boolean(scheduleDates.endDate) || Boolean(user && (isAdmin || normalizedRole === 'ADVERTISER'));
     const startDate = formatDateFixed(scheduleDates.startDate || campaign.created_at);
     const endDateLabel = formatDateFixed(scheduleDates.endDate);
+    const scheduleType = getCampaignScheduleType(campaign);
+    const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
     // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
     const getCampaignImages = () => {
         const imageSet = new Set<string>();
@@ -758,7 +763,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // Recruitment Closure Logic
     const nowStr = formatKstDate();
-    const isPastDeadline = scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
+    const isPastDeadline = !isAlwaysRecruitmentCampaign && scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
     const recruitTarget = getCampaignRecruitTarget(campaign);
     const isFull = typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
     const isNotRecruiting = campaign.status !== 'RECRUITING';
@@ -1495,10 +1500,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    {scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
+                                                    {isAlwaysRecruitmentCampaign ? '상시 모집' : scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
                                                 </p>
                                                 <p className="text-[10px] text-rose-500 font-bold mt-0.5">
-                                                    {scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
+                                                    {isAlwaysRecruitmentCampaign ? '수시 선정' : scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
                                                 </p>
                                             </div>
                                         </div>
