@@ -14,6 +14,8 @@ type HomeCampaignCardItem = {
   includeReview?: boolean;
   includeNaver?: boolean;
   includeInstagram?: boolean;
+  is_unlimited_recruitment?: boolean;
+  scheduleType?: string | null;
   region?: string | null;
   sub_region?: string | null;
   end_date?: string;

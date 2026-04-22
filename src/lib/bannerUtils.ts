@@ -3,6 +3,7 @@ import { getPublicServerClient } from './supabase/publicServer';
 import { mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import type { Campaign } from '@/types/database';
 
 type BannerRow = {
     id: number | string;
@@ -16,6 +17,10 @@ type BannerRow = {
 type CampaignRow = {
     id: number | string;
     [key: string]: unknown;
+};
+
+type CampaignCardSource = Campaign & {
+    applications?: { count: number }[] | { count: number } | number;
 };
 
 const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> => {
@@ -105,7 +110,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
         // 4. Process Latest Campaigns
         const newItems: BannerItem[] = latestRows
             .map(c => {
-                const mapped = mapCampaignToCard(c as any);
+                const mapped = mapCampaignToCard(c as CampaignCardSource);
                 return {
                     id: `new-${c.id}`,
                     type: 'NEW' as const,
@@ -125,13 +130,15 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeInstagram: mapped.includeInstagram,
                     region: mapped.region || undefined,
                     sub_region: mapped.sub_region || undefined,
+                    is_unlimited_recruitment: mapped.is_unlimited_recruitment,
+                    scheduleType: mapped.scheduleType,
                 };
             })
             .filter(item => item.image_url && item.title);
 
         // 5. Process Popular Campaigns
         const popularItems: BannerItem[] = popularRows
-            .map(c => mapCampaignToCard(c as any))
+            .map(c => mapCampaignToCard(c as CampaignCardSource))
             .sort((a, b) => (b.applicants || 0) - (a.applicants || 0))
             .slice(0, hotCount)
             .map((mapped, index) => {
@@ -158,6 +165,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeInstagram: mapped.includeInstagram,
                     region: mapped.region || undefined,
                     sub_region: mapped.sub_region || undefined,
+                    is_unlimited_recruitment: mapped.is_unlimited_recruitment,
+                    scheduleType: mapped.scheduleType,
                 };
             })
             .filter(item => item.image_url && item.title);
@@ -165,7 +174,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
         // 6. Process Steady lane
         const steadyItems: BannerItem[] = steadyRows
             .map(c => {
-                const mapped = mapCampaignToCard(c as any);
+                const mapped = mapCampaignToCard(c as CampaignCardSource);
                 return {
                     id: `steady-${c.id}`,
                     type: 'STEADY' as const,
@@ -185,6 +194,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                     includeInstagram: mapped.includeInstagram,
                     region: mapped.region || undefined,
                     sub_region: mapped.sub_region || undefined,
+                    is_unlimited_recruitment: mapped.is_unlimited_recruitment,
+                    scheduleType: mapped.scheduleType,
                 };
             })
             .filter(item => item.image_url && item.title);

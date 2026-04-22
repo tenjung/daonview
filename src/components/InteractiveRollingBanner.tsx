@@ -37,6 +37,8 @@ export interface BannerItem {
     includeInstagram?: boolean;
     region?: string;
     sub_region?: string;
+    is_unlimited_recruitment?: boolean;
+    scheduleType?: string | null;
 }
 
 interface BannerProps {
