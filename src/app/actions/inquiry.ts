@@ -3,6 +3,7 @@
 import { randomUUID } from 'crypto';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { sendAdminPartnerInquiryEmail } from '@/lib/email';
 
 type LegacyPartnerInquiry = {
   companyName: string;
@@ -151,6 +152,20 @@ async function submitPartnerInquiryForm(formData: FormData): Promise<PartnerInqu
     await adminSupabase.storage.from(PARTNER_INQUIRY_BUCKET).remove([filePath]);
     console.error('Failed to submit partner inquiry form:', insertError);
     return { success: false, error: insertError.message };
+  }
+
+  try {
+    await sendAdminPartnerInquiryEmail({
+      companyName,
+      managerName,
+      phone,
+      email: email || null,
+      message,
+      requestedChannels,
+      productFileName: productFile.name,
+    });
+  } catch (emailError) {
+    console.error('Failed to send admin partner inquiry email:', emailError);
   }
 
   return { success: true };

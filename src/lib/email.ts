@@ -35,6 +35,35 @@ interface EmailParams {
   email?: string; // 수신 거부 링크용
 }
 
+interface AdminPartnerInquiryEmailParams {
+  companyName: string;
+  managerName: string;
+  phone: string;
+  email?: string | null;
+  message: string;
+  requestedChannels: string[];
+  productFileName: string;
+}
+
+const ADMIN_PARTNER_INQUIRY_EMAIL = process.env.ADMIN_INQUIRY_EMAIL || 'tenjung2@gmail.com';
+const ADMIN_PARTNER_INQUIRY_URL = 'https://daonview.com/dashboard/admin/inquiries';
+
+const PARTNER_CHANNEL_LABELS: Record<string, string> = {
+  OFFLINE: '오프라인',
+  CLOSED_MALL: '폐쇄몰',
+  GROUP_BUY: '공동구매',
+  GLOBAL: '해외',
+  RECOMMEND_ALL: '전체 추천',
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
 /**
  * DB에서 이메일 템플릿 로드 및 변수 치환
  */
@@ -345,6 +374,95 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
   `;
 
   return { subject, html };
+};
+
+export const sendAdminPartnerInquiryEmail = async (params: AdminPartnerInquiryEmailParams) => {
+  const subject = `[다온뷰] 신규 제휴 문의가 접수되었습니다 - ${params.companyName}`;
+  const forceSend = ['TRUE', '1', 'YES', 'ON'].includes(
+    String(process.env.EMAIL_FORCE_SEND || '').toUpperCase()
+  );
+  const requestedChannels = params.requestedChannels.length > 0
+    ? params.requestedChannels.map((channel) => PARTNER_CHANNEL_LABELS[channel] || channel).join(', ')
+    : '전체 추천';
+  const infoRows = [
+    ['회사명', params.companyName],
+    ['담당자명', params.managerName],
+    ['연락처', params.phone],
+    ['이메일', params.email || '미입력'],
+    ['희망 채널', requestedChannels],
+    ['제품소개서', params.productFileName],
+  ];
+  const rowsHtml = infoRows
+    .map(([label, value]) => `
+      <tr>
+        <th style="width: 120px; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px; text-align: left;">${escapeHtml(label)}</th>
+        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-size: 14px; font-weight: 700;">${escapeHtml(value)}</td>
+      </tr>
+    `)
+    .join('');
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+      </head>
+      <body style="margin:0; padding:0; background:#f8fafc;">
+        <div style="font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 640px; margin: 0 auto; padding: 32px 20px; color: #334155;">
+          <div style="border-radius: 24px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div style="padding: 28px; background: linear-gradient(135deg, #fff1f5 0%, #eef2ff 100%);">
+              <div style="font-size: 13px; font-weight: 900; color: #e11d48; letter-spacing: 0.18em;">PARTNER INQUIRY</div>
+              <h1 style="margin: 10px 0 0; font-size: 24px; line-height: 1.35; color: #0f172a;">신규 제휴 문의가 접수되었습니다.</h1>
+              <p style="margin: 10px 0 0; font-size: 14px; color: #475569;">관리자 페이지에서 제품소개서를 확인하고 후속 상담을 진행해주세요.</p>
+            </div>
+            <div style="padding: 28px;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden;">
+                <tbody>${rowsHtml}</tbody>
+              </table>
+              <div style="margin-top: 22px;">
+                <div style="margin-bottom: 8px; color: #64748b; font-size: 13px; font-weight: 900;">제품 설명</div>
+                <div style="white-space: pre-wrap; border: 1px solid #e2e8f0; border-radius: 16px; background: #f8fafc; padding: 16px; color: #0f172a; font-size: 14px; line-height: 1.7;">${escapeHtml(params.message)}</div>
+              </div>
+              <div style="text-align: center; margin-top: 28px;">
+                <a href="${ADMIN_PARTNER_INQUIRY_URL}" style="display: inline-block; padding: 14px 24px; border-radius: 14px; background: #f43f5e; color: #ffffff; text-decoration: none; font-weight: 900; font-size: 14px;">관리자 페이지에서 확인하기</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  if ((process.env.NODE_ENV === 'development' && !forceSend) || !process.env.AWS_ACCESS_KEY_ID) {
+    console.log('[ADMIN EMAIL MOCK] Sending partner inquiry email:', {
+      to: ADMIN_PARTNER_INQUIRY_EMAIL,
+      subject,
+    });
+    return { success: true, messageId: `mock-${Date.now()}` };
+  }
+
+  const client = getSESClient();
+  const command = new SendEmailCommand({
+    Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
+    Destination: {
+      ToAddresses: [ADMIN_PARTNER_INQUIRY_EMAIL],
+    },
+    Message: {
+      Subject: {
+        Data: subject,
+        Charset: 'UTF-8',
+      },
+      Body: {
+        Html: {
+          Data: html,
+          Charset: 'UTF-8',
+        },
+      },
+    },
+  });
+
+  const response = await client.send(command);
+  console.log(`Admin partner inquiry email sent: ${response.MessageId}`);
+  return { success: true, messageId: response.MessageId };
 };
 
 /**
