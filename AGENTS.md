@@ -107,6 +107,8 @@ UI 표시: DB 값을 직접 노출하지 않고 Label/Badge로 매핑하여 표�
 5. ⚠️ 터미널 및 실행 제약
 명령어 제공: 설치, 복사 등 30초 이상 소요되는 작업은 직접 수행하지 않고 코드 블록(bash)으로 명령어를 제공하여 사용자가 실행하게 한다.
 
+커밋 메시지 규칙: 별도 요청이 없으면 커밋 메시지는 기본적으로 한글로 작성한다. 영문 prefix 관습(`fix:`, `feat:` 등)은 강제하지 않는다.
+
 SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 최우선으로 적용한다.
 
 워커 실행 규칙: `scripts/video-job-worker.mjs` 또는 `.env.local` 수정 시 수동으로 `video:worker`를 반복 재실행하지 말고, 개발 환경에서는 반드시 `npm run video:worker:dev`를 사용한다.
@@ -114,6 +116,14 @@ SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 �
 워커 중복 금지: 영상 워커는 동시에 1개만 실행한다. 수동 점검용 `npm run video:worker`와 개발용 `npm run video:worker:dev`를 함께 띄우지 않는다.
 
 ComfyUI 운영 규칙: ComfyUI는 독립 상시 서비스가 아니라 `video-worker` 종속 온디맨드 프로세스로만 실행한다. 영상 제작 요청이 없으면 내려가 있어야 하며, `com.daonview.comfyui` 같은 별도 LaunchAgent를 상시 운영하지 않는다.
+
+이미지 트래픽 최적화 규칙:
+- 공개면(홈, 캠페인 목록/상세, 리뷰, 게시판, 공용 프로필, 배너) 이미지 출력은 기본적으로 `next/image`를 사용한다.
+- raw `<img>`는 업로드 직후 미리보기(`blob:`/`data:`/object URL), 이메일 HTML, HTML 문자열 본문 렌더링처럼 `next/image`를 적용할 수 없는 예외에만 허용한다.
+- Supabase public 원본 URL을 공개 카드/리스트 UI에 직접 연결하지 않는다. 원칙적으로 `next/image` 또는 Vercel 이미지 최적화 경로를 통과시킨다.
+- 새 이미지 업로드 시 원본을 그대로 저장하지 말고, 웹용 압축본(WebP/JPEG, 긴 변 1200px 이하, 목표 300KB~500KB)을 우선 저장한다. GIF만 예외적으로 원본 유지 가능하다.
+- 기존 대용량 public 원본 교체가 필요할 때는 원본 덮어쓰기보다 `최적화 파일 새 업로드 + DB URL 교체` 방식을 우선 사용한다. 원본은 즉시 삭제하지 않고 롤백 가능 상태를 잠시 유지한다.
+- `next.config.ts`의 `images.remotePatterns`는 실제 공개면에서 쓰는 호스트와 항상 동기화한다. 새 외부 이미지 소스가 생기면 코드 반영과 함께 패턴도 갱신한다.
 
 ---
 
@@ -177,4 +187,3 @@ ComfyUI 운영 규칙: ComfyUI는 독립 상시 서비스가 아니라 `video-wo
   - `any` 남발 금지 (불가피하면 사유+최소 범위)
   - 주석으로 버그 숨기기 금지
   - “TODO 나중에”만 남기고 끝내기 금지
-

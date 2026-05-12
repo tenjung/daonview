@@ -30,6 +30,18 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com', // Google User Images
       },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com', // YouTube thumbnails
+      },
+      {
+        protocol: 'https',
+        hostname: 'yt3.ggpht.com', // YouTube profile / channel images
+      },
+      {
+        protocol: 'https',
+        hostname: '*.fbcdn.net', // Instagram / Facebook CDN images
+      },
     ],
   },
 };

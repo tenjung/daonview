@@ -1,7 +1,9 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { isOptimizableImageSrc } from '@/lib/utils';
 
 interface BoardItem {
     id: string;
@@ -80,6 +82,7 @@ export default function BoardList({
                             {items.map((item) => {
                                 const imgMatch = item.content?.match(/<img[^>]+src="([^">]+)"/);
                                 const thumbnail = imgMatch ? imgMatch[1] : null;
+                                const canOptimizeThumbnail = isOptimizableImageSrc(thumbnail);
 
                                 return (
                                     <Link key={item.id} href={`${itemHrefPrefix || viewAllHref}/${item.id}`}>
@@ -89,11 +92,23 @@ export default function BoardList({
                                              {showThumbnails && (
                                                  <div className="hidden sm:block w-24 h-18 md:w-40 md:h-28 flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-gray-50 shadow-sm transition-shadow group-hover:shadow-md">
                                                      {thumbnail ? (
-                                                         <img
-                                                             src={thumbnail}
-                                                             alt={item.title}
-                                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                         />
+                                                         canOptimizeThumbnail ? (
+                                                             <div className="relative h-full w-full">
+                                                                 <Image
+                                                                     src={thumbnail}
+                                                                     alt={item.title}
+                                                                     fill
+                                                                     sizes="(max-width: 768px) 0px, 160px"
+                                                                     className="object-cover transition-transform duration-500 group-hover:scale-105"
+                                                                 />
+                                                             </div>
+                                                         ) : (
+                                                             <img
+                                                                 src={thumbnail}
+                                                                 alt={item.title}
+                                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                             />
+                                                         )
                                                      ) : (
                                                          <div className="w-full h-full flex flex-col items-center justify-center text-gray-200 gap-1">
                                                              <div className="text-[10px] font-bold">DAONVIEW</div>

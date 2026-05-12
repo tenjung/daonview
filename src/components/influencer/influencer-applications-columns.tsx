@@ -1,10 +1,12 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
+import Image from "next/image"
 import Link from 'next/link'
 import { Application } from "@/types/database"
 import { Badge } from "@/components/ui/badge"
 import { DateCell } from "@/components/data-table"
+import { isOptimizableImageSrc } from "@/lib/utils"
 
 export const influencerApplicationColumns: ColumnDef<any>[] = [
     {
@@ -12,14 +14,27 @@ export const influencerApplicationColumns: ColumnDef<any>[] = [
         header: "캠페인 정보",
         cell: ({ row }) => {
             const campaign = row.original.campaigns;
+            const canOptimizeThumbnail = isOptimizableImageSrc(campaign?.thumbnail_url);
             return (
                 <div className="flex items-center gap-3">
                     {campaign?.thumbnail_url && (
-                        <img 
-                            src={campaign.thumbnail_url} 
-                            alt={campaign.title} 
-                            className="w-10 h-10 rounded-lg object-cover"
-                        />
+                        canOptimizeThumbnail ? (
+                            <div className="relative h-10 w-10 overflow-hidden rounded-lg">
+                                <Image
+                                    src={campaign.thumbnail_url}
+                                    alt={campaign.title}
+                                    fill
+                                    sizes="40px"
+                                    className="object-cover"
+                                />
+                            </div>
+                        ) : (
+                            <img
+                                src={campaign.thumbnail_url}
+                                alt={campaign.title}
+                                className="w-10 h-10 rounded-lg object-cover"
+                            />
+                        )
                     )}
                     <Link 
                         href={`/campaigns/${campaign?.id}`}

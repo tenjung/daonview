@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { ExternalLink } from 'lucide-react';
 
 interface NaverStaticMapProps {
@@ -72,16 +73,19 @@ export default function NaverStaticMap({
             rel="noopener noreferrer"
             className="relative block w-full rounded-2xl overflow-hidden border border-slate-200/60 bg-slate-50 shadow-xl group cursor-pointer"
         >
-            <img
-                src={thumbnailUrl}
-                alt={storeName || '매장 위치'}
-                className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
-                loading="lazy"
-                onError={() => {
-                    console.error('[NaverStaticMap] Failed to load thumbnail:', thumbnailUrl);
-                    setImageError(true);
-                }}
-            />
+            <div className="relative aspect-[5/3] w-full overflow-hidden">
+                <Image
+                    src={thumbnailUrl}
+                    alt={storeName || '매장 위치'}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 800px"
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={() => {
+                        console.error('[NaverStaticMap] Failed to load thumbnail:', thumbnailUrl);
+                        setImageError(true);
+                    }}
+                />
+            </div>
 
             {/* 매장명 오버레이 */}
             {storeName && (

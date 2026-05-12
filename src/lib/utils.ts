@@ -5,6 +5,29 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
+const OPTIMIZABLE_IMAGE_HOST_PATTERNS = [
+    /^whpyftpktolpaspeuocg\.supabase\.co$/i,
+    /(^|\.)pstatic\.net$/i,
+    /(^|\.)cdninstagram\.com$/i,
+    /^lh3\.googleusercontent\.com$/i,
+    /^i\.ytimg\.com$/i,
+    /^yt3\.ggpht\.com$/i,
+    /(^|\.)fbcdn\.net$/i,
+];
+
+export function isOptimizableImageSrc(src?: string | null): boolean {
+    if (!src) return false;
+    if (src.startsWith('/')) return true;
+
+    try {
+        const url = new URL(src);
+        if (url.protocol !== 'https:') return false;
+        return OPTIMIZABLE_IMAGE_HOST_PATTERNS.some((pattern) => pattern.test(url.hostname));
+    } catch {
+        return false;
+    }
+}
+
 export function formatTimeAgo(date: Date | string): string {
     const now = new Date();
     const then = new Date(date);

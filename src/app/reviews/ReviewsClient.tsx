@@ -1,10 +1,12 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect, useRef, Suspense, use, useMemo } from 'react';
 import Link from 'next/link';
 import { ExternalLink, Sparkles } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { normalizeCampaignPlatform } from '@/lib/campaignUtils';
+import { isOptimizableImageSrc } from '@/lib/utils';
 
 interface Review {
     id: string;
@@ -255,6 +257,7 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
                     const normalizedPlatform = normalizePlatform(review.platform);
                     const config = platformConfig[normalizedPlatform as keyof typeof platformConfig] || platformConfig.OTHER;
                     const blogInfo = normalizedPlatform === 'BLOG' ? extractNaverBlogInfo(review.post_url) : null;
+                    const canOptimizeThumbnail = isOptimizableImageSrc(review.thumbnail_url);
                     return (
                         <a
                             key={review.id}
@@ -265,12 +268,23 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
                         >
                             <div className="relative h-56 bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">
                                 {review.thumbnail_url ? (
-                                    <img
-                                        src={review.thumbnail_url}
-                                        alt={review.title || '리뷰 썸네일'}
-                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                        referrerPolicy="no-referrer"
-                                    />
+                                    canOptimizeThumbnail ? (
+                                        <Image
+                                            src={review.thumbnail_url}
+                                            alt={review.title || '리뷰 썸네일'}
+                                            fill
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                                            className="object-cover group-hover:scale-110 transition-transform duration-500"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={review.thumbnail_url}
+                                            alt={review.title || '리뷰 썸네일'}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                            referrerPolicy="no-referrer"
+                                        />
+                                    )
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-6xl">
                                         {config.icon}
