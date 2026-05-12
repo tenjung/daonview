@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Gift, Heart } from 'lucide-react';
@@ -32,10 +33,15 @@ interface CampaignProps {
 
 export default function CampaignCard({ id, title, platform, type, applicants, total, dday, imageUrl, provision, region, sub_region, includeReview, includeNaver, includeInstagram, is_unlimited_recruitment, scheduleType, density = 'default' }: CampaignProps) {
     const [mounted, setMounted] = useState(false);
+    const [imageFailed, setImageFailed] = useState(false);
 
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        setImageFailed(false);
+    }, [imageUrl]);
 
     const linkHref = id ? `/campaigns/${id}` : '#';
     const isVisit = type?.toUpperCase() === 'VISIT';
@@ -104,16 +110,14 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
         <Link href={linkHref} className="card group border border-border rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
             {/* Image Section */}
             <div className={`w-full ${imageAspectClass} bg-gray-100 relative overflow-hidden`}>
-                {imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                {imageUrl && !imageFailed ? (
+                    <Image
                         src={imageUrl}
                         alt={title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                            (e.target as HTMLImageElement).parentElement!.style.backgroundColor = '#f3f4f6';
-                        }}
+                        fill
+                        sizes={isCompact ? '(max-width: 1024px) 50vw, 25vw' : '(max-width: 1024px) 50vw, 33vw'}
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        onError={() => setImageFailed(true)}
                     />
                 ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">

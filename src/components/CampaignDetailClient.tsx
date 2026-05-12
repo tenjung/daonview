@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
@@ -42,6 +43,7 @@ import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
 import { formatDDay, mapCampaignToCard, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 import { formatKstDate } from '@/lib/campaignSchedule';
+import { CAMPAIGN_CARD_SELECT, CAMPAIGN_DETAIL_SELECT } from '@/lib/campaignSelects';
 import {
     Dialog,
     DialogContent,
@@ -200,23 +202,23 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 // 1. Same brand campaigns
                 const { data: brandData } = await supabase
                     .from('campaigns')
-                    .select('*')
+                    .select(CAMPAIGN_CARD_SELECT)
                     .eq('created_by', campaign.created_by)
                     .neq('id', campaign.id)
                     .limit(8);
 
-                let merged = brandData || [];
+                let merged: Array<Record<string, unknown>> = (brandData ?? []) as unknown as Array<Record<string, unknown>>;
 
                 if (merged.length < 4) {
                     const { data: nearbyData } = await supabase
                         .from('campaigns')
-                        .select('*')
+                        .select(CAMPAIGN_CARD_SELECT)
                         .neq('id', campaign.id)
                         .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
                         .order('end_date', { ascending: true })
                         .limit(8 - merged.length);
 
-                    merged = [...merged, ...(nearbyData || [])];
+                    merged = [...merged, ...((nearbyData ?? []) as unknown as Array<Record<string, unknown>>)];
                 }
 
                 setRelatedCampaigns(merged);
@@ -232,11 +234,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         // Fetch campaign details along with counts for all vs approved applications
         const { data } = await supabase
             .from('campaigns')
-            .select('*')
+            .select(CAMPAIGN_DETAIL_SELECT)
             .eq('id', id)
             .single();
 
         if (data) {
+            const campaignData = data as unknown as Record<string, unknown>;
             // Get total application count
             const { count: totalCount } = await supabase
                 .from('applications')
@@ -251,7 +254,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 .in('status', ['SELECTED', 'APPROVED']);
 
             setCampaign({
-                ...data,
+                ...campaignData,
                 total_app_count: totalCount || 0,
                 approved_app_count: approvedCount || 0
             });
@@ -902,10 +905,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     {images.map((img, index) => (
                                                         <CarouselItem key={index} className="pl-0 h-full">
                                                             <div className="relative w-full h-full cursor-zoom-in" onClick={() => setIsImageModalOpen(true)}>
-                                                                <img
+                                                                <Image
                                                                     src={img}
                                                                     alt={`${displayTitle} - ${index + 1}`}
-                                                                    className="w-full h-full object-cover transition-transform duration-700"
+                                                                    fill
+                                                                    priority={index === 0}
+                                                                    sizes="(max-width: 1024px) 100vw, 640px"
+                                                                    className="object-cover transition-transform duration-700"
                                                                 />
                                                             </div>
                                                         </CarouselItem>
@@ -938,9 +944,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                 if (e.target === e.currentTarget) setIsImageModalOpen(false);
                                                             }}
                                                         >
-                                                            <img
+                                                            <Image
                                                                 src={images[currentImageIndex]}
                                                                 alt={`${displayTitle} - Expanded`}
+                                                                width={1600}
+                                                                height={1600}
+                                                                sizes="100vw"
                                                                 className="w-full max-w-3xl h-auto object-contain shadow-2xl rounded-sm"
                                                                 onClick={(e) => e.stopPropagation()}
                                                             />

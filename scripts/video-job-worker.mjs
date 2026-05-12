@@ -18,10 +18,12 @@ const COMFYUI_PORT = Number.parseInt(process.env.COMFYUI_PORT || '8188', 10);
 const COMFYUI_PROCESS_MATCH = process.env.COMFYUI_PROCESS_MATCH || `main.py --listen 127.0.0.1 --port ${COMFYUI_PORT}`;
 const COMFYUI_KILL_RETRIES = Number.parseInt(process.env.COMFYUI_KILL_RETRIES || '20', 10);
 const COMFYUI_KILL_RETRY_DELAY_MS = Number.parseInt(process.env.COMFYUI_KILL_RETRY_DELAY_MS || '1000', 10);
+const SUPABASE_RESTRICTED_BACKOFF_MS = Number.parseInt(process.env.SUPABASE_RESTRICTED_BACKOFF_MS || '300000', 10);
 const ACTIVE_VIDEO_JOB_STATUSES = ['PROCESSING_SCRIPT', 'GENERATING_IMAGES', 'PROCESSING_TTS', 'PROCESSING_SUBTITLE', 'RENDERING_VIDEO'];
 let comfyEnsurePromise = null;
 let comfyIdleTimer = null;
 let comfyLastUsedAt = 0;
+let supabaseRestrictedUntil = 0;
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
@@ -73,6 +75,44 @@ if (!OPENAI_API_KEY) {
   throw new Error('OPENAI_API_KEY가 설정되지 않았습니다.');
 }
 
+function isSupabaseUsageRestrictedError(error) {
+  const message = String(
+    error?.message ||
+    error?.error_description ||
+    error?.details ||
+    error?.hint ||
+    ''
+  ).toLowerCase();
+
+  return (
+    message.includes('402') ||
+    message.includes('payment required') ||
+    message.includes('billing') ||
+    message.includes('usage restricted') ||
+    message.includes('exceeded your quota') ||
+    message.includes('over the usage limits')
+  );
+}
+
+function activateSupabaseRestrictedBackoff(sourceError) {
+  const nextRetryAt = Date.now() + SUPABASE_RESTRICTED_BACKOFF_MS;
+  supabaseRestrictedUntil = Math.max(supabaseRestrictedUntil, nextRetryAt);
+  console.warn('[Supabase] usage restriction detected, backing off polling', {
+    retryAt: new Date(supabaseRestrictedUntil).toISOString(),
+    message: sourceError instanceof Error ? sourceError.message : String(sourceError),
+  });
+}
+
+async function waitForSupabaseBackoffIfNeeded() {
+  const remaining = supabaseRestrictedUntil - Date.now();
+  if (remaining <= 0) return;
+  console.log('[Supabase] polling paused while usage restriction is active', {
+    waitMs: remaining,
+    retryAt: new Date(supabaseRestrictedUntil).toISOString(),
+  });
+  await sleep(remaining);
+}
+
 async function updateJob(id, patch) {
   const { error } = await supabase.from('ai_video_jobs').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id);
   if (error) throw new Error(`작업 업데이트 실패: ${error.message}`);
@@ -110,6 +150,7 @@ async function safeFetch(label, url, init = undefined) {
 }
 
 async function getNextJob() {
+  await waitForSupabaseBackoffIfNeeded();
   const { data, error } = await supabase
     .from('ai_video_jobs')
     .select('*')
@@ -117,7 +158,12 @@ async function getNextJob() {
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isSupabaseUsageRestrictedError(error)) {
+      activateSupabaseRestrictedBackoff(error);
+    }
+    throw new Error(error.message);
+  }
   if (!data) return null;
   console.log('[Job] found queued job', { id: data.id, status: data.status, updated_at: data.updated_at });
 
@@ -155,12 +201,18 @@ async function getChapters(jobId) {
 }
 
 async function hasActiveVideoJobs() {
+  await waitForSupabaseBackoffIfNeeded();
   const { data, error } = await supabase
     .from('ai_video_jobs')
     .select('id,status')
     .in('status', ACTIVE_VIDEO_JOB_STATUSES)
     .limit(1);
-  if (error) throw new Error(error.message);
+  if (error) {
+    if (isSupabaseUsageRestrictedError(error)) {
+      activateSupabaseRestrictedBackoff(error);
+    }
+    throw new Error(error.message);
+  }
   return Array.isArray(data) && data.length > 0;
 }
 

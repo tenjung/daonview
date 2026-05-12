@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { supabase } from '@/lib/supabase/client';
+import { getPublicServerClient } from '@/lib/supabase/publicServer';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
 import CampaignListClient from '@/components/CampaignListClient';
 import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { CAMPAIGN_CARD_SELECT } from '@/lib/campaignSelects';
+import type { Campaign } from '@/types/database';
 
 export const revalidate = 30; // ISR: 30초마다 재생성
 
@@ -23,14 +25,17 @@ export const metadata: Metadata = {
 
 
 export default async function CampaignsPage() {
+    const supabase = getPublicServerClient();
     // Fetch all campaigns on the server
     const { data: rawCampaigns } = await supabase
         .from('campaigns')
-        .select('*, applications(count)')
+        .select(CAMPAIGN_CARD_SELECT)
         .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
         .order('created_at', { ascending: false });
 
-    const campaigns = (rawCampaigns || []).map(c => mapCampaignToCard(c as any));
+    const campaigns = (rawCampaigns || []).map((campaign) =>
+        mapCampaignToCard(campaign as Campaign & { applications?: { count: number }[] | { count: number } | number })
+    );
 
     return (
         <div className="min-h-screen bg-white">

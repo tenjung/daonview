@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Plus, Trash2, Image as ImageIcon, Link as LinkIcon, Save, Upload, Pencil, X, Check, MoveUp, MoveDown, Settings2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { optimizeImageForUpload } from '@/lib/utils/imageUtils';
 
 interface Banner {
     id: number;
@@ -139,15 +140,23 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                 return;
             }
 
+            const optimizedImage = await optimizeImageForUpload(file, {
+                maxWidth: 1600,
+                maxHeight: 900,
+                quality: 0.82,
+                outputType: 'image/webp',
+            });
+
             toast.loading('저장소에 연결 중...', { id: 'upload-status' });
-            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+            const uploadExt = optimizedImage.extension || fileExt;
+            const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${uploadExt}`;
             const filePath = fileName;
 
             // 3. 업로드 시도
             const { error: uploadError } = await supabase.storage
                 .from('banners')
-                .upload(filePath, file, {
-                    cacheControl: '3600',
+                .upload(filePath, optimizedImage.file, {
+                    cacheControl: '31536000',
                     upsert: false
                 });
 

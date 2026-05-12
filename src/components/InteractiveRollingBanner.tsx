@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Gift, Zap, Bell, Flame, ArrowRight } from 'lucide-react';
 import Autoplay from 'embla-carousel-autoplay';
@@ -165,10 +166,13 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                     <Card className="overflow-hidden border-none shadow-none sm:shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-none sm:hover:shadow-[0_25px_50px_-12px_rgba(244,63,94,0.2)] transition-all duration-1000 rounded-none sm:rounded-2xl h-full relative border-none sm:border sm:border-white/10 group-hover:border-rose-200/50">
                                         <CardContent className="p-0 h-full relative">
                                             {/* Background Image with Parallax-like effect */}
-                                            <img
+                                            <Image
                                                 src={item.image_url}
                                                 alt={item.title}
-                                                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                                fill
+                                                priority={index === 0}
+                                                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                                                className="object-cover transition-transform duration-700 group-hover:scale-110"
                                             />
                                             {/* Badges Overlay (Top) */}
                                             <div className="absolute inset-x-0 top-0 p-4 md:p-6 z-10">

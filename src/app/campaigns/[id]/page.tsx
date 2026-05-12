@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase/client';
+import { getPublicServerClient } from '@/lib/supabase/publicServer';
 import CampaignDetailClient from '@/components/CampaignDetailClient';
 import { notFound } from 'next/navigation';
+import { CAMPAIGN_DETAIL_SELECT, CAMPAIGN_METADATA_SELECT } from '@/lib/campaignSelects';
 
 export const revalidate = 60; // ISR: 1분마다 재생성
 
@@ -13,21 +14,30 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
+    const supabase = getPublicServerClient();
 
     const { data: campaign } = await supabase
         .from('campaigns')
-        .select('*')
+        .select(CAMPAIGN_METADATA_SELECT)
         .eq('id', id)
         .single();
 
-    if (!campaign) return {};
+    const metadataCampaign = campaign as {
+        title?: string | null;
+        thumbnail_url?: string | null;
+        campaign_options?: unknown;
+    } | null;
 
-    const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
+    if (!metadataCampaign) return {};
+
+    const campaignOptions = Array.isArray(metadataCampaign.campaign_options)
+        ? metadataCampaign.campaign_options[0]
+        : metadataCampaign.campaign_options;
     const step2Data = campaignOptions?.step2Data || {};
 
-    const title = step2Data.campaignTitle || campaign.title;
+    const title = step2Data.campaignTitle || metadataCampaign.title;
     const description = '다온뷰 체험단 혜택 및 참여 가이드를 확인해보세요.';
-    const thumbnail = campaign.thumbnail_url;
+    const thumbnail = metadataCampaign.thumbnail_url;
 
     return {
         title: `${title} | 다온뷰`,
@@ -53,11 +63,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CampaignDetailPage({ params }: PageProps) {
     const { id } = await params;
+    const supabase = getPublicServerClient();
 
     // Fetch campaign data on the server
     const { data: campaign, error } = await supabase
         .from('campaigns')
-        .select('*, applications(count)')
+        .select(CAMPAIGN_DETAIL_SELECT)
         .eq('id', id)
         .single();
 

@@ -6,6 +6,7 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { supabase } from '@/lib/supabase/client';
+import { optimizeImageForUpload } from '@/lib/utils/imageUtils';
 
 // @dnd-kit imports
 import {
@@ -326,8 +327,16 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                     continue;
                 }
 
+                const optimizedImage = await optimizeImageForUpload(file, {
+                    maxWidth: 1280,
+                    maxHeight: 1280,
+                    quality: 0.8,
+                    outputType: 'image/webp',
+                });
+
                 // 파일명 안전하게 변환
-                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${fileExt}`;
+                const uploadExt = optimizedImage.extension || fileExt;
+                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${uploadExt}`;
                 const filePath = `campaigns/${fileName}`; 
 
                 console.log(`Uploading file: ${filePath}`);
@@ -335,8 +344,8 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                 // Supabase Storage에 업로드
                 const { data: uploadData, error: uploadError } = await supabase.storage
                     .from('files')
-                    .upload(filePath, file, {
-                        cacheControl: '3600',
+                    .upload(filePath, optimizedImage.file, {
+                        cacheControl: '31536000',
                         upsert: false
                     });
 
