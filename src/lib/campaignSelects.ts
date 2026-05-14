@@ -5,6 +5,7 @@ export const CAMPAIGN_CARD_SELECT = `
   type,
   category,
   thumbnail_url,
+  campaign_image_variants,
   provision,
   experience_details,
   campaign_options,
@@ -27,6 +28,7 @@ export const CAMPAIGN_METADATA_SELECT = `
   id,
   title,
   thumbnail_url,
+  campaign_image_variants,
   campaign_options
 `.replace(/\s+/g, ' ').trim();
 
@@ -35,6 +37,7 @@ export const CAMPAIGN_DETAIL_SELECT = `
   created_by,
   title,
   thumbnail_url,
+  campaign_image_variants,
   type,
   platform,
   region,

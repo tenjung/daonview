@@ -1,7 +1,7 @@
 // 임시저장 캠페인 관리 유틸리티
 
 import { supabase } from './supabase/client';
-import { buildCampaignStep1Snapshot, deriveCampaignHydrationState, normalizeCampaignType } from './campaignUtils';
+import { buildCampaignStep1Snapshot, deriveCampaignHydrationState, normalizeCampaignType, resolveCampaignImageVariants } from './campaignUtils';
 
 export interface DraftCampaign {
     id: string;
@@ -161,6 +161,7 @@ export const loadDraft = async (userId: string, draftId: string): Promise<DraftC
 const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
     if (!dbData) return {} as DraftCampaign;
     const hydration = deriveCampaignHydrationState(dbData);
+    const imageVariants = resolveCampaignImageVariants(dbData);
     const step1Data = {
         ...hydration.step1Data,
         brandId: dbData.brand_id || hydration.step1Data.brandId || null,
@@ -197,9 +198,12 @@ const normalizeDraftFromDB = (dbData: any): DraftCampaign => {
         step2Data: {
             ...hydration.step2Data,
             campaignTitle: dbData.title || hydration.step2Data?.campaignTitle || step1Data.campaignTitle,
-            campaignImages: (Array.isArray(dbData.campaign_images) && dbData.campaign_images.length > 0)
-                ? dbData.campaign_images
-                : (Array.isArray(hydration.step2Data?.campaignImages) ? hydration.step2Data.campaignImages : (dbData.thumbnail_url ? [dbData.thumbnail_url] : [])),
+            campaignImageVariants: imageVariants,
+            campaignImages: imageVariants.length > 0
+                ? imageVariants.map((variant) => variant.mediumUrl)
+                : ((Array.isArray(dbData.campaign_images) && dbData.campaign_images.length > 0)
+                    ? dbData.campaign_images
+                    : (Array.isArray(hydration.step2Data?.campaignImages) ? hydration.step2Data.campaignImages : (dbData.thumbnail_url ? [dbData.thumbnail_url] : []))),
             missionGuide: hydration.options.mission_guide || hydration.step2Data?.missionGuide || '',
             keywords: Array.isArray(dbData.keywords) ? dbData.keywords : (Array.isArray(hydration.step2Data?.keywords) ? hydration.step2Data.keywords : []),
         },

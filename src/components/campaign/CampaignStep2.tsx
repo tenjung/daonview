@@ -6,7 +6,8 @@ import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
 import { supabase } from '@/lib/supabase/client';
-import { optimizeImageForUpload } from '@/lib/utils/imageUtils';
+import { createImageVariantForUpload } from '@/lib/utils/imageUtils';
+import { CampaignImageVariant } from '@/types/database';
 
 // @dnd-kit imports
 import {
@@ -26,6 +27,10 @@ import {
     useSortable
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+
+const MAX_CAMPAIGN_ORIGINAL_IMAGE_BYTES = 10 * 1024 * 1024;
+const CAMPAIGN_THUMBNAIL_WIDTH = 500;
+const CAMPAIGN_MEDIUM_WIDTH = 1200;
 
 // --- Sortable Image Item Component ---
 interface SortableImageItemProps {
@@ -122,6 +127,7 @@ interface Step1Data {
 interface Step2Data {
     campaignTitle: string;
     campaignImages: string[];
+    campaignImageVariants: CampaignImageVariant[];
 
     // 구매평 가이드 (Shopping Mall Review)
     purchaseNotes: string;
@@ -188,10 +194,14 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
         if (over && active.id !== over.id) {
-            const oldIndex = formData.campaignImages.indexOf(active.id as string);
-            const newIndex = formData.campaignImages.indexOf(over.id as string);
-            const newImages = arrayMove(formData.campaignImages, oldIndex, newIndex);
-            store.setField('campaignImages', newImages);
+            const oldIndex = imageVariants.findIndex((variant) => variant.thumbnailUrl === active.id);
+            const newIndex = imageVariants.findIndex((variant) => variant.thumbnailUrl === over.id);
+            if (oldIndex < 0 || newIndex < 0) return;
+            const reorderedVariants = arrayMove(imageVariants, oldIndex, newIndex);
+            store.updateFields({
+                campaignImageVariants: reorderedVariants,
+                campaignImages: reorderedVariants.map((variant) => variant.mediumUrl),
+            });
         }
     };
 
@@ -209,6 +219,17 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
     // 인스타그램 관련 입력 상태
     const [instagramHashtagInput, setInstagramHashtagInput] = useState('');
+    const imageVariants = useMemo<CampaignImageVariant[]>(() => {
+        if (Array.isArray(formData.campaignImageVariants) && formData.campaignImageVariants.length > 0) {
+            return formData.campaignImageVariants;
+        }
+
+        return formData.campaignImages.map((url) => ({
+            originalPath: null,
+            thumbnailUrl: url,
+            mediumUrl: url,
+        }));
+    }, [formData.campaignImageVariants, formData.campaignImages]);
 
     // AI 추천 키워드 생성 로직
     const [recommendedKeywords, setRecommendedKeywords] = useState<string[]>([]);
@@ -305,14 +326,14 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
             return;
         }
 
-        const remainingSlots = 4 - formData.campaignImages.length;
+        const remainingSlots = 4 - imageVariants.length;
         if (remainingSlots <= 0) {
             toast.error('최대 4개의 이미지만 업로드 가능합니다.');
             return;
         }
 
         setUploadingImage(true);
-        const newImages: string[] = [];
+        const newVariants: CampaignImageVariant[] = [];
         const filesToUpload = Math.min(files.length, remainingSlots);
 
         try {
@@ -327,58 +348,83 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                     continue;
                 }
 
-                const optimizedImage = await optimizeImageForUpload(file, {
-                    maxWidth: 1280,
-                    maxHeight: 1280,
-                    quality: 0.8,
-                    outputType: 'image/webp',
-                });
-
-                // 파일명 안전하게 변환
-                const uploadExt = optimizedImage.extension || fileExt;
-                const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}.${uploadExt}`;
-                const filePath = `campaigns/${fileName}`; 
-
-                console.log(`Uploading file: ${filePath}`);
-
-                // Supabase Storage에 업로드
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('files')
-                    .upload(filePath, optimizedImage.file, {
-                        cacheControl: '31536000',
-                        upsert: false
-                    });
-
-                if (uploadError) {
-                    console.error('이미지 업로드 상세 에러:', uploadError);
-
-                    if (uploadError.message.includes('bucket not found') || uploadError.message.includes('does not exist')) {
-                        toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
-                    } else if (uploadError.message.includes('permission denied') || (uploadError as any).status === 403) {
-                        toast.error('이미지 업로드 권한이 없습니다. (RLS 설정 확인 필요)');
-                    } else {
-                        toast.error(`이미지 업로드 실패: ${uploadError.message}`);
-                    }
+                if (file.size > MAX_CAMPAIGN_ORIGINAL_IMAGE_BYTES) {
+                    toast.error(`${file.name} 파일이 10MB를 초과합니다. 10MB 이하 이미지만 업로드할 수 있습니다.`);
                     continue;
                 }
 
-                // Public URL 가져오기
-                const { data: { publicUrl } } = supabase.storage
+                const [thumbnailImage, mediumImage] = await Promise.all([
+                    createImageVariantForUpload(file, {
+                        targetWidth: CAMPAIGN_THUMBNAIL_WIDTH,
+                        quality: 0.68,
+                        outputType: 'image/webp',
+                        suffix: '_thumb',
+                    }),
+                    createImageVariantForUpload(file, {
+                        targetWidth: CAMPAIGN_MEDIUM_WIDTH,
+                        quality: 0.78,
+                        outputType: 'image/webp',
+                        suffix: '_medium',
+                    }),
+                ]);
+
+                const fileBase = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+                const originalPath = `campaigns/original/${fileBase}.${fileExt}`;
+                const thumbnailPath = `campaigns/thumb/${fileBase}.${thumbnailImage.extension}`;
+                const mediumPath = `campaigns/medium/${fileBase}.${mediumImage.extension}`;
+
+                const uploadFile = async (filePath: string, uploadFile: File) => {
+                    const { error } = await supabase.storage
+                        .from('files')
+                        .upload(filePath, uploadFile, {
+                            cacheControl: '31536000',
+                            upsert: false
+                        });
+
+                    if (error) throw error;
+                };
+
+                await uploadFile(originalPath, file);
+                await uploadFile(thumbnailPath, thumbnailImage.file);
+                await uploadFile(mediumPath, mediumImage.file);
+
+                const { data: { publicUrl: thumbnailUrl } } = supabase.storage
                     .from('files')
-                    .getPublicUrl(filePath);
+                    .getPublicUrl(thumbnailPath);
+                const { data: { publicUrl: mediumUrl } } = supabase.storage
+                    .from('files')
+                    .getPublicUrl(mediumPath);
 
-                newImages.push(publicUrl);
-            }
-
-            if (newImages.length > 0) {
-                store.updateFields({
-                    campaignImages: [...formData.campaignImages, ...newImages]
+                newVariants.push({
+                    originalPath,
+                    thumbnailUrl,
+                    mediumUrl,
+                    width: mediumImage.width,
+                    height: mediumImage.height,
+                    originalSize: file.size,
+                    thumbnailSize: thumbnailImage.size,
+                    mediumSize: mediumImage.size,
                 });
-                toast.success(`${newImages.length}개의 이미지가 업로드되었습니다.`);
             }
-        } catch (error: any) {
+
+            if (newVariants.length > 0) {
+                const nextVariants = [...imageVariants, ...newVariants];
+                store.updateFields({
+                    campaignImageVariants: nextVariants,
+                    campaignImages: nextVariants.map((variant) => variant.mediumUrl),
+                });
+                toast.success(`${newVariants.length}개의 이미지가 업로드되었습니다.`);
+            }
+        } catch (error: unknown) {
+            const uploadError = error as { message?: string; status?: number };
             console.error('이미지 처리 중 치명적 오류:', error);
-            toast.error(`이미지 처리 중 오류 발생: ${error.message || '알 수 없는 오류'}`);
+            if (uploadError.message?.includes('bucket not found') || uploadError.message?.includes('does not exist')) {
+                toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
+            } else if (uploadError.message?.includes('permission denied') || uploadError.status === 403) {
+                toast.error('이미지 업로드 권한이 없습니다. (RLS 설정 확인 필요)');
+            } else {
+                toast.error(`이미지 처리 중 오류 발생: ${uploadError.message || '알 수 없는 오류'}`);
+            }
         } finally {
             setUploadingImage(false);
             if (e.target) e.target.value = '';
@@ -386,7 +432,11 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
     };
 
     const removeImage = (index: number) => {
-        store.setField('campaignImages', formData.campaignImages.filter((_, i) => i !== index));
+        const nextVariants = imageVariants.filter((_, i) => i !== index);
+        store.updateFields({
+            campaignImageVariants: nextVariants,
+            campaignImages: nextVariants.map((variant) => variant.mediumUrl),
+        });
     };
 
     // 키워드 관련 함수
@@ -477,7 +527,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
     // 폼 유효성 검사
     const isFormValid = () => {
         if (!formData.campaignTitle.trim()) return false;
-        if (!uploadLater && formData.campaignImages.length === 0) return false;
+        if (!uploadLater && imageVariants.length === 0) return false;
 
         // 블로그 선택 시 메인 키워드 필수 (2~3개 권장)
         if (formData.includeNaver && formData.blogMainKeywords.length < 1) {
@@ -570,37 +620,37 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                 onDragEnd={handleDragEnd}
                             >
                                 <SortableContext 
-                                    items={formData.campaignImages}
+                                    items={imageVariants.map((variant) => variant.thumbnailUrl)}
                                     strategy={rectSortingStrategy}
                                 >
                                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
-                                        {formData.campaignImages.map((url, index) => (
-                                            <SortableImageItem 
-                                                key={url} 
-                                                id={url} 
-                                                url={url} 
-                                                index={index} 
-                                                onRemove={() => removeImage(index)} 
+                                        {imageVariants.map((variant, index) => (
+                                            <SortableImageItem
+                                                key={`${variant.thumbnailUrl}-${index}`}
+                                                id={variant.thumbnailUrl}
+                                                url={variant.thumbnailUrl}
+                                                index={index}
+                                                onRemove={() => removeImage(index)}
                                             />
                                         ))}
 
                                         {/* 빈 슬롯 표시 */}
-                                        {Array.from({ length: 4 - formData.campaignImages.length }).map((_, idx) => (
+                                        {Array.from({ length: 4 - imageVariants.length }).map((_, idx) => (
                                             <div key={`empty-${idx}`} className="space-y-1.5">
                                                 <div 
                                                     className={`
                                                         aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all cursor-pointer
-                                                        ${formData.campaignImages.length === 0 && idx === 0 
+                                                        ${imageVariants.length === 0 && idx === 0
                                                             ? 'border-rose-200 bg-rose-50/30' 
                                                             : 'border-slate-100 bg-slate-50/30 hover:border-slate-300 hover:bg-slate-50'}
                                                     `}
                                                     onClick={() => document.getElementById('image-upload-input')?.click()}
                                                 >
-                                                    <div className={`p-2 rounded-full ${formData.campaignImages.length === 0 && idx === 0 ? 'bg-rose-100 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
+                                                    <div className={`p-2 rounded-full ${imageVariants.length === 0 && idx === 0 ? 'bg-rose-100 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
                                                         <Upload size={20} />
                                                     </div>
                                                     <span className="text-[11px] font-bold text-slate-400">
-                                                        {formData.campaignImages.length === 0 && idx === 0 ? '대표 이미지 등록' : '추가 등록'}
+                                                        {imageVariants.length === 0 && idx === 0 ? '대표 이미지 등록' : '추가 등록'}
                                                     </span>
                                                 </div>
                                             </div>

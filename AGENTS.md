@@ -87,6 +87,13 @@ https://supabase.com/dashboard/project/whpyftpktolpaspeuocg
 MCP서버 연결되었으니 무결성 항상 확인하고
 중복되거나 비슷한데 2개가 쓰이는건 나에게 꼭 알려줘서 수정해야할지 고민을해줘
 
+Supabase 보안 규칙:
+- `public` 스키마에 새 테이블을 만들 때는 `GRANT` + `ENABLE ROW LEVEL SECURITY` + 최소 RLS policy를 같은 변경 단위에 포함한다.
+- Data API로 직접 노출할 필요가 없는 운영/민감 테이블은 `anon`/`authenticated` 권한과 policy를 만들지 않고 서버 `service_role` 경유로만 접근한다.
+- Data API 노출이 필요한 테이블도 `anon` 권한은 공개 읽기처럼 명확히 필요한 경우에만 부여한다.
+- Supabase Security Advisor에서 `rls_disabled_in_public`이 발생하면 기능 개발보다 먼저 차단 계획을 세우고 사용자 승인 후 조치한다.
+- 신규 SQL 제안 시 권한 범위, RLS 정책, Security Advisor 재점검 방법을 함께 제시한다.
+
 Frontend 로직:
 
 비교 로직: 반드시 .toUpperCase() 변환 후 비교한다.

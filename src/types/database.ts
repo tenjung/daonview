@@ -5,6 +5,17 @@ export type CampaignStatus = 'PENDING' | 'RECRUITING' | 'ONGOING' | 'COMPLETED' 
 export type PaymentStatus = 'PENDING' | 'PAID' | 'PARTIAL_CANCELLED' | 'CANCELLED' | 'FAILED';
 export type ApplicationStatus = 'PENDING' | 'APPROVED' | 'SELECTED' | 'REJECTED' | 'COMPLETED' | 'CANCELLED';
 
+export interface CampaignImageVariant {
+    originalPath?: string | null;
+    thumbnailUrl: string;
+    mediumUrl: string;
+    width?: number | null;
+    height?: number | null;
+    originalSize?: number | null;
+    thumbnailSize?: number | null;
+    mediumSize?: number | null;
+}
+
 export interface Profile {
     id: string;
     created_at?: string;
@@ -69,6 +80,7 @@ export interface BaseCampaign {
     // Media
     thumbnail_url?: string;
     campaign_images?: string[];
+    campaign_image_variants?: CampaignImageVariant[];
     sub_image_1?: string;
     sub_image_2?: string;
 

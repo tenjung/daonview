@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { deriveCampaignHydrationState } from '@/lib/campaignUtils';
+import { deriveCampaignHydrationState, resolveCampaignImageVariants } from '@/lib/campaignUtils';
 import { CampaignScheduleType } from '@/lib/campaignSchedule';
+import { CampaignImageVariant } from '@/types/database';
 
 // --- Types ---
 
@@ -73,6 +74,7 @@ export interface CampaignState {
 
     // Step 2: 상세 설정
     campaignImages: string[];
+    campaignImageVariants: CampaignImageVariant[];
     purchaseNotes: string;
     reviewMissionContent: string;
     textLength: 'free' | 'short' | 'medium' | 'long' | 'custom';
@@ -163,6 +165,7 @@ const initialState: CampaignState = {
         maxSelect: 1,
     },
     campaignImages: [],
+    campaignImageVariants: [],
     purchaseNotes: '',
     reviewMissionContent: '',
     textLength: 'free',
@@ -213,6 +216,7 @@ export const useCampaignStore = create<CampaignStore>()(
                 const s1 = hydration.step1Data;
                 const s2 = hydration.step2Data;
                 const s3 = hydration.step3Data;
+                const imageVariants = resolveCampaignImageVariants(campaign);
 
                 set({
                     // Basic Metadata
@@ -263,9 +267,12 @@ export const useCampaignStore = create<CampaignStore>()(
                     stores: campaign.store_locations || hydration.options.stores || s1.stores || [],
 
                     // Step 2 normalization
-                    campaignImages: (Array.isArray(campaign.campaign_images) && campaign.campaign_images.length > 0)
-                        ? campaign.campaign_images
-                        : (Array.isArray(s2.campaignImages) ? s2.campaignImages : (campaign.thumbnail_url ? [campaign.thumbnail_url] : [])),
+                    campaignImageVariants: imageVariants,
+                    campaignImages: imageVariants.length > 0
+                        ? imageVariants.map((variant) => variant.mediumUrl)
+                        : ((Array.isArray(campaign.campaign_images) && campaign.campaign_images.length > 0)
+                            ? campaign.campaign_images
+                            : (Array.isArray(s2.campaignImages) ? s2.campaignImages : (campaign.thumbnail_url ? [campaign.thumbnail_url] : []))),
                     purchaseNotes: s2.purchaseNotes || '',
                     reviewMissionContent: s2.reviewMissionContent || '',
                     textLength: s2.textLength || 'free',

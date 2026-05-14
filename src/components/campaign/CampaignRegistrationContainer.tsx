@@ -279,6 +279,7 @@ export default function CampaignRegistrationContainer() {
                 step1Data,
                 step2Data: {
                     campaignImages: store.campaignImages,
+                    campaignImageVariants: store.campaignImageVariants,
                     purchaseNotes: store.purchaseNotes,
                     reviewMissionContent: store.reviewMissionContent,
                     textLength: store.textLength,
@@ -431,6 +432,7 @@ export default function CampaignRegistrationContainer() {
 
             const step2Data = {
                 campaignImages: store.campaignImages,
+                campaignImageVariants: store.campaignImageVariants,
                 purchaseNotes: store.purchaseNotes,
                 reviewMissionContent: store.reviewMissionContent,
                 textLength: store.textLength,
@@ -467,6 +469,10 @@ export default function CampaignRegistrationContainer() {
 
             // 캠페인 데이터 구성
             // 중요: created_by는 "생성(insert)" 시점에만 설정하고, "수정(update)" 시에는 절대 변경하지 않는다.
+            const displayThumbnailUrl = store.campaignImageVariants[0]?.thumbnailUrl || store.campaignImages?.[0] || null;
+            const displayMediumUrls = store.campaignImageVariants.length > 0
+                ? store.campaignImageVariants.map((variant) => variant.mediumUrl)
+                : (store.campaignImages || []);
             const campaignDataBase = {
                 brand_id: store.brandId,
                 brand_name: store.brandName,
@@ -483,8 +489,9 @@ export default function CampaignRegistrationContainer() {
                 is_unlimited_recruitment: canonical.isUnlimitedRecruitment,
                 total_recruitment: canonical.totalRecruitmentValue,
 
-                campaign_images: store.campaignImages || [],
-                thumbnail_url: store.campaignImages?.[0] || null,
+                campaign_images: displayMediumUrls,
+                campaign_image_variants: store.campaignImageVariants || [],
+                thumbnail_url: displayThumbnailUrl,
                 experience_details: store.experienceDetails || null,
                 product_options: store.productOptions || [],
                 status: isAdmin ? 'RECRUITING' : 'PENDING',

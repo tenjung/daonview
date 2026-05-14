@@ -1,4 +1,4 @@
-import { Campaign } from '@/types/database';
+import { Campaign, CampaignImageVariant } from '@/types/database';
 import { buildCampaignSchedule, CampaignScheduleType, formatKstDate, normalizeScheduleType } from './campaignSchedule';
 
 export type NormalizedCampaignType = 'DELIVERY' | 'VISIT' | 'PRESS' | 'PURCHASE';
@@ -104,6 +104,87 @@ export function getCampaignOptions(campaign: CampaignLikeRecord | null | undefin
   }
 
   return (optionsRaw || {}) as Record<string, any>;
+}
+
+const isNonEmptyString = (value: unknown): value is string => (
+  typeof value === 'string' && value.trim().length > 0
+);
+
+export function normalizeCampaignImageVariants(rawValue: unknown): CampaignImageVariant[] {
+  if (!Array.isArray(rawValue)) return [];
+
+  return rawValue
+    .map((item): CampaignImageVariant | null => {
+      if (typeof item === 'string' && item.trim()) {
+        return {
+          originalPath: null,
+          thumbnailUrl: item,
+          mediumUrl: item,
+        };
+      }
+
+      if (!item || typeof item !== 'object') return null;
+      const record = item as Record<string, unknown>;
+      const thumbnailUrl = record.thumbnailUrl || record.thumbnail_url || record.thumbUrl || record.thumb_url;
+      const mediumUrl = record.mediumUrl || record.medium_url || record.displayUrl || record.display_url || thumbnailUrl;
+
+      if (!isNonEmptyString(thumbnailUrl) || !isNonEmptyString(mediumUrl)) return null;
+
+      return {
+        originalPath: isNonEmptyString(record.originalPath || record.original_path)
+          ? String(record.originalPath || record.original_path)
+          : null,
+        thumbnailUrl,
+        mediumUrl,
+        width: typeof record.width === 'number' ? record.width : null,
+        height: typeof record.height === 'number' ? record.height : null,
+        originalSize: typeof record.originalSize === 'number' ? record.originalSize : typeof record.original_size === 'number' ? record.original_size : null,
+        thumbnailSize: typeof record.thumbnailSize === 'number' ? record.thumbnailSize : typeof record.thumbnail_size === 'number' ? record.thumbnail_size : null,
+        mediumSize: typeof record.mediumSize === 'number' ? record.mediumSize : typeof record.medium_size === 'number' ? record.medium_size : null,
+      };
+    })
+    .filter((item): item is CampaignImageVariant => Boolean(item));
+}
+
+export function resolveCampaignImageVariants(campaign: CampaignLikeRecord | null | undefined): CampaignImageVariant[] {
+  if (!campaign) return [];
+  const options = getCampaignOptions(campaign);
+  const step2Data = (options.step2Data || {}) as Record<string, unknown>;
+  const normalizedVariants = [
+    ...normalizeCampaignImageVariants(campaign.campaign_image_variants),
+    ...normalizeCampaignImageVariants(step2Data.campaignImageVariants),
+  ];
+
+  if (normalizedVariants.length > 0) {
+    const seen = new Set<string>();
+    return normalizedVariants.filter((variant) => {
+      const key = `${variant.thumbnailUrl}|${variant.mediumUrl}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  const imageSet = new Set<string>();
+  if (isNonEmptyString(campaign.thumbnail_url)) imageSet.add(campaign.thumbnail_url);
+  if (isNonEmptyString(campaign.sub_image_1)) imageSet.add(campaign.sub_image_1);
+  if (isNonEmptyString(campaign.sub_image_2)) imageSet.add(campaign.sub_image_2);
+  if (Array.isArray(campaign.campaign_images)) {
+    campaign.campaign_images.forEach((image) => {
+      if (isNonEmptyString(image)) imageSet.add(image);
+    });
+  }
+  if (Array.isArray(step2Data.campaignImages)) {
+    step2Data.campaignImages.forEach((image) => {
+      if (isNonEmptyString(image)) imageSet.add(image);
+    });
+  }
+
+  return Array.from(imageSet).map((url) => ({
+    originalPath: null,
+    thumbnailUrl: url,
+    mediumUrl: url,
+  }));
 }
 
 export function getCampaignScheduleType(campaign: CampaignLikeRecord | null | undefined): CampaignScheduleType {
@@ -386,6 +467,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const scheduleType = getCampaignScheduleType(campaign);
   const isUnlimitedRecruitment = isCampaignUnlimitedRecruitment(campaign);
   const isAlwaysRecruitmentDisplay = isUnlimitedRecruitment || scheduleType === 'FAST';
+  const imageVariants = resolveCampaignImageVariants(campaign as CampaignLikeRecord);
 
   return {
     id: campaign.id,
@@ -398,7 +480,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     category: campaign.category,
     region: rawRegion ? String(rawRegion) : null,
     sub_region: rawSubRegion ? String(rawSubRegion) : null,
-    imageUrl: campaign.thumbnail_url || '',
+    imageUrl: imageVariants[0]?.thumbnailUrl || campaign.thumbnail_url || '',
     provision: provision,
     end_date: endDate,
     is_unlimited_recruitment: isUnlimitedRecruitment,

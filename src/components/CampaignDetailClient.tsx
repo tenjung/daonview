@@ -41,7 +41,7 @@ import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
-import { formatDDay, mapCampaignToCard, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
+import { formatDDay, mapCampaignToCard, resolveCampaignImageVariants, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 import { formatKstDate } from '@/lib/campaignSchedule';
 import { CAMPAIGN_CARD_SELECT, CAMPAIGN_DETAIL_SELECT } from '@/lib/campaignSelects';
 import {
@@ -351,7 +351,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 addItem({
                     id: campaignId,
                     title: campaign.title,
-                    imageUrl: campaign.thumbnail_url,
+                    imageUrl: images[0] || campaign.thumbnail_url,
                     type: campaign.type,
                     platform: campaign.platform,
                     region: campaign.region,
@@ -641,34 +641,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const endDateLabel = formatDateFixed(scheduleDates.endDate);
     const scheduleType = getCampaignScheduleType(campaign);
     const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
-    // 캠페인 이미지 추출 로직 (JSONB 배열 및 개별 컬럼 모두 지원)
-    const getCampaignImages = () => {
-        const imageSet = new Set<string>();
-
-        // 1. thumbnail_url (대표 이미지)
-        if (campaign.thumbnail_url) imageSet.add(campaign.thumbnail_url);
-
-        // 2. sub_image 컬럼들 (Legacy 대응)
-        if (campaign.sub_image_1) imageSet.add(campaign.sub_image_1);
-        if (campaign.sub_image_2) imageSet.add(campaign.sub_image_2);
-
-        // 3. campaign_images (JSONB 배열)
-        if (Array.isArray(campaign.campaign_images)) {
-            campaign.campaign_images.forEach((img: any) => {
-                if (img) imageSet.add(img);
-            });
-        }
-
-        // 4. step2Data 내부 이미지 (Admin에서 등록한 경우)
-        if (Array.isArray(step2Data.campaignImages)) {
-            step2Data.campaignImages.forEach((img: any) => {
-                if (img) imageSet.add(img);
-            });
-        }
-
-        return Array.from(imageSet);
-    };
-    const images = getCampaignImages();
+    const imageVariants = resolveCampaignImageVariants(campaign);
+    const images = imageVariants.map((variant) => variant.thumbnailUrl);
+    const expandedImages = imageVariants.map((variant) => variant.mediumUrl || variant.thumbnailUrl);
 
     // Robust Option Extraction
     const getOptions = () => {
@@ -945,7 +920,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                             }}
                                                         >
                                                             <Image
-                                                                src={images[currentImageIndex]}
+                                                                src={expandedImages[currentImageIndex] || images[currentImageIndex]}
                                                                 alt={`${displayTitle} - Expanded`}
                                                                 width={1600}
                                                                 height={1600}
@@ -1742,7 +1717,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                 campaignId={id}
                                                                 title={displayTitle}
                                                                 description={campaignIntro}
-                                                                thumbnailUrl={campaign.thumbnail_url}
+                                                                thumbnailUrl={images[0] || campaign.thumbnail_url}
                                                                 campaignType={campaign.type}
                                                                 campaignConditionLabel={conditionTooltipLabel}
                                                                 variant="large"
@@ -1959,7 +1934,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                             campaignId={id}
                             title={displayTitle}
                             description={campaignIntro}
-                            thumbnailUrl={campaign.thumbnail_url}
+                            thumbnailUrl={images[0] || campaign.thumbnail_url}
                             campaignType={campaign.type}
                             campaignConditionLabel={conditionTooltipLabel}
                             variant="large"
