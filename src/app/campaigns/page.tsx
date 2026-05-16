@@ -27,11 +27,15 @@ export const metadata: Metadata = {
 export default async function CampaignsPage() {
     const supabase = getPublicServerClient();
     // Fetch all campaigns on the server
-    const { data: rawCampaigns } = await supabase
+    const { data: rawCampaigns, error } = await supabase
         .from('campaigns')
         .select(CAMPAIGN_CARD_SELECT)
         .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
         .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('[CampaignsPage] Failed to fetch campaigns:', error.message);
+    }
 
     const campaigns = (rawCampaigns || []).map((campaign) =>
         mapCampaignToCard(campaign as Campaign & { applications?: { count: number }[] | { count: number } | number })
