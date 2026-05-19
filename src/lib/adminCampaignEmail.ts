@@ -17,6 +17,7 @@ export interface AdminCampaignEmailRawCampaign {
   experience_details: string | null;
   description: string | null;
   thumbnail_url: string | null;
+  campaign_image_variants: unknown;
   end_date: string | null;
   campaign_options: unknown;
   store_locations: unknown;
@@ -68,6 +69,43 @@ function getCampaignOptions(rawOptions: unknown) {
   }
 
   return {};
+}
+
+function getFirstEmailThumbnailFromVariants(rawVariants: unknown) {
+  if (!Array.isArray(rawVariants) || rawVariants.length === 0) return '';
+
+  const firstVariant = rawVariants[0];
+  if (!firstVariant || typeof firstVariant !== 'object') return '';
+
+  const record = firstVariant as Record<string, unknown>;
+  return getText(record.thumbnailUrl) || getText(record.thumbnail_url);
+}
+
+function isSafeEmailThumbnailUrl(url: string) {
+  if (!url) return false;
+
+  let pathname = '';
+  try {
+    pathname = new URL(url).pathname.toLowerCase();
+  } catch {
+    pathname = url.toLowerCase();
+  }
+
+  if (pathname.includes('/original/')) return false;
+  if (pathname.endsWith('.webp')) return true;
+  if (pathname.includes('/thumb/') || pathname.includes('/optimized/')) return true;
+
+  return false;
+}
+
+function resolveEmailThumbnailUrl(rawCampaign: AdminCampaignEmailRawCampaign) {
+  const variantThumbnailUrl = getFirstEmailThumbnailFromVariants(rawCampaign.campaign_image_variants);
+  if (isSafeEmailThumbnailUrl(variantThumbnailUrl)) {
+    return variantThumbnailUrl;
+  }
+
+  const fallbackThumbnailUrl = getText(rawCampaign.thumbnail_url);
+  return isSafeEmailThumbnailUrl(fallbackThumbnailUrl) ? fallbackThumbnailUrl : '';
 }
 
 function getFirstStore(rawCampaign: AdminCampaignEmailRawCampaign): StoreLocationLike {
@@ -217,7 +255,7 @@ export function normalizeAdminCampaignForEmail(
     providedItems,
     storeName,
     storeAddress,
-    thumbnailUrl: getText(rawCampaign.thumbnail_url),
+    thumbnailUrl: resolveEmailThumbnailUrl(rawCampaign),
     detailUrl: `${getSiteUrl()}/campaigns/${rawCampaign.id}`,
     endDate: getText(rawCampaign.end_date),
     deliveryPlatformLabel: type === 'DELIVERY' ? getDeliveryPlatformLabel(deliveryChannelLabels) : '',

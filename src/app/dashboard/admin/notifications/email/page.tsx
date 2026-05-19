@@ -46,6 +46,7 @@ export default async function AdminEmailNotificationsPage() {
             experience_details,
             description,
             thumbnail_url,
+            campaign_image_variants,
             end_date,
             campaign_options,
             store_locations

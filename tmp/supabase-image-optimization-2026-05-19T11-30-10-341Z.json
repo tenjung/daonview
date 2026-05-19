@@ -1,0 +1,351 @@
+{
+  "generatedAt": "2026-05-19T11:30:28.683Z",
+  "mode": "dry-run",
+  "policy": {
+    "minImageBytes": 1000000,
+    "maxEdge": 1200,
+    "webpQuality": 78,
+    "deleteOriginals": false
+  },
+  "targets": [
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1776405139777_mdy3kar9e.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1776405139777_mdy3kar9e.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 38,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 13831533,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1776405139777_mdy3kar9e.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1776405139777_mdy3kar9e.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1775622592424_62m7l3x3e.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1775622592424_62m7l3x3e.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 35,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 12333450,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1775622592424_62m7l3x3e.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1775622592424_62m7l3x3e.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1773044160569_7xsdh3ujx.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1773044160569_7xsdh3ujx.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 26,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 26,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 7424148,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1773044160569_7xsdh3ujx.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1773044160569_7xsdh3ujx.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1775104884702_t1hj4w9hs.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1775104884702_t1hj4w9hs.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 34,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 34,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 7360629,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1775104884702_t1hj4w9hs.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1775104884702_t1hj4w9hs.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1776405135291_f3i98onz5.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1776405135291_f3i98onz5.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 38,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 7246373,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1776405135291_f3i98onz5.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1776405135291_f3i98onz5.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1776159926633_76wtpk3l7.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1776159926633_76wtpk3l7.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 36,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 36,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 7074729,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1776159926633_76wtpk3l7.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1776159926633_76wtpk3l7.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "campaign-images",
+      "storagePath": "1770819597417_tcnuqi5j2.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/1770819597417_tcnuqi5j2.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 20,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 6863165,
+      "originalContentType": "image/png",
+      "optimizedPath": "optimized/1770819597417_tcnuqi5j2.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/optimized/1770819597417_tcnuqi5j2.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1773980100426_6rov9fy0s.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1773980100426_6rov9fy0s.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 32,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 32,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 6262144,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1773980100426_6rov9fy0s.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1773980100426_6rov9fy0s.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "campaign-images",
+      "storagePath": "1770819636225_h8coqtmra.jpg",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/1770819636225_h8coqtmra.jpg",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 20,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 4380691,
+      "originalContentType": "image/jpeg",
+      "optimizedPath": "optimized/1770819636225_h8coqtmra.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/optimized/1770819636225_h8coqtmra.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "campaign-images",
+      "storagePath": "1770819602410_c6q5tkmjb.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/1770819602410_c6q5tkmjb.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 20,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 20,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1565008,
+      "originalContentType": "image/png",
+      "optimizedPath": "optimized/1770819602410_c6q5tkmjb.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/optimized/1770819602410_c6q5tkmjb.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1775622589360_9agtre7x7.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1775622589360_9agtre7x7.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 35,
+          "field": "thumbnail_url"
+        },
+        {
+          "table": "campaigns",
+          "id": 35,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1438078,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1775622589360_9agtre7x7.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1775622589360_9agtre7x7.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "reviews/13/9477f250-7f87-4e56-b35e-bc518ba5eb03/1776176208027_1q91ud8.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/reviews/13/9477f250-7f87-4e56-b35e-bc518ba5eb03/1776176208027_1q91ud8.png",
+      "references": [
+        {
+          "table": "reviews",
+          "id": 687,
+          "field": "thumbnail_url"
+        }
+      ],
+      "originalBytes": 1420813,
+      "originalContentType": "image/png",
+      "optimizedPath": "reviews/13/9477f250-7f87-4e56-b35e-bc518ba5eb03/1776176208027_1q91ud8_optimized.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/reviews/13/9477f250-7f87-4e56-b35e-bc518ba5eb03/1776176208027_1q91ud8_optimized.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1774238036651_bnqnjmwr6.jpg",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1774238036651_bnqnjmwr6.jpg",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 33,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1366123,
+      "originalContentType": "image/jpeg",
+      "optimizedPath": "campaigns/optimized/1774238036651_bnqnjmwr6.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1774238036651_bnqnjmwr6.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1776159935112_a0bfi0607.jpg",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1776159935112_a0bfi0607.jpg",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 36,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1313766,
+      "originalContentType": "image/jpeg",
+      "optimizedPath": "campaigns/optimized/1776159935112_a0bfi0607.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1776159935112_a0bfi0607.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1774238029677_3jxvn53ph.jpg",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1774238029677_3jxvn53ph.jpg",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 33,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1282483,
+      "originalContentType": "image/jpeg",
+      "optimizedPath": "campaigns/optimized/1774238029677_3jxvn53ph.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1774238029677_3jxvn53ph.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1772005204931_866pu7rkn.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1772005204931_866pu7rkn.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 22,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1193656,
+      "originalContentType": "image/png",
+      "optimizedPath": "campaigns/optimized/1772005204931_866pu7rkn.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1772005204931_866pu7rkn.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "files",
+      "storagePath": "campaigns/1774238032203_dcodih75o.jpg",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/1774238032203_dcodih75o.jpg",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 33,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1168765,
+      "originalContentType": "image/jpeg",
+      "optimizedPath": "campaigns/optimized/1774238032203_dcodih75o.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/files/campaigns/optimized/1774238032203_dcodih75o.webp",
+      "status": "PENDING"
+    },
+    {
+      "bucket": "campaign-images",
+      "storagePath": "1769517098995_4hn3p9x3i.png",
+      "publicUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/1769517098995_4hn3p9x3i.png",
+      "references": [
+        {
+          "table": "campaigns",
+          "id": 9,
+          "field": "campaign_images"
+        }
+      ],
+      "originalBytes": 1107364,
+      "originalContentType": "image/png",
+      "optimizedPath": "optimized/1769517098995_4hn3p9x3i.webp",
+      "optimizedUrl": "https://whpyftpktolpaspeuocg.supabase.co/storage/v1/object/public/campaign-images/optimized/1769517098995_4hn3p9x3i.webp",
+      "status": "PENDING"
+    }
+  ],
+  "uploads": [],
+  "database": null,
+  "verification": null
+}
