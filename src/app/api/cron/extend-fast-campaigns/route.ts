@@ -9,22 +9,34 @@ export const maxDuration = 60;
 const AUTO_EXTENSION_DAYS = 14;
 const AUTO_EXTENSION_APPLICATION_STATUSES = ['SELECTED', 'APPROVED'] as const;
 
+type CampaignOptions = Record<string, unknown> & {
+  step1Data?: Record<string, unknown>;
+  autoExtension?: Record<string, unknown>;
+};
+
 interface RecruitableCampaign {
   id: number;
   title: string;
   status: string;
   end_date: string | null;
   total_recruitment: number | null;
-  is_unlimited_recruitment: boolean | null;
   campaign_options: Record<string, unknown> | Record<string, unknown>[] | null;
 }
 
-function getCampaignOptions(input: RecruitableCampaign) {
-  if (Array.isArray(input.campaign_options)) {
-    return (input.campaign_options[0] || {}) as Record<string, any>;
+function toCampaignOptions(value: unknown): CampaignOptions {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as CampaignOptions;
   }
 
-  return (input.campaign_options || {}) as Record<string, any>;
+  return {};
+}
+
+function getCampaignOptions(input: RecruitableCampaign): CampaignOptions {
+  if (Array.isArray(input.campaign_options)) {
+    return toCampaignOptions(input.campaign_options[0]);
+  }
+
+  return toCampaignOptions(input.campaign_options);
 }
 
 export async function GET(request: Request) {
@@ -45,7 +57,7 @@ export async function GET(request: Request) {
 
     const { data: campaigns, error: campaignError } = await admin
       .from('campaigns')
-      .select('id, title, status, end_date, total_recruitment, is_unlimited_recruitment, campaign_options')
+      .select('id, title, status, end_date, total_recruitment, campaign_options')
       .in('status', ['RECRUITING', 'ONGOING'])
       .lt('end_date', today);
 
@@ -55,8 +67,7 @@ export async function GET(request: Request) {
 
     const candidates = (campaigns || []).filter((campaign) => {
       const typedCampaign = campaign as RecruitableCampaign;
-      if (typedCampaign.is_unlimited_recruitment) return false;
-      if (!typedCampaign.end_date || !typedCampaign.total_recruitment || typedCampaign.total_recruitment <= 0) return false;
+      if (!typedCampaign.end_date) return false;
 
       const options = getCampaignOptions(typedCampaign);
       const scheduleType = normalizeScheduleType(options?.step1Data?.scheduleType);
@@ -83,19 +94,7 @@ export async function GET(request: Request) {
       }
 
       const currentSelectedCount = selectedCount || 0;
-      const recruitTarget = campaign.total_recruitment || 0;
-
-      if (currentSelectedCount >= recruitTarget) {
-        results.push({
-          campaignId: campaign.id,
-          title: campaign.title,
-          extended: false,
-          reason: 'recruitment-complete',
-          selectedCount: currentSelectedCount,
-          recruitTarget,
-        });
-        continue;
-      }
+      const recruitTarget = campaign.total_recruitment ?? null;
 
       const nextEndDate = addDays(campaign.end_date!, AUTO_EXTENSION_DAYS);
       const options = getCampaignOptions(campaign);
@@ -103,6 +102,8 @@ export async function GET(request: Request) {
         ...(options.autoExtension as Record<string, unknown> | undefined),
         lastExtendedAt: new Date().toISOString(),
         extensionDays: AUTO_EXTENSION_DAYS,
+        previousEndDate: campaign.end_date,
+        nextEndDate,
         selectedCount: currentSelectedCount,
         recruitTarget,
         extensionCount: Number((options.autoExtension as Record<string, unknown> | undefined)?.extensionCount || 0) + 1,

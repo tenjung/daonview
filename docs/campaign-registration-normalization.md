@@ -5,7 +5,9 @@
 - `campaigns` table columns are the canonical source for registration summary data.
 - `campaign_options` is treated as a form snapshot for restoration-only details.
 - registration UI exposes only `DEFAULT` and `FAST`; legacy `ALWAYS` values are read as `FAST`
-- `FAST` campaigns are eligible for automatic 14-day extension when the campaign closes without enough selected applicants
+- `FAST` campaigns are rolling recruitment schedules: the first `end_date` is 14 days out, and active campaigns keep extending by 14 days.
+- `FAST` extension is driven by `scheduleType` plus active status (`RECRUITING`/`ONGOING`), not by `is_unlimited_recruitment` or selected applicant count.
+- `FAST` campaigns stop accepting applications only when the campaign status becomes inactive, such as `COMPLETED`.
 - When both exist, read priority is:
   1. canonical column
   2. `campaign_options`

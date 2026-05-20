@@ -389,13 +389,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         // 모집 인원(선정 인원) 초과 체크 - 선정 완료된 인원 기준
         const approvedCount = campaign.approved_app_count || 0;
         const recruitTarget = getCampaignRecruitTarget(campaign);
-        if (typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0) {
+        const scheduleType = getCampaignScheduleType(campaign);
+        const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
+        if (!isAlwaysRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0) {
             toast.error('선정 인원이 마감되었습니다.');
             return;
         }
-
-        const scheduleType = getCampaignScheduleType(campaign);
-        const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
 
         // 모집 기간 종료 체크
         if (!isAlwaysRecruitmentCampaign && scheduleDates.endDate) {
@@ -407,8 +406,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
         }
 
-        // 캠페인 상태 체크 (RECRUITING 상태만 신청 가능)
-        if (campaign.status !== 'RECRUITING') {
+        // 캠페인 상태 체크
+        const normalizedStatus = String(campaign.status || '').toUpperCase();
+        const isRecruitingStatus = isAlwaysRecruitmentCampaign
+            ? ['RECRUITING', 'ONGOING'].includes(normalizedStatus)
+            : normalizedStatus === 'RECRUITING';
+        if (!isRecruitingStatus) {
             toast.error('현재 모집 중인 캠페인이 아닙니다.');
             return;
         }
@@ -743,8 +746,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const nowStr = formatKstDate();
     const isPastDeadline = !isAlwaysRecruitmentCampaign && scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
     const recruitTarget = getCampaignRecruitTarget(campaign);
-    const isFull = typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
-    const isNotRecruiting = campaign.status !== 'RECRUITING';
+    const isFull = !isAlwaysRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
+    const normalizedStatus = String(campaign.status || '').toUpperCase();
+    const isRecruitingStatus = isAlwaysRecruitmentCampaign
+        ? ['RECRUITING', 'ONGOING'].includes(normalizedStatus)
+        : normalizedStatus === 'RECRUITING';
+    const isNotRecruiting = !isRecruitingStatus;
     const isClosed = isPastDeadline || isFull || isNotRecruiting;
     const rewardRawValue = campaign.reward_per_person ?? campaign.official_price;
     const rewardAmount = Number(String(rewardRawValue ?? '').replace(/[^0-9]/g, ''));
@@ -870,7 +877,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                         <>
                                             <Carousel 
                                                 setApi={setMainApi} 
-                                                className="w-full h-full"
+                                                className="w-full h-full [&>div]:h-full"
                                                 opts={{
                                                     loop: true,
                                                     align: "start",
@@ -932,30 +939,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     </DialogContent>
                                                 </Dialog>
 
-                                                {/* Navigation Arrows for Main View */}
-                                                {images.length > 1 && (
-                                                    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                mainApi?.scrollPrev();
-                                                            }}
-                                                            className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
-                                                        >
-                                                            <ChevronLeft size={18} />
-                                                        </button>
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                mainApi?.scrollNext();
-                                                            }}
-                                                            className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
-                                                        >
-                                                            <ChevronRight size={18} />
-                                                        </button>
-                                                    </div>
-                                                )}
-
                                                 {/* Indicator Dots */}
                                                 {images.length > 1 && (
                                                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none z-10">
@@ -965,6 +948,30 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     </div>
                                                 )}
                                             </Carousel>
+
+                                            {/* Navigation Arrows for Main View */}
+                                            {images.length > 1 && (
+                                                <div className="absolute inset-y-0 left-0 right-0 flex items-center justify-between px-3 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            mainApi?.scrollPrev();
+                                                        }}
+                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                    >
+                                                        <ChevronLeft size={18} />
+                                                    </button>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            mainApi?.scrollNext();
+                                                        }}
+                                                        className="pointer-events-auto w-9 h-9 rounded-full bg-white/80 backdrop-blur text-slate-700 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-md active:scale-95"
+                                                    >
+                                                        <ChevronRight size={18} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </>
                                     ) : (
                                         <div className="absolute inset-0 flex items-center justify-center text-slate-300 font-bold text-lg">NO IMAGE</div>
