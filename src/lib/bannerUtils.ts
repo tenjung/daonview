@@ -159,15 +159,20 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
 
         // 6. Process Steady lane
         const steadyItems = [...campaignRows]
+            .filter((campaign) => {
+                const mapped = mappedCampaignById.get(String(campaign.id));
+                return mapped?.scheduleType === 'FAST';
+            })
             .sort((a, b) => {
                 const aMapped = mappedCampaignById.get(String(a.id));
                 const bMapped = mappedCampaignById.get(String(b.id));
-                const aDate = aMapped?.is_unlimited_recruitment || aMapped?.scheduleType === 'FAST'
-                    ? Number.MAX_SAFE_INTEGER
-                    : new Date(String(a.end_date || '')).getTime();
-                const bDate = bMapped?.is_unlimited_recruitment || bMapped?.scheduleType === 'FAST'
-                    ? Number.MAX_SAFE_INTEGER
-                    : new Date(String(b.end_date || '')).getTime();
+                const aDate = new Date(String(a.end_date || '')).getTime();
+                const bDate = new Date(String(b.end_date || '')).getTime();
+                if (!Number.isFinite(aDate) && !Number.isFinite(bDate)) {
+                    return (bMapped?.applicants || 0) - (aMapped?.applicants || 0);
+                }
+                if (!Number.isFinite(aDate)) return 1;
+                if (!Number.isFinite(bDate)) return -1;
                 return aDate - bDate;
             })
             .slice(0, 4)

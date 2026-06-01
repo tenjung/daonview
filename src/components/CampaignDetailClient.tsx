@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignFastRecruitment, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -389,15 +389,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         // 모집 인원(선정 인원) 초과 체크 - 선정 완료된 인원 기준
         const approvedCount = campaign.approved_app_count || 0;
         const recruitTarget = getCampaignRecruitTarget(campaign);
-        const scheduleType = getCampaignScheduleType(campaign);
-        const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
-        if (!isAlwaysRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0) {
+        const isFastRecruitmentCampaign = isCampaignFastRecruitment(campaign);
+        if (!isFastRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0) {
             toast.error('선정 인원이 마감되었습니다.');
             return;
         }
 
         // 모집 기간 종료 체크
-        if (!isAlwaysRecruitmentCampaign && scheduleDates.endDate) {
+        if (!isFastRecruitmentCampaign && scheduleDates.endDate) {
             const endDate = new Date(scheduleDates.endDate);
             const now = new Date();
             if (now > endDate) {
@@ -408,7 +407,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
         // 캠페인 상태 체크
         const normalizedStatus = String(campaign.status || '').toUpperCase();
-        const isRecruitingStatus = isAlwaysRecruitmentCampaign
+        const isRecruitingStatus = isFastRecruitmentCampaign
             ? ['RECRUITING', 'ONGOING'].includes(normalizedStatus)
             : normalizedStatus === 'RECRUITING';
         if (!isRecruitingStatus) {
@@ -643,7 +642,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const startDate = formatDateFixed(scheduleDates.startDate || campaign.created_at);
     const endDateLabel = formatDateFixed(scheduleDates.endDate);
     const scheduleType = getCampaignScheduleType(campaign);
-    const isAlwaysRecruitmentCampaign = isCampaignUnlimitedRecruitment(campaign) || scheduleType === 'FAST';
+    const isFastRecruitmentCampaign = scheduleType === 'FAST';
     const imageVariants = resolveCampaignImageVariants(campaign);
     const images = imageVariants.map((variant) => variant.thumbnailUrl);
     const expandedImages = imageVariants.map((variant) => variant.mediumUrl || variant.thumbnailUrl);
@@ -744,11 +743,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
 
     // Recruitment Closure Logic
     const nowStr = formatKstDate();
-    const isPastDeadline = !isAlwaysRecruitmentCampaign && scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
+    const isPastDeadline = !isFastRecruitmentCampaign && scheduleDates.endDate ? nowStr > scheduleDates.endDate : false;
     const recruitTarget = getCampaignRecruitTarget(campaign);
-    const isFull = !isAlwaysRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
+    const isFull = !isFastRecruitmentCampaign && typeof recruitTarget === 'number' && approvedCount >= recruitTarget && recruitTarget > 0;
     const normalizedStatus = String(campaign.status || '').toUpperCase();
-    const isRecruitingStatus = isAlwaysRecruitmentCampaign
+    const isRecruitingStatus = isFastRecruitmentCampaign
         ? ['RECRUITING', 'ONGOING'].includes(normalizedStatus)
         : normalizedStatus === 'RECRUITING';
     const isNotRecruiting = !isRecruitingStatus;
@@ -1491,10 +1490,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-sm font-bold text-slate-900">
-                                                    {isAlwaysRecruitmentCampaign ? '상시 모집' : scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
+                                                    {isFastRecruitmentCampaign ? '상시 모집' : scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
                                                 </p>
                                                 <p className="text-[10px] text-rose-500 font-bold mt-0.5">
-                                                    {isAlwaysRecruitmentCampaign ? '수시 선정' : scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
+                                                    {isFastRecruitmentCampaign ? '수시 선정' : scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
                                                 </p>
                                             </div>
                                         </div>

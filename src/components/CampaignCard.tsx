@@ -46,9 +46,9 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const linkHref = id ? `/campaigns/${id}` : '#';
     const isVisit = type?.toUpperCase() === 'VISIT';
 
-    // FAST campaigns are displayed like ongoing recruitment even when DB target is null.
-    const isInfinite = Boolean(is_unlimited_recruitment) || scheduleType?.toUpperCase() === 'FAST' || total >= 999;
-    const percentage = total > 0 ? (isInfinite ? 0 : Math.min(Math.round((applicants / total) * 100), 100)) : 0;
+    const isFastRecruitment = scheduleType?.toUpperCase() === 'FAST';
+    const isUnlimitedTarget = Boolean(is_unlimited_recruitment) || total >= 999;
+    const percentage = total > 0 && !isUnlimitedTarget ? Math.min(Math.round((applicants / total) * 100), 100) : 0;
 
     const { user } = useAuthStore();
     const { addItem, removeItem, isInCart } = useCartStore();
@@ -127,7 +127,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                 {/* Overlay Elements: D-Day (Left) & Wishlist (Right) */}
                 <div className="absolute top-3 left-3 z-10">
-                    <DDayBadge dday={isInfinite ? '상시' : dday} />
+                    <DDayBadge dday={isFastRecruitment ? '상시' : dday} />
                 </div>
 
                 <div className="absolute top-3 right-3 z-10">
@@ -182,7 +182,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     {/* 4. Progress Section */}
                     <div className="flex items-center justify-between text-xs mb-1.5">
                         {/* Percentage or ON Indicator */}
-                        {isInfinite ? (
+                        {isFastRecruitment ? (
                             <div className="flex items-center gap-1.5 font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
                                 <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
                                 LIVE
@@ -193,13 +193,13 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                         {/* Count Text */}
                         <span className="text-gray-400 font-medium">
-                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isInfinite ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
+                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isUnlimitedTarget ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
                         </span>
                     </div>
 
-                    {/* Progress Bar (Infinite Wave for isInfinite) */}
-                    <div className={`w-full ${isInfinite ? 'bg-indigo-50' : 'bg-gray-100'} rounded-full h-1.5 overflow-hidden relative`}>
-                        {isInfinite ? (
+                    {/* Progress Bar (live wave for FAST campaigns) */}
+                    <div className={`w-full ${isFastRecruitment ? 'bg-indigo-50' : 'bg-gray-100'} rounded-full h-1.5 overflow-hidden relative`}>
+                        {isFastRecruitment ? (
                             <div className="absolute inset-0 w-full h-full">
                                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-400 via-rose-400 to-indigo-400 w-[200%] h-full animate-[shimmer_2s_linear_infinite]"
                                     style={{

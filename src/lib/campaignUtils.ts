@@ -419,6 +419,10 @@ export const isCampaignAutoExtendEnabled = (campaign: Partial<Campaign> | Record
   return getCampaignScheduleType(campaign as CampaignLikeRecord) === 'FAST';
 };
 
+export const isCampaignFastRecruitment = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
+  return getCampaignScheduleType(campaign as CampaignLikeRecord) === 'FAST';
+};
+
 export const isCampaignUnlimitedRecruitment = (campaign: Partial<Campaign> | Record<string, any> | null | undefined) => {
   return Boolean(campaign?.is_unlimited_recruitment);
 };
@@ -466,7 +470,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
   const recruitTarget = getCampaignRecruitTarget(campaign);
   const scheduleType = getCampaignScheduleType(campaign);
   const isUnlimitedRecruitment = isCampaignUnlimitedRecruitment(campaign);
-  const isAlwaysRecruitmentDisplay = isUnlimitedRecruitment || scheduleType === 'FAST';
+  const isFastRecruitment = scheduleType === 'FAST';
   const imageVariants = resolveCampaignImageVariants(campaign as CampaignLikeRecord);
 
   return {
@@ -476,7 +480,7 @@ export const mapCampaignToCard = (campaign: Campaign & { applications?: { count:
     type: hydration.canonicalType,
     applicants: applicants,
     total: recruitTarget || 0,
-    dday: isAlwaysRecruitmentDisplay ? '상시' : endDate ? formatDDay(endDate) : '미정',
+    dday: isFastRecruitment ? '상시' : endDate ? formatDDay(endDate) : '미정',
     category: campaign.category,
     region: rawRegion ? String(rawRegion) : null,
     sub_region: rawSubRegion ? String(rawSubRegion) : null,

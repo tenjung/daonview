@@ -941,7 +941,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
     );
     const isFlexibleSchedule = schedulePreview.scheduleType === 'FAST';
     const scheduleDescriptions: Record<CampaignScheduleType, string> = {
-        DEFAULT: '오늘 시작, 1주 모집 후 신청 마지막날 발표하고 남은 1주 내 체험을 완료하는 기본 일정입니다.',
+        DEFAULT: '오늘 시작, 1주 모집 후 신청 마지막날 발표하고 남은 1주 내 체험을 완료하는 2주 기간제 일정입니다.',
         FAST: '오늘 시작 후 2주 동안 노출되며, 캠페인이 종료될 때까지 자동 연장되고 신청 건별로 수시 선정 후 7일 이내 체험을 진행하는 빠른 일정입니다.',
     };
     const calendarWeeks = buildCalendarWeeks(
@@ -2193,7 +2193,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                         <div className="space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {([
-                                    { value: 'DEFAULT', title: '기본일정', summary: '오늘 시작 / 1주 모집 / 1주 체험' },
+                                    { value: 'DEFAULT', title: '기간제', summary: '오늘 시작 / 1주 모집 / 1주 체험' },
                                     { value: 'FAST', title: '빠른모집', summary: '오늘 시작 / 2주 노출 / 수시 선정 / 상시 자동 연장' },
                                 ] as const).map((option) => {
                                     const isActive = schedulePreview.scheduleType === option.value;

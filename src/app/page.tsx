@@ -131,9 +131,9 @@ export default async function Home() {
             {/* Steady (Always Open) Campaigns Section */}
             {steadyCampaigns.length > 0 && (
                 <CampaignSection
-                    badge="ALWAYS OPEN"
+                    badge="FAST RECRUIT"
                     badgeClassName="bg-indigo-100 text-indigo-600"
-                    title="언제든지 신청 가능한 꿀 캠페인"
+                    title="빠르게 신청 가능한 꿀 캠페인"
                     titleEmoji="♾️"
                     sectionClassName="bg-gradient-to-b from-rose-50 to-indigo-50 pb-8 pt-8"
                     viewAllHref="/campaigns?sort=steady"

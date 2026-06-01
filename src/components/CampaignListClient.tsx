@@ -41,7 +41,7 @@ const CAMPAIGN_TABS: CampaignTab[] = ['ALL', 'STEADY', 'VISIT', 'DELIVERY', 'PUR
 const SORT_OPTIONS: { label: string; value: SortBy }[] = [
     { label: '최신순', value: 'new' },
     { label: '인기순', value: 'popular' },
-    { label: '상시우선', value: 'steady' },
+    { label: '빠른모집 우선', value: 'steady' },
     { label: '마감임박순', value: 'deadline' }
 ];
 
@@ -258,7 +258,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-slate-50 transition-all group"
                                 >
                                     <span className="text-sm font-semibold text-slate-700">
-                                        {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : sortBy === 'steady' ? '상시우선' : '마감임박순'}
+                                        {sortBy === 'new' ? '최신순' : sortBy === 'popular' ? '인기순' : sortBy === 'steady' ? '빠른모집 우선' : '마감임박순'}
                                     </span>
                                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
                                 </button>
