@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, ExternalLink } from "lucide-react"
+import { ArrowUpDown, Check, X, Edit, Trash2, Eye, Clock, ExternalLink, CheckCircle2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { Campaign } from "@/types/database"
@@ -21,6 +21,7 @@ interface CampaignColumnContext {
     onDelete?: (id: number, title: string) => void
     onView?: (id: number) => void
     onExtend?: (id: number, title: string) => void
+    onClose?: (id: number, title: string) => void
     isAdmin?: boolean
     currentUserId?: string | null
     currentUserRole?: string | null
@@ -231,6 +232,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => {
             const campaign = row.original;
             const isPending = campaign.status?.toUpperCase() === 'PENDING';
+            const canCloseCampaign = campaign.status === 'RECRUITING' || campaign.status === 'ONGOING';
             const creatorField = campaign.created_by;
             const creatorId =
                 typeof creatorField === 'object' && creatorField !== null && 'id' in creatorField
@@ -297,13 +299,22 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
                                         onSelect: () => context.onExtend?.(campaign.id, campaign.title),
                                     }]
                                     : []),
+                                ...(canCloseCampaign
+                                    ? [{
+                                        key: "close",
+                                        label: "캠페인 마감하기",
+                                        icon: <CheckCircle2 className="h-4 w-4" />,
+                                        onSelect: () => context.onClose?.(campaign.id, campaign.title),
+                                        separatorBefore: true,
+                                    }]
+                                    : []),
                                 {
                                     key: "delete",
                                     label: "캠페인 삭제",
                                     icon: <Trash2 className="h-4 w-4" />,
                                     onSelect: () => context.onDelete?.(campaign.id, campaign.title),
                                     variant: "destructive",
-                                    separatorBefore: canEdit || (!context.isAdmin && (campaign.status === 'RECRUITING' || campaign.status === 'ONGOING')),
+                                    separatorBefore: canEdit || canCloseCampaign,
                                 },
                             ]}
                         />

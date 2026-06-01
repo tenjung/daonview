@@ -26,7 +26,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
     const [campaignRes, applicationsRes] = await Promise.all([
         supabase
             .from('campaigns')
-            .select('id, title, category, type, total_recruitment, created_by, campaign_options')
+            .select('id, title, category, type, product_name, total_recruitment, created_by, campaign_options')
             .eq('id', id)
             .eq('created_by', user.id)
             .single(),
@@ -60,6 +60,10 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
         ? campaign.campaign_options[0]
         : campaign?.campaign_options;
     const productUrlIndividual = Boolean(campaignOptions?.step1Data?.productUrlIndividual);
+    const campaignProductName =
+        campaign?.product_name ||
+        campaignOptions?.step1Data?.productName ||
+        '';
 
     if (campaignRes.error || !campaign) {
         notFound();
@@ -72,6 +76,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
             campaignTitle={campaign.title}
             campaignCategory={campaign.category || ''}
             campaignType={campaign.type || ''}
+            campaignProductName={campaignProductName}
             productUrlIndividual={productUrlIndividual}
             recruitCount={getCampaignRecruitTarget(campaign) || 0}
             initialApplications={applications}

@@ -790,6 +790,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             ]
             : [platformState.resolvedPlatform === 'INSTAGRAM' ? '인스타그램' : '블로그'];
     const conditionTooltipLabel = conditionTooltipParts.length > 0 ? conditionTooltipParts.join(' + ') : '조건 확인 필요';
+    const purchaseRewardMethod = String(
+        step1Data.purchaseRewardMethod ||
+        campaignOptions?.purchaseRewardMethod ||
+        campaign.purchase_reward_method ||
+        ''
+    ).toUpperCase();
+    const shouldShowDirectPurchaseRewardNotice =
+        platformState.normalizedType === 'DELIVERY' &&
+        platformState.includeReview &&
+        purchaseRewardMethod === 'DIRECT';
+    const directPurchaseRewardSummary = '구매평 완료 후 광고주가 직접 페이백합니다.';
+    const directPurchaseRewardDescription =
+        '이 캠페인은 구매평 진행 캠페인입니다. 캠페인 미션을 완료하면 광고주가 인플루언서에게 구매 금액을 직접 페이백합니다. 지급 기준과 시점은 캠페인 완료 및 리뷰 확인 후 광고주 안내에 따라 진행됩니다.';
     const shouldShowDeliveryFlowGuide =
         platformState.normalizedType === 'DELIVERY';
     const deliveryFlowLead = platformState.includeReview
@@ -1480,6 +1493,42 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 <p className="text-[10px] text-slate-500 font-semibold mt-0.5">리뷰 필수</p>
                                             </div>
                                         </div>
+
+                                        {shouldShowDirectPurchaseRewardNotice && (
+                                            <div className="flex items-start justify-between gap-4 border-b border-amber-100 bg-amber-50/60 px-4 py-3.5">
+                                                <div className="flex min-w-0 items-start gap-3">
+                                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-amber-600 shadow-sm ring-1 ring-amber-100">
+                                                        <ShoppingBag className="h-5 w-5" />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <p className="text-sm font-bold text-slate-800">구매평 리워드</p>
+                                                            <TooltipProvider delayDuration={250}>
+                                                                <Tooltip>
+                                                                    <TooltipTrigger asChild>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-amber-200 bg-white text-amber-600 transition-colors hover:border-amber-300 hover:bg-amber-100 hover:text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                                                            aria-label="구매평 리워드 안내"
+                                                                        >
+                                                                            <Info className="h-3.5 w-3.5" strokeWidth={3} />
+                                                                        </button>
+                                                                    </TooltipTrigger>
+                                                                    <TooltipContent side="top" className="max-w-[280px] bg-slate-900 text-white border-slate-700">
+                                                                        <p className="text-[11px] leading-relaxed font-medium break-keep">
+                                                                            {directPurchaseRewardDescription}
+                                                                        </p>
+                                                                    </TooltipContent>
+                                                                </Tooltip>
+                                                            </TooltipProvider>
+                                                        </div>
+                                                        <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-600 break-keep">
+                                                            {directPurchaseRewardSummary}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
 
                                         <div className="flex items-center justify-between gap-4 px-4 py-3.5 border-b border-slate-100">
                                             <div className="flex items-center gap-3">

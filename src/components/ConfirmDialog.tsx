@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 interface ConfirmDialogProps {
     isOpen: boolean;
     onClose: () => void;
@@ -30,8 +28,8 @@ export default function ConfirmDialog({
 
     const typeStyles = {
         danger: 'bg-red-500 hover:bg-red-600',
-        warning: 'bg-orange-500 hover:bg-orange-600',
-        info: 'bg-blue-500 hover:bg-blue-600'
+        warning: 'bg-primary hover:bg-primary/90',
+        info: 'bg-primary hover:bg-primary/90'
     };
 
     return (

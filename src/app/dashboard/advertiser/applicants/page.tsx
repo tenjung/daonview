@@ -96,6 +96,7 @@ export default function AdvertiserApplicantsPage() {
     const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
     const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
     const [manualLinkId, setManualLinkId] = useState<string>('');
+    const [manualPurchaseLinkUrl, setManualPurchaseLinkUrl] = useState('');
     const [linkCandidates, setLinkCandidates] = useState<LinkCandidate[]>([]);
     const [isCandidateLoading, setIsCandidateLoading] = useState(false);
     const [isSelectionSubmitting, setIsSelectionSubmitting] = useState(false);
@@ -360,10 +361,19 @@ export default function AdvertiserApplicantsPage() {
     };
 
     const getOptionLabelsFromApplication = (applicant: Applicant) => {
+        const productFallback = normalizeOptionLabel(applicant.campaign.product_name || '');
         const parsed = extractOptionCandidates(applicant.selected_option || '');
+        if (
+            isIndividualLinkCampaign(applicant) &&
+            productFallback &&
+            parsed.length === 1 &&
+            normalizeOptionLabel(parsed[0].label) === '기본 옵션'
+        ) {
+            return [productFallback];
+        }
         if (parsed.length > 0) return parsed.map((item) => item.label);
         const fallback = normalizeOptionLabel(applicant.selected_option || '');
-        return fallback ? [fallback] : ['기본 옵션'];
+        return fallback ? [fallback] : [productFallback || '기본 옵션'];
     };
 
     const isIndividualLinkCampaign = (applicant: Applicant) => {
@@ -372,6 +382,14 @@ export default function AdvertiserApplicantsPage() {
         const step1 = options?.step1Data || {};
         return Boolean(step1.productUrlIndividual);
     };
+
+    const manualPurchaseLinkInput = manualPurchaseLinkUrl.trim();
+    const isSelectionLinkMissing =
+        selectionTarget &&
+        isIndividualLinkCampaign(selectionTarget) &&
+        !isCandidateLoading &&
+        linkCandidates.length === 0 &&
+        !manualPurchaseLinkInput;
 
     const fetchLinkCandidates = async (campaignId: number, optionLabel: string) => {
         setIsCandidateLoading(true);
@@ -399,13 +417,21 @@ export default function AdvertiserApplicantsPage() {
 
     const openSelectionModal = async (applicant: Applicant, mode: 'SELECT' | 'REASSIGN') => {
         const options = getOptionLabelsFromApplication(applicant);
-        const defaultOption = normalizeOptionLabel(applicant.assigned_option_label || options[0] || '기본 옵션');
+        const assignedOptionLabel = normalizeOptionLabel(applicant.assigned_option_label || '');
+        const fallbackOption = normalizeOptionLabel(options[0] || '기본 옵션');
+        const defaultOption =
+            isIndividualLinkCampaign(applicant) &&
+                assignedOptionLabel === '기본 옵션' &&
+                fallbackOption !== '기본 옵션'
+                ? fallbackOption
+                : normalizeOptionLabel(assignedOptionLabel || fallbackOption);
 
         setSelectionMode(mode);
         setSelectionTarget(applicant);
         setSelectionOptions(options);
         setSelectedOptionLabel(defaultOption);
         setManualLinkId('');
+        setManualPurchaseLinkUrl('');
         setIsSelectionModalOpen(true);
         if (isIndividualLinkCampaign(applicant)) {
             await fetchLinkCandidates(applicant.campaign.id, defaultOption);
@@ -420,11 +446,16 @@ export default function AdvertiserApplicantsPage() {
         setSelectionOptions([]);
         setSelectedOptionLabel('');
         setManualLinkId('');
+        setManualPurchaseLinkUrl('');
         setLinkCandidates([]);
     };
 
     const handleSelectionSubmit = async () => {
         if (!selectionTarget) return;
+        if (isSelectionLinkMissing) {
+            toast.error('구매링크가 없습니다. 캠페인 수정 화면에서 구매링크를 먼저 등록해 주세요.');
+            return;
+        }
         setIsSelectionSubmitting(true);
 
         try {
@@ -441,7 +472,8 @@ export default function AdvertiserApplicantsPage() {
                     campaignId: selectionTarget.campaign.id,
                     targetStatus: 'SELECTED',
                     assignedOptionLabel: selectedOptionLabel,
-                    manualLinkId: manualLinkId ? Number(manualLinkId) : null
+                    manualLinkId: manualLinkId ? Number(manualLinkId) : null,
+                    manualPurchaseLinkUrl: manualLinkId ? null : manualPurchaseLinkInput || null
                 })
             });
 
@@ -882,6 +914,7 @@ export default function AdvertiserApplicantsPage() {
                                         const value = e.target.value;
                                         setSelectedOptionLabel(value);
                                         setManualLinkId('');
+                                        setManualPurchaseLinkUrl('');
                                         if (isIndividualLinkCampaign(selectionTarget)) {
                                             await fetchLinkCandidates(selectionTarget.campaign.id, value);
                                         }
@@ -903,7 +936,10 @@ export default function AdvertiserApplicantsPage() {
                                     </label>
                                     <select
                                         value={manualLinkId}
-                                        onChange={(e) => setManualLinkId(e.target.value)}
+                                        onChange={(e) => {
+                                            setManualLinkId(e.target.value);
+                                            if (e.target.value) setManualPurchaseLinkUrl('');
+                                        }}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                         disabled={isCandidateLoading}
                                     >
@@ -919,6 +955,24 @@ export default function AdvertiserApplicantsPage() {
                                             ? '링크 후보를 불러오는 중...'
                                             : '수동 링크를 지정하지 않으면 최소사용우선으로 자동 배정됩니다.'}
                                     </p>
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">구매링크 직접 입력</label>
+                                        <input
+                                            type="url"
+                                            value={manualPurchaseLinkUrl}
+                                            onChange={(e) => {
+                                                setManualPurchaseLinkUrl(e.target.value);
+                                                if (e.target.value.trim()) setManualLinkId('');
+                                            }}
+                                            placeholder="https://..."
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        />
+                                    </div>
+                                    {isSelectionLinkMissing && (
+                                        <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                                            구매링크가 없습니다. 직접 입력해야 선정 알림과 상세페이지에 구매링크를 전달할 수 있습니다.
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -931,7 +985,7 @@ export default function AdvertiserApplicantsPage() {
                             <button
                                 type="button"
                                 onClick={handleSelectionSubmit}
-                                disabled={isSelectionSubmitting}
+                                disabled={isSelectionSubmitting || Boolean(isSelectionLinkMissing)}
                                 className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-bold hover:bg-blue-700 disabled:bg-blue-400"
                             >
                                 {isSelectionSubmitting

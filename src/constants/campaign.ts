@@ -8,7 +8,7 @@ export const CAMPAIGN_STATUS_LABELS: Record<string, string> = {
   PENDING: '요청중',
   RECRUITING: '모집중',
   ONGOING: '진행중',
-  COMPLETED: '완료',
+  COMPLETED: '마감/완료',
   DRAFT: '임시저장',
   REJECTED: '거절됨',
 };

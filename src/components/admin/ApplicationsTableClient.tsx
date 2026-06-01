@@ -28,6 +28,7 @@ interface ApplicationsTableClientProps {
     campaignDeadlineDate?: string;
     campaignCategory?: string;
     campaignType?: string;
+    campaignProductName?: string;
     productUrlIndividual?: boolean;
     recruitCount: number;
 }
@@ -44,6 +45,7 @@ export default function ApplicationsTableClient({
     campaignDeadlineDate,
     campaignCategory,
     campaignType,
+    campaignProductName,
     productUrlIndividual = false,
     recruitCount
 }: ApplicationsTableClientProps) {
@@ -85,6 +87,7 @@ export default function ApplicationsTableClient({
     const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
     const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
     const [manualLinkId, setManualLinkId] = useState<string>('');
+    const [manualPurchaseLinkUrl, setManualPurchaseLinkUrl] = useState('');
     const [linkCandidates, setLinkCandidates] = useState<Array<{
         id: number;
         optionLabel: string;
@@ -93,6 +96,12 @@ export default function ApplicationsTableClient({
     }>>([]);
     const [isCandidateLoading, setIsCandidateLoading] = useState(false);
     const [isSelectionSubmitting, setIsSelectionSubmitting] = useState(false);
+    const manualPurchaseLinkInput = manualPurchaseLinkUrl.trim();
+    const isSelectionLinkMissing =
+        productUrlIndividual &&
+        !isCandidateLoading &&
+        linkCandidates.length === 0 &&
+        !manualPurchaseLinkInput;
 
     const [influencerStats, setInfluencerStats] = useState<Map<string, {
         tags: string[];
@@ -251,10 +260,19 @@ export default function ApplicationsTableClient({
     }, [applications, recruitCount]);
 
     const getOptionLabelsFromApplication = (app: Application) => {
+        const productFallback = normalizeOptionLabel(campaignProductName || app.campaign?.product_name || '');
         const parsed = extractOptionCandidates(app.selected_option || '');
+        if (
+            productUrlIndividual &&
+            productFallback &&
+            parsed.length === 1 &&
+            normalizeOptionLabel(parsed[0].label) === '기본 옵션'
+        ) {
+            return [productFallback];
+        }
         if (parsed.length > 0) return parsed.map((item) => item.label);
         const fallback = normalizeOptionLabel(app.selected_option || '');
-        return fallback ? [fallback] : ['기본 옵션'];
+        return fallback ? [fallback] : [productFallback || '기본 옵션'];
     };
 
     const fetchLinkCandidates = async (optionLabel: string) => {
@@ -286,12 +304,20 @@ export default function ApplicationsTableClient({
 
     const openSelectionModal = async (app: Application, mode: 'APPROVE' | 'REASSIGN') => {
         const options = getOptionLabelsFromApplication(app);
-        const defaultOption = normalizeOptionLabel(app.assigned_option_label || options[0] || '기본 옵션');
+        const assignedOptionLabel = normalizeOptionLabel(app.assigned_option_label || '');
+        const fallbackOption = normalizeOptionLabel(options[0] || '기본 옵션');
+        const defaultOption =
+            productUrlIndividual &&
+                assignedOptionLabel === '기본 옵션' &&
+                fallbackOption !== '기본 옵션'
+                ? fallbackOption
+                : normalizeOptionLabel(assignedOptionLabel || fallbackOption);
         setSelectionMode(mode);
         setSelectionTarget(app);
         setSelectionOptions(options);
         setSelectedOptionLabel(defaultOption);
         setManualLinkId('');
+        setManualPurchaseLinkUrl('');
         setIsSelectionModalOpen(true);
         if (productUrlIndividual) {
             await fetchLinkCandidates(defaultOption);
@@ -306,11 +332,16 @@ export default function ApplicationsTableClient({
         setSelectionOptions([]);
         setSelectedOptionLabel('');
         setManualLinkId('');
+        setManualPurchaseLinkUrl('');
         setLinkCandidates([]);
     };
 
     const handleSelectionSubmit = async () => {
         if (!selectionTarget) return;
+        if (isSelectionLinkMissing) {
+            toast.error('구매링크가 없습니다. 캠페인 수정 화면에서 구매링크를 먼저 등록해 주세요.');
+            return;
+        }
         setIsSelectionSubmitting(true);
         try {
             const endpoint =
@@ -325,7 +356,8 @@ export default function ApplicationsTableClient({
                     campaignId: Number(campaignId),
                     targetStatus: 'APPROVED',
                     assignedOptionLabel: selectedOptionLabel,
-                    manualLinkId: manualLinkId ? Number(manualLinkId) : null
+                    manualLinkId: manualLinkId ? Number(manualLinkId) : null,
+                    manualPurchaseLinkUrl: manualLinkId ? null : manualPurchaseLinkInput || null
                 })
             });
             const payload = await response.json().catch(() => null);
@@ -910,6 +942,7 @@ export default function ApplicationsTableClient({
                                         const value = e.target.value;
                                         setSelectedOptionLabel(value);
                                         setManualLinkId('');
+                                        setManualPurchaseLinkUrl('');
                                         if (productUrlIndividual) {
                                             await fetchLinkCandidates(value);
                                         }
@@ -929,7 +962,10 @@ export default function ApplicationsTableClient({
                                     <label className="block text-sm font-medium text-gray-700 mb-1">링크 배정 방식</label>
                                     <select
                                         value={manualLinkId}
-                                        onChange={(e) => setManualLinkId(e.target.value)}
+                                        onChange={(e) => {
+                                            setManualLinkId(e.target.value);
+                                            if (e.target.value) setManualPurchaseLinkUrl('');
+                                        }}
                                         className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
                                         disabled={isCandidateLoading}
                                     >
@@ -945,6 +981,24 @@ export default function ApplicationsTableClient({
                                             ? '링크 후보를 불러오는 중...'
                                             : '수동 링크를 지정하지 않으면 최소사용우선으로 자동 배정됩니다.'}
                                     </p>
+                                    <div className="mt-3">
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">구매링크 직접 입력</label>
+                                        <input
+                                            type="url"
+                                            value={manualPurchaseLinkUrl}
+                                            onChange={(e) => {
+                                                setManualPurchaseLinkUrl(e.target.value);
+                                                if (e.target.value.trim()) setManualLinkId('');
+                                            }}
+                                            placeholder="https://..."
+                                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                                        />
+                                    </div>
+                                    {isSelectionLinkMissing && (
+                                        <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-semibold text-rose-700">
+                                            구매링크가 없습니다. 직접 입력해야 승인 알림과 상세페이지에 구매링크를 전달할 수 있습니다.
+                                        </div>
+                                    )}
                                 </div>
                             ) : (
                                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
@@ -957,7 +1011,7 @@ export default function ApplicationsTableClient({
                             <Button
                                 type="button"
                                 onClick={handleSelectionSubmit}
-                                disabled={isSelectionSubmitting}
+                                disabled={isSelectionSubmitting || isSelectionLinkMissing}
                                 className="flex-1 bg-primary h-11 font-bold rounded-xl"
                             >
                                 {isSelectionSubmitting

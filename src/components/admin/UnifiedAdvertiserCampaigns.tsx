@@ -32,6 +32,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
     message: string
     onConfirm: () => void
     type: "info" | "danger" | "warning"
+    confirmText?: string
   }>({
     isOpen: false,
     title: "",
@@ -47,6 +48,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
       title: "캠페인 삭제",
       message: `"${title}" 캠페인을 정말 삭제하시겠습니까? 삭제된 캠페인은 복구할 수 없습니다.`,
       type: "danger",
+      confirmText: "삭제하기",
       onConfirm: async () => {
         setIsLoading(true)
         const { error } = await supabase
@@ -119,6 +121,44 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
     }
   }
 
+  const handleClose = (id: number, title: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: "캠페인 마감",
+      message: `"${title}" 캠페인을 마감하시겠습니까?\n마감 후 공개 모집/신청이 중단됩니다.`,
+      type: "warning",
+      confirmText: "마감하기",
+      onConfirm: async () => {
+        setIsLoading(true)
+        try {
+          const response = await fetch(`/api/campaigns/${id}/close`, {
+            method: "POST",
+          })
+          const payload = await response.json().catch(() => ({} as Record<string, unknown>))
+
+          if (!response.ok) {
+            const errorMessage = typeof payload.error === "string" ? payload.error : "캠페인 마감 처리에 실패했습니다."
+            throw new Error(errorMessage)
+          }
+
+          const updatedCampaign = payload.campaign as { status?: string; end_date?: string | null } | undefined
+          toast.success("캠페인이 마감되었습니다.")
+          setData(prev => prev.map(c => c.id === id ? {
+            ...c,
+            status: "COMPLETED",
+            end_date: updatedCampaign?.end_date ?? c.end_date,
+          } : c))
+        } catch (error) {
+          console.error("캠페인 마감 오류:", error)
+          toast.error(error instanceof Error ? error.message : "캠페인 마감 중 오류가 발생했습니다.")
+        } finally {
+          setIsLoading(false)
+          setConfirmModal(prev => ({ ...prev, isOpen: false }))
+        }
+      },
+    })
+  }
+
   return (
     <>
       <CampaignDataTable
@@ -127,6 +167,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
         onEdit={handleEdit}
         onDelete={handleDelete}
         onExtend={handleExtend}
+        onClose={handleClose}
         onView={handleView}
         isLoading={isLoading}
         currentUserId={user?.id || null}
@@ -141,7 +182,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
         title={confirmModal.title}
         message={confirmModal.message}
         type={confirmModal.type}
-        confirmText="삭제하기"
+        confirmText={confirmModal.confirmText || "확인"}
       />
 
       {/* 기간 연장 모달 (shadcn/ui로 교체해도 되지만 일단 기존 로직 유지) */}

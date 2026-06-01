@@ -13,7 +13,6 @@ import {
   CheckCircle2,
   ChevronRight,
   ClipboardCheck,
-  Clock3,
   ExternalLink,
   Layers3,
   Megaphone,
@@ -36,7 +35,6 @@ type CampaignProgressRow = {
   type?: string | null;
   platform?: string | null;
   end_date?: string | null;
-  review_deadline?: string | null;
   first_selection_date?: string | null;
   total_recruitment?: number | null;
   campaign_options?: Record<string, unknown> | Record<string, unknown>[] | null;
@@ -110,12 +108,30 @@ function getDaysLeft(date?: string | null) {
   return Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+function getCampaignOptions(campaign: CampaignProgressRow) {
+  if (Array.isArray(campaign.campaign_options)) {
+    return (campaign.campaign_options[0] || {}) as Record<string, unknown>;
+  }
+
+  return (campaign.campaign_options || {}) as Record<string, unknown>;
+}
+
+function getCampaignReviewDeadline(campaign: CampaignProgressRow) {
+  const options = getCampaignOptions(campaign);
+  const step1Data = (options.step1Data || {}) as Record<string, unknown>;
+  const step2Data = (options.step2Data || {}) as Record<string, unknown>;
+  const deadline = step1Data.reviewDeadline || step2Data.reviewDeadline || campaign.end_date;
+
+  return typeof deadline === 'string' && deadline ? deadline : null;
+}
+
 function getCampaignHealth(campaign: CampaignProgressRow) {
   const applicants = getCountFromRelation(campaign.applications);
   const target = getCampaignRecruitTarget(campaign) || 0;
   const isAutoExtend = isCampaignAutoExtendEnabled(campaign);
   const daysLeft = getDaysLeft(campaign.end_date);
-  const reviewDaysLeft = getDaysLeft(campaign.review_deadline);
+  const reviewDeadline = getCampaignReviewDeadline(campaign);
+  const reviewDaysLeft = getDaysLeft(reviewDeadline);
   const progressRate = target > 0 && !isAutoExtend ? Math.round((applicants / target) * 100) : null;
 
   let tone: 'good' | 'warning' | 'critical' = 'good';
@@ -131,7 +147,7 @@ function getCampaignHealth(campaign: CampaignProgressRow) {
     message = applicants < target ? '목표 대비 신청 부족' : '일정 확인 필요';
   }
 
-  return { applicants, target, isAutoExtend, daysLeft, reviewDaysLeft, progressRate, tone, message };
+  return { applicants, target, isAutoExtend, daysLeft, reviewDeadline, reviewDaysLeft, progressRate, tone, message };
 }
 
 function toneClassName(tone: 'good' | 'warning' | 'critical') {
@@ -217,13 +233,17 @@ function QuickActionCard({
 
 export default async function AdminProgressDashboardPage() {
   const supabase = await createClient();
-  const nowIso = new Date().toISOString();
-  const sevenDaysAgoIso = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const sevenDaysAgoIso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const [
     sidebarCounts,
     pendingCampaignsRes,
     campaignsInProgressRes,
+    completedCampaignsRes,
+    recruitingCampaignsCountRes,
+    ongoingCampaignsCountRes,
     pendingApplicationsRes,
     selectedApplicationsRes,
     completedApplicationsRes,
@@ -239,10 +259,13 @@ export default async function AdminProgressDashboardPage() {
     supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     supabase
       .from('campaigns')
-      .select('id, title, status, type, platform, end_date, review_deadline, first_selection_date, total_recruitment, campaign_options, is_unlimited_recruitment, created_at, applications(count)')
+      .select('id, title, status, type, platform, end_date, first_selection_date, total_recruitment, campaign_options, is_unlimited_recruitment, created_at, applications(count)')
       .in('status', ['RECRUITING', 'ONGOING'])
       .order('end_date', { ascending: true })
       .limit(12),
+    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
+    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'RECRUITING'),
+    supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'ONGOING'),
     supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'PENDING'),
     supabase.from('applications').select('id', { count: 'exact', head: true }).in('status', ['APPROVED', 'SELECTED']),
     supabase.from('applications').select('id', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
@@ -290,8 +313,9 @@ export default async function AdminProgressDashboardPage() {
 
   const criticalCampaigns = campaignsInProgress.filter((campaign) => getCampaignHealth(campaign).tone === 'critical');
   const warningCampaigns = campaignsInProgress.filter((campaign) => getCampaignHealth(campaign).tone === 'warning');
-  const recruitingCount = campaignsInProgress.filter((campaign) => campaign.status === 'RECRUITING').length;
-  const ongoingCount = campaignsInProgress.filter((campaign) => campaign.status === 'ONGOING').length;
+  const recruitingCount = recruitingCampaignsCountRes.count || 0;
+  const ongoingCount = ongoingCampaignsCountRes.count || 0;
+  const activeCampaignCount = recruitingCount + ongoingCount;
 
   const applicationSummary = [
     { key: 'PENDING', label: APPLICATION_STATUS_LABELS.PENDING, count: pendingApplicationsRes.count || 0 },
@@ -354,9 +378,9 @@ export default async function AdminProgressDashboardPage() {
 
         <div className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           <StatCard title="승인 대기 캠페인" value={pendingCampaignsRes.count || 0} description="신규 등록 후 관리자 확인 필요" icon={<Megaphone className="h-5 w-5" />} />
-          <StatCard title="진행 중 캠페인" value={campaignsInProgress.length} description={`모집중 ${recruitingCount} · 운영중 ${ongoingCount}`} icon={<Layers3 className="h-5 w-5" />} />
+          <StatCard title="진행 중 캠페인" value={activeCampaignCount} description={`모집중 ${recruitingCount} · 운영중 ${ongoingCount}`} icon={<Layers3 className="h-5 w-5" />} />
+          <StatCard title="마감/완료 캠페인" value={completedCampaignsRes.count || 0} description="모집 종료 후 이력 보존 중" icon={<CheckCircle2 className="h-5 w-5" />} />
           <StatCard title="리뷰 지연/마감 경과" value={overdueApplicationsRes.count || 0} description="선정 이후 리뷰 제출이 밀린 건" icon={<ShieldAlert className="h-5 w-5" />} />
-          <StatCard title="연장 요청 대기" value={extensionPendingRes.count || 0} description="리뷰 마감 연장 승인/반려 필요" icon={<Clock3 className="h-5 w-5" />} />
         </div>
 
         <Card className="border-0 shadow-sm">
@@ -367,9 +391,10 @@ export default async function AdminProgressDashboardPage() {
             <CardDescription>모바일에서 먼저 눌러야 하는 운영 큐를 앞에 뺐습니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
               <QuickActionCard title="승인 대기 캠페인" count={pendingCampaignsRes.count || 0} description="신규 광고주 응답 전 확인" href="/dashboard/admin/campaigns" tone="rose" />
               <QuickActionCard title="리뷰 승인 대기" count={pendingReviewsRes.count || 0} description="노출 전 품질 검수 필요" href="/dashboard/admin/reviews/manage" tone="amber" />
+              <QuickActionCard title="마감/완료 캠페인" count={completedCampaignsRes.count || 0} description="종료된 캠페인 이력 확인" href="/dashboard/admin/campaigns?tab=completed" tone="sky" />
               <QuickActionCard title="리뷰 마감 경과" count={overdueApplicationsRes.count || 0} description="지연 인원 추적 및 안내" href="/dashboard/admin/campaigns" tone="red" />
               <QuickActionCard title="연장 요청 검토" count={extensionPendingRes.count || 0} description="승인/반려 의사결정 필요" href="/dashboard/admin/campaigns" tone="sky" />
             </div>
@@ -446,7 +471,7 @@ export default async function AdminProgressDashboardPage() {
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
                           <div className="text-[10px] font-bold text-slate-500">리뷰 마감</div>
                           <div className="mt-1 text-sm font-black text-slate-900">{health.reviewDaysLeft === null ? '-' : `${health.reviewDaysLeft}일`}</div>
-                          <div className="text-[10px] text-slate-500">{formatDate(campaign.review_deadline)}</div>
+                          <div className="text-[10px] text-slate-500">{formatDate(health.reviewDeadline)}</div>
                         </div>
                       </div>
 
@@ -454,7 +479,7 @@ export default async function AdminProgressDashboardPage() {
                         <Link href={`/dashboard/admin/campaigns/${campaign.id}`} className="inline-flex items-center justify-center gap-1 rounded-2xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-black">
                           상세 보기 <ArrowRight className="h-4 w-4" />
                         </Link>
-                        <Link href="/dashboard/admin/campaigns" className="inline-flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:text-slate-900">
+                        <Link href="/dashboard/admin/campaigns?tab=active" className="inline-flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:text-slate-900">
                           캠페인 목록 <ExternalLink className="h-4 w-4" />
                         </Link>
                         <Link href="/dashboard/admin/reviews/manage" className="inline-flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:text-slate-900">
@@ -504,9 +529,9 @@ export default async function AdminProgressDashboardPage() {
               <CardContent className="grid grid-cols-2 gap-3">
                 {[
                   { href: '/dashboard/admin/campaigns', label: '캠페인 전체 관리' },
+                  { href: '/dashboard/admin/campaigns?tab=completed', label: '마감/완료 캠페인' },
                   { href: '/dashboard/admin/reviews', label: '리뷰 목록' },
                   { href: '/dashboard/admin/reviews/manage', label: '리뷰 승인/숨김' },
-                  { href: '/dashboard/admin', label: '기존 인사이트 홈' },
                 ].map((item) => (
                   <Link key={item.href} href={item.href} className="rounded-2xl border border-slate-200 px-4 py-4 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50/40 hover:text-slate-900">
                     {item.label}
@@ -665,9 +690,9 @@ export default async function AdminProgressDashboardPage() {
                 <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {[
                     { href: '/dashboard/admin/campaigns', label: '캠페인 전체 관리' },
+                    { href: '/dashboard/admin/campaigns?tab=completed', label: '마감/완료 캠페인' },
                     { href: '/dashboard/admin/reviews', label: '리뷰 목록' },
                     { href: '/dashboard/admin/reviews/manage', label: '리뷰 승인/숨김' },
-                    { href: '/dashboard/admin', label: '기존 인사이트 홈' },
                   ].map((item) => (
                     <Link key={item.href} href={item.href} className="rounded-2xl border border-slate-200 px-4 py-4 text-sm font-bold text-slate-700 transition hover:border-rose-200 hover:bg-rose-50/40 hover:text-slate-900">
                       {item.label}

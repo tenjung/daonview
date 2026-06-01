@@ -15,6 +15,7 @@ interface CampaignApplicationsClientProps {
     campaignTitle: string;
     campaignCategory?: string;
     campaignType?: string;
+    campaignProductName?: string;
     productUrlIndividual?: boolean;
     recruitCount: number;
     initialApplications: Application[];
@@ -26,6 +27,7 @@ export default function CampaignApplicationsClient({
     campaignTitle,
     campaignCategory,
     campaignType,
+    campaignProductName,
     productUrlIndividual = false,
     recruitCount,
     initialApplications,
@@ -68,6 +70,7 @@ export default function CampaignApplicationsClient({
                         campaignTitle={campaignTitle}
                         campaignCategory={campaignCategory || ''}
                         campaignType={campaignType}
+                        campaignProductName={campaignProductName}
                         productUrlIndividual={productUrlIndividual}
                         recruitCount={recruitCount}
                     />

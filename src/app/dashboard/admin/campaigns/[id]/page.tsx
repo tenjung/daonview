@@ -73,6 +73,10 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
         campaign?.experience_details ||
         campaign?.product_name ||
         '';
+    const campaignProductName =
+        campaign?.product_name ||
+        campaignOptions?.step1Data?.productName ||
+        '';
 
     const campaignDeadlineDate = campaign?.end_date
         ? new Intl.DateTimeFormat('ko-KR', {
@@ -122,6 +126,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 campaignDeadlineDate={campaignDeadlineDate}
                 campaignCategory={campaign.category || ''}
                 campaignType={campaign.type}
+                campaignProductName={campaignProductName}
                 productUrlIndividual={productUrlIndividual}
                 recruitCount={getCampaignRecruitTarget(campaign) || 0}
             />

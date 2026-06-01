@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '링크 조회 권한이 없습니다.' }, { status: 403 });
     }
 
-    const { data: links, error: linksError } = await admin
+    const { data: exactLinks, error: linksError } = await admin
       .from('campaign_purchase_links')
       .select('id, option_label, purchase_link_url, is_active')
       .eq('campaign_id', campaignId)
@@ -74,6 +74,27 @@ export async function POST(request: Request) {
     if (linksError) {
       console.error('Link candidates fetch error:', linksError);
       return NextResponse.json({ error: '링크 목록 조회에 실패했습니다.' }, { status: 500 });
+    }
+
+    let links = exactLinks || [];
+
+    if ((!links || links.length === 0) && normalizeOptionKey(optionLabel) === normalizeOptionKey('기본 옵션')) {
+      const { data: fallbackLinks, error: fallbackError } = await admin
+        .from('campaign_purchase_links')
+        .select('id, option_key, option_label, purchase_link_url, is_active')
+        .eq('campaign_id', campaignId)
+        .eq('is_active', true)
+        .order('id', { ascending: true });
+
+      if (fallbackError) {
+        console.error('Link candidates fallback fetch error:', fallbackError);
+        return NextResponse.json({ error: '링크 목록 조회에 실패했습니다.' }, { status: 500 });
+      }
+
+      const optionKeys = new Set((fallbackLinks || []).map((link) => normalizeOptionKey(link.option_label || '')));
+      if (optionKeys.size === 1) {
+        links = fallbackLinks || [];
+      }
     }
 
     const linkIds = (links || []).map((link) => Number(link.id)).filter(Boolean);
@@ -110,4 +131,3 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: '링크 후보 조회 중 서버 오류가 발생했습니다.' }, { status: 500 });
   }
 }
-
