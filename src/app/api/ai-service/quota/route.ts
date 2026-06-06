@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isAdminRole } from '@/lib/campaignPermissions';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -27,7 +27,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         analysis: unlimitedQuota,
         writing: unlimitedQuota,
-        landing: unlimitedQuota
+        landing: unlimitedQuota,
+        smartStoreTags: unlimitedQuota
       });
     }
 
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest) {
           return { count: 0, limit }; // 실패 시 0 처리 (추후 테이블 생성 시 정상작동)
         }
         return { count: count || 0, limit };
-      } catch (err: any) {
+      } catch {
         return { count: 0, limit };
       }
     };
@@ -60,11 +61,13 @@ export async function GET(request: NextRequest) {
     const quotaAnalysis = await getQuotaForTable('ai_analysis_logs', 2);
     const quotaWriting = await getQuotaForTable('ai_writing_logs', 2);
     const quotaLanding = await getQuotaForTable('ai_landing_logs', 2);
+    const quotaSmartStoreTags = await getQuotaForTable('ai_smart_store_tag_logs', 2);
 
     return NextResponse.json({
       analysis: quotaAnalysis,
       writing: quotaWriting,
-      landing: quotaLanding
+      landing: quotaLanding,
+      smartStoreTags: quotaSmartStoreTags
     });
   } catch (error) {
     console.error('API Error:', error);

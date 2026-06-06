@@ -2,14 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Wand2, LineChart, PenTool, ArrowRight, Sparkles } from "lucide-react";
+import { Wand2, LineChart, PenTool, ArrowRight, Sparkles, Tags } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { AuthGuardDialog } from "@/components/auth/AuthGuardDialog";
+import { normalizeRoleValue } from "@/lib/campaignPermissions";
 
 export default function AIServicePageClient() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const normalizedRole = normalizeRoleValue(profile?.role);
 
   const handleServiceClick = (path: string, isComingSoon?: boolean) => {
     if (isComingSoon) {
@@ -63,8 +65,19 @@ export default function AIServicePageClient() {
       color: "bg-emerald-500/10 text-emerald-600",
       gradient: "from-emerald-500/20 to-teal-500/20",
       isComingSoon: false,
+    },
+    {
+      title: "스마트스토어 태그 분석기",
+      desc: "상품 키워드와 카테고리를 기준으로 태그 후보, 검색량, 조합 확장 가능성을 분석합니다.",
+      mobileDesc: "키워드와 카테고리 기준으로 스마트스토어 태그 후보를 분석합니다.",
+      icon: Tags,
+      path: "/ai-service/smart-store-tags",
+      color: "bg-amber-500/10 text-amber-600",
+      gradient: "from-amber-500/20 to-emerald-500/20",
+      isComingSoon: false,
+      hiddenForRoles: ["INFLUENCER"],
     }
-  ];
+  ].filter((service) => !service.hiddenForRoles?.includes(normalizedRole));
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#fafafa]">
