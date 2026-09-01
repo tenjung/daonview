@@ -46,6 +46,7 @@ interface OptimizeImageOptions {
     maxHeight?: number;
     quality?: number;
     outputType?: 'image/webp' | 'image/jpeg';
+    enforceDimensions?: boolean;
 }
 
 interface OptimizedImageResult {
@@ -54,93 +55,7 @@ interface OptimizedImageResult {
     mimeType: string;
 }
 
-interface ImageVariantOptions {
-    targetWidth: number;
-    quality?: number;
-    outputType?: 'image/webp' | 'image/jpeg';
-    suffix?: string;
-}
-
-interface ImageVariantResult extends OptimizedImageResult {
-    width: number;
-    height: number;
-    size: number;
-}
-
 const GIF_MIME_TYPE = 'image/gif';
-
-const getOutputExtension = (mimeType: string, fallback: 'image/webp' | 'image/jpeg') => {
-    if (mimeType === 'image/webp') return 'webp';
-    if (mimeType === 'image/jpeg') return 'jpg';
-    return fallback === 'image/webp' ? 'webp' : 'jpg';
-};
-
-const replaceExtension = (fileName: string, extension: string, suffix = '') => {
-    const baseName = fileName.replace(/\.[^.]+$/, '');
-    return `${baseName}${suffix}.${extension}`;
-};
-
-export async function createImageVariantForUpload(
-    file: File,
-    {
-        targetWidth,
-        quality = 0.72,
-        outputType = 'image/webp',
-        suffix = '',
-    }: ImageVariantOptions
-): Promise<ImageVariantResult> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-            const img = new Image();
-            img.src = event.target?.result as string;
-            img.onload = () => {
-                const ratio = img.width > targetWidth ? targetWidth / img.width : 1;
-                const width = Math.max(1, Math.round(img.width * ratio));
-                const height = Math.max(1, Math.round(img.height * ratio));
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    reject(new Error('이미지 캔버스를 초기화할 수 없습니다.'));
-                    return;
-                }
-
-                ctx.clearRect(0, 0, width, height);
-                ctx.drawImage(img, 0, 0, width, height);
-
-                canvas.toBlob((blob) => {
-                    if (!blob) {
-                        reject(new Error('이미지 변환에 실패했습니다.'));
-                        return;
-                    }
-
-                    const mimeType = blob.type || outputType;
-                    const extension = getOutputExtension(mimeType, outputType);
-                    const variantFile = new File(
-                        [blob],
-                        replaceExtension(file.name, extension, suffix),
-                        { type: mimeType }
-                    );
-
-                    resolve({
-                        file: variantFile,
-                        extension,
-                        mimeType,
-                        width,
-                        height,
-                        size: variantFile.size,
-                    });
-                }, outputType, quality);
-            };
-            img.onerror = (error) => reject(error);
-        };
-        reader.onerror = (error) => reject(error);
-    });
-}
 
 export async function optimizeImageForUpload(
     file: File,
@@ -149,6 +64,7 @@ export async function optimizeImageForUpload(
         maxHeight = 1200,
         quality = 0.78,
         outputType = 'image/webp',
+        enforceDimensions = false,
     }: OptimizeImageOptions = {}
 ): Promise<OptimizedImageResult> {
     if (file.type === GIF_MIME_TYPE) {
@@ -169,15 +85,12 @@ export async function optimizeImageForUpload(
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
+                const resizeRatio = Math.min(maxWidth / width, maxHeight / height, 1);
+                const wasResized = resizeRatio < 1;
 
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height *= maxWidth / width;
-                        width = maxWidth;
-                    }
-                } else if (height > maxHeight) {
-                    width *= maxHeight / height;
-                    height = maxHeight;
+                if (wasResized) {
+                    width *= resizeRatio;
+                    height *= resizeRatio;
                 }
 
                 canvas.width = Math.max(1, Math.round(width));
@@ -217,7 +130,7 @@ export async function optimizeImageForUpload(
                     );
 
                     const finalFile =
-                        optimizedFile.size > 0 && optimizedFile.size < file.size
+                        optimizedFile.size > 0 && (optimizedFile.size < file.size || (enforceDimensions && wasResized))
                             ? optimizedFile
                             : file;
 

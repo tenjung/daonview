@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check, Info, GripVertical } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Upload, X, Image as ImageIcon, Hash, MapPin, Link as LinkIcon, Save, Check, Info, GripVertical, Loader2 } from 'lucide-react';
 import { HelpTooltip } from '@/components/ui/HelpTooltip';
 import { toast } from 'sonner';
 import { CampaignActionButtons } from './CampaignActionButtons';
-import { supabase } from '@/lib/supabase/client';
-import { createImageVariantForUpload } from '@/lib/utils/imageUtils';
+import { uploadCampaignImage } from '@/lib/campaignImageUpload';
 import { CampaignImageVariant } from '@/types/database';
 
 // @dnd-kit imports
@@ -28,9 +27,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
-const MAX_CAMPAIGN_ORIGINAL_IMAGE_BYTES = 10 * 1024 * 1024;
-const CAMPAIGN_THUMBNAIL_WIDTH = 500;
-const CAMPAIGN_MEDIUM_WIDTH = 1200;
+const MAX_CAMPAIGN_IMAGE_BYTES = 10 * 1024 * 1024;
 
 // --- Sortable Image Item Component ---
 interface SortableImageItemProps {
@@ -210,6 +207,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
     const [keywordInput, setKeywordInput] = useState('');
     const [prohibitedInput, setProhibitedInput] = useState('');
     const [uploadingImage, setUploadingImage] = useState(false);
+    const uploadInProgressRef = useRef(false);
     const [uploadLater, setUploadLater] = useState(false);
 
     // 블로그 관련 입력 상태
@@ -298,20 +296,30 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        if (uploadInProgressRef.current) {
+            toast.info('이미지를 업로드하고 있습니다. 잠시만 기다려주세요.');
+            e.target.value = '';
+            return;
+        }
+
         if (!formData.campaignTitle && !formData.productName) {
             toast.error('캠페인 제목 또는 제품명을 먼저 입력해주세요.');
+            e.target.value = '';
             return;
         }
 
         const remainingSlots = 4 - imageVariants.length;
         if (remainingSlots <= 0) {
             toast.error('최대 4개의 이미지만 업로드 가능합니다.');
+            e.target.value = '';
             return;
         }
 
+        uploadInProgressRef.current = true;
         setUploadingImage(true);
         const newVariants: CampaignImageVariant[] = [];
         const filesToUpload = Math.min(files.length, remainingSlots);
+        let uploadFailure: unknown = null;
 
         try {
             for (let i = 0; i < filesToUpload; i++) {
@@ -325,63 +333,17 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                     continue;
                 }
 
-                if (file.size > MAX_CAMPAIGN_ORIGINAL_IMAGE_BYTES) {
+                if (file.size > MAX_CAMPAIGN_IMAGE_BYTES) {
                     toast.error(`${file.name} 파일이 10MB를 초과합니다. 10MB 이하 이미지만 업로드할 수 있습니다.`);
                     continue;
                 }
 
-                const [thumbnailImage, mediumImage] = await Promise.all([
-                    createImageVariantForUpload(file, {
-                        targetWidth: CAMPAIGN_THUMBNAIL_WIDTH,
-                        quality: 0.68,
-                        outputType: 'image/webp',
-                        suffix: '_thumb',
-                    }),
-                    createImageVariantForUpload(file, {
-                        targetWidth: CAMPAIGN_MEDIUM_WIDTH,
-                        quality: 0.78,
-                        outputType: 'image/webp',
-                        suffix: '_medium',
-                    }),
-                ]);
-
-                const fileBase = `${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-                const originalPath = `campaigns/original/${fileBase}.${fileExt}`;
-                const thumbnailPath = `campaigns/thumb/${fileBase}.${thumbnailImage.extension}`;
-                const mediumPath = `campaigns/medium/${fileBase}.${mediumImage.extension}`;
-
-                const uploadFile = async (filePath: string, uploadFile: File) => {
-                    const { error } = await supabase.storage
-                        .from('files')
-                        .upload(filePath, uploadFile, {
-                            cacheControl: '31536000',
-                            upsert: false
-                        });
-
-                    if (error) throw error;
-                };
-
-                await uploadFile(originalPath, file);
-                await uploadFile(thumbnailPath, thumbnailImage.file);
-                await uploadFile(mediumPath, mediumImage.file);
-
-                const { data: { publicUrl: thumbnailUrl } } = supabase.storage
-                    .from('files')
-                    .getPublicUrl(thumbnailPath);
-                const { data: { publicUrl: mediumUrl } } = supabase.storage
-                    .from('files')
-                    .getPublicUrl(mediumPath);
-
-                newVariants.push({
-                    originalPath,
-                    thumbnailUrl,
-                    mediumUrl,
-                    width: mediumImage.width,
-                    height: mediumImage.height,
-                    originalSize: file.size,
-                    thumbnailSize: thumbnailImage.size,
-                    mediumSize: mediumImage.size,
-                });
+                try {
+                    newVariants.push(await uploadCampaignImage(file));
+                } catch (error) {
+                    uploadFailure = error;
+                    break;
+                }
             }
 
             if (newVariants.length > 0) {
@@ -392,17 +354,21 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                 });
                 toast.success(`${newVariants.length}개의 이미지가 업로드되었습니다.`);
             }
-        } catch (error: unknown) {
-            const uploadError = error as { message?: string; status?: number };
-            console.error('이미지 처리 중 치명적 오류:', error);
-            if (uploadError.message?.includes('bucket not found') || uploadError.message?.includes('does not exist')) {
-                toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
-            } else if (uploadError.message?.includes('permission denied') || uploadError.status === 403) {
-                toast.error('이미지 업로드 권한이 없습니다. (RLS 설정 확인 필요)');
-            } else {
-                toast.error(`이미지 처리 중 오류 발생: ${uploadError.message || '알 수 없는 오류'}`);
+
+            if (uploadFailure) {
+                const uploadError = uploadFailure as { message?: string; status?: number | string; statusCode?: number | string };
+                const uploadStatus = Number(uploadError.statusCode ?? uploadError.status);
+                console.error('이미지 처리 중 치명적 오류:', uploadFailure);
+                if (uploadError.message?.includes('bucket not found') || uploadError.message?.includes('does not exist')) {
+                    toast.error('스토리지 버킷이 존재하지 않습니다. 관리자에게 문의하세요.');
+                } else if (uploadError.message?.includes('permission denied') || uploadStatus === 403) {
+                    toast.error('이미지 업로드 권한이 없습니다. (RLS 설정 확인 필요)');
+                } else {
+                    toast.error(`이미지 처리 중 오류 발생: ${uploadError.message || '알 수 없는 오류'}`);
+                }
             }
         } finally {
+            uploadInProgressRef.current = false;
             setUploadingImage(false);
             if (e.target) e.target.value = '';
         }
@@ -617,17 +583,26 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                                 <div 
                                                     className={`
                                                         aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all cursor-pointer
-                                                        ${imageVariants.length === 0 && idx === 0
+                                                        ${uploadingImage
+                                                            ? 'cursor-wait opacity-60'
+                                                            : imageVariants.length === 0 && idx === 0
                                                             ? 'border-rose-200 bg-rose-50/30' 
                                                             : 'border-slate-100 bg-slate-50/30 hover:border-slate-300 hover:bg-slate-50'}
                                                     `}
-                                                    onClick={() => document.getElementById('image-upload-input')?.click()}
+                                                    onClick={() => {
+                                                        if (!uploadingImage) document.getElementById('image-upload-input')?.click();
+                                                    }}
+                                                    aria-disabled={uploadingImage}
                                                 >
                                                     <div className={`p-2 rounded-full ${imageVariants.length === 0 && idx === 0 ? 'bg-rose-100 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
-                                                        <Upload size={20} />
+                                                        {uploadingImage ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
                                                     </div>
                                                     <span className="text-[11px] font-bold text-slate-400">
-                                                        {imageVariants.length === 0 && idx === 0 ? '대표 이미지 등록' : '추가 등록'}
+                                                        {uploadingImage
+                                                            ? '업로드 중'
+                                                            : imageVariants.length === 0 && idx === 0
+                                                                ? '대표 이미지 등록'
+                                                                : '추가 등록'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -639,9 +614,10 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             <input
                                 id="image-upload-input"
                                 type="file"
-                                accept="image/*"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
                                 multiple
                                 onChange={handleImageUpload}
+                                disabled={uploadingImage}
                                 className="hidden"
                             />
                         </div>
