@@ -1831,21 +1831,34 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </button>
                                             )}
 
-                                            <button
-                                                onClick={() => {
-                                                    if (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') {
-                                                        toast.info('이미 선정된 캠페인의 예약 변경 및 신청 취소는 다온뷰 운영자에게 연락 부탁드립니다.', {
-                                                            duration: 4000,
-                                                            position: 'top-center'
-                                                        });
-                                                    } else {
-                                                        setShowCancelDialog(true);
-                                                    }
-                                                }}
-                                                className="w-full py-4 rounded-2xl bg-gray-50 text-gray-400 text-sm font-bold hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-[0.98] border border-transparent hover:border-rose-100"
-                                            >
-                                                신청 취소하기
-                                            </button>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => {
+                                                        if (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') {
+                                                            toast.info('이미 선정된 캠페인의 예약 변경 및 신청 취소는 다온뷰 운영자에게 연락 부탁드립니다.', {
+                                                                duration: 4000,
+                                                                position: 'top-center'
+                                                            });
+                                                        } else {
+                                                            setShowCancelDialog(true);
+                                                        }
+                                                    }}
+                                                    className="flex-1 py-4 rounded-2xl bg-gray-50 text-gray-400 text-sm font-bold hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-[0.98] border border-transparent hover:border-rose-100"
+                                                >
+                                                    신청 취소하기
+                                                </button>
+                                                <div className="shrink-0 flex items-center justify-center">
+                                                    <CampaignShare
+                                                        campaignId={id}
+                                                        title={displayTitle}
+                                                        description={campaignIntro}
+                                                        thumbnailUrl={images[0] || campaign.thumbnail_url}
+                                                        campaignType={campaign.type}
+                                                        campaignConditionLabel={conditionTooltipLabel}
+                                                        variant="large"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
