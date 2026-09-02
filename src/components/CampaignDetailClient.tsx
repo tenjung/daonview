@@ -74,8 +74,10 @@ import {
 import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
+import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
+import type { Profile } from '@/types/database';
 
 
 interface CampaignDetailClientProps {
@@ -103,9 +105,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [applicationStatus, setApplicationStatus] = useState<string | null>(null);
     const [selectedOptions, setSelectedOptions] = useState<any[]>([]); // Array for ranked/multi support
     const [applicationMessage, setApplicationMessage] = useState<string>('');
-    // Missing Profile Info Alert State
-    const [isProfileAlertOpen, setIsProfileAlertOpen] = useState(false);
-    const [missingInfoType, setMissingInfoType] = useState<'BANK' | 'ADDRESS' | null>(null);
     const [selectedStore, setSelectedStore] = useState<any>(null);
     const [isStoreSheetOpen, setIsStoreSheetOpen] = useState(false);
     const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -120,6 +119,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [isApplying, setIsApplying] = useState(false);
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [showSnsModal, setShowSnsModal] = useState(false);
+    const [showShippingModal, setShowShippingModal] = useState(false);
+    const [shippingProfile, setShippingProfile] = useState<Profile | null>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [applicationId, setApplicationId] = useState<number>(0);
     const [assignedPurchaseLink, setAssignedPurchaseLink] = useState<string>('');
@@ -415,6 +416,15 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             return;
         }
 
+        const currentOptions = getOptions();
+        const config = getOptionConfig();
+
+        if (currentOptions.length > 0 && selectedOptions.length === 0) {
+            toast.error('제공 옵션을 선택해주세요.');
+            document.getElementById('options-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+
         // 프로필 필수 정보 검증 (배송형/구매평 케이스)
         try {
             const { data: profile, error: profileError } = await supabase
@@ -452,8 +462,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             // 단순 배송형 캠페인: 신청 시 배송지 정보 필수
             if (needsShippingAddress) {
                 if (!profile.zip_code || !profile.address_base || !profile.address_detail || !profile.name || !profile.phone_number) {
-                    setMissingInfoType('ADDRESS');
-                    setIsProfileAlertOpen(true);
+                    setShippingProfile(profile as Profile);
+                    setShowShippingModal(true);
                     return;
                 }
             }
@@ -469,15 +479,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
             }
         } catch (err) {
             console.error('Profile validation error:', err);
-        }
-
-        const currentOptions = getOptions();
-        const config = getOptionConfig();
-
-        if (currentOptions.length > 0 && selectedOptions.length === 0) {
-            toast.error('제공 옵션을 선택해주세요.');
-            document.getElementById('options-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            return;
         }
 
         // Format selected options for storage
@@ -2210,39 +2211,19 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 </SheetContent>
             </Sheet>
 
-            {/* Missing Info Alert Dialog */}
-            <Dialog open={isProfileAlertOpen} onOpenChange={setIsProfileAlertOpen}>
-                <DialogContent className="max-w-[360px] rounded-2xl p-6">
-                    <DialogHeader>
-                        <DialogTitle className="text-lg font-bold text-center">
-                            {missingInfoType === 'BANK' ? '계좌 정보 등록 필요' : '배송지 정보 등록 필요'}
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="py-4 text-center text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-                        {missingInfoType === 'BANK'
-                            ? '캠페인 참여 및 정산을 위해\n계좌 정보를 먼저 등록해 주세요.'
-                            : '제품 발송을 위해\n배송 정보(수령인/연락처/주소)가 필요합니다.\n등록 페이지로 이동하시겠습니까?'}
-                    </div>
-                    <div className="flex gap-2">
-                        <Button
-                            variant="outline"
-                            className="flex-1 rounded-xl h-12"
-                            onClick={() => setIsProfileAlertOpen(false)}
-                        >
-                            취소
-                        </Button>
-                        <Button
-                            className="flex-1 rounded-xl h-12 bg-rose-500 hover:bg-rose-600 text-white font-bold"
-                            onClick={() => {
-                                setIsProfileAlertOpen(false);
-                                router.push('/profile/edit?tab=payout');
-                            }}
-                        >
-                            {missingInfoType === 'BANK' ? '계좌 등록하러 가기' : '배송지 등록하러 가기'}
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {showShippingModal && user && (
+                <ShippingAddressModal
+                    isOpen={showShippingModal}
+                    onClose={() => setShowShippingModal(false)}
+                    userId={user.id}
+                    profile={shippingProfile}
+                    onSuccess={async () => {
+                        setShowShippingModal(false);
+                        await useAuthStore.getState().fetchProfile(user.id);
+                        await handleApply();
+                    }}
+                />
+            )}
 
             {/* 전화번호 입력 모달 */}
             {showPhoneModal && user && (

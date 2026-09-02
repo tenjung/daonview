@@ -24,6 +24,7 @@ import {
     type ProfileMode,
     resolveProfileModeFromPlatforms,
 } from '@/constants/profilePlatforms';
+import { formatDaumAddress, type DaumAddressData } from '@/lib/address';
 
 const REGIONS = [
     { id: 'seoul', name: '서울', emoji: '🏙️' },
@@ -59,14 +60,6 @@ const CATEGORIES = [
 ];
 
 type TabType = 'basic' | 'interests' | 'payout';
-
-interface DaumAddressData {
-    address: string;
-    addressType: string;
-    bname: string;
-    buildingName: string;
-    zonecode: string;
-}
 
 type ProfileUpdatePayload = Partial<Record<keyof Profile, string | string[] | null>>;
 
@@ -411,23 +404,10 @@ function ProfileEditContent() {
     };
 
     const handleAddressComplete = (data: DaumAddressData) => {
-        let fullAddress = data.address;
-        let extraAddress = '';
-
-        if (data.addressType === 'R') {
-            if (data.bname !== '') {
-                extraAddress += data.bname;
-            }
-            if (data.buildingName !== '') {
-                extraAddress += (extraAddress !== '' ? `, ${data.buildingName}` : data.buildingName);
-            }
-            fullAddress += (extraAddress !== '' ? ` (${extraAddress})` : '');
-        }
-
         setFormData(prev => ({
             ...prev,
             zip_code: data.zonecode,
-            address_base: fullAddress
+            address_base: formatDaumAddress(data)
         }));
         setShowAddressSearch(false);
     };

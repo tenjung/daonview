@@ -92,10 +92,11 @@ export default function OnboardingChecker() {
                     }}
                     user={user}
                     profile={profile}
-                    onSuccess={() => {
+                    onSuccess={async () => {
                         setShowSnsModal(false);
+                        setHasChecked(true);
+                        await useAuthStore.getState().fetchProfile(user.id);
                         setHasChecked(false);
-                        useAuthStore.getState().fetchProfile(user.id);
                     }}
                 />
             )}

@@ -112,6 +112,16 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 - **페이지 메인 타이틀:** `text-2xl` ~ `text-4xl`
 - 모바일에서는 크기 확대보다 `line-height`, `spacing`, `color contrast`로 위계를 우선 확보한다.
 
+#### 역할별 기본값
+- **Modal Title:** `text-xl sm:text-2xl` + `font-bold`
+- **Section Title:** `text-lg sm:text-xl` + `font-bold`
+- **Body / Input:** `text-base` + `font-normal`
+- **Label / Button:** `text-sm` + `font-semibold`
+- **Helper / Description:** `text-sm` + `font-normal`
+- **Badge / Meta:** `text-xs` + `font-semibold`
+- **최소 크기:** 특수한 데이터 밀집 UI가 아닌 일반 사용자 화면에서 임의값 `10px`~`11px` 사용을 금지한다.
+- 같은 역할의 텍스트는 모바일/데스크탑에서 의미 없이 크기를 역전하거나 변경하지 않는다.
+
 ### 3.4 모바일 반응형 타이포 원칙
 - 모바일에서 필터/보조 UI가 헤더(1차 내비)보다 강해지지 않게 조절한다.
 - 긴 텍스트는 줄바꿈/잘림 규칙으로 제어하고(`line-clamp`, `break-keep`), 굵기로 해결하지 않는다.
@@ -138,3 +148,6 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 2. **논리적 덩어리 보호 (`inline-block` 또는 `whitespace-nowrap`)**
    - 두세 단어로 이루어져 있더라도 문맥상 절대로 분리해서 읽히면 안 되는 한 덩어리의 핵심 어구는 `<span className="inline-block">`으로 묶습니다.
    - 화면 폭이 좁아지면 해당 덩어리가 통째로 아랫줄로 넘어가므로, 한글의 의미적 가독성을 100% 지켜내는 최고의 디테일 규칙입니다.
+3. **안내 문구 길이 제한**
+   - 도움말과 안내 박스 문구는 먼저 한 문장으로 축약하고 `break-keep`을 적용한다.
+   - 좁은 화면에서 불가피하게 두 줄이 되더라도 조사나 어미가 글자 단위로 분리되지 않게 한다.

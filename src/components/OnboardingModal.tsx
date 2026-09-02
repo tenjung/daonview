@@ -181,10 +181,10 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
           <div className="flex items-start justify-between gap-3 sm:items-center sm:mb-4">
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <h2 className="text-xl font-black text-gray-900 sm:text-2xl">프로필 설정</h2>
+                <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">프로필 설정</h2>
                 {/* 선택 카운터 배지 */}
                 {step === 1 && (
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors sm:px-3 ${
                     (profileMode === PROFILE_MODES.REVIEWER || selectedPlatforms.length > 0)
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -193,7 +193,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
                 {step === 2 && (
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors sm:px-3 ${
                     selectedRegions.length > 0 
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -202,7 +202,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
                 {step === 3 && (
-                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors sm:px-3 sm:text-xs ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold transition-colors sm:px-3 ${
                     selectedCategories.length > 0 
                       ? 'bg-primary text-white' 
                       : 'bg-gray-200 text-gray-500'
@@ -211,7 +211,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                   </span>
                 )}
               </div>
-              <p className="text-xs text-gray-600 mt-1 sm:text-sm">
+              <p className="mt-1 break-keep text-sm text-gray-600">
                 {getStepDescription()}
               </p>
             </div>
@@ -234,7 +234,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                 className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-full border border-rose-100 bg-white px-2 py-2 text-center shadow-sm sm:min-h-[76px] sm:rounded-xl sm:flex-col sm:p-3"
               >
                 <div className="text-sm leading-none sm:text-2xl sm:mb-1">{benefit.icon}</div>
-                <div className="text-[11px] font-bold leading-none text-gray-700 sm:text-[10px] sm:leading-tight">
+                <div className="text-sm font-semibold leading-tight text-gray-700">
                   {benefit.text}
                 </div>
               </div>
@@ -249,10 +249,10 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
             <div className="max-w-md mx-auto space-y-4 sm:space-y-6">
               <div className="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-center sm:mb-8 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
                 <div className="hidden text-6xl mb-4 sm:block">📱</div>
-                <h3 className="text-base font-bold text-gray-900 sm:text-xl sm:mb-2">
+                <h3 className="break-keep text-lg font-bold text-gray-900 sm:mb-2 sm:text-xl">
                   캠페인 선정 시 카톡으로 알림받기
                 </h3>
-                <p className="text-xs text-gray-500 sm:text-sm">
+                <p className="break-keep text-sm text-gray-500">
                   선정되면 빠르게 알려드릴게요!
                 </p>
               </div>
@@ -268,10 +268,10 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="실명을 입력해주세요"
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors sm:py-3 sm:text-base"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-base focus:border-primary focus:outline-none transition-colors sm:py-3"
                   />
                   {name.trim().length > 0 && name.trim().length < 2 && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className="mt-1 break-keep text-sm text-red-500">
                       2글자 이상 입력해주세요
                     </p>
                   )}
@@ -292,14 +292,14 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                       }
                     }}
                     placeholder="01012345678"
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:border-primary focus:outline-none transition-colors sm:py-3 sm:text-base"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-base focus:border-primary focus:outline-none transition-colors sm:py-3"
                   />
                   {phoneNumber.length > 0 && phoneNumber.length < 10 && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className="mt-1 break-keep text-sm text-red-500">
                       올바른 전화번호를 입력해주세요
                     </p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="mt-1 break-keep text-sm text-gray-500">
                     하이픈 없이 숫자만 입력해주세요
                   </p>
                 </div>
@@ -307,8 +307,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
               {/* 안내 문구 */}
               <div className="bg-rose-50 rounded-xl px-3 py-2.5 border border-rose-100 sm:p-4">
-                <p className="text-[11px] text-gray-600 leading-relaxed sm:text-xs">
-                  💡 <strong>선택사항</strong>이지만, 입력하시면 캠페인 선정 시 카카오톡으로 즉시 알림을 받을 수 있어요!
+                <p className="break-keep text-sm leading-relaxed text-gray-600">
+                  💡 입력하시면 캠페인 선정 결과를 카카오톡으로 알려드려요.
                 </p>
               </div>
             </div>
@@ -327,8 +327,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-sm font-black text-gray-900">크리에이터형</div>
-                  <p className="mt-1 text-xs text-slate-500">SNS 채널 기반으로 캠페인에 참여해요.</p>
+                  <div className="text-sm font-semibold text-gray-900">크리에이터형</div>
+                  <p className="mt-1 break-keep text-sm text-slate-500">SNS 채널 기반으로 캠페인에 참여해요.</p>
                 </button>
                 <button
                   type="button"
@@ -339,8 +339,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                       : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
                   }`}
                 >
-                  <div className="text-sm font-black text-gray-900">리뷰어형 (구매평)</div>
-                  <p className="mt-1 text-xs text-slate-500">SNS 없이 구매평 캠페인 위주로 참여해요.</p>
+                  <div className="text-sm font-semibold text-gray-900">리뷰어형 (구매평)</div>
+                  <p className="mt-1 break-keep text-sm text-slate-500">SNS 없이 구매평 캠페인 위주로 참여해요.</p>
                 </button>
               </div>
 
@@ -397,7 +397,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                     </div>
                   )}
                   <div className="text-xl mb-0.5">{region.emoji}</div>
-                  <div className="text-[10px] font-bold text-gray-900 whitespace-nowrap">{region.name}</div>
+                  <div className="whitespace-nowrap text-xs font-semibold text-gray-900">{region.name}</div>
                 </button>
               ))}
             </div>
@@ -425,8 +425,8 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
                     </div>
                   )}
                   <div className="text-3xl mb-1.5">{category.icon}</div>
-                  <div className="text-sm font-bold text-gray-900 mb-0.5">{category.name}</div>
-                  <div className="text-[10px] text-gray-400 line-clamp-1">{category.desc}</div>
+                  <div className="mb-0.5 text-sm font-semibold text-gray-900">{category.name}</div>
+                  <div className="line-clamp-1 text-xs text-gray-500">{category.desc}</div>
                 </button>
               ))}
             </div>
@@ -490,7 +490,7 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
 
           {/* 안내 문구 */}
           {!allowSkip && (
-            <p className="text-[11px] text-gray-400 text-center mt-3 sm:mt-4 sm:text-xs">
+            <p className="mt-3 break-keep text-center text-xs text-gray-500 sm:mt-4">
               💡 설정한 정보는 언제든지 프로필에서 수정할 수 있어요
             </p>
           )}
