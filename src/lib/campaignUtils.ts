@@ -448,6 +448,62 @@ export const resolveCampaignScheduleDates = (campaign: CampaignLikeRecord) => {
   };
 };
 
+function resolveRelationCount(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+
+  if (Array.isArray(value)) {
+    const count = value[0]?.count;
+    return typeof count === 'number' && Number.isFinite(count) ? count : 0;
+  }
+
+  if (value && typeof value === 'object' && 'count' in value) {
+    const count = (value as { count?: unknown }).count;
+    return typeof count === 'number' && Number.isFinite(count) ? count : 0;
+  }
+
+  return 0;
+}
+
+export const getCampaignSelectedCount = (
+  campaign: Partial<Campaign> | Record<string, unknown> | null | undefined
+) => {
+  if (!campaign) return 0;
+
+  const approvedCount = campaign.approved_app_count;
+  if (typeof approvedCount === 'number' && Number.isFinite(approvedCount)) {
+    return approvedCount;
+  }
+
+  return resolveRelationCount(campaign.selected_applications);
+};
+
+export const isCampaignOpenForApplications = (
+  campaign: Partial<Campaign> | Record<string, unknown> | null | undefined,
+  currentDate: string = formatKstDate()
+) => {
+  if (!campaign) return false;
+
+  const status = String(campaign.status || '').toUpperCase();
+  const isFastRecruitment = isCampaignFastRecruitment(campaign);
+  const hasOpenStatus = isFastRecruitment
+    ? status === 'RECRUITING' || status === 'ONGOING'
+    : status === 'RECRUITING';
+
+  if (!hasOpenStatus) return false;
+  if (isFastRecruitment) return true;
+
+  const { endDate } = resolveCampaignScheduleDates(campaign as CampaignLikeRecord);
+  const normalizedEndDate = typeof endDate === 'string' ? endDate.slice(0, 10) : '';
+  if (normalizedEndDate && normalizedEndDate < currentDate) return false;
+
+  const recruitTarget = getCampaignRecruitTarget(campaign);
+  if (typeof recruitTarget === 'number' && recruitTarget > 0) {
+    return getCampaignSelectedCount(campaign) < recruitTarget;
+  }
+
+  return true;
+};
+
 export const mapCampaignToCard = (campaign: Campaign & { applications?: { count: number }[] | { count: number } | number }) => {
   // Handle Supabase count response
   let applicants = 0;

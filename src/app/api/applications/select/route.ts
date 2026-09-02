@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
@@ -335,6 +336,11 @@ export async function POST(request: Request) {
         { status: 400 }
       );
     }
+
+    revalidateTag('home-banner-data', 'max');
+    revalidatePath('/');
+    revalidatePath('/campaigns');
+    revalidatePath(`/campaigns/${campaignId}`);
 
     const providedItems =
       campaign.experience_details ||

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import { getPublicServerClient } from '@/lib/supabase/publicServer';
-import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { isCampaignOpenForApplications, mapCampaignToCard } from '@/lib/campaignUtils';
 import CampaignListClient from '@/components/CampaignListClient';
-import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import { CAMPAIGN_CARD_SELECT } from '@/lib/campaignSelects';
 import type { Campaign } from '@/types/database';
 
@@ -31,15 +31,18 @@ export default async function CampaignsPage() {
         .from('campaigns')
         .select(CAMPAIGN_CARD_SELECT)
         .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+        .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
         .order('created_at', { ascending: false });
 
     if (error) {
         console.error('[CampaignsPage] Failed to fetch campaigns:', error.message);
     }
 
-    const campaigns = (rawCampaigns || []).map((campaign) =>
-        mapCampaignToCard(campaign as Campaign & { applications?: { count: number }[] | { count: number } | number })
-    );
+    const campaigns = (rawCampaigns || [])
+        .filter((campaign) => isCampaignOpenForApplications(campaign))
+        .map((campaign) =>
+            mapCampaignToCard(campaign as Campaign & { applications?: { count: number }[] | { count: number } | number })
+        );
 
     return (
         <div className="min-h-screen bg-white">

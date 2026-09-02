@@ -2,16 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { deriveCampaignHydrationState, resolveCampaignImageVariants } from '@/lib/campaignUtils';
 import { CampaignScheduleType } from '@/lib/campaignSchedule';
-import { CampaignImageVariant } from '@/types/database';
+import { CampaignImageVariant, ProductOption } from '@/types/database';
+
+export type { ProductOption } from '@/types/database';
 
 // --- Types ---
-
-export interface ProductOption {
-    id: string;
-    optionName: string;
-    optionPrice: string;
-    recruitmentCount: string;
-}
 
 export interface PurchaseLinkPool {
     optionLabel: string;

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -89,6 +90,11 @@ export async function POST(_request: Request, { params }: RouteParams) {
     if (updateError || !updated) {
       return NextResponse.json({ error: '캠페인 마감 처리에 실패했습니다.' }, { status: 500 });
     }
+
+    revalidateTag('home-banner-data', 'max');
+    revalidatePath('/');
+    revalidatePath('/campaigns');
+    revalidatePath(`/campaigns/${campaignId}`);
 
     return NextResponse.json({
       success: true,

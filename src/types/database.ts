@@ -16,6 +16,13 @@ export interface CampaignImageVariant {
     mediumSize?: number | null;
 }
 
+export interface ProductOption {
+    id: string;
+    optionName: string;
+    optionPrice: string;
+    recruitmentCount: string;
+}
+
 export interface Profile {
     id: string;
     created_at?: string;
@@ -115,7 +122,7 @@ export interface DeliveryCampaign extends BaseCampaign {
     product_name?: string;
     product_url?: string;
     product_price?: number;
-    product_options?: string[];
+    product_options?: Array<ProductOption | string>;
     product_url_private?: boolean;
     product_url_individual?: boolean;
     reward_per_person?: number;

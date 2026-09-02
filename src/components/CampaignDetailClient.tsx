@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignFastRecruitment, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignFastRecruitment, isCampaignOpenForApplications, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
@@ -75,9 +75,10 @@ import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
 import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
+import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
-import type { Profile } from '@/types/database';
+import type { ProductOption, Profile } from '@/types/database';
 
 
 interface CampaignDetailClientProps {
@@ -93,6 +94,14 @@ function formatDateFixed(rawValue: string | null | undefined): string {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}.${month}.${day}`;
+}
+
+function normalizeComparableText(value: unknown): string {
+    return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+
+function getProductOptionName(option: ProductOption | string): string {
+    return typeof option === 'string' ? option.trim() : String(option.optionName || '').trim();
 }
 
 export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
@@ -206,9 +215,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                     .select(CAMPAIGN_CARD_SELECT)
                     .eq('created_by', campaign.created_by)
                     .neq('id', campaign.id)
-                    .limit(8);
+                    .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                    .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
+                    .limit(16);
 
-                let merged: Array<Record<string, unknown>> = (brandData ?? []) as unknown as Array<Record<string, unknown>>;
+                let merged: Array<Record<string, unknown>> = ((brandData ?? []) as unknown as Array<Record<string, unknown>>)
+                    .filter((relatedCampaign) => isCampaignOpenForApplications(relatedCampaign))
+                    .slice(0, 8);
 
                 if (merged.length < 4) {
                     const { data: nearbyData } = await supabase
@@ -216,10 +229,16 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         .select(CAMPAIGN_CARD_SELECT)
                         .neq('id', campaign.id)
                         .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
+                        .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                        .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
                         .order('end_date', { ascending: true })
-                        .limit(8 - merged.length);
+                        .limit(16);
 
-                    merged = [...merged, ...((nearbyData ?? []) as unknown as Array<Record<string, unknown>>)];
+                    const nearbyCampaigns = ((nearbyData ?? []) as unknown as Array<Record<string, unknown>>)
+                        .filter((relatedCampaign) => isCampaignOpenForApplications(relatedCampaign))
+                        .slice(0, 8 - merged.length);
+
+                    merged = [...merged, ...nearbyCampaigns];
                 }
 
                 setRelatedCampaigns(merged);
@@ -649,7 +668,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const expandedImages = imageVariants.map((variant) => variant.mediumUrl || variant.thumbnailUrl);
 
     // Robust Option Extraction
-    const getOptions = () => {
+    const getOptions = (): Array<ProductOption | string> => {
         // 1. Check direct product_options (DB column)
         if (Array.isArray(campaign.product_options) && campaign.product_options.length > 0) {
             return campaign.product_options;
@@ -673,6 +692,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         return [];
     };
     const options = getOptions();
+    const optionNames = options.map(getProductOptionName).filter(Boolean);
 
     const getOptionConfig = () => {
         // [무결성] campaign_options 내의 데이터가 폼 상태와 더 밀접하므로 우선 순위 부여
@@ -689,12 +709,26 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         return { mode: 'SINGLE', maxSelect: 1 };
     };
     const optionConfig = getOptionConfig();
+    const optionMode = String(optionConfig.mode || 'SINGLE').toUpperCase();
+    const optionMaxSelect = Math.max(1, Number(optionConfig.maxSelect) || 1);
+    const optionSelectionLabel = optionMode === 'RANKED'
+        ? `최대 ${optionMaxSelect}순위까지 선택`
+        : optionMode === 'MULTI'
+            ? `최대 ${optionMaxSelect}개 선택`
+            : '옵션 중 1개 선택';
 
     // Title fallback
     const displayTitle = step2Data.campaignTitle || campaign.title;
 
-    // 캠페인 소개 (Step1에서 입력)
-    const campaignIntro = campaign.description || campaign.experience_details || step1Data.experienceDetails || '';
+    const productName = campaign.product_name || step1Data.productName || '';
+    const experienceDetails = campaign.experience_details || step1Data.experienceDetails || '';
+    const campaignIntro = campaign.description || experienceDetails || '';
+    const primaryBenefitText = productName || experienceDetails || campaign.description || '제공 내역 정보가 없습니다.';
+    const additionalBenefitText = productName
+        && experienceDetails
+        && normalizeComparableText(productName) !== normalizeComparableText(experienceDetails)
+        ? experienceDetails
+        : '';
 
     // 구매평 가이드 (Step2 구매평 영역)
     const purchaseNotes = step2Data.purchaseNotes || campaign.purchase_notes || '';
@@ -732,7 +766,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const visitNotes = campaign.visit_notes || step1Data.visitNotes || '';
     const productUrl = step1Data.productUrl || '';
     const productUrlIndividual = step1Data.productUrlIndividual || false;
-    const productName = step1Data.productName || '';
     const canViewAssignedPurchaseLink =
         isInfluencerViewer &&
         (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED');
@@ -752,7 +785,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         ? ['RECRUITING', 'ONGOING'].includes(normalizedStatus)
         : normalizedStatus === 'RECRUITING';
     const isNotRecruiting = !isRecruitingStatus;
-    const isClosed = isPastDeadline || isFull || isNotRecruiting;
+    const isClosed = !isCampaignOpenForApplications({
+        ...campaign,
+        approved_app_count: approvedCount,
+    }, nowStr);
     const rewardRawValue = campaign.reward_per_person ?? campaign.official_price;
     const rewardAmount = Number(String(rewardRawValue ?? '').replace(/[^0-9]/g, ''));
     const hasRewardAmount = Number.isFinite(rewardAmount) && rewardAmount > 0;
@@ -994,68 +1030,97 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                         </div>
 
                         {/* 체험단 혜택 Section */}
-                        <section className="py-10 border-t border-slate-100">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                        <section className="border-t border-slate-100 py-10">
+                            <div className="mb-6 flex items-center gap-4">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-50 text-orange-500">
                                     <Gift className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">체험단 혜택</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Experience Benefit</p>
+                                    <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">체험단 혜택</h2>
+                                    <p className="mt-0.5 text-xs font-semibold uppercase tracking-widest text-slate-400">Experience Benefit</p>
                                 </div>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="relative overflow-hidden">
-                                    <p className="text-[16px] text-slate-600 leading-[1.8] whitespace-pre-line font-medium mb-6">
-                                        {campaignIntro || '제공 내역 정보가 없습니다.'}
-                                    </p>
+                                    <div className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+                                        <div>
+                                            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                                <span className="text-sm font-semibold text-slate-500">
+                                                    {productName ? '제공 상품' : '제공 내역'}
+                                                </span>
+                                                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${optionNames.length > 0 ? 'bg-blue-50 text-blue-700' : 'bg-white text-slate-600 ring-1 ring-slate-200'}`}>
+                                                    {optionNames.length > 0 ? `${optionNames.length}개 옵션` : '단일 제공'}
+                                                </span>
+                                            </div>
+                                            <p className="text-base font-bold leading-relaxed text-slate-900 break-keep">
+                                                {primaryBenefitText}
+                                            </p>
+                                        </div>
 
-                                    {/* 상품 링크 및 이름 (배송형인 경우 주로 표시됨) */}
-                                    {(productUrl || productUrlIndividual || productName) && (
-                                        <div className="bg-slate-50 border border-slate-100 p-5 rounded-2xl flex flex-col gap-3">
-                                            {productName && (
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">체험 상품 이름</span>
-                                                    <span className="font-bold text-slate-800 text-[15px]">{productName}</span>
+                                        {additionalBenefitText && (
+                                            <div className="border-t border-slate-200 pt-4">
+                                                <p className="text-sm font-semibold text-slate-500">추가 제공 안내</p>
+                                                <p className="mt-1 whitespace-pre-line text-base font-normal leading-relaxed text-slate-700 break-keep">
+                                                    {additionalBenefitText}
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {optionNames.length > 0 && (
+                                            <div className="border-t border-slate-200 pt-4">
+                                                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                                    <p className="text-sm font-semibold text-slate-700">선택 가능한 옵션</p>
+                                                    <span className="text-xs font-semibold text-blue-600">{optionSelectionLabel}</span>
                                                 </div>
-                                            )}
-                                            {(productUrlIndividual || productUrl) && (
-                                                <div className="flex flex-col gap-1 mt-2">
-                                                    <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">체험 상품 링크</span>
-                                                    {productUrlIndividual ? (
-                                                        canViewAssignedPurchaseLink ? (
-                                                            assignedPurchaseLink ? (
-                                                                <div className="flex flex-col gap-1">
-                                                                    {assignedOptionLabel && (
-                                                                        <span className="inline-flex w-fit items-center px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-100">
-                                                                            확정 옵션: {assignedOptionLabel}
-                                                                        </span>
-                                                                    )}
-                                                                    <a
-                                                                        href={assignedPurchaseLink}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="font-bold text-blue-500 hover:text-blue-600 text-[14px] underline break-all"
-                                                                    >
-                                                                        {assignedPurchaseLink}
-                                                                    </a>
-                                                                </div>
-                                                            ) : (
-                                                                <span className="font-bold text-amber-600 text-[14px]">링크 준비중</span>
-                                                            )
+                                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                                    {optionNames.map((optionName, index) => (
+                                                        <div
+                                                            key={`${optionName}-${index}`}
+                                                            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold leading-relaxed text-slate-700 break-keep"
+                                                        >
+                                                            {optionName}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {(productUrlIndividual || productUrl) && (
+                                            <div className="border-t border-slate-200 pt-4">
+                                                <p className="mb-1 text-sm font-semibold text-slate-500">체험 상품 링크</p>
+                                                {productUrlIndividual ? (
+                                                    canViewAssignedPurchaseLink ? (
+                                                        assignedPurchaseLink ? (
+                                                            <div className="flex flex-col gap-2">
+                                                                {assignedOptionLabel && (
+                                                                    <span className="inline-flex w-fit rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
+                                                                        확정 옵션: {assignedOptionLabel}
+                                                                    </span>
+                                                                )}
+                                                                <a
+                                                                    href={assignedPurchaseLink}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="max-w-full break-all text-sm font-semibold text-blue-500 underline hover:text-blue-600"
+                                                                >
+                                                                    {assignedPurchaseLink}
+                                                                </a>
+                                                            </div>
                                                         ) : (
-                                                            <span className="font-bold text-slate-600 text-[14px]">🔥 선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                            <span className="text-sm font-semibold text-amber-600">링크 준비중</span>
                                                         )
                                                     ) : (
-                                                        <a href={productUrl} target="_blank" rel="noopener noreferrer" className="font-bold text-blue-500 hover:text-blue-600 text-[14px] underline truncate inline-block max-w-[full]">
-                                                            {productUrl}
-                                                        </a>
-                                                    )}
-                                                </div>
-                                            )}
+                                                        <span className="text-sm font-semibold text-slate-600 break-keep">선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                    )
+                                                ) : (
+                                                    <a href={productUrl} target="_blank" rel="noopener noreferrer" className="inline-block max-w-full break-all text-sm font-semibold text-blue-500 underline hover:text-blue-600">
+                                                        {productUrl}
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )}
                                         </div>
-                                    )}
 
                                     {shouldShowDeliveryFlowGuide && (
                                         <div className="mt-6 rounded-[24px] border border-slate-200 bg-slate-50/80 p-5">

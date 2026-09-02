@@ -45,6 +45,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import type { ProductOption } from '@/types/database';
 
 interface Step1Data {
     campaignType: 'DELIVERY' | 'VISIT' | 'PRESS' | null;
@@ -90,13 +91,6 @@ interface Step1Data {
         mode: 'SINGLE' | 'RANKED' | 'MULTI';
         maxSelect: number;
     };
-}
-
-interface ProductOption {
-    id: string;
-    optionName: string;
-    optionPrice: string;
-    recruitmentCount: string;
 }
 
 interface PurchaseLinkPool {
@@ -148,7 +142,7 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex items-center gap-2 p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${isDragging ? 'shadow-lg z-10' : ''}`}
+            className={`grid grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-2 p-3 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors sm:flex sm:items-center ${isDragging ? 'shadow-lg z-10' : ''}`}
         >
             {/* Drag Handle */}
             <div
@@ -173,10 +167,22 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
                     placeholder={campaignType === 'DELIVERY' ? "예: 아이폰 14 Pro 블루 / 256GB" : "예: 기본 서비스 A"}
                     className="w-full px-2 py-1.5 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 />
+                <div className="mt-2 flex items-center gap-2 sm:hidden">
+                    <span className="text-xs font-semibold text-gray-500">모집 인원</span>
+                    <input
+                        type="number"
+                        value={option.recruitmentCount}
+                        onChange={(e) => onUpdate(option.id, 'recruitmentCount', e.target.value)}
+                        placeholder="0"
+                        min="0"
+                        className="w-20 px-2 py-1.5 border border-gray-200 rounded text-sm text-right focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <span className="text-xs text-gray-500">명</span>
+                </div>
             </div>
 
             {/* Recruitment Count */}
-            <div className="w-24 flex-shrink-0">
+            <div className="hidden w-24 flex-shrink-0 sm:block">
                 <div className="flex items-center gap-1">
                     <input
                         type="number"
@@ -198,6 +204,142 @@ function SortableOptionRow({ option, index, campaignType, onUpdate, onRemove }: 
             >
                 <X size={16} />
             </button>
+        </div>
+    );
+}
+
+interface ProductOptionsEditorProps {
+    campaignType: Step1Data['campaignType'];
+    options: ProductOption[];
+    optionConfig: Step1Data['optionConfig'];
+    onAdd: () => void;
+    onRemove: (id: string) => void;
+    onUpdate: (id: string, field: keyof ProductOption, value: string) => void;
+    onReorder: (options: ProductOption[]) => void;
+    onConfigChange: (config: Step1Data['optionConfig']) => void;
+}
+
+function ProductOptionsEditor({
+    campaignType,
+    options,
+    optionConfig,
+    onAdd,
+    onRemove,
+    onUpdate,
+    onReorder,
+    onConfigChange,
+}: ProductOptionsEditorProps) {
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    );
+
+    const handleDragEnd = ({ active, over }: DragEndEvent) => {
+        if (!over || active.id === over.id) return;
+        const oldIndex = options.findIndex((option) => option.id === active.id);
+        const newIndex = options.findIndex((option) => option.id === over.id);
+        if (oldIndex < 0 || newIndex < 0) return;
+        onReorder(arrayMove(options, oldIndex, newIndex));
+    };
+
+    const handleModeChange = (mode: Step1Data['optionConfig']['mode']) => {
+        onConfigChange({
+            ...optionConfig,
+            mode,
+            maxSelect: mode === 'SINGLE' ? 1 : Math.min(Math.max(1, optionConfig.maxSelect), Math.max(1, options.length)),
+        });
+    };
+
+    return (
+        <div className="mt-6 border-t border-slate-200 pt-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                    <h3 className="text-base font-bold text-slate-900">제공 옵션</h3>
+                    <p className="mt-1 text-sm font-normal text-slate-500 break-keep">
+                        색상·용량·서비스처럼 신청자가 선택할 항목이 있을 때만 추가해 주세요.
+                    </p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${options.length > 0 ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                    {options.length > 0 ? `${options.length}개 옵션` : '단일 제공'}
+                </span>
+            </div>
+
+            {options.length > 0 && (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={options.map((option) => option.id)} strategy={verticalListSortingStrategy}>
+                        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-2">
+                            {options.map((option, index) => (
+                                <SortableOptionRow
+                                    key={option.id}
+                                    option={option}
+                                    index={index}
+                                    campaignType={campaignType}
+                                    onUpdate={onUpdate}
+                                    onRemove={onRemove}
+                                />
+                            ))}
+                        </div>
+                    </SortableContext>
+                </DndContext>
+            )}
+
+            <button
+                type="button"
+                onClick={onAdd}
+                className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-600 transition-colors hover:border-blue-300 hover:bg-blue-100"
+            >
+                <Plus size={18} />
+                옵션 추가
+            </button>
+
+            {options.length > 0 && (
+                <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div className="space-y-2 md:col-span-2">
+                            <Label className="text-sm font-semibold text-slate-700">선택 방식</Label>
+                            <Select value={optionConfig.mode} onValueChange={handleModeChange}>
+                                <SelectTrigger className="h-11 rounded-xl border-slate-200 font-medium focus:ring-rose-500/20">
+                                    <SelectValue placeholder="선택 방식을 선택하세요" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    <SelectItem value="SINGLE">단일 선택 (하나만 선택)</SelectItem>
+                                    <SelectItem value="RANKED">순위 선택 (희망 순위 지정)</SelectItem>
+                                    <SelectItem value="MULTI">중복 선택 (여러 개 선택)</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {optionConfig.mode !== 'SINGLE' && (
+                            <div className="space-y-2">
+                                <Label className="text-sm font-semibold text-slate-700">
+                                    {optionConfig.mode === 'RANKED' ? '희망 순위 제한' : '최대 선택 개수'}
+                                </Label>
+                                <div className="flex h-11 items-center gap-2">
+                                    <Input
+                                        type="number"
+                                        value={optionConfig.maxSelect}
+                                        onChange={(event) => onConfigChange({
+                                            ...optionConfig,
+                                            maxSelect: Math.min(Math.max(1, Number.parseInt(event.target.value, 10) || 1), options.length),
+                                        })}
+                                        min="1"
+                                        max={options.length}
+                                        className="h-full flex-1 rounded-xl border-slate-200 text-center text-base font-bold"
+                                    />
+                                    <span className="text-sm font-semibold text-slate-600">개</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                    <p className="mt-3 text-sm font-normal leading-relaxed text-indigo-700 break-keep">
+                        {optionConfig.mode === 'RANKED'
+                            ? `신청자가 최대 ${optionConfig.maxSelect}순위까지 희망 옵션을 선택합니다.`
+                            : optionConfig.mode === 'MULTI'
+                                ? `신청자 한 명이 최대 ${optionConfig.maxSelect}개 옵션을 선택할 수 있습니다.`
+                                : '신청자가 제공 옵션 중 하나를 선택합니다.'}
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
@@ -536,25 +678,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             campaignStore.setField('stores', currentStores.filter(s => s.id !== storeId));
 
             toast.error(error.message || '정보를 불러오는데 실패했습니다.', { id: loadingToast });
-        }
-    };
-
-    // 드래그 앤 드롭 센서 설정
-    const sensors = useSensors(
-        useSensor(PointerSensor),
-        useSensor(KeyboardSensor, {
-            coordinateGetter: sortableKeyboardCoordinates,
-        })
-    );
-
-    // 옵션 순서 변경 핸들러
-    const handleDragEnd = (event: DragEndEvent) => {
-        const { active, over } = event;
-
-        if (over && active.id !== over.id) {
-            const oldIndex = formData.productOptions.findIndex(opt => opt.id === active.id);
-            const newIndex = formData.productOptions.findIndex(opt => opt.id === over.id);
-            updateField('productOptions', arrayMove(formData.productOptions, oldIndex, newIndex));
         }
     };
 
@@ -923,17 +1046,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
         });
     };
 
-    const handleOptionModeChange = (val: 'SINGLE' | 'RANKED' | 'MULTI') => {
-        campaignStore.updateFields({
-            optionConfig: {
-                ...formData.optionConfig,
-                mode: val,
-                // If mode changes to SINGLE, reset maxSelect to 1
-                maxSelect: val === 'SINGLE' ? 1 : formData.optionConfig.maxSelect
-            }
-        });
-    };
-
     const todayDate = formatKstDate();
     const schedulePreview = buildCampaignSchedule(
         formData.scheduleType,
@@ -1293,12 +1405,12 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
             {/* 배송체험단 - 제품 정보 */}
             {formData.campaignType === 'DELIVERY' && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <h2 className="text-lg font-bold text-gray-900 mb-4">체험 상품 · 모집 조건</h2>
+                <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                    <h2 className="mb-4 text-lg font-bold text-gray-900 sm:text-xl">제공 상품 · 옵션</h2>
 
                     {/* 진행할 쇼핑몰 상품 링크 */}
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                        <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-gray-700">
                             진행할 상품 링크(url)을 입력해 주세요 {!formData.productUrlIndividual && <span className="text-red-500">*</span>}
                             {fieldValidation.productUrl === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
@@ -1386,7 +1498,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
                     {/* 상품명 */}
                     <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                        <label className="mb-1 flex items-center gap-1 text-sm font-semibold text-gray-700">
                             상품명 (체험 제품) <span className="text-red-500">*</span>
                             {fieldValidation.productName === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
@@ -1409,6 +1521,33 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             💡 체험 전송받으실 정확한 상품명을 입력해 주세요. (예: [브랜드명] 상품명 옵션)
                         </p>
                     </div>
+
+                    <div id="experience-details" className="mt-6 border-t border-slate-200 pt-6 outline-none" tabIndex={-1}>
+                        <label className="mb-1 block text-sm font-semibold text-gray-700">
+                            추가 제공 안내 <span className="text-xs font-normal text-gray-500">(선택)</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={formData.experienceDetails || ''}
+                            onChange={(event) => campaignStore.setField('experienceDetails', event.target.value)}
+                            placeholder="예: 본품 1개 제공, 색상 랜덤, 추가금 없음"
+                            className="h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-base font-normal focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                        />
+                        <p className="mt-1 text-sm font-normal text-gray-500 break-keep">
+                            상품명과 다른 수량·구성·추가 비용 조건이 있을 때만 입력해 주세요.
+                        </p>
+                    </div>
+
+                    <ProductOptionsEditor
+                        campaignType={formData.campaignType}
+                        options={formData.productOptions}
+                        optionConfig={formData.optionConfig}
+                        onAdd={addProductOption}
+                        onRemove={removeProductOption}
+                        onUpdate={updateProductOption}
+                        onReorder={(options) => campaignStore.setField('productOptions', options)}
+                        onConfigChange={(optionConfig) => campaignStore.setField('optionConfig', optionConfig)}
+                    />
                 </section>
             )}
             {/* 매장 정보 (방문체험단/기자단만) */}
@@ -1593,9 +1732,11 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 </section>
             )}
 
-            {/* 체험 제공 내역 */}
-            <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">체험제공 정보</h2>
+            {/* 방문 운영 정보 / 배송 비용 정보 */}
+            <section className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-6">
+                <h2 className="mb-4 text-lg font-bold text-gray-900 sm:text-xl">
+                    {formData.campaignType === 'DELIVERY' ? '비용 및 지급 정보' : '제공 서비스 · 방문 정보'}
+                </h2>
 
                 {formData.campaignType !== 'DELIVERY' && (
                     <>
@@ -1792,19 +1933,33 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                     </>
                 )}
 
-                {/* 체험 제공 내역 - 전체 너비 */}
-                <div id="experience-details" className="mt-4 outline-none" tabIndex={-1}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                        체험 제공 내역 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={formData.experienceDetails || ''}
-                        onChange={(e) => campaignStore.setField('experienceDetails', e.target.value)}
-                        placeholder="예: 3만원 식사권 (추가 주문 발생 시 리뷰어 부담)"
-                        className="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                </div>
+                {formData.campaignType !== 'DELIVERY' && (
+                    <>
+                        <div id="experience-details" className="mt-6 border-t border-slate-200 pt-6 outline-none" tabIndex={-1}>
+                            <label className="mb-1 block text-sm font-semibold text-gray-700">
+                                체험 제공 내역 <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                value={formData.experienceDetails || ''}
+                                onChange={(event) => campaignStore.setField('experienceDetails', event.target.value)}
+                                placeholder="예: 3만원 식사권 제공 (추가 주문은 리뷰어 부담)"
+                                className="h-11 w-full rounded-lg border border-gray-300 px-3 py-2 text-base font-normal focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <ProductOptionsEditor
+                            campaignType={formData.campaignType}
+                            options={formData.productOptions}
+                            optionConfig={formData.optionConfig}
+                            onAdd={addProductOption}
+                            onRemove={removeProductOption}
+                            onUpdate={updateProductOption}
+                            onReorder={(options) => campaignStore.setField('productOptions', options)}
+                            onConfigChange={(optionConfig) => campaignStore.setField('optionConfig', optionConfig)}
+                        />
+                    </>
+                )}
 
                 {/* 공식 판매가 & 상품 결제 금액 - 좌우 배치 */}
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1963,135 +2118,6 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                     </div>
                 )}
             </section>
-
-            {/* 제품/서비스 옵션 정보 (전체 타입 공통) */}
-            {formData.campaignType && (
-                <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-lg font-bold text-gray-900">제공 옵션 설정</h2>
-                        <p className="text-xs text-gray-500">드래그하여 순서 변경 가능</p>
-                    </div>
-
-                    {/* 옵션 목록 */}
-                    <div className="mb-4">
-                        {formData.productOptions.length === 0 ? (
-                            <div className="text-center py-12 text-gray-400 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50">
-                                <p className="text-sm mb-2">옵션이 없는 경우 추가하지 않아도 됩니다.</p>
-                                <p className="text-xs text-gray-400">(단일 상품/서비스)</p>
-                            </div>
-                        ) : (
-                            <>
-                                {/* Table Header */}
-                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border border-gray-200 rounded-t-lg text-xs font-bold text-gray-600">
-                                    <div className="w-6 flex-shrink-0"></div>
-                                    <div className="w-8 text-center flex-shrink-0">#</div>
-                                    <div className="flex-1">옵션 정보 <span className="text-red-500">*</span></div>
-                                    <div className="w-24 text-center flex-shrink-0">모집 인원</div>
-                                    <div className="w-8 flex-shrink-0"></div>
-                                </div>
-
-                                {/* Sortable Options */}
-                                <DndContext
-                                    sensors={sensors}
-                                    collisionDetection={closestCenter}
-                                    onDragEnd={handleDragEnd}
-                                >
-                                    <SortableContext
-                                        items={formData.productOptions.map(opt => opt.id)}
-                                        strategy={verticalListSortingStrategy}
-                                    >
-                                        <div className="space-y-2 border-x border-b border-gray-200 rounded-b-lg p-2 bg-gray-50/50">
-                                            {formData.productOptions.map((option, index) => (
-                                                <SortableOptionRow
-                                                    key={option.id}
-                                                    option={option}
-                                                    index={index}
-                                                    campaignType={formData.campaignType}
-                                                    onUpdate={updateProductOption}
-                                                    onRemove={removeProductOption}
-                                                />
-                                            ))}
-                                        </div>
-                                    </SortableContext>
-                                </DndContext>
-                            </>
-                        )}
-                    </div>
-
-                    {/* 옵션 추가 버튼 */}
-                    <button
-                        onClick={addProductOption}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 border-2 border-dashed border-blue-200 rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all"
-                    >
-                        <Plus size={18} />
-                        옵션 추가
-                    </button>
-
-                    {/* 옵션 선택 규칙 설정 */}
-                    <div className="mt-6 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                        <div className="p-6">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                {/* 선택 모드 드롭다운 - 2칸 차지 */}
-                                <div className="space-y-3 md:col-span-2">
-                                    <Label className="text-sm font-bold text-slate-700">선택 모드</Label>
-                                    <Select
-                                        value={formData.optionConfig.mode}
-                                        onValueChange={(val: 'SINGLE' | 'RANKED' | 'MULTI') => handleOptionModeChange(val)}
-                                    >
-                                        <SelectTrigger className="h-12 rounded-xl border-slate-200 font-medium focus:ring-rose-500/20">
-                                            <SelectValue placeholder="선택 모드를 선택하세요" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                            <SelectItem value="SINGLE" className="font-medium focus:bg-rose-50 text-slate-700">단일 선택 (하나만 선택)</SelectItem>
-                                            <SelectItem value="RANKED" className="font-medium focus:bg-rose-50 text-slate-700">순위 선택 (1~3순위 희망)</SelectItem>
-                                            <SelectItem value="MULTI" className="font-medium focus:bg-rose-50 text-slate-700">중복 선택 (여러 개 당첨 가능)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                {/* 최대 선택 가능 개수 - 1칸 차지 */}
-                                {formData.optionConfig.mode !== 'SINGLE' && (
-                                    <div className="space-y-3 md:col-span-1 animate-in fade-in slide-in-from-right-2 duration-300">
-                                        <Label className="text-sm font-bold text-slate-700">
-                                            {formData.optionConfig.mode === 'RANKED' ? '희망 순위 제한' : '최대 선택 가능 개수'}
-                                        </Label>
-                                        <div className="flex items-center gap-2 h-12">
-                                            <Input
-                                                type="number"
-                                                value={formData.optionConfig.maxSelect}
-                                                onChange={(e) => campaignStore.setField('optionConfig', {
-                                                    ...formData.optionConfig,
-                                                    maxSelect: Math.max(1, parseInt(e.target.value) || 1)
-                                                })}
-                                                min="1"
-                                                max={formData.productOptions.length > 0 ? formData.productOptions.length : 10}
-                                                className="flex-1 h-full text-center text-lg font-bold border-slate-200 rounded-xl"
-                                            />
-                                            <span className="text-base font-bold text-slate-600">개</span>
-                                        </div>
-                                        <p className="text-[11px] text-slate-500 font-medium">
-                                            {formData.optionConfig.mode === 'RANKED'
-                                                ? '인플루언서가 최대 몇 순위까지 신청할 수 있는지 설정합니다.'
-                                                : '인플루언서 한 명에게 최대 몇 개의 옵션을 배정할지 설정합니다.'}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className="px-6 py-4 bg-indigo-50/30 border-t border-indigo-100 flex items-start gap-3">
-                            <Info size={16} className="text-indigo-500 mt-0.5 flex-shrink-0" />
-                            <p className="text-[13px] text-indigo-700 font-medium leading-relaxed">
-                                {
-                                    formData.optionConfig.mode === 'RANKED' ? `인플루언서가 최대 ${formData.optionConfig.maxSelect}순위까지 우선순위를 정해 신청할 수 있어 당첨 확률이 높아집니다.` :
-                                        formData.optionConfig.mode === 'MULTI' ? `인플루언서가 선택한 옵션 중 최대 ${formData.optionConfig.maxSelect}개까지 당첨될 수 있는 방식입니다.` :
-                                            "가장 일반적인 방식으로, 인플루언서가 하나의 옵션만 선택하여 신청합니다."
-                                }
-                            </p>
-                        </div>
-                    </div>
-                </section>
-            )}
-
 
             {/* 모집 정보 & 일정 */}
             <section className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

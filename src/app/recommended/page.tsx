@@ -7,9 +7,9 @@ import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { Star, MapPin, Zap, Info, Smartphone, Target, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { getCampaignRecruitTarget, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
+import { getCampaignRecruitTarget, isCampaignOpenForApplications, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
-import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import { isRole, USER_ROLES } from '@/constants/role';
 
 const REGION_MAP: Record<string, string> = {
@@ -60,8 +60,9 @@ export default function RecommendedCampaigns() {
         // 모집 중이거나 진행 중인 캠페인만 조회
         const { data: campaignData, error: campaignError } = await supabase
           .from('campaigns')
-          .select('*')
+          .select('*, selected_applications:applications(count)')
           .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+          .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
           .order('created_at', { ascending: false });
 
         if (campaignError) throw campaignError;
@@ -73,6 +74,7 @@ export default function RecommendedCampaigns() {
         const userRegions = profile?.preferred_regions || [];
 
         const filtered = (campaignData || [])
+          .filter((campaign) => isCampaignOpenForApplications(campaign))
           .map(campaign => {
             let score = 0;
             const reasons: string[] = [];

@@ -1,8 +1,8 @@
 import { unstable_cache } from 'next/cache';
 import { getPublicServerClient } from './supabase/publicServer';
-import { mapCampaignToCard } from './campaignUtils';
+import { isCampaignOpenForApplications, mapCampaignToCard } from './campaignUtils';
 import { BannerItem } from '@/components/InteractiveRollingBanner';
-import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import type { Campaign } from '@/types/database';
 import { CAMPAIGN_CARD_SELECT } from './campaignSelects';
 
@@ -64,6 +64,7 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
                 .from('campaigns')
                 .select(CAMPAIGN_CARD_SELECT)
                 .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
+                .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
                 .order('created_at', { ascending: false })
         ]);
 
@@ -75,7 +76,8 @@ const fetchAllBannerDataCached = unstable_cache(async (): Promise<BannerItem[]> 
         }
 
         const bannerRows = (bannersRes.data ?? []) as BannerRow[];
-        const campaignRows = (campaignsRes.data ?? []) as CampaignRow[];
+        const campaignRows = ((campaignsRes.data ?? []) as CampaignRow[])
+            .filter((campaign) => isCampaignOpenForApplications(campaign));
         const mappedCampaigns = campaignRows.map((campaign) => mapCampaignToCard(campaign as CampaignCardSource));
         const mappedCampaignById = new Map(mappedCampaigns.map((campaign) => [String(campaign.id), campaign]));
 
