@@ -923,6 +923,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             if ((!formData.productUrlIndividual && !formData.productUrl) || !formData.productName) {
                 return false;
             }
+            if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.purchaseRewardMethod) {
+                return false;
+            }
             // 구매평 체험단인 경우 공식 판매가와 상품 결제 금액 필수 (단, 쿠폰/옵션 기준 리워드 체크 시 예외)
             if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired) {
                 if (!formData.officialPrice || !formData.productPrice) {
@@ -996,6 +999,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
             }
             if (!formData.productName) {
                 return scrollTo('product-name', '상품명을 입력해주세요.');
+            }
+            if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.purchaseRewardMethod) {
+                return scrollTo('purchase-reward-method', '구매평 리워드 지급 방식을 선택해주세요.');
             }
             // 구매평 체험단 유효성 검사 추가 (단, 쿠폰/옵션 기준 리워드 체크 시 예외)
             if ((formData.includeReview || formData.platform === 'PURCHASE') && !formData.isCouponRequired) {
@@ -1415,7 +1421,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             {fieldValidation.productUrl === true && (
                                 <span className="ml-2 text-green-500 text-sm">✓</span>
                             )}
-                            <HelpTooltip content={formData.productUrlIndividual ? "개별전달 설정 시 상품 링크 입력이 불필요합니다." : "https://로 시작하는 전체 URL을 입력해주세요"} />
+                            <HelpTooltip content={formData.productUrlIndividual ? "옵션별 링크는 아래 링크 풀에서 입력합니다." : "https://로 시작하는 전체 URL을 입력해주세요"} />
                         </label>
                         <input
                             id="product-url"
@@ -1424,7 +1430,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             onChange={(e) => campaignStore.setField('productUrl', e.target.value)}
                             onBlur={() => validateField('productUrl', formData.productUrl)}
                             disabled={formData.productUrlIndividual}
-                            placeholder={formData.productUrlIndividual ? "선정된 인플루언서에게 개별적으로 전달됩니다." : "예시) https://smartcampaignStore.naver.com/"}
+                            placeholder={formData.productUrlIndividual ? "옵션별 링크를 아래에서 입력해 주세요." : "예시) https://smartcampaignStore.naver.com/"}
                             className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${formData.productUrlIndividual ? 'bg-gray-50 border-gray-200 text-gray-400' : fieldValidation.productUrl === true ? 'border-green-300' : 'border-gray-300'
                                 }`}
                         />
@@ -1443,7 +1449,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                                         링크 비공개 설정
                                     </span>
-                                    <HelpTooltip content="링크는 체험 선정된 사람들에게만 보입니다." />
+                                    <HelpTooltip content="체크하면 선정 전에는 상품 링크를 숨기고, 선정된 인플루언서에게만 공개합니다." />
                                 </div>
                             </label>
 
@@ -1462,7 +1468,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     <span className="text-sm font-medium text-gray-700 group-hover:text-blue-600 transition-colors">
                                         선정시 구매링크 개별전달
                                     </span>
-                                    <HelpTooltip content="체크 시 상품 링크를 입력하지 않아도 됩니다." />
+                                    <HelpTooltip content="체크하면 옵션별 링크를 등록하고, 선정 시 확정 옵션의 구매링크를 개별 배정합니다." />
                                 </div>
                             </label>
                         </div>
@@ -1474,7 +1480,9 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 <div>
                                     <p className="text-sm font-bold text-blue-900">옵션별 개별 구매링크 풀</p>
                                     <p className="text-xs text-blue-700 mt-1">
-                                        옵션별로 한 줄에 하나씩 링크를 입력하세요. 선정 시 최소사용우선으로 자동 배정됩니다.
+                                        {formData.productUrlPrivate
+                                            ? '옵션별로 한 줄에 하나씩 입력하세요. 링크는 선정된 인플루언서에게만 개별 배정됩니다.'
+                                            : '상세 페이지에서는 옵션별 상품 보기로 노출되며, 선정 시 확정 옵션 링크가 개별 배정됩니다.'}
                                     </p>
                                 </div>
                             </div>
@@ -2049,7 +2057,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
                 {/* 구매평 리워드 지급 방식 선택 (배송 + 구매평 플랫폼인 경우만) */}
                 {formData.campaignType === 'DELIVERY' && (formData.includeReview || formData.platform === 'PURCHASE') && (
-                    <div className="mt-8 pt-6 border-t border-gray-100">
+                    <div id="purchase-reward-method" className="mt-8 pt-6 border-t border-gray-100" tabIndex={-1}>
                         <Label className="text-sm font-bold text-gray-900 mb-4 block">
                             구매평 리워드 지급 방식 <span className="text-red-500">*</span>
                         </Label>
@@ -2072,7 +2080,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     </div>
                                 </div>
                                 <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
-                                    인플루언서가 리뷰 작성을 완료하면, <strong className="text-slate-700">광고주가 인플루언서 은행 계좌로 결제 대금을 직접 송금</strong>합니다. (다온뷰 결제 시 리워드 금액 미포함)
+                                    구매금액과 구매평 증빙이 정상 확인되면, <strong className="text-slate-700">광고주가 등록된 정산 계좌로 1~2영업일 내 직접 송금</strong>합니다. (다온뷰 결제 시 리워드 금액 미포함)
                                 </p>
                             </button>
 
@@ -2097,7 +2105,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         </div>
                                     </div>
                                     <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
-                                        번거로운 송금 업무와 세금 처리를 다온뷰가 대행합니다. 미리 <strong className="text-slate-700">상품 결제 금액 + 부가세(10%)</strong>를 다온뷰에 결제해 두시면 됩니다.
+                                        증빙이 정상 확인되면 다온뷰가 등록된 정산 계좌로 1~2영업일 내 지급합니다. 미리 <strong className="text-slate-700">상품 결제 금액 + 부가세(10%)</strong>를 다온뷰에 결제해 두시면 됩니다.
                                     </p>
                                 </button>
                                 {formData.isCouponRequired && (

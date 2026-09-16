@@ -85,6 +85,30 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted, o
         }
     };
 
+    const loadCompletedCampaignDetail = async (campaignId: number) => {
+        const response = await fetch(`/api/campaigns/${campaignId}/editable`, {
+            method: 'GET',
+            cache: 'no-store',
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.data) {
+            throw new Error(payload?.error || '캠페인 데이터를 불러오지 못했습니다.');
+        }
+        return payload.data;
+    };
+
+    const handleCompletedCampaignAction = async (
+        campaignId: number,
+        callback: (campaign: any) => void
+    ) => {
+        try {
+            const campaign = await loadCompletedCampaignDetail(campaignId);
+            callback(campaign);
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : '캠페인 데이터를 불러오지 못했습니다.');
+        }
+    };
+
     return (
         <div className="w-full bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
             {/* 헤더 */}
@@ -202,14 +226,14 @@ export default function CampaignLoader({ userId, onLoadDraft, onLoadCompleted, o
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
-                                                onClick={() => onCopyCampaign(campaign)}
+                                                onClick={() => handleCompletedCampaignAction(campaign.id, onCopyCampaign)}
                                                 className="px-3 py-1.5 bg-indigo-500 text-white text-sm rounded-lg hover:bg-indigo-600 transition-colors flex items-center gap-1"
                                             >
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                                                 복사하기
                                             </button>
                                             <button
-                                                onClick={() => onLoadCompleted(campaign)}
+                                                onClick={() => handleCompletedCampaignAction(campaign.id, onLoadCompleted)}
                                                 className="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors flex items-center gap-1"
                                             >
                                                 <Download size={14} />

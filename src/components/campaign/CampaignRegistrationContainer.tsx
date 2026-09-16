@@ -473,6 +473,11 @@ export default function CampaignRegistrationContainer() {
             const displayMediumUrls = store.campaignImageVariants.length > 0
                 ? store.campaignImageVariants.map((variant) => variant.mediumUrl)
                 : (store.campaignImages || []);
+            // 최종 캠페인에는 보호 링크 풀을 중복 저장하지 않는다.
+            // 수정/복사 화면은 권한이 확인된 editable API에서 링크 풀을 다시 결합한다.
+            const persistedStep1Data = Object.fromEntries(
+                Object.entries(step1Data).filter(([key]) => key !== 'purchaseLinkPools')
+            );
             const campaignDataBase = {
                 brand_id: store.brandId,
                 brand_name: store.brandName,
@@ -499,7 +504,7 @@ export default function CampaignRegistrationContainer() {
                 store_locations: updatedStores.length > 0 ? updatedStores : null,
                 option_config: store.optionConfig || { mode: 'SINGLE', maxSelect: 1 },
                 campaign_options: {
-                    step1Data,
+                    step1Data: persistedStep1Data,
                     step2Data,
                     step3Data,
                     currentStep: 3,

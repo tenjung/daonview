@@ -237,8 +237,10 @@ export default function ReviewSubmitModal({
             await supabase.from('notifications').insert({
                 user_id: user.id,
                 type: 'CAMPAIGN_REVIEW_SUBMITTED',
-                title: '✅ 리뷰 제출 완료',
-                content: `[${campaignTitle}] 캠페인 리뷰를 성공적으로 제출했습니다. 관리자 확인 후 절차가 진행됩니다.`,
+                title: isPurchaseExperience ? '✅ 리뷰·증빙 등록 완료' : '✅ 리뷰 제출 완료',
+                content: isPurchaseExperience
+                    ? `[${campaignTitle}] 리뷰와 증빙이 등록되었습니다. 정상 확인 후 1~2영업일 내 입력한 계좌로 페이백이 진행됩니다.`
+                    : `[${campaignTitle}] 캠페인 리뷰를 성공적으로 제출했습니다. 관리자 확인 후 절차가 진행됩니다.`,
                 link: '/dashboard/influencer/campaigns'
             });
 
@@ -285,7 +287,11 @@ export default function ReviewSubmitModal({
                 }
             }
 
-            toast.success('리뷰가 성공적으로 등록되었습니다!');
+            toast.success(
+                isPurchaseExperience
+                    ? '리뷰와 증빙이 등록되었습니다. 확인 후 페이백이 진행됩니다.'
+                    : '리뷰가 성공적으로 등록되었습니다!'
+            );
             onSuccess();
             onClose();
             // Reset state
@@ -476,6 +482,9 @@ export default function ReviewSubmitModal({
                     {isPurchaseExperience && (
                         <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                             <Label className="text-sm font-black text-amber-900">리워드 정산 계좌 정보 (필수)</Label>
+                            <p className="rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-xs font-bold leading-relaxed text-amber-800">
+                                구매금액과 구매평 증빙이 정상 확인되면 1~2영업일 내 아래 계좌로 페이백됩니다.
+                            </p>
                             <Input
                                 placeholder="은행명 (예: 카카오뱅크)"
                                 value={bankName}

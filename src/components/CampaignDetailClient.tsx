@@ -43,7 +43,7 @@ import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
 import { formatDDay, mapCampaignToCard, resolveCampaignImageVariants, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 import { formatKstDate } from '@/lib/campaignSchedule';
-import { CAMPAIGN_CARD_SELECT, CAMPAIGN_DETAIL_SELECT } from '@/lib/campaignSelects';
+import { CAMPAIGN_CARD_SELECT } from '@/lib/campaignSelects';
 import {
     Dialog,
     DialogContent,
@@ -78,12 +78,14 @@ import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
 import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
+import { normalizeOptionKey, type PublicPurchaseLink } from '@/lib/purchaseLink';
 import type { ProductOption, Profile } from '@/types/database';
 
 
 interface CampaignDetailClientProps {
     campaign: any;
     id: string;
+    publicOptionLinks?: PublicPurchaseLink[];
 }
 
 function formatDateFixed(rawValue: string | null | undefined): string {
@@ -104,7 +106,7 @@ function getProductOptionName(option: ProductOption | string): string {
     return typeof option === 'string' ? option.trim() : String(option.optionName || '').trim();
 }
 
-export default function CampaignDetailClient({ campaign: initialCampaign, id }: CampaignDetailClientProps) {
+export default function CampaignDetailClient({ campaign: initialCampaign, id, publicOptionLinks = [] }: CampaignDetailClientProps) {
     const router = useRouter();
     const pathname = usePathname();
     const { user, profile } = useAuthStore();
@@ -134,6 +136,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const [applicationId, setApplicationId] = useState<number>(0);
     const [assignedPurchaseLink, setAssignedPurchaseLink] = useState<string>('');
     const [assignedOptionLabel, setAssignedOptionLabel] = useState<string>('');
+    const [privateProductLink, setPrivateProductLink] = useState<string>('');
     const [mainApi, setMainApi] = useState<CarouselApi>();
 
     async function revalidateCampaignListCaches() {
@@ -251,34 +254,25 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     }, [campaign.created_by, campaign.id]);
 
     const fetchCampaign = async () => {
-        // Fetch campaign details along with counts for all vs approved applications
-        const { data } = await supabase
-            .from('campaigns')
-            .select(CAMPAIGN_DETAIL_SELECT)
-            .eq('id', id)
-            .single();
-
-        if (data) {
-            const campaignData = data as unknown as Record<string, unknown>;
-            // Get total application count
-            const { count: totalCount } = await supabase
+        // 공개 상세 데이터 전체를 다시 읽으면 비공개 링크 필드가 클라이언트 응답에 섞일 수 있다.
+        // 신청 액션 후에는 화면에 필요한 집계값만 갱신한다.
+        const [{ count: totalCount }, { count: approvedCount }] = await Promise.all([
+            supabase
                 .from('applications')
                 .select('*', { count: 'exact', head: true })
-                .eq('campaign_id', id);
-
-            // Get approved application count
-            const { count: approvedCount } = await supabase
+                .eq('campaign_id', id),
+            supabase
                 .from('applications')
                 .select('*', { count: 'exact', head: true })
                 .eq('campaign_id', id)
-                .in('status', ['SELECTED', 'APPROVED']);
+                .in('status', ['SELECTED', 'APPROVED']),
+        ]);
 
-            setCampaign({
-                ...campaignData,
-                total_app_count: totalCount || 0,
-                approved_app_count: approvedCount || 0
-            });
-        }
+        setCampaign((current: any) => ({
+            ...current,
+            total_app_count: totalCount || 0,
+            approved_app_count: approvedCount || 0,
+        }));
     };
 
     async function checkUserStatus(currentUser: any) {
@@ -313,11 +307,28 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                 setApplicationMessage(appData.application_message || '');
                 setAssignedPurchaseLink(appData.assigned_purchase_link_url || '');
                 setAssignedOptionLabel(appData.assigned_option_label || '');
+
+                const normalizedApplicationStatus = String(appData.status || '').toUpperCase();
+                if (
+                    productUrlPrivate &&
+                    !productUrlIndividual &&
+                    (normalizedApplicationStatus === 'SELECTED' || normalizedApplicationStatus === 'APPROVED')
+                ) {
+                    const linkResponse = await fetch(`/api/campaigns/${id}/purchase-link`, {
+                        method: 'GET',
+                        cache: 'no-store',
+                    });
+                    const linkPayload = await linkResponse.json().catch(() => null);
+                    setPrivateProductLink(linkResponse.ok ? String(linkPayload?.url || '') : '');
+                } else {
+                    setPrivateProductLink('');
+                }
             } else {
                 setHasApplied(false);
                 setApplicationStatus(null);
                 setAssignedPurchaseLink('');
                 setAssignedOptionLabel('');
+                setPrivateProductLink('');
             }
         } catch (err) {
             console.error('Error in checkUserStatus:', err);
@@ -765,7 +776,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
     const visitDays = Array.isArray(campaign.visit_days) ? campaign.visit_days : (step1Data.visitDays || []);
     const visitNotes = campaign.visit_notes || step1Data.visitNotes || '';
     const productUrl = step1Data.productUrl || '';
+    const productUrlPrivate = Boolean(step1Data.productUrlPrivate);
     const productUrlIndividual = step1Data.productUrlIndividual || false;
+    const publicOptionLinkMap = new Map(
+        publicOptionLinks.map((link) => [normalizeOptionKey(link.optionKey || link.optionLabel), link.url])
+    );
     const canViewAssignedPurchaseLink =
         isInfluencerViewer &&
         (applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED');
@@ -833,41 +848,47 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
         campaign.purchase_reward_method ||
         ''
     ).toUpperCase();
-    const shouldShowDirectPurchaseRewardNotice =
+    // 기존 캠페인의 빈 값은 비용 계산 로직과 동일하게 광고주 직접 지급으로 해석한다.
+    const resolvedPurchaseRewardMethod = purchaseRewardMethod === 'DAONVIEW' ? 'DAONVIEW' : 'DIRECT';
+    const purchaseRewardPayer = resolvedPurchaseRewardMethod === 'DAONVIEW' ? '다온뷰' : '광고주';
+    const shouldShowPurchaseRewardNotice =
         platformState.normalizedType === 'DELIVERY' &&
-        platformState.includeReview &&
-        purchaseRewardMethod === 'DIRECT';
-    const directPurchaseRewardSummary = '구매평 완료 후 광고주가 직접 페이백합니다.';
-    const directPurchaseRewardDescription =
-        '이 캠페인은 구매평 진행 캠페인입니다. 캠페인 미션을 완료하면 광고주가 인플루언서에게 구매 금액을 직접 페이백합니다. 지급 기준과 시점은 캠페인 완료 및 리뷰 확인 후 광고주 안내에 따라 진행됩니다.';
+        platformState.includeReview;
+    const purchaseRewardSummary = `증빙 확인 후 1~2영업일 내 ${purchaseRewardPayer}가 페이백합니다.`;
+    const purchaseRewardDescription =
+        `구매금액과 구매평 증빙을 다온뷰에 등록하면 정상 확인 후 1~2영업일 내 ${purchaseRewardPayer}가 입력된 정산 계좌로 구매 금액을 지급합니다.`;
     const shouldShowDeliveryFlowGuide =
         platformState.normalizedType === 'DELIVERY';
     const deliveryFlowLead = platformState.includeReview
         ? platformState.includeInstagram
-            ? '선 구매 후 쇼핑몰 리뷰와 인스타 후기를 해야 하는 체험입니다.'
+            ? '상품 구매 후 쇼핑몰 리뷰와 인스타 후기를 등록하면 확인 후 페이백되는 체험입니다.'
             : platformState.includeNaver
-                ? '선 구매 후 쇼핑몰 리뷰와 블로그 후기를 해야 하는 체험입니다.'
-                : '선 구매 후 쇼핑몰 리뷰를 해야 하는 체험입니다.'
+                ? '상품 구매 후 쇼핑몰 리뷰와 블로그 후기를 등록하면 확인 후 페이백되는 체험입니다.'
+                : '상품 구매 후 쇼핑몰 리뷰와 증빙을 등록하면 확인 후 페이백되는 체험입니다.'
         : platformState.includeInstagram
             ? '선정된 인원에게 제품이 발송되며, 인스타 후기를 작성하는 체험입니다.'
             : '선정된 인원에게 제품이 발송되며, 블로그 후기를 작성하는 체험입니다.';
     const deliveryFlowSteps = platformState.includeReview
         ? [
             {
-                title: '쇼핑몰 구매',
-                description: '상품 구매 진행',
+                title: '상품 구매',
+                description: '안내 링크에서 상품 구매',
             },
             {
                 title: '리뷰 작성',
                 description: platformState.includeInstagram
                     ? '쇼핑몰 리뷰 + 인스타 후기'
                     : platformState.includeNaver
-                        ? '쇼핑몰 리뷰 + 블로그 후기'
-                        : '쇼핑몰 리뷰 작성',
+                        ? '쇼핑몰·블로그 후기 작성'
+                        : '쇼핑몰 구매평 작성',
             },
             {
-                title: '다온뷰 등록',
-                description: '링크 등록 후 완료',
+                title: '증빙 등록',
+                description: '증빙·정산 계좌 등록',
+            },
+            {
+                title: '페이백',
+                description: '확인 후 1~2영업일 내 지급',
             },
         ]
         : [
@@ -1074,19 +1095,53 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                     <span className="text-xs font-semibold text-blue-600">{optionSelectionLabel}</span>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                                    {optionNames.map((optionName, index) => (
-                                                        <div
-                                                            key={`${optionName}-${index}`}
-                                                            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold leading-relaxed text-slate-700 break-keep"
-                                                        >
-                                                            {optionName}
-                                                        </div>
-                                                    ))}
+                                                    {optionNames.map((optionName, index) => {
+                                                        const previewUrl = publicOptionLinkMap.get(normalizeOptionKey(optionName));
+
+                                                        return (
+                                                            <div
+                                                                key={`${optionName}-${index}`}
+                                                                className="flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 transition-colors hover:border-slate-300 hover:bg-slate-50"
+                                                            >
+                                                                <TooltipProvider delayDuration={250}>
+                                                                    <Tooltip>
+                                                                        <TooltipTrigger asChild>
+                                                                            <button
+                                                                                type="button"
+                                                                                aria-label={`옵션 전체 이름: ${optionName}`}
+                                                                                className="min-w-0 flex-1 text-left text-sm font-semibold text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                                                                            >
+                                                                                <span className="block truncate">{optionName}</span>
+                                                                            </button>
+                                                                        </TooltipTrigger>
+                                                                        <TooltipContent
+                                                                            side="top"
+                                                                            className="max-w-[min(320px,calc(100vw-32px))] break-words border-slate-700 bg-slate-900 text-white"
+                                                                        >
+                                                                            {optionName}
+                                                                        </TooltipContent>
+                                                                    </Tooltip>
+                                                                </TooltipProvider>
+                                                                {previewUrl && (
+                                                                    <a
+                                                                        href={previewUrl}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        aria-label={`${optionName} 상품 보기`}
+                                                                        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-[11px] font-bold text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                                    >
+                                                                        상품 보기
+                                                                        <ExternalLink className="h-3 w-3" />
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             </div>
                                         )}
 
-                                        {(productUrlIndividual || productUrl) && (
+                                        {(productUrlIndividual || productUrl || privateProductLink) && (
                                             <div className="border-t border-slate-200 pt-4">
                                                 <p className="mb-1 text-sm font-semibold text-slate-500">체험 상품 링크</p>
                                                 {productUrlIndividual ? (
@@ -1110,13 +1165,27 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                         ) : (
                                                             <span className="text-sm font-semibold text-amber-600">링크 준비중</span>
                                                         )
-                                                    ) : (
+                                                    ) : publicOptionLinks.length > 0 ? (
+                                                        <span className="text-sm font-semibold text-slate-600 break-keep">옵션별 상품 보기 버튼에서 제품을 확인할 수 있습니다. 선정 후 확정 옵션 링크가 개별 전달됩니다.</span>
+                                                    ) : productUrlPrivate ? (
                                                         <span className="text-sm font-semibold text-slate-600 break-keep">선정된 인플루언서에게 개별적으로 전달됩니다.</span>
+                                                    ) : (
+                                                        <span className="text-sm font-semibold text-amber-600">옵션별 상품 링크 준비중</span>
                                                     )
                                                 ) : (
-                                                    <a href={productUrl} target="_blank" rel="noopener noreferrer" className="inline-block max-w-full break-all text-sm font-semibold text-blue-500 underline hover:text-blue-600">
-                                                        {productUrl}
-                                                    </a>
+                                                    (productUrlPrivate ? privateProductLink : productUrl) ? (
+                                                        <a
+                                                            href={productUrlPrivate ? privateProductLink : productUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                                        >
+                                                            상품 보기
+                                                            <ExternalLink className="h-4 w-4" />
+                                                        </a>
+                                                    ) : (
+                                                        <span className="text-sm font-semibold text-slate-600 break-keep">선정된 인플루언서에게만 링크가 공개됩니다.</span>
+                                                    )
                                                 )}
                                             </div>
                                         )}
@@ -1143,25 +1212,21 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-center">
+                                            <div className={`mt-5 grid gap-3 ${platformState.includeReview
+                                                ? 'sm:grid-cols-2 xl:grid-cols-4'
+                                                : 'md:grid-cols-3'
+                                                }`}>
                                                 {deliveryFlowSteps.map((step, index) => (
-                                                    <div key={step.title} className="contents md:contents">
-                                                        <div className="rounded-2xl bg-white px-4 py-4 ring-1 ring-slate-200">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="inline-flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-900 text-[12px] font-black text-white">
-                                                                    {index + 1}
-                                                                </span>
-                                                                <p className="text-[16px] font-bold text-slate-900">{step.title}</p>
-                                                            </div>
-                                                            <p className="mt-2 text-[13px] font-medium text-slate-600">
-                                                                {step.description}
-                                                            </p>
+                                                    <div key={step.title} className="h-full min-w-0 rounded-2xl bg-white px-4 py-4 ring-1 ring-slate-200">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white">
+                                                                {index + 1}
+                                                            </span>
+                                                            <p className="whitespace-nowrap text-[14px] font-bold text-slate-900">{step.title}</p>
                                                         </div>
-                                                        {index < deliveryFlowSteps.length - 1 && (
-                                                            <div className="hidden md:flex items-center justify-center px-1 text-slate-300">
-                                                                <ArrowRight className="h-4 w-4" />
-                                                            </div>
-                                                        )}
+                                                        <p className="mt-2 whitespace-nowrap text-[11px] font-semibold leading-relaxed text-slate-600">
+                                                            {step.description}
+                                                        </p>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1560,7 +1625,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                             </div>
                                         </div>
 
-                                        {shouldShowDirectPurchaseRewardNotice && (
+                                        {shouldShowPurchaseRewardNotice && (
                                             <div className="flex items-start justify-between gap-4 border-b border-amber-100 bg-amber-50/60 px-4 py-3.5">
                                                 <div className="flex min-w-0 items-start gap-3">
                                                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-amber-600 shadow-sm ring-1 ring-amber-100">
@@ -1582,14 +1647,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                     </TooltipTrigger>
                                                                     <TooltipContent side="top" className="max-w-[280px] bg-slate-900 text-white border-slate-700">
                                                                         <p className="text-[11px] leading-relaxed font-medium break-keep">
-                                                                            {directPurchaseRewardDescription}
+                                                                            {purchaseRewardDescription}
                                                                         </p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         </div>
                                                         <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-600 break-keep">
-                                                            {directPurchaseRewardSummary}
+                                                            {purchaseRewardSummary}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1688,7 +1753,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                         <span className="shrink-0 w-5 h-5 bg-rose-500 text-white rounded-md flex items-center justify-center text-[9px] font-black shadow-sm">
                                                                             {optionConfig.mode === 'RANKED' ? i + 1 : '✓'}
                                                                         </span>
-                                                                        <p className="text-xs font-bold text-gray-700 truncate flex-1 leading-none">
+                                                                        <p
+                                                                            title={typeof s === 'object' ? s.optionName : s}
+                                                                            className="min-w-0 flex-1 truncate text-xs font-bold leading-none text-gray-700"
+                                                                        >
                                                                             {typeof s === 'object' ? s.optionName : s}
                                                                         </p>
                                                                     </div>
@@ -1748,11 +1816,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                                                 <TooltipProvider delayDuration={300}>
                                                                                     <Tooltip>
                                                                                         <TooltipTrigger asChild>
-                                                                                            <p className={`text-[13px] font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                                            <p className={`block max-w-full truncate whitespace-nowrap text-[13px] font-bold leading-snug ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
                                                                                                 {label}
                                                                                             </p>
                                                                                         </TooltipTrigger>
-                                                                                        <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
+                                                                                        <TooltipContent side="top" className="max-w-[min(320px,calc(100vw-32px))] break-words border-slate-700 bg-slate-900 text-white">
                                                                                             <p className="text-xs font-medium leading-relaxed">{label}</p>
                                                                                         </TooltipContent>
                                                                                     </Tooltip>
@@ -2159,11 +2227,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id }: 
                                                         <TooltipProvider delayDuration={300}>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
-                                                                    <p className={`text-sm font-bold leading-snug whitespace-normal break-keep ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                    <p className={`block max-w-full truncate whitespace-nowrap text-sm font-bold leading-snug ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
                                                                         {label}
                                                                     </p>
                                                                 </TooltipTrigger>
-                                                                <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
+                                                                <TooltipContent side="top" className="max-w-[min(320px,calc(100vw-32px))] break-words border-slate-700 bg-slate-900 text-white">
                                                                     <p className="text-xs font-medium leading-relaxed">{label}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>

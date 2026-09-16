@@ -3,6 +3,12 @@ export interface ParsedOptionCandidate {
   key: string;
 }
 
+export interface PublicPurchaseLink {
+  optionKey: string;
+  optionLabel: string;
+  url: string;
+}
+
 export function normalizeOptionLabel(label: string): string {
   return String(label || '')
     .replace(/\s+/g, ' ')
@@ -44,4 +50,3 @@ export function parseLinkInput(value: string): string[] {
 
   return Array.from(new Set(rows));
 }
-
