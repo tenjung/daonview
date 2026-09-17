@@ -1,13 +1,3 @@
-alter table public.applications
-  add column if not exists assigned_purchase_links jsonb not null default '[]'::jsonb;
-
-alter table public.applications
-  drop constraint if exists applications_assigned_purchase_links_array_check;
-
-alter table public.applications
-  add constraint applications_assigned_purchase_links_array_check
-  check (jsonb_typeof(assigned_purchase_links) = 'array');
-
 create or replace function public.select_application_with_links(
   p_application_id bigint,
   p_campaign_id bigint,
