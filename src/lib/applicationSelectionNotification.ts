@@ -10,6 +10,8 @@ interface SendSelectionNotificationParams {
   deadlineDate: string;
   assignedOptionLabel?: string | null;
   assignedPurchaseLink?: string | null;
+  campaignUrl: string;
+  guideSummary: string;
 }
 
 interface SendSelectionNotificationResult {
@@ -68,6 +70,8 @@ export async function sendSelectionNotification(
         deadlineDate: params.deadlineDate,
         assignedOptionLabel,
         assignedPurchaseLink,
+        campaignUrl: params.campaignUrl,
+        guideSummary: params.guideSummary,
       });
 
       if (!emailResult.success) {
@@ -94,4 +98,3 @@ export async function sendSelectionNotification(
     errors,
   };
 }
-

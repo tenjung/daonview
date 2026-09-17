@@ -23,7 +23,6 @@ interface ReviewSubmitModalProps {
     applicationId: number;
     campaignId: number;
     campaignTitle: string;
-    creatorId: string;
     isPurchaseExperience?: boolean;
     onSuccess: () => void;
 }
@@ -34,7 +33,6 @@ export default function ReviewSubmitModal({
     applicationId,
     campaignId,
     campaignTitle,
-    creatorId,
     isPurchaseExperience = false,
     onSuccess
 }: ReviewSubmitModalProps) {
@@ -57,20 +55,14 @@ export default function ReviewSubmitModal({
         if (!isOpen) return;
 
         const loadProfilePayoutInfo = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
-
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('bank_name, account_holder, account_number')
-                .eq('id', user.id)
-                .single();
-
-            if (profile) {
-                setBankName(profile.bank_name || '');
-                setAccountHolder(profile.account_holder || '');
-                setAccountNumber(profile.account_number || '');
-            }
+            const response = await fetch('/api/reviews/submit', { cache: 'no-store' });
+            if (!response.ok) return;
+            const data = await response.json() as {
+                payout?: { bankName?: string; accountHolder?: string; accountNumber?: string };
+            };
+            setBankName(data.payout?.bankName || '');
+            setAccountHolder(data.payout?.accountHolder || '');
+            setAccountNumber(data.payout?.accountNumber || '');
         };
 
         loadProfilePayoutInfo();
@@ -111,7 +103,7 @@ export default function ReviewSubmitModal({
 
             setMediaUrls(prev => [...prev, ...newUrls]);
             toast.success(`${newUrls.length}개의 파일이 업로드되었습니다.`);
-        } catch (error: any) {
+        } catch (error) {
             console.error('Upload error:', error);
             toast.error('파일 업로드 중 오류가 발생했습니다.');
         } finally {
@@ -183,108 +175,25 @@ export default function ReviewSubmitModal({
 
         setIsSubmitting(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('User not found');
-
-            if (isPurchaseExperience) {
-                const { error: payoutError } = await supabase
-                    .from('profiles')
-                    .update({
-                        bank_name: bankName.trim(),
-                        account_holder: accountHolder.trim(),
-                        account_number: accountNumber.trim(),
-                    })
-                    .eq('id', user.id);
-
-                if (payoutError) throw payoutError;
-            }
-
-            const proofUrls = isPurchaseExperience
-                ? [purchaseAmountProofUrl, purchaseReviewProofUrl].filter(Boolean)
-                : mediaUrls;
-            const finalPostUrl = isPurchaseExperience
-                ? (reviewUrl.trim() || 'PURCHASE_PROOF')
-                : reviewUrl.trim();
-
-            // 1. applications 테이블 업데이트 (리뷰 제출됨 표시 및 완료 처리)
-            const { error: appError } = await supabase
-                .from('applications')
-                .update({
-                    status: 'COMPLETED',
-                    review_submitted: true,
-                    review_media_urls: proofUrls
-                })
-                .eq('id', applicationId);
-
-            if (appError) throw appError;
-
-            // 2. reviews 테이블에 레코드 생성 (관리자 확인용)
-            const { error: reviewError } = await supabase
-                .from('reviews')
-                .insert({
-                    user_id: user.id,
-                    campaign_id: campaignId,
-                    post_url: finalPostUrl,
-                    description: reviewContent,
-                    thumbnail_url: proofUrls[0] || null,
-                    status: 'PENDING', // 관리자 승출 대기
-                    platform: 'LINK' // 도메인에 따라 유추 가능하지만 일단 LINK로 저장
-                });
-
-            if (reviewError) throw reviewError;
-
-            // 3. 알림 생성 (인플루언서 본인)
-            await supabase.from('notifications').insert({
-                user_id: user.id,
-                type: 'CAMPAIGN_REVIEW_SUBMITTED',
-                title: isPurchaseExperience ? '✅ 리뷰·증빙 등록 완료' : '✅ 리뷰 제출 완료',
-                content: isPurchaseExperience
-                    ? `[${campaignTitle}] 리뷰와 증빙이 등록되었습니다. 정상 확인 후 1~2영업일 내 입력한 계좌로 페이백이 진행됩니다.`
-                    : `[${campaignTitle}] 캠페인 리뷰를 성공적으로 제출했습니다. 관리자 확인 후 절차가 진행됩니다.`,
-                link: '/dashboard/influencer/campaigns'
+            const response = await fetch('/api/reviews/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    applicationId,
+                    campaignId,
+                    reviewUrl,
+                    reviewContent,
+                    mediaUrls,
+                    purchaseAmountProofUrl,
+                    purchaseReviewProofUrl,
+                    bankName,
+                    accountHolder,
+                    accountNumber,
+                }),
             });
-
-            // 4. 알림 생성 (광고주/제작자)
-            if (creatorId) {
-                await supabase.from('notifications').insert({
-                    user_id: creatorId,
-                    type: 'CAMPAIGN_REVIEW_RECEIVED',
-                    title: '📷 새로운 리뷰 도착',
-                    content: `[${campaignTitle}] 캠페인에 새로운 리뷰가 제출되었습니다. 검토를 시작해 주세요.`,
-                    link: `/dashboard/advertiser/reviews?campaignId=${campaignId}`
-                });
-
-                // 5. 광고주에게 카카오 알림톡 발송
-                try {
-                    const { data: advertiserData } = await supabase
-                        .from('profiles')
-                        .select('nickname, phone_number')
-                        .eq('id', creatorId)
-                        .single();
-
-                    if (advertiserData?.phone_number) {
-                        const { sendReviewSubmittedAlimtalk } = await import('@/lib/alimtalk');
-                        const { data: influencerData } = await supabase
-                            .from('profiles')
-                            .select('nickname')
-                            .eq('id', user.id)
-                            .single();
-
-                        const alimtalkResult = await sendReviewSubmittedAlimtalk(
-                            advertiserData.phone_number,
-                            advertiserData.nickname || '광고주',
-                            campaignTitle,
-                            influencerData?.nickname || '인플루언서',
-                            reviewUrl
-                        );
-
-                        if (!alimtalkResult.success) {
-                            console.warn('광고주 알림톡 발송 실패:', alimtalkResult.error);
-                        }
-                    }
-                } catch (error) {
-                    console.error('광고주 알림톡 발송 중 오류:', error);
-                }
+            const result = await response.json() as { error?: string };
+            if (!response.ok) {
+                throw new Error(result.error || '리뷰 등록에 실패했습니다.');
             }
 
             toast.success(
@@ -303,9 +212,9 @@ export default function ReviewSubmitModal({
             setBankName('');
             setAccountHolder('');
             setAccountNumber('');
-        } catch (error: any) {
+        } catch (error) {
             console.error('Submission error:', error);
-            toast.error('리뷰 등록 중 오류가 발생했습니다.');
+            toast.error(error instanceof Error ? error.message : '리뷰 등록 중 오류가 발생했습니다.');
         } finally {
             setIsSubmitting(false);
         }

@@ -31,6 +31,11 @@ interface CampaignOptionsPayload {
     productUrlIndividual?: boolean;
     productName?: string;
   };
+  step2Data?: {
+    reviewMissionContent?: string;
+    purchaseNotes?: string;
+    missionGuide?: string;
+  };
 }
 
 function formatDeadlineDate(rawValue?: string | null): string {
@@ -346,6 +351,15 @@ export async function POST(request: Request) {
       campaign.experience_details ||
       campaign.product_name ||
       '캠페인 상세 페이지 참조';
+    const guideSummary = [
+      campaignOptions?.step2Data?.purchaseNotes,
+      campaignOptions?.step2Data?.reviewMissionContent,
+      campaignOptions?.step2Data?.missionGuide,
+    ]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join('\n')
+      .slice(0, 1000) || '캠페인 상세 페이지에서 구매평 작성 가이드를 확인해 주세요.';
 
     const notificationResult = await sendSelectionNotification({
       userId: application.user_id,
@@ -355,6 +369,8 @@ export async function POST(request: Request) {
       deadlineDate: formatDeadlineDate(campaign.end_date),
       assignedOptionLabel: assignedRow.assigned_option_label,
       assignedPurchaseLink: assignedRow.assigned_purchase_link_url,
+      campaignUrl: `https://daonview.com/campaigns/${campaignId}#guide`,
+      guideSummary,
     });
 
     return NextResponse.json({

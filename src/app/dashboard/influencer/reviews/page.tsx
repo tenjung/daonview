@@ -519,7 +519,6 @@ export default function InfluencerReviewsPage() {
                 applicationId={reviewModal.applicationId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}
-                creatorId={reviewModal.creatorId}
                 isPurchaseExperience={reviewModal.isPurchaseExperience}
                 onSuccess={fetchReviewData}
             />

@@ -2166,7 +2166,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 applicationId={applicationId}
                 campaignId={parseInt(id)}
                 campaignTitle={campaign.title}
-                creatorId={campaign.created_by}
                 isPurchaseExperience={isPurchaseExperience}
                 onSuccess={() => {
                     checkUserStatus(user);

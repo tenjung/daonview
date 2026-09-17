@@ -37,6 +37,7 @@ import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
+import { isPurchaseReviewCampaign } from '@/lib/campaignPurchase';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -86,13 +87,13 @@ export default function MyCampaignsPage() {
         appId: number;
         campaignId: number;
         campaignTitle: string;
-        creatorId: string;
+        isPurchaseExperience: boolean;
     }>({
         isOpen: false,
         appId: 0,
         campaignId: 0,
         campaignTitle: '',
-        creatorId: ''
+        isPurchaseExperience: false,
     });
     const [extensionModal, setExtensionModal] = useState<{
         isOpen: boolean;
@@ -324,7 +325,7 @@ export default function MyCampaignsPage() {
                                         appId: app.id,
                                         campaignId: app.campaign_id,
                                         campaignTitle: app.campaigns.title,
-                                        creatorId: app.campaigns.created_by
+                                        isPurchaseExperience: isPurchaseReviewCampaign(app.campaigns),
                                     })}
                                 >
                                     <Camera size={14} className="stroke-[2.5px]" />
@@ -586,7 +587,7 @@ export default function MyCampaignsPage() {
                                                                     appId: app.id,
                                                                     campaignId: app.campaign_id,
                                                                     campaignTitle: app.campaigns.title,
-                                                                    creatorId: app.campaigns.created_by
+                                                                    isPurchaseExperience: isPurchaseReviewCampaign(app.campaigns),
                                                                 });
                                                             }}
                                                         >
@@ -633,7 +634,7 @@ export default function MyCampaignsPage() {
                 applicationId={reviewModal.appId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}
-                creatorId={reviewModal.creatorId}
+                isPurchaseExperience={reviewModal.isPurchaseExperience}
                 onSuccess={fetchData}
             />
 

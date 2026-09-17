@@ -1,69 +1,40 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { useCallback, useState, useEffect } from 'react';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { useAuthStore } from '@/store/authStore';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
 import ReviewManagementClient from '@/components/admin/ReviewManagementClient';
 import { Loader2, MessageSquare } from 'lucide-react';
+import type { ManagedReview } from '@/types/reviewManagement';
 
 export default function AdvertiserReviewsPage() {
     const { user, profile, isLoading } = useAuthStore();
-    const [reviews, setReviews] = useState<any[]>([]);
+    const [reviews, setReviews] = useState<ManagedReview[]>([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!isLoading && user) {
-            fetchAdvertiserReviews();
-        } else if (!isLoading && !user) {
-            setLoading(false);
-        }
-    }, [isLoading, user]);
-
-    const fetchAdvertiserReviews = async () => {
+    const fetchAdvertiserReviews = useCallback(async () => {
         if (!user) return;
         setLoading(true);
         try {
-            // 1. 내가 만든 캠페인 ID들을 가져옴
-            const { data: myCampaigns } = await supabase
-                .from('campaigns')
-                .select('id')
-                .eq('created_by', user.id);
-
-            if (!myCampaigns || myCampaigns.length === 0) {
-                setReviews([]);
-                return;
-            }
-
-            const campaignIds = myCampaigns.map(c => c.id);
-
-            // 2. 해당 캠페인들에 달린 리뷰 조회
-            const { data, error } = await supabase
-                .from('reviews')
-                .select(`
-                    id, 
-                    post_url, 
-                    platform, 
-                    title, 
-                    author_name, 
-                    thumbnail_url, 
-                    status, 
-                    created_at,
-                    campaign_id,
-                    user_id
-                `)
-                .in('campaign_id', campaignIds)
-                .order('created_at', { ascending: false });
-
-            if (error) throw error;
-            setReviews(data || []);
+            const response = await fetch('/api/reviews/manage', { cache: 'no-store' });
+            const result = await response.json() as { reviews?: ManagedReview[]; error?: string };
+            if (!response.ok) throw new Error(result.error || '리뷰를 불러오지 못했습니다.');
+            setReviews(result.reviews || []);
         } catch (error) {
             console.error('Error fetching advertiser reviews:', error);
         } finally {
             setLoading(false);
         }
-    };
+    }, [user]);
+
+    useEffect(() => {
+        if (!isLoading && user) {
+            void fetchAdvertiserReviews();
+        } else if (!isLoading && !user) {
+            setLoading(false);
+        }
+    }, [fetchAdvertiserReviews, isLoading, user]);
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
