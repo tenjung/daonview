@@ -157,6 +157,12 @@ export interface Application {
     assigned_option_label?: string;
     assigned_purchase_link_id?: number;
     assigned_purchase_link_url?: string;
+    assigned_purchase_links?: Array<{
+        optionKey: string;
+        optionLabel: string;
+        linkId: number;
+        url: string;
+    }>;
     link_assigned_at?: string;
     link_updated_at?: string;
 

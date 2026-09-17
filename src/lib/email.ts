@@ -28,6 +28,7 @@ interface EmailParams {
   providedItems?: string;
   assignedOptionLabel?: string;
   assignedPurchaseLink?: string;
+  assignedPurchases?: Array<{ optionLabel: string; url: string }>;
   campaignUrl?: string;
   guideSummary?: string;
   trackingCompany?: string;
@@ -83,10 +84,24 @@ const buildSelectionDetailsHtml = (params: EmailParams) => {
       <span>${value}</span>
     </div>`;
   const parts = [row('제공내역', escapeHtml(params.providedItems || '캠페인 상세 페이지 참조'))];
-  if (params.assignedOptionLabel) parts.push(row('확정 옵션', escapeHtml(params.assignedOptionLabel)));
-  if (isSafeHttpUrl(params.assignedPurchaseLink)) {
-    const safeLink = escapeHtml(params.assignedPurchaseLink || '');
-    parts.push(row('개별 구매링크', `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`));
+  const assignedPurchases = (params.assignedPurchases || [])
+    .filter((item) => item.optionLabel && isSafeHttpUrl(item.url))
+    .slice(0, 2);
+  if (assignedPurchases.length > 0) {
+    assignedPurchases.forEach((item, index) => {
+      const safeLabel = escapeHtml(item.optionLabel);
+      const safeLink = escapeHtml(item.url);
+      parts.push(row(
+        `확정 옵션 ${assignedPurchases.length > 1 ? index + 1 : ''}`.trim(),
+        `<strong>${safeLabel}</strong><br><a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`
+      ));
+    });
+  } else {
+    if (params.assignedOptionLabel) parts.push(row('확정 옵션', escapeHtml(params.assignedOptionLabel)));
+    if (isSafeHttpUrl(params.assignedPurchaseLink)) {
+      const safeLink = escapeHtml(params.assignedPurchaseLink || '');
+      parts.push(row('개별 구매링크', `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`));
+    }
   }
   parts.push(row('핵심 가이드', escapeHtml(params.guideSummary || '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.').replace(/\r?\n/g, '<br>')));
   parts.push(row('체험 마감기한', escapeHtml(params.deadlineDate || '캠페인 상세 페이지 참조'), '#fff7ed'));
@@ -126,7 +141,18 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
     let htmlContent = template.html_content;
 
     const templateParams: Record<string, string | undefined> = {
-      ...params,
+      nickname: params.nickname,
+      campaignTitle: params.campaignTitle,
+      providedItems: params.providedItems,
+      assignedOptionLabel: params.assignedOptionLabel,
+      assignedPurchaseLink: params.assignedPurchaseLink,
+      campaignUrl: params.campaignUrl,
+      guideSummary: params.guideSummary,
+      trackingCompany: params.trackingCompany,
+      trackingNumber: params.trackingNumber,
+      deadlineDate: params.deadlineDate,
+      link: params.link,
+      email: params.email,
       selectionDetailsHtml: type === 'CAMPAIGN_SELECTED' ? buildSelectionDetailsHtml(params) : undefined,
     };
     Object.entries(templateParams).forEach(([key, value]) => {
@@ -276,30 +302,7 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       const nickname = escapeHtml(params.nickname || '인플루언서');
       const campaignTitle = escapeHtml(params.campaignTitle || '캠페인');
       subject = `🎉 [다온뷰] 축하합니다! '${params.campaignTitle || '캠페인'}' 캠페인에 선정되셨습니다.`;
-      const providedItems = escapeHtml(params.providedItems || '캠페인 상세 페이지에서 제공내역을 확인해 주세요.');
-      const deadlineDate = escapeHtml(params.deadlineDate || '캠페인 상세 페이지에서 마감일을 확인해 주세요.');
-      const assignedOptionLabel = escapeHtml(params.assignedOptionLabel || '');
-      const assignedPurchaseLink = isSafeHttpUrl(params.assignedPurchaseLink) ? escapeHtml(params.assignedPurchaseLink || '') : '';
       const campaignUrl = isSafeHttpUrl(params.campaignUrl) ? escapeHtml(params.campaignUrl || '') : 'https://daonview.com/dashboard/influencer/campaigns';
-      const guideSummary = escapeHtml(params.guideSummary || '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.').replace(/\r?\n/g, '<br>');
-      const optionRow = assignedOptionLabel
-        ? `
-          <div style="${infoRowStyle}">
-            <span style="${infoLabelStyle}">확정 옵션</span>
-            <span>${assignedOptionLabel}</span>
-          </div>
-        `
-        : '';
-      const purchaseLinkRow = assignedPurchaseLink
-        ? `
-          <div style="${infoRowStyle}">
-            <span style="${infoLabelStyle}">개별 구매링크</span>
-            <a href="${assignedPurchaseLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">
-              ${assignedPurchaseLink}
-            </a>
-          </div>
-        `
-        : '';
       content = `
         <div style="${heroStyle}">
           <div style="${headerStyle}">캠페인 선정 축하드립니다!</div>
@@ -307,26 +310,7 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
         </div>
         <p>안녕하세요, ${nickname}님.</p>
         <p>신청하신 <b>[${campaignTitle}]</b> 캠페인에 최종 선정되셨습니다.</p>
-        <div style="${infoGridStyle}">
-          <div style="${infoRowStyle}">
-            <span style="${infoLabelStyle}">체험 타이틀</span>
-            <span>${params.campaignTitle}</span>
-          </div>
-          <div style="${infoRowStyle}">
-            <span style="${infoLabelStyle}">제공내역</span>
-            <span>${providedItems}</span>
-          </div>
-          <div style="${infoRowStyle}">
-            <span style="${infoLabelStyle}">핵심 가이드</span>
-            <span>${guideSummary}</span>
-          </div>
-          ${optionRow}
-          ${purchaseLinkRow}
-          <div style="padding: 12px 14px; font-size: 14px; background: #fff7ed;">
-            <span style="${infoLabelStyle}">체험 마감기한</span>
-            <span style="font-weight: 700; color: #b45309;">${deadlineDate}</span>
-          </div>
-        </div>
+        ${buildSelectionDetailsHtml(params)}
         <p>구매 전 확정 옵션과 구매 링크를 다시 확인해 주세요.</p>
         <div style="text-align: center;">
           <a href="${campaignUrl}" style="${buttonStyle}">캠페인 가이드 보기</a>

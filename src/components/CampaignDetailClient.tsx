@@ -136,6 +136,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     const [applicationId, setApplicationId] = useState<number>(0);
     const [assignedPurchaseLink, setAssignedPurchaseLink] = useState<string>('');
     const [assignedOptionLabel, setAssignedOptionLabel] = useState<string>('');
+    const [assignedPurchaseLinks, setAssignedPurchaseLinks] = useState<Array<{ optionLabel: string; url: string }>>([]);
     const [privateProductLink, setPrivateProductLink] = useState<string>('');
     const [mainApi, setMainApi] = useState<CarouselApi>();
 
@@ -281,7 +282,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
             // Only check application status (favorites handled by Zustand)
             const { data: appData, error: appError } = await supabase
                 .from('applications')
-                .select('id, selected_option, application_message, status, assigned_purchase_link_url, assigned_option_label')
+                .select('id, selected_option, application_message, status, assigned_purchase_link_url, assigned_option_label, assigned_purchase_links')
                 .eq('user_id', currentUser.id)
                 .eq('campaign_id', id)
                 .neq('status', 'CANCELLED')
@@ -307,6 +308,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 setApplicationMessage(appData.application_message || '');
                 setAssignedPurchaseLink(appData.assigned_purchase_link_url || '');
                 setAssignedOptionLabel(appData.assigned_option_label || '');
+                const storedAssignedLinks = Array.isArray(appData.assigned_purchase_links)
+                    ? appData.assigned_purchase_links.filter((item: { optionLabel?: unknown; url?: unknown }) => (
+                        typeof item?.optionLabel === 'string' &&
+                        typeof item?.url === 'string' &&
+                        /^https?:\/\//i.test(item.url)
+                    )).slice(0, 2) as Array<{ optionLabel: string; url: string }>
+                    : [];
+                setAssignedPurchaseLinks(storedAssignedLinks);
 
                 const normalizedApplicationStatus = String(appData.status || '').toUpperCase();
                 if (
@@ -328,6 +337,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 setApplicationStatus(null);
                 setAssignedPurchaseLink('');
                 setAssignedOptionLabel('');
+                setAssignedPurchaseLinks([]);
                 setPrivateProductLink('');
             }
         } catch (err) {
@@ -1146,21 +1156,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 <p className="mb-1 text-sm font-semibold text-slate-500">체험 상품 링크</p>
                                                 {productUrlIndividual ? (
                                                     canViewAssignedPurchaseLink ? (
-                                                        assignedPurchaseLink ? (
+                                                        (assignedPurchaseLinks.length > 0 || assignedPurchaseLink) ? (
                                                             <div className="flex flex-col gap-2">
-                                                                {assignedOptionLabel && (
-                                                                    <span className="inline-flex w-fit rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-semibold text-blue-700">
-                                                                        확정 옵션: {assignedOptionLabel}
-                                                                    </span>
-                                                                )}
-                                                                <a
-                                                                    href={assignedPurchaseLink}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="max-w-full break-all text-sm font-semibold text-blue-500 underline hover:text-blue-600"
-                                                                >
-                                                                    {assignedPurchaseLink}
-                                                                </a>
+                                                                {(assignedPurchaseLinks.length > 0
+                                                                    ? assignedPurchaseLinks
+                                                                    : [{ optionLabel: assignedOptionLabel || '확정 옵션', url: assignedPurchaseLink }]
+                                                                ).map((item) => (
+                                                                    <div key={`${item.optionLabel}-${item.url}`} className="rounded-xl border border-blue-100 bg-blue-50/60 p-3">
+                                                                        <p className="mb-1 text-xs font-bold text-blue-700">확정 옵션: {item.optionLabel}</p>
+                                                                        <a
+                                                                            href={item.url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="inline-flex items-center gap-1 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                                                                        >
+                                                                            상품 구매하기 <ExternalLink className="h-4 w-4" />
+                                                                        </a>
+                                                                    </div>
+                                                                ))}
                                                             </div>
                                                         ) : (
                                                             <span className="text-sm font-semibold text-amber-600">링크 준비중</span>

@@ -11,6 +11,7 @@ interface SelectApplicationBody {
   campaignId?: number;
   targetStatus?: 'SELECTED' | 'APPROVED' | string;
   assignedOptionLabel?: string;
+  assignedOptionLabels?: string[];
   manualLinkId?: number | null;
   manualPurchaseLinkUrl?: string | null;
 }
@@ -22,8 +23,16 @@ interface AssignedApplicationRow {
   assigned_option_label?: string | null;
   assigned_purchase_link_id?: number | null;
   assigned_purchase_link_url?: string | null;
+  assigned_purchase_links?: AssignedPurchaseLink[] | null;
   link_assigned_at?: string | null;
   link_updated_at?: string | null;
+}
+
+interface AssignedPurchaseLink {
+  optionKey: string;
+  optionLabel: string;
+  linkId: number;
+  url: string;
 }
 
 interface CampaignOptionsPayload {
@@ -235,6 +244,28 @@ export async function POST(request: Request) {
       }
     }
 
+    const requestedOptionLabels = Array.isArray(body.assignedOptionLabels)
+      ? body.assignedOptionLabels.map((label) => normalizeOptionLabel(label)).filter(Boolean)
+      : [];
+    const assignedOptionLabels = Array.from(new Map(
+      (requestedOptionLabels.length > 0
+        ? requestedOptionLabels
+        : optionCandidates.length > 1
+          ? optionCandidates.map((candidate) => candidate.label)
+          : [resolvedOptionLabel]
+      ).map((label) => [normalizeOptionKey(label), label])
+    ).values()).slice(0, 2);
+
+    if (optionCandidates.length > 0) {
+      const candidateSet = new Set(optionCandidates.map((candidate) => normalizeOptionKey(candidate.label)));
+      if (assignedOptionLabels.some((label) => !candidateSet.has(normalizeOptionKey(label)))) {
+        return NextResponse.json({ error: '신청자가 선택한 옵션 범위 밖의 값입니다.' }, { status: 400 });
+      }
+    }
+    if (assignedOptionLabels.length > 1 && (manualLinkId || manualPurchaseLinkUrl)) {
+      return NextResponse.json({ error: '복수 옵션은 옵션별 링크가 자동 배정됩니다.' }, { status: 400 });
+    }
+
     const assignedOptionKey = normalizeOptionKey(resolvedOptionLabel);
 
     if (requiresAssignedPurchaseLink && body.manualPurchaseLinkUrl && !manualPurchaseLinkUrl) {
@@ -282,15 +313,18 @@ export async function POST(request: Request) {
 
     let assignedRow: AssignedApplicationRow | null = null;
 
-    if (activeLinkCount > 0) {
-      const { data: rpcRows, error: rpcError } = await admin.rpc('select_application_with_link', {
+    if (requiresAssignedPurchaseLink) {
+      const assignmentPayload = assignedOptionLabels.map((optionLabel) => ({
+        optionLabel,
+        manualLinkId: assignedOptionLabels.length === 1 ? manualLinkId : null,
+      }));
+      const { data: rpcRows, error: rpcError } = await admin.rpc('select_application_with_links', {
         p_application_id: applicationId,
         p_campaign_id: campaignId,
         p_actor_user_id: user.id,
         p_is_admin: isAdmin,
         p_target_status: targetStatus,
-        p_assigned_option_label: resolvedOptionLabel,
-        p_manual_link_id: manualLinkId,
+        p_assignments: assignmentPayload,
       });
 
       if (rpcError) {
@@ -309,10 +343,11 @@ export async function POST(request: Request) {
           status: targetStatus,
           assigned_option_key: assignedOptionKey || null,
           assigned_option_label: resolvedOptionLabel || null,
+          assigned_purchase_links: [],
         })
         .eq('id', applicationId)
         .eq('campaign_id', campaignId)
-        .select('id, status, assigned_option_key, assigned_option_label, assigned_purchase_link_id, assigned_purchase_link_url, link_assigned_at, link_updated_at')
+        .select('id, status, assigned_option_key, assigned_option_label, assigned_purchase_link_id, assigned_purchase_link_url, assigned_purchase_links, link_assigned_at, link_updated_at')
         .single();
 
       if (updateError || !updatedApplication) {
@@ -335,7 +370,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '선정 결과를 확인할 수 없습니다.' }, { status: 500 });
     }
 
-    if (requiresAssignedPurchaseLink && !assignedRow.assigned_purchase_link_url) {
+    const assignedPurchases = Array.isArray(assignedRow.assigned_purchase_links)
+      ? assignedRow.assigned_purchase_links.filter((item) => item?.optionLabel && /^https?:\/\//i.test(item.url || ''))
+      : assignedRow.assigned_purchase_link_url
+        ? [{
+          optionKey: assignedRow.assigned_option_key || '',
+          optionLabel: assignedRow.assigned_option_label || '확정 옵션',
+          linkId: Number(assignedRow.assigned_purchase_link_id || 0),
+          url: assignedRow.assigned_purchase_link_url,
+        }]
+        : [];
+
+    if (requiresAssignedPurchaseLink && assignedPurchases.length !== assignedOptionLabels.length) {
       return NextResponse.json(
         { error: '구매링크가 배정되지 않아 선정 알림을 보낼 수 없습니다. 링크 풀과 옵션을 확인해 주세요.' },
         { status: 400 }
@@ -369,6 +415,7 @@ export async function POST(request: Request) {
       deadlineDate: formatDeadlineDate(campaign.end_date),
       assignedOptionLabel: assignedRow.assigned_option_label,
       assignedPurchaseLink: assignedRow.assigned_purchase_link_url,
+      assignedPurchases,
       campaignUrl: `https://daonview.com/campaigns/${campaignId}#guide`,
       guideSummary,
     });

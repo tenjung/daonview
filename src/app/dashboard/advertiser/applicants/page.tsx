@@ -22,6 +22,12 @@ interface Applicant {
     assigned_option_label?: string;
     assigned_purchase_link_id?: number;
     assigned_purchase_link_url?: string;
+    assigned_purchase_links?: Array<{
+        optionKey: string;
+        optionLabel: string;
+        linkId: number;
+        url: string;
+    }>;
     link_assigned_at?: string;
     link_updated_at?: string;
     campaign: {
@@ -160,6 +166,7 @@ export default function AdvertiserApplicantsPage() {
                     assigned_option_label,
                     assigned_purchase_link_id,
                     assigned_purchase_link_url,
+                    assigned_purchase_links,
                     link_assigned_at,
                     link_updated_at,
                     campaign:campaign_id (id, title, type, end_date, experience_details, product_name, campaign_options),
@@ -387,6 +394,7 @@ export default function AdvertiserApplicantsPage() {
     const isSelectionLinkMissing =
         selectionTarget &&
         isIndividualLinkCampaign(selectionTarget) &&
+        selectionOptions.length <= 1 &&
         !isCandidateLoading &&
         linkCandidates.length === 0 &&
         !manualPurchaseLinkInput;
@@ -472,6 +480,7 @@ export default function AdvertiserApplicantsPage() {
                     campaignId: selectionTarget.campaign.id,
                     targetStatus: 'SELECTED',
                     assignedOptionLabel: selectedOptionLabel,
+                    assignedOptionLabels: selectionMode === 'SELECT' && selectionOptions.length > 1 ? selectionOptions : undefined,
                     manualLinkId: manualLinkId ? Number(manualLinkId) : null,
                     manualPurchaseLinkUrl: manualLinkId ? null : manualPurchaseLinkInput || null
                 })
@@ -495,6 +504,7 @@ export default function AdvertiserApplicantsPage() {
                             assigned_option_label: assigned.assigned_option_label ?? app.assigned_option_label,
                             assigned_purchase_link_id: assigned.assigned_purchase_link_id ?? app.assigned_purchase_link_id,
                             assigned_purchase_link_url: assigned.assigned_purchase_link_url ?? app.assigned_purchase_link_url,
+                            assigned_purchase_links: assigned.assigned_purchase_links ?? app.assigned_purchase_links,
                             link_assigned_at: assigned.link_assigned_at ?? app.link_assigned_at,
                             link_updated_at: assigned.link_updated_at ?? app.link_updated_at
                         }
@@ -902,13 +912,22 @@ export default function AdvertiserApplicantsPage() {
                             {selectionMode === 'REASSIGN' ? '구매링크 재할당' : '선정 옵션 및 링크 배정'}
                         </h2>
                         <p className="text-sm text-gray-500 mb-4">
-                            {selectionTarget.user.nickname}님의 확정 옵션을 선택하세요.
+                            {selectionTarget.user.nickname}님의 신청 옵션을 확인하세요.
                         </p>
 
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">확정 옵션</label>
-                                <select
+                                {selectionOptions.length > 1 ? (
+                                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
+                                        <p className="mb-2 text-xs font-semibold text-blue-700">신청한 2개 옵션을 모두 확정하고 옵션별 링크를 자동 배정합니다.</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {selectionOptions.map((option) => (
+                                                <span key={option} className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-blue-800">{option}</span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : <select
                                     value={selectedOptionLabel}
                                     onChange={async (e) => {
                                         const value = e.target.value;
@@ -926,10 +945,14 @@ export default function AdvertiserApplicantsPage() {
                                             {option}
                                         </option>
                                     ))}
-                                </select>
+                                </select>}
                             </div>
 
-                            {isIndividualLinkCampaign(selectionTarget) ? (
+                            {isIndividualLinkCampaign(selectionTarget) && selectionOptions.length > 1 ? (
+                                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                    각 옵션의 활성 링크 풀에서 최소 사용 링크가 하나씩 배정됩니다.
+                                </div>
+                            ) : isIndividualLinkCampaign(selectionTarget) ? (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         링크 배정 방식

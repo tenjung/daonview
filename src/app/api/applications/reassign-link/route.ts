@@ -112,7 +112,7 @@ export async function POST(request: Request) {
 
     const { data: application, error: applicationError } = await admin
       .from('applications')
-      .select('id, campaign_id, user_id, status, selected_option')
+      .select('id, campaign_id, user_id, status, selected_option, assigned_purchase_links')
       .eq('id', applicationId)
       .eq('campaign_id', campaignId)
       .single();
@@ -125,6 +125,13 @@ export async function POST(request: Request) {
     if (normalizedStatus !== 'SELECTED' && normalizedStatus !== 'APPROVED') {
       return NextResponse.json(
         { error: '선정 상태(SELECTED/APPROVED)에서만 링크 재할당이 가능합니다.' },
+        { status: 400 }
+      );
+    }
+
+    if (Array.isArray(application.assigned_purchase_links) && application.assigned_purchase_links.length > 1) {
+      return NextResponse.json(
+        { error: '복수 옵션 신청은 링크 2개가 함께 배정되어 개별 재할당할 수 없습니다.' },
         { status: 400 }
       );
     }

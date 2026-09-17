@@ -43,7 +43,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         .single(),
       admin
         .from('applications')
-        .select('status, assigned_option_label, assigned_purchase_link_url')
+        .select('status, assigned_option_label, assigned_purchase_link_url, assigned_purchase_links')
         .eq('campaign_id', campaignId)
         .eq('user_id', user.id)
         .neq('status', 'CANCELLED')
@@ -68,9 +68,26 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     const step1Data = getStep1Data(campaign.campaign_options);
     const productUrlIndividual = Boolean(step1Data.productUrlIndividual);
-    const resolvedUrl = productUrlIndividual
+    const assignedLinks = productUrlIndividual && Array.isArray(application?.assigned_purchase_links)
+      ? application.assigned_purchase_links
+        .filter((item): item is { optionLabel: string; url: string } => (
+          Boolean(item) &&
+          typeof item === 'object' &&
+          typeof item.optionLabel === 'string' &&
+          typeof item.url === 'string' &&
+          /^https?:\/\//i.test(item.url)
+        ))
+        .slice(0, 2)
+      : [];
+    const fallbackUrl = productUrlIndividual
       ? String(application?.assigned_purchase_link_url || '').trim()
       : String(step1Data.productUrl || '').trim();
+    const links = assignedLinks.length > 0
+      ? assignedLinks
+      : /^https?:\/\//i.test(fallbackUrl)
+        ? [{ optionLabel: application?.assigned_option_label || '확정 옵션', url: fallbackUrl }]
+        : [];
+    const resolvedUrl = links[0]?.url || '';
 
     if (!/^https?:\/\//i.test(resolvedUrl)) {
       return NextResponse.json({ error: '확인 가능한 구매 링크가 없습니다.' }, { status: 404 });
@@ -78,7 +95,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       url: resolvedUrl,
-      optionLabel: application?.assigned_option_label || null,
+      optionLabel: links[0]?.optionLabel || null,
+      links,
     });
   } catch (error) {
     console.error('Selected purchase link API error:', error);
