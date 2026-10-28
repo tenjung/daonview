@@ -4,8 +4,10 @@ import * as React from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
-  HeaderContext,
   SortingState,
+  RowSelectionState,
+  OnChangeFn,
+  TableOptions,
   VisibilityState,
   flexRender,
   getCoreRowModel,
@@ -45,6 +47,10 @@ interface DataTableProps<TData, TValue> {
   // 행 선택
   enableRowSelection?: boolean
   onRowSelectionChange?: (selectedRows: TData[]) => void
+  rowSelection?: RowSelectionState
+  onRowSelectionStateChange?: OnChangeFn<RowSelectionState>
+  getRowId?: TableOptions<TData>["getRowId"]
+  onSearchChange?: () => void
   // 로딩 상태
   isLoading?: boolean
   // 빈 상태 메시지
@@ -77,18 +83,25 @@ export function DataTable<TData, TValue>({
   pageSize = 10,
   enableRowSelection = false,
   onRowSelectionChange,
+  rowSelection: controlledRowSelection,
+  onRowSelectionStateChange,
+  getRowId,
+  onSearchChange,
   isLoading = false,
   emptyMessage = "데이터가 없습니다.",
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = React.useState({})
+  const [internalRowSelection, setInternalRowSelection] = React.useState<RowSelectionState>({})
+  const rowSelection = controlledRowSelection ?? internalRowSelection
+  const setRowSelection = onRowSelectionStateChange ?? setInternalRowSelection
 
   // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data,
     columns,
+    getRowId,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -127,9 +140,10 @@ export function DataTable<TData, TValue>({
           <Input
             placeholder={searchPlaceholder}
             value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ""}
-            onChange={(event) =>
+            onChange={(event) => {
+              onSearchChange?.()
               table.getColumn(searchKey)?.setFilterValue(event.target.value)
-            }
+            }}
             className="max-w-sm"
           />
         )}

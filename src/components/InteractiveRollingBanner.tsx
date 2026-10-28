@@ -161,7 +161,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                             key={`${item.id}-${index}`}
                             className="pl-0 sm:pl-4 basis-full sm:basis-1/2 lg:basis-1/3 xl:basis-[500px] grow-0 shrink-0 transition-all duration-700 ease-in-out h-full"
                         >
-                            <div className="h-full py-0 sm:py-2">
+                            <div data-nosnippet className="h-full py-0 sm:py-2">
                                 <Link href={item.link_url} className="block group h-full">
                                     <Card className="overflow-hidden border-none shadow-none sm:shadow-[0_15px_40px_-15px_rgba(0,0,0,0.1)] hover:shadow-none sm:hover:shadow-[0_25px_50px_-12px_rgba(244,63,94,0.2)] transition-all duration-1000 rounded-none sm:rounded-2xl h-full relative border-none sm:border sm:border-white/10 group-hover:border-rose-200/50">
                                         <CardContent className="p-0 h-full relative">

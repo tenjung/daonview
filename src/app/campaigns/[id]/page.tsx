@@ -68,7 +68,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         campaign_options?: unknown;
     } | null;
 
-    if (!metadataCampaign) return {};
+    if (!metadataCampaign) return { robots: { index: false, follow: true } };
 
     const campaignOptions = Array.isArray(metadataCampaign.campaign_options)
         ? metadataCampaign.campaign_options[0]
@@ -80,6 +80,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const thumbnail = metadataCampaign.thumbnail_url;
 
     return {
+        robots: { index: false, follow: true },
         title: `${title} | 다온뷰`,
         description,
         openGraph: {

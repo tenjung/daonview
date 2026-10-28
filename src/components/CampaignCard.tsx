@@ -107,6 +107,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     };
 
     return (
+        <div data-nosnippet className="contents">
         <Link href={linkHref} className="card group border border-border rounded-2xl overflow-hidden bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-lg flex flex-col h-full">
             {/* Image Section */}
             <div className={`w-full ${imageAspectClass} bg-gray-100 relative overflow-hidden`}>
@@ -218,5 +219,6 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                 </div>
             </div>
         </Link >
+        </div>
     );
 }

@@ -1,6 +1,5 @@
 import { MetadataRoute } from 'next';
 import { createClient } from '@supabase/supabase-js';
-import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
 
 // Supabase 클라이언트를 직접 노출하지 않고 환경변수로 생성
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -9,19 +8,6 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://daonview.com';
-
-  // 1. 캠페인 데이터 가져오기
-  const { data: campaigns } = await supabase
-    .from('campaigns')
-    .select('id, updated_at')
-    .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[]);
-
-  const campaignUrls = (campaigns || []).map((campaign) => ({
-    url: `${baseUrl}/campaigns/${campaign.id}`,
-    lastModified: new Date(campaign.updated_at),
-    changeFrequency: 'daily' as const,
-    priority: 0.8,
-  }));
 
   // 2. 공지사항 데이터 가져오기
   const { data: notices } = await supabase
@@ -72,5 +58,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: page.priority,
   }));
 
-  return [...staticPages, ...campaignUrls, ...noticeUrls, ...communityUrls];
+  return [...staticPages, ...noticeUrls, ...communityUrls];
 }

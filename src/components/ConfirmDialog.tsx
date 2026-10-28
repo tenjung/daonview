@@ -48,7 +48,7 @@ export default function ConfirmDialog({
                 </div>
 
                 {/* Content */}
-                <div className="px-6 pb-6">
+                <div className="px-6 pb-6 max-h-[50vh] overflow-y-auto">
                     <p className="text-gray-600 whitespace-pre-line leading-relaxed">
                         {message}
                     </p>

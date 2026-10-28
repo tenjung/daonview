@@ -6,6 +6,7 @@ import { DataTable } from "@/components/ui/data-table"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { createCampaignColumns } from "./campaigns-columns"
+import type { RowSelectionState, OnChangeFn } from "@tanstack/react-table"
 import { useSearchParams } from "next/navigation"
 
 interface CampaignDataTableProps {
@@ -19,6 +20,10 @@ interface CampaignDataTableProps {
   onClose?: (id: number, title: string) => void
   onView?: (id: number) => void
   isLoading?: boolean
+  rowSelection?: RowSelectionState
+  onRowSelectionStateChange?: OnChangeFn<RowSelectionState>
+  onResetSelection?: () => void
+  bulkActions?: React.ReactNode
   currentUserId?: string | null
   currentUserRole?: string | null
 }
@@ -34,6 +39,10 @@ export function CampaignDataTable({
   onClose,
   onView,
   isLoading = false,
+  rowSelection,
+  onRowSelectionStateChange,
+  onResetSelection,
+  bulkActions,
   currentUserId,
   currentUserRole,
 }: CampaignDataTableProps) {
@@ -47,7 +56,8 @@ export function CampaignDataTable({
 
   React.useEffect(() => {
     setFilter(initialFilter)
-  }, [initialFilter])
+    onResetSelection?.()
+  }, [initialFilter, onResetSelection])
 
   // 필터링된 데이터
   const filteredData = React.useMemo(() => {
@@ -97,10 +107,10 @@ export function CampaignDataTable({
   )
 
   return (
-    <div className="space-y-4 sm:space-y-6 w-full">
+    <fieldset disabled={isLoading} inert={isLoading} aria-busy={isLoading} className="space-y-4 sm:space-y-6 w-full min-w-0">
       {/* 필터 탭 */}
       <div className="flex items-center justify-between w-full px-4 sm:px-0">
-        <Tabs value={filter} onValueChange={setFilter} className="w-full">
+        <Tabs value={filter} onValueChange={(value) => { onResetSelection?.(); setFilter(value) }} className="w-full">
           <div className="overflow-x-auto w-full pb-2 -mb-2 custom-scrollbar">
             <TabsList className="bg-gray-100/50 p-1 h-auto min-w-max flex">
               <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 flex items-center gap-2 whitespace-nowrap">
@@ -130,6 +140,8 @@ export function CampaignDataTable({
         </Tabs>
       </div>
 
+      {isAdmin && bulkActions}
+
       {/* 데이터 테이블 */}
       <DataTable
         columns={columns}
@@ -138,7 +150,11 @@ export function CampaignDataTable({
         searchPlaceholder="캠페인 제목으로 검색..."
         isLoading={isLoading}
         enableRowSelection={true}
+        getRowId={(campaign) => String(campaign.id)}
+        rowSelection={rowSelection}
+        onRowSelectionStateChange={onRowSelectionStateChange}
+        onSearchChange={onResetSelection}
       />
-    </div>
+    </fieldset>
   )
 }
