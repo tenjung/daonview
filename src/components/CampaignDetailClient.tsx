@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getCampaignRecruitTarget, getCampaignScheduleType, isCampaignFastRecruitment, isCampaignOpenForApplications, isCampaignUnlimitedRecruitment } from '@/lib/campaignUtils';
 import { toast } from 'sonner';
@@ -15,25 +15,24 @@ import {
     Heart,
     ShoppingBag,
     Truck,
-    PenTool,
-    Instagram,
     PenLine,
     Target,
-    CalendarCheck,
     Calendar,
     Users,
     Gift,
     ArrowRight,
     Youtube,
-    Phone,
     ExternalLink,
     ChevronDown,
     CheckCircle2,
     Info,
-    Camera
+    Camera,
+    Video,
+    AlertTriangle
 } from 'lucide-react';
 import CampaignShare from '@/components/campaign/CampaignShare';
 import CampaignCard from '@/components/CampaignCard';
+import AutoLinkText from '@/components/AutoLinkText';
 import NaverMap from '@/components/campaign/NaverMap';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
@@ -104,6 +103,47 @@ function normalizeComparableText(value: unknown): string {
 
 function getProductOptionName(option: ProductOption | string): string {
     return typeof option === 'string' ? option.trim() : String(option.optionName || '').trim();
+}
+
+function GuideSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) {
+    return (
+        <section className="min-w-0 space-y-6 py-8 first:pt-0 last:pb-0">
+            <div className="flex items-center gap-3">
+                <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    {icon}
+                </span>
+                <h2 className="text-lg font-bold tracking-tight text-slate-900 sm:text-xl">{title}</h2>
+            </div>
+            {children}
+        </section>
+    );
+}
+
+function GuideGroup({ title, children }: { title: string; children: ReactNode }) {
+    return (
+        <div className="min-w-0 space-y-5">
+            <h3 className="border-l-[3px] border-primary pl-3 text-base font-bold text-slate-900">{title}</h3>
+            {children}
+        </div>
+    );
+}
+
+function GuideRow({ label, children, warning = false }: { label: string; children: ReactNode; warning?: boolean }) {
+    return (
+        <div className={`grid min-w-0 grid-cols-1 gap-1.5 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-5 ${warning ? 'rounded-xl border border-amber-200/70 bg-amber-50/70 p-4' : ''}`}>
+            <dt className={`flex items-start gap-1.5 text-[13px] font-semibold leading-[1.8] ${warning ? 'text-amber-900' : 'text-slate-600'}`}>
+                {warning && <AlertTriangle aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-amber-700" />}
+                {label}
+            </dt>
+            <dd className={`min-w-0 break-keep text-sm font-normal leading-[1.8] [overflow-wrap:anywhere] sm:text-[15px] ${warning ? 'text-amber-950' : 'text-slate-700'}`}>
+                {children}
+            </dd>
+        </div>
+    );
+}
+
+function GuideText({ text }: { text: string }) {
+    return <div className="whitespace-pre-line break-keep"><AutoLinkText text={text} /></div>;
 }
 
 export default function CampaignDetailClient({ campaign: initialCampaign, id, publicOptionLinks = [] }: CampaignDetailClientProps) {
@@ -1258,335 +1298,157 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                             </div>
                         </section>
 
-                        {/* 체험 미션 Section */}
-                        <section id="guide" className="py-10 border-t border-slate-100">
-                            <div className="flex items-center gap-4 mb-8">
-                                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                                    <Target className="w-5 h-5" strokeWidth={2.5} />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">체험 미션 가이드</h2>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Experience Mission Guide</p>
-                                </div>
-                            </div>
-
-                            {/* 사진/영상 공통 조건 */}
-                            <div className="grid grid-cols-2 gap-4 mb-10">
-                                <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-orange-400"></span> 📸 사진 촬영
-                                    </p>
-                                    <p className="font-black text-slate-900 text-base">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
-                                </div>
-                                <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100 group transition-all hover:bg-white hover:shadow-sm">
-                                    <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400"></span> 🎥 영상 포함
-                                    </p>
-                                    <p className="font-black text-slate-900 text-base">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-12">
-                                {/* 1. 구매평 작성 가이드 (배송형 + 구매평 미션이 있을 때) */}
-                                {(purchaseReviewGuide || purchaseNotes) && (
-                                    <div className="space-y-6">
-                                        <div className="flex items-center gap-4 mb-2">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500">
-                                                <ShoppingBag size={20} strokeWidth={2.5} />
-                                            </div>
-                                            <h3 className="text-lg font-bold text-slate-900">구매평 작성 가이드</h3>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-4">
-                                            {purchaseNotes && (
-                                                <div className="p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
-                                                    <p className="text-[11px] text-blue-600 font-bold mb-2 uppercase tracking-widest">💡 구매 시 주의사항</p>
-                                                    <p className="text-sm text-slate-700 leading-7 whitespace-pre-line font-medium">{purchaseNotes}</p>
-                                                </div>
-                                            )}
-                                            {purchaseReviewGuide && (
-                                                <div className="p-7 bg-slate-50 rounded-3xl border border-slate-100">
-                                                    <p className="text-[11px] text-slate-400 font-bold mb-4 uppercase tracking-widest text-left">✍️ 구매평 미션 내용</p>
-                                                    <div className="text-[14px] text-slate-700 leading-8 whitespace-pre-line font-medium">
-                                                        {purchaseReviewGuide}
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
+                        {/* 미션·방문·매장 정보를 하나의 안내문으로 표시 */}
+                        <div id="guide" className="mt-10 min-w-0 scroll-mt-24 divide-y divide-slate-200 rounded-2xl border border-slate-200 bg-white px-5 py-6 sm:p-6">
+                            <GuideSection title="체험 미션 가이드" icon={<Target className="h-5 w-5" />}>
+                                <div className="grid grid-cols-2 divide-x divide-primary/15 overflow-hidden rounded-xl bg-primary/5 ring-1 ring-inset ring-primary/10">
+                                    <div className="min-w-0 px-4 py-4 sm:px-5">
+                                        <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-rose-700">
+                                            <Camera aria-hidden="true" className="h-4 w-4 shrink-0" />사진 촬영
+                                        </p>
+                                        <p className="break-keep text-lg font-bold text-slate-900">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
                                     </div>
+                                    <div className="min-w-0 px-4 py-4 sm:px-5">
+                                        <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-rose-700">
+                                            <Video aria-hidden="true" className="h-4 w-4 shrink-0" />영상 포함
+                                        </p>
+                                        <p className="break-keep text-lg font-bold text-slate-900">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
+                                    </div>
+                                </div>
+
+                                {(purchaseReviewGuide || purchaseNotes) && (
+                                    <GuideGroup title="구매평 작성">
+                                        <dl className="space-y-5">
+                                            {purchaseNotes && <GuideRow label="구매 시 주의사항" warning><GuideText text={purchaseNotes} /></GuideRow>}
+                                            {purchaseReviewGuide && <GuideRow label="미션 내용"><GuideText text={purchaseReviewGuide} /></GuideRow>}
+                                        </dl>
+                                    </GuideGroup>
                                 )}
 
-                                {/* 2. 플랫폼 포스팅 가이드 (블로그/인스타그램 등) */}
-                                <div className="space-y-6">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <div className="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center text-rose-500">
-                                            {campaign.platform?.toUpperCase().includes('INSTAGRAM') ? <Instagram size={20} strokeWidth={2.5} /> : <PenTool size={20} strokeWidth={2.5} />}
-                                        </div>
-                                        <h3 className="text-lg font-black text-slate-900">
-                                            {campaign.platform?.toUpperCase().includes('BLOG') ? '네이버 블로그 포스팅 가이드' :
-                                                campaign.platform?.toUpperCase().includes('INSTAGRAM') ? '인스타그램 업로드 가이드' :
-                                                    `${campaign.platform || '플랫폼'} 가이드`}
-                                        </h3>
-                                    </div>
-
-                                    {/* 키워드 가이드 (블로그용) */}
-                                    {(mainKeywords.length > 0 || subKeywords.length > 0) && (
-                                        <div className="space-y-4">
+                                {(mainKeywords.length > 0 || subKeywords.length > 0 || instagramHashtags.length > 0 ||
+                                    blogTitleGuide || blogContentGuide || missionGuide ||
+                                    step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
+                                    <GuideGroup title={campaign.platform?.toUpperCase().includes('BLOG') ? '블로그 작성 안내' :
+                                        campaign.platform?.toUpperCase().includes('INSTAGRAM') ? '인스타그램 작성 안내' : '키워드 및 작성 안내'}>
+                                        <dl className="space-y-5">
                                             {mainKeywords.length > 0 && (
-                                                <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-black border border-purple-100 text-left">
-                                                            필수 메인 키워드
+                                                <>
+                                                    <GuideRow label="선택 방법">
+                                                        인플루언서 미션: 아래의 키워드 중 <strong className="font-semibold text-slate-900">가장 자신 있는 키워드 1개를 선택</strong>하여 포스팅 제목과 본문에 포함해주세요.
+                                                    </GuideRow>
+                                                    <GuideRow label="필수 키워드">
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {mainKeywords.map((kw: string, i: number) => <span key={i} className="rounded-md border border-primary/20 bg-primary/5 px-2.5 py-1 text-sm font-semibold text-rose-700">#{kw}</span>)}
                                                         </div>
-                                                        <span className="text-[11px] font-bold text-purple-500 bg-purple-50/50 px-2 py-0.5 rounded-full border border-purple-100 animate-pulse">
-                                                            💡 1개 선택하여 작성
-                                                        </span>
-                                                    </div>
-
-                                                    <div className="p-4 bg-purple-50/20 rounded-xl border border-dashed border-purple-100 mb-4">
-                                                        <p className="text-[13px] text-slate-600 font-bold leading-relaxed">
-                                                            인플루언서 미션: 아래의 키워드 중 <span className="text-purple-600">가장 자신 있는 키워드 1개를 선택</span>하여 포스팅 제목과 본문에 포함해주세요.
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {mainKeywords.map((kw: string, i: number) => (
-                                                            <span key={i} className="px-4 py-2 bg-white text-purple-900 rounded-xl text-sm font-bold border border-purple-200 shadow-sm hover:border-purple-400 hover:text-purple-600 transition-all cursor-default">
-                                                                #{kw}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                                    </GuideRow>
+                                                </>
                                             )}
-
                                             {subKeywords.length > 0 && (
-                                                <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-black mb-4 border border-emerald-100 text-left">
-                                                        서브 키워드
-                                                    </div>
+                                                <GuideRow label="서브 키워드">
                                                     <div className="flex flex-wrap gap-2">
-                                                        {subKeywords.map((kw: string, i: number) => (
-                                                            <span key={i} className="px-3 py-1.5 bg-emerald-50/30 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-100">
-                                                                #{kw}
-                                                            </span>
-                                                        ))}
+                                                        {subKeywords.map((kw: string, i: number) => <span key={i} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm font-medium text-slate-800">#{kw}</span>)}
                                                     </div>
-                                                </div>
+                                                </GuideRow>
                                             )}
-                                        </div>
-                                    )}
-
-                                    {/* 인스타그램 해시태그 */}
-                                    {instagramHashtags.length > 0 && (
-                                        <div className="p-6 bg-white rounded-2xl border border-slate-100">
-                                            <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-pink-50 text-pink-600 text-[10px] font-black mb-4 border border-pink-100 text-left">
-                                                인스타그램 해시태그
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                {instagramHashtags.map((kw: string, i: number) => (
-                                                    <span key={i} className="px-3 py-1.5 bg-pink-50/30 text-pink-600 rounded-xl text-xs font-bold border border-pink-100">
-                                                        {kw.startsWith('#') ? kw : `#${kw}`}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 상세 포스팅 가이드 (제목 + 본문 통합) */}
-                                    {(blogTitleGuide || blogContentGuide || missionGuide) && (
-                                        <div className="p-7 bg-white rounded-2xl border border-slate-100 space-y-10">
-                                            {/* 제목 가이드 섹션 */}
-                                            <div>
-                                                <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 text-[10px] font-black mb-4 border border-indigo-100 text-left">
-                                                    제목 가이드
-                                                </div>
-                                                <div className="text-[16px] text-slate-900 leading-8 whitespace-pre-line font-bold pl-1">
-                                                    {blogTitleGuide || '노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요'}
-                                                </div>
-                                            </div>
-
-                                            {/* 본문 가이드 섹션 */}
+                                            {instagramHashtags.length > 0 && (
+                                                <GuideRow label="인스타그램 해시태그">
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {instagramHashtags.map((kw: string, i: number) => <span key={i} className="rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm font-medium text-slate-800">{kw.startsWith('#') ? kw : `#${kw}`}</span>)}
+                                                    </div>
+                                                </GuideRow>
+                                            )}
+                                            {(blogTitleGuide || blogContentGuide || missionGuide) && (
+                                                <GuideRow label="제목 작성">
+                                                    <GuideText text={blogTitleGuide || '노출 잘되는 제목 필수 키워드를 하나 선택하여 자연스럽게 조합해주세요'} />
+                                                </GuideRow>
+                                            )}
                                             {(blogContentGuide || missionGuide) && (
-                                                <div className="relative">
-                                                    <div className="absolute -top-5 left-0 right-0 h-px bg-slate-50" />
-                                                    <div className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-black mb-4 border border-slate-200 text-left">
-                                                        본문 작성 가이드
-                                                    </div>
-                                                    <div className="text-[15px] text-slate-600 leading-8 whitespace-pre-line font-medium pl-1">
-                                                        {blogContentGuide || missionGuide}
-                                                    </div>
-
-                                                    {/* 공통 가이드 섹션 - 행간 및 간격 축소 */}
-                                                    <div className="mt-6 p-6 bg-slate-50/50 rounded-2xl border border-slate-100/80">
-                                                        <ul className="space-y-1.5">
-                                                            {[
-                                                                '체험 후 솔직한 생각, 느낌, 경험을 긍정적이고 구체적으로 적어주세요.',
-                                                                '가이드 내용 참고하여 본인의 문체로 가공하여 적어주세요.',
-                                                                '사진 15장 이상 / 글자수 1000자 이상 꼭 지켜주세요.',
-                                                                '1분 내외의 사용 영상 한 개 이상 꼭 첨부해주세요.'
-                                                            ].map((text, idx) => (
-                                                                <li key={idx} className="flex items-start gap-3 text-[13px] text-slate-600 font-bold leading-tight">
-                                                                    <span className="w-1 h-1 bg-slate-400 rounded-full mt-[7px] shrink-0" />
-                                                                    <span className="flex-1">{text}</span>
-                                                                </li>
-                                                            ))}
-                                                        </ul>
-                                                    </div>
-                                                </div>
+                                                <GuideRow label="본문 작성">
+                                                    <GuideText text={blogContentGuide || missionGuide} />
+                                                    <ul className="mt-5 list-disc space-y-2 pl-5">
+                                                        {[
+                                                            '체험 후 솔직한 생각, 느낌, 경험을 긍정적이고 구체적으로 적어주세요.',
+                                                            '가이드 내용 참고하여 본인의 문체로 가공하여 적어주세요.',
+                                                            '사진 15장 이상 / 글자수 1000자 이상 꼭 지켜주세요.',
+                                                            '1분 내외의 사용 영상 한 개 이상 꼭 첨부해주세요.'
+                                                        ].map((text, idx) => <li key={idx}>{text}</li>)}
+                                                    </ul>
+                                                </GuideRow>
                                             )}
-                                        </div>
-                                    )}
-
-                                    {/* 금지 키워드 */}
-                                    {(step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
-                                        <div className="p-5 bg-rose-50/30 rounded-2xl border border-rose-100 flex items-start gap-3">
-                                            <div className="text-rose-500 mt-1">⚠️</div>
-                                            <div>
-                                                <p className="text-[11px] font-bold text-rose-500 mb-2 uppercase tracking-widest text-left">금지 키워드</p>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {(campaign.prohibited_words || step2Data.prohibitedWords).map((word: string, i: number) => (
-                                                        <span key={i} className="text-xs text-rose-600 font-bold">#{word}</span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 추가 안내사항 (시안 A) */}
-                                    {additionalNotes && (
-                                        <div className="p-6 bg-indigo-50/40 rounded-3xl border border-indigo-100/60 flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-xl bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-100">
-                                                    <Info size={16} strokeWidth={3} />
-                                                </div>
-                                                <div>
-                                                    <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Notice</p>
-                                                    <h4 className="text-sm font-black text-indigo-900">추가 안내사항</h4>
-                                                </div>
-                                            </div>
-                                            <div className="h-px bg-indigo-100/50 w-full" />
-                                            <p className="text-[14px] text-slate-600 leading-7 whitespace-pre-line font-medium pl-1">
-                                                {additionalNotes}
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-
-                        {/* 방문 및 예약 안내 */}
-                        {campaign.type === 'VISIT' && (
-                            <section className="py-10 border-t border-slate-100">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">
-                                        <CalendarCheck className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">방문 및 예약</h2>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Visit & Reservation</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">🗓️ 방문 요일</p>
-                                            <p className="font-black text-slate-900 text-base">{visitDays.length > 0 ? visitDays.join(', ') : '무관'}</p>
-                                        </div>
-                                        <div className="p-4 bg-slate-50/50 rounded-2xl border border-slate-100">
-                                            <p className="text-[11px] text-slate-400 font-bold mb-2 uppercase tracking-widest">⏰ 방문 시간</p>
-                                            <p className="font-black text-slate-900 text-base">
-                                                {visitTimeNegotiable ? '조율 가능' : (visitTime || '무관')}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    {visitNotes && (
-                                        <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
-                                            <p className="text-[11px] text-amber-700 font-bold mb-2 uppercase tracking-widest">💡 참고사항</p>
-                                            <p className="text-sm text-slate-700 leading-7 whitespace-pre-line font-medium">{visitNotes}</p>
-                                        </div>
-                                    )}
-
-                                    <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-[10px] text-blue-500 font-black mb-1.5 uppercase tracking-widest">📞 예약 연락처</p>
-                                            <div className="flex items-center gap-3">
-                                                {advertiserWillContact ? (
-                                                    <p className="font-black text-slate-900 text-lg">선정 후 광고주 직접 연락</p>
-                                                ) : (isAdmin || user?.id === campaign.created_by || applicationStatus === 'APPROVED' || applicationStatus === 'SELECTED') ? (
-                                                    <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3">
-                                                        <span className="font-black text-slate-900 text-xl tracking-tight">{contactPhone || '정보 없음'}</span>
-                                                        <span className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 bg-indigo-50 rounded-full text-indigo-600 font-bold border border-indigo-100 shadow-sm w-fit">
-                                                            {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' :
-                                                                contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
-                                                        </span>
+                                            {(step2Data.prohibitedWords?.length > 0 || campaign.prohibited_words?.length > 0) && (
+                                                <GuideRow label="사용 금지 표현">
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-1 font-medium text-rose-700">
+                                                        {(campaign.prohibited_words || step2Data.prohibitedWords).map((word: string, i: number) => <span key={i}>#{word}</span>)}
                                                     </div>
-                                                ) : (
-                                                    <span className="text-slate-400 font-bold text-sm">선정된 인원에게만 노출됩니다.</span>
+                                                </GuideRow>
+                                            )}
+                                        </dl>
+                                    </GuideGroup>
+                                )}
+
+                                {additionalNotes && (
+                                    <GuideGroup title="추가 안내">
+                                        <div className="text-sm leading-[1.8] text-slate-700 [overflow-wrap:anywhere] sm:text-[15px]">
+                                            <GuideText text={additionalNotes} />
+                                        </div>
+                                    </GuideGroup>
+                                )}
+                            </GuideSection>
+
+                            {campaign.type === 'VISIT' && (
+                                <GuideSection title="방문 및 예약" icon={<Calendar className="h-5 w-5" />}>
+                                    <dl className="space-y-5">
+                                        <GuideRow label="방문 요일">{visitDays.length > 0 ? visitDays.join(', ') : '무관'}</GuideRow>
+                                        <GuideRow label="방문 시간">{visitTimeNegotiable ? '조율 가능' : (visitTime || '무관')}</GuideRow>
+                                        {visitNotes && <GuideRow label="참고사항"><GuideText text={visitNotes} /></GuideRow>}
+                                        <GuideRow label="예약 연락처">
+                                            {advertiserWillContact ? (
+                                                <p className="font-semibold text-slate-900">선정 후 광고주 직접 연락</p>
+                                            ) : (isAdmin || user?.id === campaign.created_by || applicationStatus === 'APPROVED' || applicationStatus === 'SELECTED') ? (
+                                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                                    <span className="font-semibold text-slate-900">{contactPhone || '정보 없음'}</span>
+                                                    <span className="text-[13px] text-slate-600">
+                                                        {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' :
+                                                            contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
+                                                    </span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-slate-500">선정된 인원에게만 노출됩니다.</span>
+                                            )}
+                                        </GuideRow>
+                                    </dl>
+                                </GuideSection>
+                            )}
+
+                            {campaign.type === 'VISIT' && stores.length > 0 && (
+                                <GuideSection title="매장 정보" icon={<MapPin className="h-5 w-5" />}>
+                                    <div className="space-y-6 divide-y divide-slate-100">
+                                        {stores.map((store: any, i: number) => (
+                                            <div key={i} className="min-w-0 space-y-5 pt-6 first:pt-0">
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <h3 className="min-w-0 text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">{store.storeName}</h3>
+                                                    {store.naverPlaceUrl && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { setSelectedStore(store); setIsStoreSheetOpen(true); }}
+                                                            className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 sm:min-h-9"
+                                                        >
+                                                            <MapPin size={16} />지도로 보기
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <dl>
+                                                    <GuideRow label="주소">{store.address || '주소 정보 없음'}</GuideRow>
+                                                </dl>
+                                                {Boolean(store.address?.trim()) && (
+                                                    <NaverMap address={store.address} storeName={store.storeName} lat={store.lat} lng={store.lng} />
                                                 )}
                                             </div>
-                                        </div>
-                                        <div className="hidden sm:flex w-12 h-12 rounded-2xl bg-blue-50 items-center justify-center text-blue-500">
-                                            <Phone className="w-5 h-5 fill-current" />
-                                        </div>
+                                        ))}
                                     </div>
-                                </div>
-                            </section>
-                        )}
-
-                        {/* 매장 정보 */}
-                        {campaign.type === 'VISIT' && stores.length > 0 && (
-                            <section className="py-10 border-t border-slate-100">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
-                                        <MapPin className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-xl font-bold text-slate-900 tracking-tight">매장 정보</h2>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Location Details</p>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    {stores.map((store: any, i: number) => (
-                                        <div key={i} className="group">
-                                            <div className="flex items-center gap-2 mb-4">
-                                                <h3 className="text-lg font-bold text-slate-900">{store.storeName}</h3>
-                                                {store.naverPlaceUrl && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedStore(store);
-                                                            setIsStoreSheetOpen(true);
-                                                        }}
-                                                        className="px-2 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 hover:bg-rose-50 hover:text-rose-500 hover:border-rose-200 transition-all flex items-center gap-1"
-                                                    >
-                                                        지도로 보기
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <MapPin size={14} className="text-slate-300 shrink-0" />
-                                                <p className="text-sm text-slate-500 font-medium">
-                                                    {store.address || '주소 정보 없음'}
-                                                </p>
-                                            </div>
-                                            {/* 주소만 있으면 지도 렌더, 좌표 없으면 컴포넌트 내부에서 지오코딩 fallback */}
-                                            {Boolean(store.address?.trim()) && (
-                                                <div className="mt-4">
-                                                    <NaverMap
-                                                        address={store.address}
-                                                        storeName={store.storeName}
-                                                        lat={store.lat}
-                                                        lng={store.lng}
-                                                    />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </section>
-                        )}
+                                </GuideSection>
+                            )}
+                        </div>
                     </div>
 
                     {/* Right Sticky Aside */}
