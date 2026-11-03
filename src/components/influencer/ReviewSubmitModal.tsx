@@ -258,24 +258,19 @@ export default function ReviewSubmitModal({
                     {isPurchaseExperience ? (
                         <div className="space-y-3">
                             <Label className="text-sm font-black text-slate-700">구매평 증빙 업로드 (필수)</Label>
+                            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-800">
+                                구매금액이나 주문자 이름이 잘 보이지 않으면 리워드 검수에서 반려될 수 있습니다.
+                            </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <p className="text-xs font-black text-slate-800">1) 구매금액 스샷</p>
-                                        <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[10px] font-black text-amber-800">
-                                            주의
-                                        </span>
-                                    </div>
-                                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                                <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                    <p className="text-xs font-black text-slate-800">1) 구매금액 스샷</p>
+                                    <p className="flex-1 text-[11px] text-slate-500 leading-relaxed">
                                         실제 결제한 구매금액과 성함(주문자명)이 한 화면에서 명확하게 보이게 업로드해 주세요.
                                     </p>
-                                    <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
-                                        금액/성함 식별이 어려우면 리워드 검수에서 반려될 수 있습니다.
-                                    </p>
                                     {purchaseAmountProofUrl ? (
-                                        <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 group">
-                                            <img src={purchaseAmountProofUrl} alt="구매금액 증빙" className="w-full h-full object-cover" />
+                                        <div className="relative h-24 rounded-lg overflow-hidden border border-slate-200 group">
+                                            <img src={purchaseAmountProofUrl} alt="구매금액 증빙" className="w-full h-full object-contain" />
                                             <button
                                                 type="button"
                                                 onClick={() => setPurchaseAmountProofUrl('')}
@@ -297,14 +292,14 @@ export default function ReviewSubmitModal({
                                     )}
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                                <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                                     <p className="text-xs font-black text-slate-800">2) 구매평 스샷</p>
-                                    <p className="text-[11px] text-slate-500 leading-relaxed">
+                                    <p className="flex-1 text-[11px] text-slate-500 leading-relaxed">
                                         쇼핑몰에 작성한 구매평 내용이 잘 보이도록 캡처해 주세요.
                                     </p>
                                     {purchaseReviewProofUrl ? (
-                                        <div className="relative aspect-[4/3] rounded-lg overflow-hidden border border-slate-200 group">
-                                            <img src={purchaseReviewProofUrl} alt="구매평 증빙" className="w-full h-full object-cover" />
+                                        <div className="relative h-24 rounded-lg overflow-hidden border border-slate-200 group">
+                                            <img src={purchaseReviewProofUrl} alt="구매평 증빙" className="w-full h-full object-contain" />
                                             <button
                                                 type="button"
                                                 onClick={() => setPurchaseReviewProofUrl('')}
