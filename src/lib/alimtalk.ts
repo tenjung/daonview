@@ -4,6 +4,8 @@
 
 import { AlimtalkRequest, AlimtalkResponse } from '@/types/alimtalk';
 
+export const ALIMTALK_PAUSED = true;
+
 /**
  * 전화번호 포맷팅 (하이픈 제거)
  * @param phone - 전화번호 (010-1234-5678 또는 01012345678)
@@ -237,6 +239,10 @@ export async function sendShippingStartedAlimtalk(
  * @param request - 알림톡 요청 데이터
  */
 async function sendAlimtalk(request: AlimtalkRequest): Promise<AlimtalkResponse> {
+    if (ALIMTALK_PAUSED) {
+        return { success: false, error: '카카오 알림톡 발송이 일시 중지되었습니다.', statusCode: 503 };
+    }
+
     try {
         const isServerRuntime = typeof window === 'undefined';
         const siteUrl =

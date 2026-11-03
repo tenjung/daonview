@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
-import { sendInfluencerSelectedAlimtalk } from '@/lib/alimtalk';
+import { ALIMTALK_PAUSED, sendInfluencerSelectedAlimtalk } from '@/lib/alimtalk';
 
 interface SendSelectionNotificationParams {
   userId: string;
@@ -43,7 +43,7 @@ export async function sendSelectionNotification(
   const assignedOptionLabel = params.assignedOptionLabel || undefined;
   const assignedPurchaseLink = params.assignedPurchaseLink || undefined;
 
-  if (userProfile.phone_number) {
+  if (!ALIMTALK_PAUSED && userProfile.phone_number) {
     const talkResult = await sendInfluencerSelectedAlimtalk(
       userProfile.phone_number,
       recipientName,
@@ -58,7 +58,7 @@ export async function sendSelectionNotification(
     if (!talkResult.success) {
       errors.push(`카카오 알림톡 실패: ${talkResult.error || 'unknown error'}`);
     }
-  } else {
+  } else if (!ALIMTALK_PAUSED) {
     errors.push('카카오 알림톡 스킵: 전화번호 없음');
   }
 

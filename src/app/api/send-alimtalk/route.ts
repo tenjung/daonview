@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { SolapiMessageService } from 'solapi';
+import { ALIMTALK_PAUSED } from '@/lib/alimtalk';
 import { AlimtalkRequest, AlimtalkResponse } from '@/types/alimtalk';
 
 const SOLAPI_API_KEY = process.env.SOLAPI_API_KEY!;
@@ -17,6 +18,13 @@ const SOLAPI_KAKAO_CHANNEL_ID = process.env.SOLAPI_KAKAO_CHANNEL_ID!;
 const messageService = new SolapiMessageService(SOLAPI_API_KEY, SOLAPI_API_SECRET);
 
 export async function POST(request: NextRequest) {
+    if (ALIMTALK_PAUSED) {
+        return NextResponse.json(
+            { success: false, error: '카카오 알림톡 발송이 일시 중지되었습니다.' },
+            { status: 503 }
+        );
+    }
+
     try {
         const body: AlimtalkRequest = await request.json();
         const { to, templateCode, variables, buttons } = body;
@@ -69,11 +77,13 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(result);
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('알림톡 발송 중 오류:', error);
 
         // SDK 에러 처리
-        const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.';
+        const errorMessage = error instanceof Error && error.message
+            ? error.message
+            : '알 수 없는 오류가 발생했습니다.';
 
         // 템플릿 미승인 에러 처리
         if (errorMessage.includes('TemplateNotApproved') || errorMessage.includes('template')) {
