@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { sendReviewSubmittedAlimtalk } from '@/lib/alimtalk';
 import { isPurchaseReviewCampaign } from '@/lib/campaignPurchase';
+import { sendAdminPurchaseReviewEmail } from '@/lib/email';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 
@@ -196,6 +197,14 @@ export async function POST(request: NextRequest) {
     await admin.from('reviews').delete().eq('id', review.id);
     if (isPurchaseExperience) await admin.from('profiles').update(previousPayout).eq('id', user.id);
     return NextResponse.json({ error: '신청 완료 상태를 저장하지 못했습니다.' }, { status: 409 });
+  }
+
+  if (isPurchaseExperience) {
+    try {
+      await sendAdminPurchaseReviewEmail(campaign.title, review.id);
+    } catch (error) {
+      console.error('Admin purchase review email failed:', { reviewId: review.id, error });
+    }
   }
 
   const influencerMessage = isPurchaseExperience

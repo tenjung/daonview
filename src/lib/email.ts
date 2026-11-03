@@ -79,10 +79,10 @@ const isSafeHttpUrl = (value?: string) => {
 
 const buildSelectionDetailsHtml = (params: EmailParams) => {
   const row = (label: string, value: string, background = '#ffffff') => `
-    <div style="padding:12px 14px;border-bottom:1px solid #f1f5f9;font-size:14px;background:${background};">
-      <span style="color:#64748b;font-weight:700;display:inline-block;min-width:90px;">${label}</span>
-      <span>${value}</span>
-    </div>`;
+    <tr style="background:${background};">
+      <td width="26%" valign="top" style="padding:12px 4px 12px 12px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;font-weight:700;line-height:1.5;word-break:keep-all;">${label}</td>
+      <td valign="top" style="padding:12px 12px 12px 8px;border-bottom:1px solid #f1f5f9;font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${value}</td>
+    </tr>`;
   const parts = [row('제공내역', escapeHtml(params.providedItems || '캠페인 상세 페이지 참조'))];
   const assignedPurchases = (params.assignedPurchases || [])
     .filter((item) => item.optionLabel && isSafeHttpUrl(item.url))
@@ -103,9 +103,19 @@ const buildSelectionDetailsHtml = (params: EmailParams) => {
       parts.push(row('개별 구매링크', `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`));
     }
   }
-  parts.push(row('핵심 가이드', escapeHtml(params.guideSummary || '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.').replace(/\r?\n/g, '<br>')));
+  const guide = params.guideSummary || '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.';
+  const guideRows = guide.split(/\r?\n/).map((line) => {
+    const numbered = line.match(/^([①-⑳]|\d+[.)])\s+(.+)$/);
+    const content = escapeHtml(numbered?.[2] ?? line).replace(
+      /https:\/\/forms\.gle\/[A-Za-z0-9]+(?![A-Za-z0-9/?#=&%;_-])/g,
+      (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;">입력폼 설문 작성하기</a>`
+    );
+    if (!numbered) return `<tr><td colspan="2" style="padding:0 0 4px;">${content || '&nbsp;'}</td></tr>`;
+    return `<tr><td width="22" valign="top" style="padding:0 4px 4px 0;white-space:nowrap;">${escapeHtml(numbered[1])}</td><td valign="top" style="padding:0 0 4px;">${content}</td></tr>`;
+  });
+  parts.push(row('핵심 가이드', `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${guideRows.join('')}</table>`));
   parts.push(row('체험 마감기한', escapeHtml(params.deadlineDate || '캠페인 상세 페이지 참조'), '#fff7ed'));
-  return `<div style="margin:20px 0;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;">${parts.join('')}</div>`;
+  return `<div style="margin:20px 0;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed;border-collapse:collapse;">${parts.join('')}</table></div>`;
 };
 
 /**
@@ -412,11 +422,56 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
   return { subject, html };
 };
 
-export const sendAdminPartnerInquiryEmail = async (params: AdminPartnerInquiryEmailParams) => {
-  const subject = `[다온뷰] 신규 제휴 문의가 접수되었습니다 - ${params.companyName}`;
+const sendAdminEmail = async (to: string, subject: string, html: string) => {
   const forceSend = ['TRUE', '1', 'YES', 'ON'].includes(
     String(process.env.EMAIL_FORCE_SEND || '').toUpperCase()
   );
+  if ((process.env.NODE_ENV === 'development' && !forceSend) || !process.env.AWS_ACCESS_KEY_ID) {
+    console.log('[ADMIN EMAIL MOCK]', { to, subject });
+    return { success: true, messageId: `mock-${Date.now()}` };
+  }
+
+  const response = await getSESClient().send(new SendEmailCommand({
+    Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
+    Destination: { ToAddresses: [to] },
+    Message: {
+      Subject: { Data: subject, Charset: 'UTF-8' },
+      Body: { Html: { Data: html, Charset: 'UTF-8' } },
+    },
+  }));
+  console.log(`Admin email sent: ${response.MessageId}`);
+  return { success: true, messageId: response.MessageId };
+};
+
+export const sendAdminPurchaseReviewEmail = async (campaignTitle: string, reviewId: number) => {
+  const apiKey = process.env.RESEND_REVIEW_API_KEY;
+  if (!apiKey) throw new Error('RESEND_REVIEW_API_KEY is not configured');
+
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'Idempotency-Key': `admin-purchase-review/${reviewId}`,
+    },
+    body: JSON.stringify({
+      from: '다온뷰 <reviews@notify.daonview.com>',
+      to: ['master@daonview.com'],
+      subject: `[다온뷰] 구매평 검토 요청 - ${campaignTitle}`,
+      html: `<p><strong>${escapeHtml(campaignTitle)}</strong> 캠페인의 구매평이 제출되었습니다.</p>
+        <p>리뷰 번호 ${reviewId}</p>
+        <p><a href="https://daonview.com/dashboard/admin/reviews">관리자 리뷰에서 검토하기</a></p>`,
+    }),
+    signal: AbortSignal.timeout(5000),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Resend purchase review email failed (HTTP ${response.status})`);
+  }
+};
+
+export const sendAdminPartnerInquiryEmail = async (params: AdminPartnerInquiryEmailParams) => {
+  const subject = `[다온뷰] 신규 제휴 문의가 접수되었습니다 - ${params.companyName}`;
   const requestedChannels = params.requestedChannels.length > 0
     ? params.requestedChannels.map((channel) => PARTNER_CHANNEL_LABELS[channel] || channel).join(', ')
     : '전체 추천';
@@ -468,37 +523,7 @@ export const sendAdminPartnerInquiryEmail = async (params: AdminPartnerInquiryEm
     </html>
   `;
 
-  if ((process.env.NODE_ENV === 'development' && !forceSend) || !process.env.AWS_ACCESS_KEY_ID) {
-    console.log('[ADMIN EMAIL MOCK] Sending partner inquiry email:', {
-      to: ADMIN_PARTNER_INQUIRY_EMAIL,
-      subject,
-    });
-    return { success: true, messageId: `mock-${Date.now()}` };
-  }
-
-  const client = getSESClient();
-  const command = new SendEmailCommand({
-    Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
-    Destination: {
-      ToAddresses: [ADMIN_PARTNER_INQUIRY_EMAIL],
-    },
-    Message: {
-      Subject: {
-        Data: subject,
-        Charset: 'UTF-8',
-      },
-      Body: {
-        Html: {
-          Data: html,
-          Charset: 'UTF-8',
-        },
-      },
-    },
-  });
-
-  const response = await client.send(command);
-  console.log(`Admin partner inquiry email sent: ${response.MessageId}`);
-  return { success: true, messageId: response.MessageId };
+  return sendAdminEmail(ADMIN_PARTNER_INQUIRY_EMAIL, subject, html);
 };
 
 /**
