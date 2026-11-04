@@ -45,8 +45,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-8 bg-background">
-      <div className="w-full max-w-[450px] bg-surface p-10 rounded-2xl border border-border shadow-sm">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-8 bg-background">
+      <div className="w-full max-w-[450px] bg-surface px-5 py-10 sm:px-8 rounded-2xl border border-border shadow-sm">
         <h1 className="text-3xl font-bold text-center mb-2 text-primary tracking-tight">
           비밀번호 찾기
         </h1>
@@ -79,10 +79,15 @@ export default function ForgotPasswordPage() {
           </button>
         </form>
 
-        <div className="mt-6 rounded-xl border border-border bg-white px-4 py-4 text-sm text-text-secondary">
-          {sent
-            ? '메일이 도착하지 않으면 스팸함을 확인하고, 잠시 후 다시 시도해주세요.'
-            : '회원가입에 사용한 이메일만 비밀번호를 재설정할 수 있습니다.'}
+        <div className="mt-6 break-keep rounded-xl border border-border bg-white px-4 py-4 text-sm text-text-secondary">
+          {sent ? (
+            '메일이 도착하지 않으면 스팸함을 확인하고, 잠시 후 다시 시도해주세요.'
+          ) : (
+            <>
+              <span className="sm:hidden">가입한 이메일로만 재설정할 수 있어요.</span>
+              <span className="hidden sm:inline">회원가입에 사용한 이메일만 비밀번호를 재설정할 수 있습니다.</span>
+            </>
+          )}
         </div>
 
         <div className="mt-8 text-center text-sm text-text-secondary">
