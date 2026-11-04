@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Wand2, Menu, X, LayoutDashboard, Settings, LogOut, ShieldCheck, Heart, ChevronUp, ChevronDown, Sparkles, Bell } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { toast } from 'sonner';
@@ -29,14 +29,14 @@ interface NavbarProps {
 }
 
 export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const { 
     user: storeUser, 
     profile: storeProfile, 
     isLoading,
     isInitialized,
-    signOut: storeSignOut 
+    isSigningOut,
+    signOut: storeSignOut
   } = useAuthStore();
 
   // 초기 부팅 전까지만 SSR 초기값을 사용하고, 초기화 이후에는 store를 단일 소스로 사용
@@ -49,7 +49,6 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   const { items: cartItems, fetchItems, clearCart } = useCartStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   // 유저 로그인 시 관심 캠페인(찜) 동기화
   useEffect(() => {
@@ -63,31 +62,11 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   }, [user, isLoading, fetchItems, clearCart]);
 
   const handleLogout = async () => {
-    if (isSigningOut) return;
-    setIsSigningOut(true);
-
     try {
       await storeSignOut();
-      setMobileMenuOpen(false);
-
-      toast.success('로그아웃되었습니다', {
-        id: 'logout',
-        description: '안전하게 로그아웃되었습니다.',
-      });
-
-      router.replace('/');
-      router.refresh();
-
-    } catch (error: unknown) {
-      console.error('Logout Error:', error);
-      toast.error('로그아웃 알림', {
-        id: 'logout',
-        description: '로그아웃 처리 중 알림이 발생했으나 세션은 종료되었습니다.',
-      });
-      router.replace('/');
-      router.refresh();
-    } finally {
-      setIsSigningOut(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('로그아웃에 실패했습니다. 다시 시도해 주세요.', { id: 'logout' });
     }
   };
 

@@ -9,18 +9,16 @@ import { useRoleGuard } from '@/hooks/useRoleGuard';
 import RoleSidebar from '@/components/RoleSidebar';
 
 export default function DraftCampaignsPage() {
-    const { user, role, isChecking } = useRoleGuard(['ADMIN', 'ADVERTISER']);
+    const { user, role, isAllowed, isChecking } = useRoleGuard(['ADMIN', 'ADVERTISER']);
     const router = useRouter();
     const [drafts, setDrafts] = useState<DraftCampaign[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!isChecking && user) {
+        if (!isChecking && isAllowed) {
             loadDrafts();
-        } else if (!isChecking && !user) {
-            router.push('/login');
         }
-    }, [isChecking, user]);
+    }, [isChecking, isAllowed, user]);
 
     const loadDrafts = async () => {
         if (!user) return;
@@ -54,7 +52,7 @@ export default function DraftCampaignsPage() {
         }
     };
 
-    if (loading || isChecking || !role) {
+    if (loading || isChecking || !isAllowed || !role) {
         return (
             <div className="flex min-h-screen bg-background">
                 <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>

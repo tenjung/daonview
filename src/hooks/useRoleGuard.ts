@@ -9,16 +9,19 @@ import {
   type DashboardRoleKey,
 } from '@/constants/role';
 
-export function useRoleGuard(allowedRoles: DashboardRoleKey[]) {
+export function useRoleGuard(allowedRoles: DashboardRoleKey[], returnTo?: string) {
   const router = useRouter();
-  const { user, profile, isLoading, isInitialized } = useAuthStore();
+  const { user, profile, isLoading, isInitialized, isSigningOut, isProfileLoading } = useAuthStore();
   const role = coerceDashboardRole(profile?.role || user?.user_metadata?.role);
 
+  const isChecking = isLoading || !isInitialized || isSigningOut || (!role && isProfileLoading);
+  const isAllowed = Boolean(user && role && allowedRoles.includes(role));
+
   useEffect(() => {
-    if (isLoading || !isInitialized) return;
+    if (isChecking) return;
 
     if (!user) {
-      router.replace('/login');
+      router.replace(returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login');
       return;
     }
 
@@ -27,16 +30,16 @@ export function useRoleGuard(allowedRoles: DashboardRoleKey[]) {
       return;
     }
 
-    if (!allowedRoles.includes(role)) {
+    if (!isAllowed) {
       router.replace(getRoleDashboardPath(role));
     }
-  }, [allowedRoles, isInitialized, isLoading, role, router, user]);
+  }, [isAllowed, isChecking, returnTo, role, router, user]);
 
   return {
     user,
     profile,
     role,
-    isChecking: isLoading || !isInitialized,
-    isAllowed: Boolean(user && role && allowedRoles.includes(role)),
+    isChecking,
+    isAllowed,
   };
 }

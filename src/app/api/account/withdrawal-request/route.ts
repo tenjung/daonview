@@ -1,7 +1,17 @@
+import { createHash } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { coerceDashboardRole } from '@/constants/role';
 
 const WITHDRAWAL_TITLE = '[ACCOUNT_WITHDRAWAL] 회원탈퇴 요청';
+const WITHDRAWAL_BAN_DURATION = '876000h';
+
+function getWithdrawalInquiryId(userId: string) {
+    // Give concurrent submissions for the same account a shared inquiry ID.
+    const hash = createHash('sha256').update(`account-withdrawal:${userId}`).digest('hex');
+    return [hash.slice(0, 8), hash.slice(8, 12), hash.slice(12, 16), hash.slice(16, 20), hash.slice(20, 32)].join('-');
+}
 
 export async function POST(request: Request) {
     try {
@@ -15,53 +25,80 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: '인증이 필요합니다.' }, { status: 401 });
         }
 
-        const body = await request.json().catch(() => ({}));
-        const reason = typeof body?.reason === 'string' ? body.reason.trim() : '';
+        const contentType = request.headers.get('content-type')?.split(';')[0].trim().toLowerCase();
+        if (contentType !== 'application/json') {
+            return NextResponse.json({ success: false, error: '잘못된 요청 형식입니다.' }, { status: 415 });
+        }
 
-        const { data: latest, error: latestError } = await supabase
+        const body = await request.json().catch(() => ({}));
+        if (body?.confirmation !== '회원탈퇴' || body?.agreed !== true) {
+            return NextResponse.json({ success: false, error: '탈퇴 확인 문구와 동의가 필요합니다.' }, { status: 400 });
+        }
+
+        const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .maybeSingle();
+
+        if (profileError) throw profileError;
+        const role = coerceDashboardRole(profile?.role || user.user_metadata?.role);
+        if (role !== 'INFLUENCER' && role !== 'ADVERTISER') {
+            return NextResponse.json({ success: false, error: '이 계정은 직접 탈퇴할 수 없습니다.' }, { status: 403 });
+        }
+
+        const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+        const admin = createAdminClient();
+
+        const { data: latest, error: latestError } = await admin
             .from('inquiries')
-            .select('id, status, created_at')
+            .select('status')
             .eq('user_id', user.id)
             .eq('title', WITHDRAWAL_TITLE)
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
 
-        if (latestError) {
-            return NextResponse.json({ success: false, error: latestError.message }, { status: 400 });
+        if (latestError) throw latestError;
+
+        if (latest?.status?.toUpperCase() !== 'PENDING') {
+            const contentLines = [
+                '회원탈퇴 요청이 접수되었습니다.',
+                '',
+                `USER_ID: ${user.id}`,
+                `EMAIL: ${user.email ?? 'UNKNOWN'}`,
+                `REQUESTED_AT: ${new Date().toISOString()}`,
+            ];
+
+            if (reason) contentLines.push('', `REASON: ${reason}`);
+
+            const { error: insertError } = await admin.from('inquiries').upsert({
+                id: getWithdrawalInquiryId(user.id),
+                user_id: user.id,
+                category: 'EXPERIENCE',
+                title: WITHDRAWAL_TITLE,
+                content: contentLines.join('\n'),
+                status: 'PENDING',
+            }, { onConflict: 'id', ignoreDuplicates: true });
+
+            if (insertError) throw insertError;
         }
 
-        if (latest && String(latest.status || '').toUpperCase() === 'PENDING') {
-            return NextResponse.json({ success: false, error: '이미 처리 대기 중인 회원탈퇴 요청이 있습니다.' }, { status: 409 });
-        }
-
-        const contentLines = [
-            '회원탈퇴 요청이 접수되었습니다.',
-            '',
-            `USER_ID: ${user.id}`,
-            `EMAIL: ${user.email ?? 'UNKNOWN'}`,
-            `REQUESTED_AT: ${new Date().toISOString()}`,
-        ];
-
-        if (reason) {
-            contentLines.push('', `REASON: ${reason}`);
-        }
-
-        const { error: insertError } = await supabase.from('inquiries').insert({
-            user_id: user.id,
-            category: 'EXPERIENCE',
-            title: WITHDRAWAL_TITLE,
-            content: contentLines.join('\n'),
-            status: 'PENDING',
+        const { error: banError } = await admin.auth.admin.updateUserById(user.id, {
+            ban_duration: WITHDRAWAL_BAN_DURATION,
         });
 
-        if (insertError) {
-            return NextResponse.json({ success: false, error: insertError.message }, { status: 400 });
+        if (banError) {
+            console.error('[AccountWithdrawal] Could not block account sign-in:', banError.code);
+            return NextResponse.json({
+                success: false,
+                error: '탈퇴 요청은 접수됐지만 로그인 차단에 실패했습니다. 다시 시도해 주세요.',
+            }, { status: 502 });
         }
 
         return NextResponse.json({ success: true });
     } catch (error: unknown) {
-        const message = error instanceof Error ? error.message : '요청 처리 중 오류가 발생했습니다.';
-        return NextResponse.json({ success: false, error: message }, { status: 500 });
+        console.error('[AccountWithdrawal] Request processing failed:', error);
+        return NextResponse.json({ success: false, error: '탈퇴 처리 중 오류가 발생했습니다.' }, { status: 500 });
     }
 }

@@ -86,11 +86,13 @@ const BANK_LIST = [
 ];
 
 function ProfileEditContent() {
-    const { role: guardedRole } = useRoleGuard(['ADVERTISER', 'INFLUENCER']);
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const searchParamsString = searchParams.toString();
+    const returnTo = pathname + (searchParamsString ? '?' + searchParamsString : '');
+    const { user: authUser, role: guardedRole, isChecking, isAllowed } =
+        useRoleGuard(['ADVERTISER', 'INFLUENCER'], returnTo);
     const activeTab = (searchParams.get('tab') as TabType) || 'basic';
     const profileTabs: Array<{ id: TabType; label: string; icon: typeof User }> = [
         { id: 'basic', label: '기본 정보', icon: User },
@@ -119,7 +121,7 @@ function ProfileEditContent() {
         return clean;
     };
 
-    const { user: authUser, isInitialized, fetchProfile, signOut } = useAuthStore();
+    const { fetchProfile, signOut, isSigningOut } = useAuthStore();
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -198,6 +200,7 @@ function ProfileEditContent() {
     const [withdrawAgreement, setWithdrawAgreement] = useState(false);
     const [withdrawReason, setWithdrawReason] = useState('');
     const [withdrawing, setWithdrawing] = useState(false);
+    const [withdrawalRequested, setWithdrawalRequested] = useState(false);
     const withdrawalSectionRef = useRef<HTMLDivElement | null>(null);
 
     const WITHDRAWAL_CONFIRM_KEYWORD = '회원탈퇴';
@@ -231,14 +234,7 @@ function ProfileEditContent() {
     };
 
     useEffect(() => {
-        if (!isInitialized) return;
-        if (initializedRef.current) return;
-
-        if (!authUser) {
-            const currentUrl = pathname + (searchParamsString ? '?' + searchParamsString : '');
-            router.push(`/login?returnTo=${encodeURIComponent(currentUrl)}`);
-            return;
-        }
+        if (isChecking || !isAllowed || !authUser) return;
 
         const loadProfileData = async () => {
             initializedRef.current = true;
@@ -337,14 +333,14 @@ function ProfileEditContent() {
             if (youtubeTimer) clearTimeout(youtubeTimer);
             if (tiktokTimer) clearTimeout(tiktokTimer);
         };
-    }, [isInitialized, authUser, router, pathname, searchParamsString]);
+    }, [isChecking, isAllowed, authUser]);
 
     const handleBasicInfoSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
 
         try {
-            if (!authUser) return;
+            if (!authUser || useAuthStore.getState().isSigningOut) return;
             const user = authUser;
 
             if (!formData.phone_number || formData.phone_number.trim().length < 10) {
@@ -425,7 +421,7 @@ function ProfileEditContent() {
     // 소셜 링크 자동 저장 함수
     const autoSaveSocialLink = useCallback(async (field: 'blog' | 'instagram' | 'youtube' | 'tiktok', value: string) => {
         try {
-            if (!authUser) return;
+            if (!authUser || useAuthStore.getState().isSigningOut) return;
             const user = authUser;
 
             setSocialSaveStatus(prev => ({ ...prev, [field]: 'saving' }));
@@ -512,7 +508,7 @@ function ProfileEditContent() {
     const handleInterestsSubmit = async () => {
         setSaving(true);
         try {
-            if (!authUser) return;
+            if (!authUser || useAuthStore.getState().isSigningOut) return;
             const user = authUser;
             if (profileMode === PROFILE_MODES.CREATOR && selectedPlatforms.length === 0) {
                 toast.error('크리에이터형은 최소 1개 플랫폼을 선택해야 합니다.');
@@ -563,35 +559,49 @@ function ProfileEditContent() {
     const selectedBank = BANK_LIST.find(b => b.name === formData.bank_name);
 
     const handleOpenWithdrawalRequest = async () => {
-        if (!canProceedWithdrawal) {
+        if (withdrawing || useAuthStore.getState().isSigningOut) return;
+
+        if (!withdrawalRequested && !canProceedWithdrawal) {
             toast.error('확인 문구 입력과 동의 체크를 완료해 주세요.');
             return;
         }
 
         try {
             setWithdrawing(true);
-            const response = await fetch('/api/account/withdrawal-request', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    reason: withdrawReason
-                })
-            });
+            if (!withdrawalRequested) {
+                const response = await fetch('/api/account/withdrawal-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        reason: withdrawReason,
+                        confirmation: withdrawConfirmText.trim(),
+                        agreed: withdrawAgreement,
+                    })
+                });
 
-            const result = await response.json();
-            if (!response.ok || !result?.success) {
-                throw new Error(result?.error || '회원탈퇴 요청 접수에 실패했습니다.');
+                const result = await response.json();
+                if (!response.ok || !result?.success) {
+                    throw new Error(result?.error || '회원탈퇴 요청 접수에 실패했습니다.');
+                }
+
+                setWithdrawalRequested(true);
+                toast.success('탈퇴 처리가 완료되었습니다. 이 계정으로 다시 로그인할 수 없습니다.');
             }
 
-            toast.success('회원탈퇴 요청이 접수되었습니다. 안전을 위해 로그아웃됩니다.');
-            await signOut();
-            router.push('/');
+            try {
+                await signOut();
+            } catch (error) {
+                console.error('Logout after withdrawal request failed:', error);
+                toast.error('탈퇴 처리가 완료되었습니다. 현재 브라우저에서 로그아웃을 다시 시도해 주세요.');
+            }
         } catch (error: unknown) {
             toast.error(getErrorMessage(error, '회원탈퇴 요청 처리 중 오류가 발생했습니다.'));
         } finally {
             setWithdrawing(false);
         }
     };
+
+    if (!isAllowed) return null;
 
     if (loading) {
         return (
@@ -1019,7 +1029,7 @@ function ProfileEditContent() {
                                             위험 작업
                                         </CardTitle>
                                         <CardDescription className="text-rose-700/80 leading-relaxed">
-                                            회원탈퇴는 복구가 불가능합니다. 실수 방지를 위해 별도 확인을 거쳐야 요청할 수 있습니다.
+                                            탈퇴를 확정하면 이 계정으로 다시 로그인할 수 없습니다. 확인 문구를 입력해 주세요.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -1093,10 +1103,10 @@ function ProfileEditContent() {
                                                     <Button
                                                         type="button"
                                                         className="bg-rose-600 hover:bg-rose-700 text-white font-bold"
-                                                        disabled={!canProceedWithdrawal || withdrawing}
+                                                        disabled={(!withdrawalRequested && !canProceedWithdrawal) || withdrawing || isSigningOut}
                                                         onClick={handleOpenWithdrawalRequest}
                                                     >
-                                                        {withdrawing ? '요청 접수 중...' : '회원탈퇴 요청하기'}
+                                                        {isSigningOut ? '로그아웃 중...' : withdrawing ? '요청 접수 중...' : withdrawalRequested ? '로그아웃 다시 시도' : '회원탈퇴 확정'}
                                                     </Button>
                                                 </div>
                                             </div>

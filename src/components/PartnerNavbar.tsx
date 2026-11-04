@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { Menu, X, LayoutDashboard, Settings, LogOut, ShieldCheck } from 'lucide-react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { Avatar } from '@/components/ui/avatar';
@@ -27,14 +27,14 @@ interface PartnerNavbarProps {
 }
 
 export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNavbarProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const { 
     user: storeUser, 
     profile: storeProfile, 
     isLoading,
     isInitialized,
-    signOut: storeSignOut 
+    isSigningOut,
+    signOut: storeSignOut
   } = useAuthStore();
 
   const user = !isInitialized && !storeUser && initialUser ? initialUser : storeUser;
@@ -42,33 +42,13 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
 
   const showSkeleton = isLoading && initialUser === undefined && storeUser === null;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleLogout = async () => {
-    if (isSigningOut) return;
-    setIsSigningOut(true);
-
     try {
       await storeSignOut();
-      setMobileMenuOpen(false);
-
-      toast.success('로그아웃되었습니다', {
-        id: 'logout',
-      });
-
-      router.replace('/');
-      router.refresh();
-
-    } catch (error: unknown) {
-      console.error('Logout Error:', error);
-      toast.error('로그아웃 알림', {
-        id: 'logout',
-        description: '로그아웃 처리 중 알림이 발생했으나 세션은 종료되었습니다.',
-      });
-      router.replace('/');
-      router.refresh();
-    } finally {
-      setIsSigningOut(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast.error('로그아웃에 실패했습니다. 다시 시도해 주세요.', { id: 'logout' });
     }
   };
 

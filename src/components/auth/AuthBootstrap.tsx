@@ -16,7 +16,7 @@ export default function AuthBootstrap() {
         let refreshInFlight = false;
 
         const ensureFreshSession = async () => {
-            if (refreshInFlight) return;
+            if (refreshInFlight || useAuthStore.getState().isSigningOut) return;
 
             refreshInFlight = true;
             try {
@@ -24,7 +24,7 @@ export default function AuthBootstrap() {
                     data: { session },
                 } = await supabase.auth.getSession();
 
-                if (!session?.user) return;
+                if (!session?.user || useAuthStore.getState().isSigningOut) return;
 
                 // 만료 3분 이내면 선제 갱신
                 const expiresAt = (session.expires_at ?? 0) * 1000;
@@ -58,11 +58,17 @@ export default function AuthBootstrap() {
             void ensureFreshSession();
         }, 4 * 60 * 1000);
 
+        const handlePageShow = (event: PageTransitionEvent) => {
+            if (event.persisted) window.location.reload();
+        };
+
+        window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('focus', handleVisibilityChange);
         document.addEventListener('visibilitychange', handleVisibilityChange);
 
         return () => {
             if (intervalId) clearInterval(intervalId);
+            window.removeEventListener('pageshow', handlePageShow);
             window.removeEventListener('focus', handleVisibilityChange);
             document.removeEventListener('visibilitychange', handleVisibilityChange);
         };

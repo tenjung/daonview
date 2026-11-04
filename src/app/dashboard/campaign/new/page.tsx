@@ -1,22 +1,13 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense } from 'react';
 import CampaignRegistrationContainer from '@/components/campaign/CampaignRegistrationContainer';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import RoleSidebar from '@/components/RoleSidebar';
 
 export default function NewCampaignPage() {
-    const { role, user, isChecking } = useRoleGuard(['ADMIN', 'ADVERTISER']);
-    const router = useRouter();
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
-
-    // SSR 에러 방지용
-    if (!mounted || isChecking) {
+    const { role, isAllowed, isChecking } = useRoleGuard(['ADMIN', 'ADVERTISER']);
+    if (isChecking) {
         return (
             <div className="flex min-h-screen bg-background items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -24,12 +15,7 @@ export default function NewCampaignPage() {
         );
     }
 
-    if (!user) {
-        router.push('/login');
-        return null;
-    }
-
-    if (!role) {
+    if (!isAllowed || !role) {
         return null;
     }
 
