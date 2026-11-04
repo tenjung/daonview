@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { coerceDashboardRole } from '@/constants/role';
+import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 
 const WITHDRAWAL_TITLE = '[ACCOUNT_WITHDRAWAL] 회원탈퇴 요청';
 const WITHDRAWAL_BAN_DURATION = '876000h';
@@ -49,6 +50,24 @@ export async function POST(request: Request) {
 
         const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
         const admin = createAdminClient();
+        const [applications, reviews, campaigns] = await Promise.all([
+            admin.from('applications').select('id').eq('user_id', user.id)
+                .in('status', ['PENDING', ...SELECTED_APPLICATION_STATUSES]).limit(1),
+            admin.from('reviews').select('id').eq('user_id', user.id)
+                .eq('status', 'PENDING').limit(1),
+            admin.from('campaigns').select('id').eq('created_by', user.id)
+                .in('status', ['PENDING', ...ACTIVE_CAMPAIGN_STATUSES]).limit(1),
+        ]);
+
+        const eligibilityError = applications.error ?? reviews.error ?? campaigns.error;
+        if (eligibilityError) throw eligibilityError;
+
+        if (applications.data?.length || reviews.data?.length || campaigns.data?.length) {
+            return NextResponse.json({
+                success: false,
+                error: '신청 심사 중이거나 진행·검수 중인 캠페인이 있어 탈퇴할 수 없습니다. 남은 절차를 완료하거나 취소한 후 다시 요청해 주세요.',
+            }, { status: 409 });
+        }
 
         const { data: latest, error: latestError } = await admin
             .from('inquiries')
@@ -96,7 +115,7 @@ export async function POST(request: Request) {
             }, { status: 502 });
         }
 
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, status: 'ACCESS_BLOCKED' });
     } catch (error: unknown) {
         console.error('[AccountWithdrawal] Request processing failed:', error);
         return NextResponse.json({ success: false, error: '탈퇴 처리 중 오류가 발생했습니다.' }, { status: 500 });

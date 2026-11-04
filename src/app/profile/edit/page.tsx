@@ -585,14 +585,14 @@ function ProfileEditContent() {
                 }
 
                 setWithdrawalRequested(true);
-                toast.success('탈퇴 처리가 완료되었습니다. 이 계정으로 다시 로그인할 수 없습니다.');
+                toast.success('탈퇴 요청이 접수되어 로그인이 차단되었습니다.');
             }
 
             try {
                 await signOut();
             } catch (error) {
                 console.error('Logout after withdrawal request failed:', error);
-                toast.error('탈퇴 처리가 완료되었습니다. 현재 브라우저에서 로그아웃을 다시 시도해 주세요.');
+                toast.error('로그인이 차단되었습니다. 현재 브라우저에서 로그아웃을 다시 시도해 주세요.');
             }
         } catch (error: unknown) {
             toast.error(getErrorMessage(error, '회원탈퇴 요청 처리 중 오류가 발생했습니다.'));
@@ -1029,7 +1029,7 @@ function ProfileEditContent() {
                                             위험 작업
                                         </CardTitle>
                                         <CardDescription className="text-rose-700/80 leading-relaxed">
-                                            탈퇴를 확정하면 이 계정으로 다시 로그인할 수 없습니다. 확인 문구를 입력해 주세요.
+                                            신청·진행·검수 중인 캠페인이 있으면 탈퇴를 요청할 수 없습니다. 탈퇴 요청이 접수되면 로그인이 차단됩니다.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
@@ -1082,7 +1082,7 @@ function ProfileEditContent() {
                                                         checked={withdrawAgreement}
                                                         onChange={(e) => setWithdrawAgreement(e.target.checked)}
                                                     />
-                                                    <span>회원탈퇴 시 데이터 삭제/처리 정책을 확인했고, 복구 불가에 동의합니다.</span>
+                                                    <span>탈퇴 요청 후 이 계정으로 로그인할 수 없음을 확인했습니다.</span>
                                                 </label>
 
                                                 <div className="flex flex-wrap gap-2">
@@ -1106,7 +1106,7 @@ function ProfileEditContent() {
                                                         disabled={(!withdrawalRequested && !canProceedWithdrawal) || withdrawing || isSigningOut}
                                                         onClick={handleOpenWithdrawalRequest}
                                                     >
-                                                        {isSigningOut ? '로그아웃 중...' : withdrawing ? '요청 접수 중...' : withdrawalRequested ? '로그아웃 다시 시도' : '회원탈퇴 확정'}
+                                                        {isSigningOut ? '로그아웃 중...' : withdrawing ? '요청 접수 중...' : withdrawalRequested ? '로그아웃 다시 시도' : '회원탈퇴 요청'}
                                                     </Button>
                                                 </div>
                                             </div>
