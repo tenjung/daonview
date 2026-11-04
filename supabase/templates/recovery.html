@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[다온뷰] 비밀번호 재설정 안내</title>
+</head>
+<body style="margin:0;padding:0;background:#f8fafc;color:#1e293b;font-family:Arial,'Malgun Gothic',sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td align="center" style="padding:24px 12px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;">
+          <tr>
+            <td style="padding:24px 28px;border-bottom:1px solid #f1f5f9;color:#be123c;font-size:20px;font-weight:bold;">DAONVIEW</td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <h1 style="margin:0 0 12px;font-size:24px;line-height:1.4;">비밀번호를 재설정해 주세요</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.7;">아래 버튼을 누르면 다온뷰에서 새 비밀번호를 설정할 수 있습니다.</p>
+              <table role="presentation" align="center" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td bgcolor="#be123c" style="border-radius:10px;">
+                    <a href="{{ .SiteURL }}/auth/recovery?token_hash={{ .TokenHash }}" style="display:inline-block;padding:13px 24px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">비밀번호 재설정</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 28px;border-top:1px solid #f1f5f9;color:#475569;font-size:13px;line-height:1.7;">
+              비밀번호 재설정을 요청하지 않았다면 이 메일을 무시해 주세요.<br>
+              다온뷰 · daonview.com
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
