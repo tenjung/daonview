@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Upload, Loader2, Camera, Link as LinkIcon } from 'lucide-react';
+import { isNaverBlogPostUrl, type CampaignReviewMode } from '@/lib/campaignPurchase';
 
 interface ReviewSubmitModalProps {
     isOpen: boolean;
@@ -23,7 +24,7 @@ interface ReviewSubmitModalProps {
     applicationId: number;
     campaignId: number;
     campaignTitle: string;
-    isPurchaseExperience?: boolean;
+    reviewMode: CampaignReviewMode;
     onSuccess: () => void;
 }
 
@@ -33,10 +34,12 @@ export default function ReviewSubmitModal({
     applicationId,
     campaignId,
     campaignTitle,
-    isPurchaseExperience = false,
+    reviewMode,
     onSuccess
 }: ReviewSubmitModalProps) {
     const router = useRouter();
+    const isPurchaseExperience = reviewMode === 'PURCHASE';
+    const isNaverBlogReview = reviewMode === 'NAVER_BLOG';
     const [reviewUrl, setReviewUrl] = useState('');
     const [reviewContent, setReviewContent] = useState('');
     const [mediaUrls, setMediaUrls] = useState<string[]>([]);
@@ -176,6 +179,10 @@ export default function ReviewSubmitModal({
     };
 
     const handleSubmit = async () => {
+        if (isNaverBlogReview && !isNaverBlogPostUrl(reviewUrl)) {
+            toast.error('네이버 블로그 게시글 링크를 입력해 주세요.');
+            return;
+        }
         if (!isPurchaseExperience && !reviewUrl.trim()) {
             toast.error('리뷰 주소(URL)를 입력해주세요.');
             return;
@@ -201,8 +208,8 @@ export default function ReviewSubmitModal({
                     applicationId,
                     campaignId,
                     reviewUrl,
-                    reviewContent,
-                    mediaUrls,
+                    reviewContent: isNaverBlogReview ? '' : reviewContent,
+                    mediaUrls: isNaverBlogReview ? [] : mediaUrls,
                     purchaseAmountProofUrl,
                     purchaseReviewProofUrl,
                     bankName,
@@ -255,27 +262,31 @@ export default function ReviewSubmitModal({
                 <div className="p-6 space-y-6 bg-white">
                     <div className="space-y-2">
                         <Label htmlFor="reviewUrl" className="text-sm font-black text-slate-700 flex items-center gap-1.5">
-                            <LinkIcon size={14} className="text-rose-500" /> 리뷰 주소 (URL) {isPurchaseExperience ? '(선택)' : ''}
+                            <LinkIcon size={14} className="text-rose-500" />
+                            {isNaverBlogReview ? '네이버 블로그 게시글 링크' : '리뷰 주소 (URL)'}
+                            {isPurchaseExperience ? ' (선택)' : ''}
                         </Label>
                         <Input
                             id="reviewUrl"
-                            placeholder={isPurchaseExperience ? '구매평 체험은 생략 가능 (선택 입력)' : 'https://blog.naver.com/...'}
+                            placeholder={isPurchaseExperience ? '구매평 체험은 생략 가능 (선택 입력)' : isNaverBlogReview ? 'https://blog.naver.com/...' : 'https://'}
                             value={reviewUrl}
                             onChange={(e) => setReviewUrl(e.target.value)}
                             className="h-12 rounded-xl bg-slate-50 border-slate-200 focus:ring-rose-500 focus:border-rose-500 font-medium"
                         />
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="reviewContent" className="text-sm font-black text-slate-700">리뷰 한줄평 (선택)</Label>
-                        <Textarea
-                            id="reviewContent"
-                            placeholder="제품에 대한 간단한 소감을 남겨주세요."
-                            value={reviewContent}
-                            onChange={(e) => setReviewContent(e.target.value)}
-                            className="rounded-xl bg-slate-50 border-slate-200 focus:ring-rose-500 focus:border-rose-500 min-h-[100px]"
-                        />
-                    </div>
+                    {!isNaverBlogReview && (
+                        <div className="space-y-2">
+                            <Label htmlFor="reviewContent" className="text-sm font-black text-slate-700">리뷰 한줄평 (선택)</Label>
+                            <Textarea
+                                id="reviewContent"
+                                placeholder="제품에 대한 간단한 소감을 남겨주세요."
+                                value={reviewContent}
+                                onChange={(e) => setReviewContent(e.target.value)}
+                                className="rounded-xl bg-slate-50 border-slate-200 focus:ring-rose-500 focus:border-rose-500 min-h-[100px]"
+                            />
+                        </div>
+                    )}
 
                     {isPurchaseExperience ? (
                         <div className="space-y-3">
@@ -359,7 +370,7 @@ export default function ReviewSubmitModal({
                                 onChange={(e) => uploadSingleProof(e, 'REVIEW')}
                             />
                         </div>
-                    ) : (
+                    ) : !isNaverBlogReview && (
                         <div className="space-y-3">
                             <Label className="text-sm font-black text-slate-700 flex items-center justify-between">
                                 <span>리뷰 사진/영상 첨부 (최대 5개)</span>

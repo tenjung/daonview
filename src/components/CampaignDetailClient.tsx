@@ -72,6 +72,7 @@ import {
 } from "@/components/ui/tooltip";
 import PhoneInputModal from '@/components/PhoneInputModal';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
+import { getCampaignReviewMode } from '@/lib/campaignPurchase';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
 import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
 import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
@@ -711,12 +712,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step1Data = campaignOptions?.step1Data || {};
     const step2Data = campaignOptions?.step2Data || {};
-    const normalizedCampaignType = String(campaign.type || '').toUpperCase();
-    const normalizedCampaignPlatform = String(campaign.platform || '').toUpperCase();
-    const isPurchaseExperience =
-        normalizedCampaignType === 'PURCHASE' ||
-        normalizedCampaignPlatform === 'PURCHASE' ||
-        Boolean(step1Data.includeReview);
 
     const scheduleDates = resolveCampaignScheduleDates(campaign);
     const showCount = Boolean(scheduleDates.endDate) || Boolean(user && (isAdmin || normalizedRole === 'ADVERTISER'));
@@ -2041,7 +2036,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 applicationId={applicationId}
                 campaignId={parseInt(id)}
                 campaignTitle={campaign.title}
-                isPurchaseExperience={isPurchaseExperience}
+                reviewMode={getCampaignReviewMode(campaign)}
                 onSuccess={() => {
                     checkUserStatus(user);
                 }}

@@ -17,9 +17,11 @@ import { Campaign } from '@/types/database';
 import { Camera, ExternalLink, MessageSquare } from 'lucide-react';
 import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
+import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
 
 type CampaignLite = Pick<Campaign, 'id' | 'title' | 'platform' | 'type' | 'end_date'> & {
     created_by?: string;
+    campaign_options?: unknown;
 };
 
 interface PendingReviewQueryRow {
@@ -77,14 +79,14 @@ export default function InfluencerReviewsPage() {
         campaignId: number;
         campaignTitle: string;
         creatorId: string;
-        isPurchaseExperience: boolean;
+        reviewMode: CampaignReviewMode;
     }>({
         isOpen: false,
         applicationId: 0,
         campaignId: 0,
         campaignTitle: '',
         creatorId: '',
-        isPurchaseExperience: false,
+        reviewMode: 'LINK',
     });
 
     const normalizeCampaign = (campaigns: CampaignLite | CampaignLite[] | null | undefined): CampaignLite | null => {
@@ -101,7 +103,7 @@ export default function InfluencerReviewsPage() {
             const [{ data: pendingData, error: pendingError }, { data: submittedData, error: submittedError }] = await Promise.all([
                 supabase
                     .from('applications')
-                    .select('id, status, created_at, campaign_id, review_deadline, purchased_at, campaigns(id, title, platform, type, end_date, created_by)')
+                    .select('id, status, created_at, campaign_id, review_deadline, purchased_at, campaigns(id, title, platform, type, end_date, created_by, campaign_options)')
                     .eq('user_id', user.id)
                     .in('status', ['SELECTED', 'APPROVED'])
                     .or('review_submitted.is.null,review_submitted.eq.false')
@@ -240,7 +242,7 @@ export default function InfluencerReviewsPage() {
                             campaignId: application.campaign_id,
                             campaignTitle: campaign?.title || '캠페인',
                             creatorId: String(campaign?.created_by || ''),
-                            isPurchaseExperience: String(campaign?.type || '').toUpperCase() === 'PURCHASE',
+                            reviewMode: getCampaignReviewMode(campaign),
                         })}
                     >
                         <Camera size={14} />
@@ -426,7 +428,7 @@ export default function InfluencerReviewsPage() {
                                                             campaignId: application.campaign_id,
                                                             campaignTitle: campaign?.title || '캠페인',
                                                             creatorId: String(campaign?.created_by || ''),
-                                                            isPurchaseExperience: String(campaign?.type || '').toUpperCase() === 'PURCHASE',
+                                                            reviewMode: getCampaignReviewMode(campaign),
                                                         })}
                                                     >
                                                         리뷰 등록
@@ -519,7 +521,7 @@ export default function InfluencerReviewsPage() {
                 applicationId={reviewModal.applicationId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}
-                isPurchaseExperience={reviewModal.isPurchaseExperience}
+                reviewMode={reviewModal.reviewMode}
                 onSuccess={fetchReviewData}
             />
         </div>

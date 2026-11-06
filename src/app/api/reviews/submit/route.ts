@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { sendReviewSubmittedAlimtalk } from '@/lib/alimtalk';
-import { isPurchaseReviewCampaign } from '@/lib/campaignPurchase';
+import { getCampaignReviewMode, isNaverBlogPostUrl } from '@/lib/campaignPurchase';
 import { sendAdminPurchaseReviewEmail } from '@/lib/email';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
@@ -118,9 +118,13 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (existingReview) return NextResponse.json({ error: '이미 리뷰를 등록한 캠페인입니다.' }, { status: 409 });
 
-  const isPurchaseExperience = isPurchaseReviewCampaign(campaign);
+  const reviewMode = getCampaignReviewMode(campaign);
+  const isPurchaseExperience = reviewMode === 'PURCHASE';
   const reviewUrl = cleanText(body.reviewUrl, 2000);
-  const reviewContent = cleanText(body.reviewContent, 5000);
+  const reviewContent = reviewMode === 'NAVER_BLOG' ? '' : cleanText(body.reviewContent, 5000);
+  if (reviewMode === 'NAVER_BLOG' && !isNaverBlogPostUrl(reviewUrl)) {
+    return NextResponse.json({ error: '네이버 블로그 게시글 링크를 입력해 주세요.' }, { status: 400 });
+  }
   if (reviewUrl && !isHttpUrl(reviewUrl)) {
     return NextResponse.json({ error: '리뷰 주소는 http 또는 https로 시작해야 합니다.' }, { status: 400 });
   }
@@ -131,7 +135,7 @@ export async function POST(request: NextRequest) {
   const allowedUploadPrefix = getAllowedUploadPrefix(campaignId, user.id);
   const requestedProofUrls = isPurchaseExperience
     ? [body.purchaseAmountProofUrl, body.purchaseReviewProofUrl]
-    : Array.isArray(body.mediaUrls) ? body.mediaUrls.slice(0, 5) : [];
+    : reviewMode === 'LINK' && Array.isArray(body.mediaUrls) ? body.mediaUrls.slice(0, 5) : [];
   const proofUrls = requestedProofUrls
     .map((value) => cleanText(value, 3000))
     .filter(Boolean);

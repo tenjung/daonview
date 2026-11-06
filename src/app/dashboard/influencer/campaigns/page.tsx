@@ -37,7 +37,7 @@ import { INFLUENCER_LINKS } from '@/constants/navigation';
 import { ColumnDef } from '@tanstack/react-table';
 import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
-import { isPurchaseReviewCampaign } from '@/lib/campaignPurchase';
+import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -87,13 +87,13 @@ export default function MyCampaignsPage() {
         appId: number;
         campaignId: number;
         campaignTitle: string;
-        isPurchaseExperience: boolean;
+        reviewMode: CampaignReviewMode;
     }>({
         isOpen: false,
         appId: 0,
         campaignId: 0,
         campaignTitle: '',
-        isPurchaseExperience: false,
+        reviewMode: 'LINK',
     });
     const [extensionModal, setExtensionModal] = useState<{
         isOpen: boolean;
@@ -325,7 +325,7 @@ export default function MyCampaignsPage() {
                                         appId: app.id,
                                         campaignId: app.campaign_id,
                                         campaignTitle: app.campaigns.title,
-                                        isPurchaseExperience: isPurchaseReviewCampaign(app.campaigns),
+                                        reviewMode: getCampaignReviewMode(app.campaigns),
                                     })}
                                 >
                                     <Camera size={14} className="stroke-[2.5px]" />
@@ -587,7 +587,7 @@ export default function MyCampaignsPage() {
                                                                     appId: app.id,
                                                                     campaignId: app.campaign_id,
                                                                     campaignTitle: app.campaigns.title,
-                                                                    isPurchaseExperience: isPurchaseReviewCampaign(app.campaigns),
+                                                                    reviewMode: getCampaignReviewMode(app.campaigns),
                                                                 });
                                                             }}
                                                         >
@@ -634,7 +634,7 @@ export default function MyCampaignsPage() {
                 applicationId={reviewModal.appId}
                 campaignId={reviewModal.campaignId}
                 campaignTitle={reviewModal.campaignTitle}
-                isPurchaseExperience={reviewModal.isPurchaseExperience}
+                reviewMode={reviewModal.reviewMode}
                 onSuccess={fetchData}
             />
 
