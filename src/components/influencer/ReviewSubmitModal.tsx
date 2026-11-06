@@ -47,9 +47,28 @@ export default function ReviewSubmitModal({
     const [accountNumber, setAccountNumber] = useState('');
     const [isUploading, setIsUploading] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [dialog, setDialog] = useState<HTMLDivElement | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const paymentProofInputRef = useRef<HTMLInputElement>(null);
     const reviewProofInputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        const viewport = window.visualViewport;
+        if (!isOpen || !viewport || !dialog) return;
+
+        const syncViewport = () => {
+            // The on-screen keyboard can shrink the visual viewport without resizing 100vh.
+            dialog.style.setProperty('--review-dialog-height', `${viewport.height}px`);
+            dialog.style.setProperty('--review-dialog-center', `${viewport.offsetTop + viewport.height / 2}px`);
+        };
+        syncViewport();
+        viewport.addEventListener('resize', syncViewport);
+        viewport.addEventListener('scroll', syncViewport);
+        return () => {
+            viewport.removeEventListener('resize', syncViewport);
+            viewport.removeEventListener('scroll', syncViewport);
+        };
+    }, [dialog, isOpen]);
 
     useEffect(() => {
         if (!isOpen) return;
@@ -222,7 +241,10 @@ export default function ReviewSubmitModal({
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[500px] rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+            <DialogContent
+                ref={setDialog}
+                className="top-[var(--review-dialog-center,50%)] max-h-[calc(var(--review-dialog-height,100vh)_-_1.5rem)] overflow-y-auto overscroll-y-contain transition-none sm:max-w-[500px] rounded-3xl p-0 border-none shadow-2xl"
+            >
                 <DialogHeader className="p-6 bg-slate-900 text-white">
                     <DialogTitle className="text-xl font-black flex items-center gap-2">
                         <Camera className="text-rose-400" /> 리뷰 등록하기
