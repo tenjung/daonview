@@ -15,8 +15,9 @@ import InfluencerReviewModal from './InfluencerReviewModal';
 import BulkActionsBar from './BulkActionsBar';
 import CancellationModal from './CancellationModal';
 import * as XLSX from 'xlsx';
-import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
+import { sendShippingStartedAlimtalk } from '@/lib/alimtalk';
 import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
+import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type SelectionLinkDraft } from '@/components/campaign/SelectionPurchaseLinkFields';
 
 import { RATING_TAGS, SatisfactionLevel } from '@/types/review';
 
@@ -24,8 +25,6 @@ interface ApplicationsTableClientProps {
     initialApplications: Application[];
     campaignId: string;
     campaignTitle: string;
-    campaignProvidedItems?: string;
-    campaignDeadlineDate?: string;
     campaignCategory?: string;
     campaignType?: string;
     campaignProductName?: string;
@@ -41,8 +40,6 @@ export default function ApplicationsTableClient({
     initialApplications,
     campaignId,
     campaignTitle,
-    campaignProvidedItems,
-    campaignDeadlineDate,
     campaignCategory,
     campaignType,
     campaignProductName,
@@ -85,6 +82,7 @@ export default function ApplicationsTableClient({
     const [selectionMode, setSelectionMode] = useState<'APPROVE' | 'REASSIGN'>('APPROVE');
     const [selectionTarget, setSelectionTarget] = useState<Application | null>(null);
     const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
+    const [selectionLinkDrafts, setSelectionLinkDrafts] = useState<SelectionLinkDraft[]>([]);
     const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
     const [manualLinkId, setManualLinkId] = useState<string>('');
     const [manualPurchaseLinkUrl, setManualPurchaseLinkUrl] = useState('');
@@ -97,12 +95,16 @@ export default function ApplicationsTableClient({
     const [isCandidateLoading, setIsCandidateLoading] = useState(false);
     const [isSelectionSubmitting, setIsSelectionSubmitting] = useState(false);
     const manualPurchaseLinkInput = manualPurchaseLinkUrl.trim();
-    const isSelectionLinkMissing =
+    const usesOptionLinkFields = productUrlIndividual && selectionMode !== 'REASSIGN';
+    const optionAssignments = usesOptionLinkFields ? getSelectionLinkAssignments(selectionLinkDrafts) : null;
+    const isSelectionLinkMissing = usesOptionLinkFields ? !optionAssignments : (
         productUrlIndividual &&
         selectionOptions.length <= 1 &&
         !isCandidateLoading &&
         linkCandidates.length === 0 &&
-        !manualPurchaseLinkInput;
+        selectionMode === 'REASSIGN' &&
+        !manualPurchaseLinkInput
+    );
 
     const [influencerStats, setInfluencerStats] = useState<Map<string, {
         tags: string[];
@@ -316,11 +318,12 @@ export default function ApplicationsTableClient({
         setSelectionMode(mode);
         setSelectionTarget(app);
         setSelectionOptions(options);
+        setSelectionLinkDrafts(options.slice(0, 2).map((optionLabel) => ({ optionLabel, included: true, linkId: '', url: '' })));
         setSelectedOptionLabel(defaultOption);
         setManualLinkId('');
         setManualPurchaseLinkUrl('');
         setIsSelectionModalOpen(true);
-        if (productUrlIndividual) {
+        if (productUrlIndividual && mode === 'REASSIGN') {
             await fetchLinkCandidates(defaultOption);
         } else {
             setLinkCandidates([]);
@@ -331,6 +334,7 @@ export default function ApplicationsTableClient({
         setIsSelectionModalOpen(false);
         setSelectionTarget(null);
         setSelectionOptions([]);
+        setSelectionLinkDrafts([]);
         setSelectedOptionLabel('');
         setManualLinkId('');
         setManualPurchaseLinkUrl('');
@@ -340,7 +344,7 @@ export default function ApplicationsTableClient({
     const handleSelectionSubmit = async () => {
         if (!selectionTarget) return;
         if (isSelectionLinkMissing) {
-            toast.error('구매링크가 없습니다. 캠페인 수정 화면에서 구매링크를 먼저 등록해 주세요.');
+            toast.error('확정할 옵션의 구매링크를 확인해 주세요.');
             return;
         }
         setIsSelectionSubmitting(true);
@@ -357,7 +361,7 @@ export default function ApplicationsTableClient({
                     campaignId: Number(campaignId),
                     targetStatus: 'APPROVED',
                     assignedOptionLabel: selectedOptionLabel,
-                    assignedOptionLabels: selectionMode === 'APPROVE' && selectionOptions.length > 1 ? selectionOptions : undefined,
+                    optionAssignments: optionAssignments || undefined,
                     manualLinkId: manualLinkId ? Number(manualLinkId) : null,
                     manualPurchaseLinkUrl: manualLinkId ? null : manualPurchaseLinkInput || null
                 })
@@ -492,6 +496,10 @@ export default function ApplicationsTableClient({
 
     // 일괄 승인
     const handleBulkApprove = async () => {
+        if (productUrlIndividual) {
+            toast.error('옵션별 구매링크를 지정하려면 신청자를 개별 승인해 주세요.');
+            return;
+        }
         const pendingTargets = selectedApplications.filter(
             (app) => String(app.status || '').toUpperCase() === 'PENDING'
         );
@@ -580,64 +588,21 @@ export default function ApplicationsTableClient({
     };
 
     const handleResendNotification = async (app: Application) => {
-        const userName = app.user?.nickname || app.user?.name || '인플루언서';
-        const errors: string[] = [];
-
         try {
-            if (app.user?.phone_number) {
-                const alimtalkResult = await sendInfluencerSelectedAlimtalk(
-                    app.user.phone_number,
-                    userName,
-                    campaignTitle,
-                    parseInt(campaignId),
-                    {
-                        assignedOptionLabel: app.assigned_option_label,
-                        assignedPurchaseLink: app.assigned_purchase_link_url
-                    }
-                );
-                if (!alimtalkResult.success) {
-                    errors.push(alimtalkResult.error || '알림톡 발송 실패');
-                }
-            } else {
-                errors.push('연락처 미등록');
-            }
-
-            if (app.user?.email) {
-                const response = await fetch('/api/send-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        to: app.user.email,
-                        type: 'CAMPAIGN_SELECTED',
-                        params: {
-                            nickname: userName,
-                            campaignTitle,
-                            providedItems: campaignProvidedItems,
-                            deadlineDate: campaignDeadlineDate,
-                            assignedOptionLabel: app.assigned_option_label,
-                            assignedPurchaseLink: app.assigned_purchase_link_url,
-                            email: app.user.email
-                        }
-                    })
-                });
-                const payload = await response.json().catch(() => null);
-                if (!response.ok || !payload?.success) {
-                    errors.push(payload?.error || payload?.message || '이메일 발송 실패');
-                }
-            } else {
-                errors.push('이메일 미등록');
-            }
-
-            if (errors.length > 0) {
-                console.warn('Resend notification warnings:', { applicationId: app.id, errors });
-                toast.warning('일부 알림 재발송에 실패했습니다.');
+            const response = await fetch('/api/applications/resend-selection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ applicationId: app.id })
+            });
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result?.success) {
+                toast.warning(result?.error || result?.errors?.[0] || '선정 알림 재발송에 실패했습니다.');
                 return;
             }
-
-            toast.success('카카오/이메일 재발송 완료');
+            toast.success('선정 알림을 재발송했습니다.');
         } catch (error) {
-            console.error('Resend notification error:', error);
-            toast.error('알림 재발송 중 오류가 발생했습니다.');
+            console.error('Selection notification resend error:', error);
+            toast.error('선정 알림 재발송에 실패했습니다.');
         }
     };
 
@@ -928,7 +893,7 @@ export default function ApplicationsTableClient({
 
             {isSelectionModalOpen && selectionTarget && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90dvh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-2">
                             {selectionMode === 'REASSIGN' ? '구매링크 재할당' : '승인 옵션 및 링크 배정'}
                         </h2>
@@ -937,11 +902,11 @@ export default function ApplicationsTableClient({
                         </p>
 
                         <div className="space-y-4">
-                            <div>
+                            {!usesOptionLinkFields && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">확정 옵션</label>
                                 {selectionOptions.length > 1 ? (
                                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                                        <p className="mb-2 text-xs font-semibold text-blue-700">신청한 2개 옵션을 모두 확정하고 옵션별 링크를 자동 배정합니다.</p>
+                                        <p className="mb-2 text-xs font-semibold text-blue-700">신청한 옵션을 확인하세요.</p>
                                         <div className="flex flex-wrap gap-2">
                                             {selectionOptions.map((option) => (
                                                 <span key={option} className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-blue-800">{option}</span>
@@ -967,11 +932,25 @@ export default function ApplicationsTableClient({
                                         </option>
                                     ))}
                                 </select>}
-                            </div>
+                            </div>}
 
-                            {productUrlIndividual && selectionOptions.length > 1 ? (
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                                    각 옵션의 활성 링크 풀에서 최소 사용 링크가 하나씩 배정됩니다.
+                            {usesOptionLinkFields ? (
+                                <div className="space-y-3">
+                                    {selectionLinkDrafts.map((draft, index) => (
+                                        <SelectionPurchaseLinkFields
+                                            key={draft.optionLabel}
+                                            campaignId={Number(campaignId)}
+                                            draft={draft}
+                                            optional={selectionLinkDrafts.length > 1}
+                                            disabled={isSelectionSubmitting}
+                                            onChange={(updated) => setSelectionLinkDrafts((previous) =>
+                                                previous.map((item, position) => position === index ? updated : item)
+                                            )}
+                                        />
+                                    ))}
+                                    {!selectionLinkDrafts.some((draft) => draft.included) && (
+                                        <p className="text-sm text-rose-700">확정할 옵션을 하나 이상 선택해 주세요.</p>
+                                    )}
                                 </div>
                             ) : productUrlIndividual ? (
                                 <div>
@@ -1018,7 +997,7 @@ export default function ApplicationsTableClient({
                                 </div>
                             ) : (
                                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                    이 캠페인은 개별 구매링크를 사용하지 않습니다.
+                                    공통 구매링크가 등록되어 있으면 선정 메일에 포함됩니다.
                                 </div>
                             )}
                         </div>

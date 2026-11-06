@@ -29,7 +29,9 @@ interface EmailParams {
   assignedOptionLabel?: string;
   assignedPurchaseLink?: string;
   assignedPurchases?: Array<{ optionLabel: string; url: string }>;
+  commonPurchaseLink?: string;
   campaignUrl?: string;
+  purchaseNotes?: string;
   guideSummary?: string;
   trackingCompany?: string;
   trackingNumber?: string;
@@ -87,7 +89,11 @@ const buildSelectionDetailsHtml = (params: EmailParams) => {
   const assignedPurchases = (params.assignedPurchases || [])
     .filter((item) => item.optionLabel && isSafeHttpUrl(item.url))
     .slice(0, 2);
-  if (assignedPurchases.length > 0) {
+  if (isSafeHttpUrl(params.commonPurchaseLink)) {
+    const safeLink = escapeHtml(params.commonPurchaseLink || '');
+    if (params.assignedOptionLabel) parts.push(row('확정 옵션', escapeHtml(params.assignedOptionLabel)));
+    parts.push(row('구매링크', `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`));
+  } else if (assignedPurchases.length > 0) {
     assignedPurchases.forEach((item, index) => {
       const safeLabel = escapeHtml(item.optionLabel);
       const safeLink = escapeHtml(item.url);
@@ -103,15 +109,21 @@ const buildSelectionDetailsHtml = (params: EmailParams) => {
       parts.push(row('개별 구매링크', `<a href="${safeLink}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;word-break:break-all;">상품 구매하기</a>`));
     }
   }
-  const guide = params.guideSummary || '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.';
-  const guideRows = guide.split(/\r?\n/).map((line) => {
+  const purchaseNotes = params.purchaseNotes?.trim();
+  const guide = params.guideSummary || (purchaseNotes ? '' : '캠페인 상세 페이지에서 작성 가이드를 확인해 주세요.');
+  const guideLines = [
+    ...(purchaseNotes ? purchaseNotes.split(/\r?\n/).map((line) => ({ line, bold: true })) : []),
+    ...(guide ? guide.split(/\r?\n/).map((line) => ({ line, bold: false })) : []),
+  ];
+  const guideRows = guideLines.map(({ line, bold }) => {
     const numbered = line.match(/^([①-⑳]|\d+[.)])\s+(.+)$/);
     const content = escapeHtml(numbered?.[2] ?? line).replace(
       /https:\/\/forms\.gle\/[A-Za-z0-9]+(?![A-Za-z0-9/?#=&%;_-])/g,
       (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:#2563eb;text-decoration:underline;">입력폼 설문 작성하기</a>`
     );
-    if (!numbered) return `<tr><td colspan="2" style="padding:0 0 4px;">${content || '&nbsp;'}</td></tr>`;
-    return `<tr><td width="22" valign="top" style="padding:0 4px 4px 0;white-space:nowrap;">${escapeHtml(numbered[1])}</td><td valign="top" style="padding:0 0 4px;">${content}</td></tr>`;
+    const text = bold && content ? `<strong style="font-weight:700;word-break:keep-all;">${content}</strong>` : content;
+    if (!numbered) return `<tr><td colspan="2" style="padding:0 0 4px;">${text || '&nbsp;'}</td></tr>`;
+    return `<tr><td width="22" valign="top" style="padding:0 4px 4px 0;white-space:nowrap;">${escapeHtml(numbered[1])}</td><td valign="top" style="padding:0 0 4px;">${text}</td></tr>`;
   });
   parts.push(row('핵심 가이드', `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${guideRows.join('')}</table>`));
   parts.push(row('체험 마감기한', escapeHtml(params.deadlineDate || '캠페인 상세 페이지 참조'), '#fff7ed'));
@@ -168,8 +180,8 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
     Object.entries(templateParams).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       const safeValue = escapeHtml(String(value || ''));
-      subject = subject.replace(regex, safeValue);
-      htmlContent = htmlContent.replace(regex, key === 'selectionDetailsHtml' ? String(value || '') : safeValue);
+      subject = subject.replace(regex, () => safeValue);
+      htmlContent = htmlContent.replace(regex, () => key === 'selectionDetailsHtml' ? String(value || '') : safeValue);
     });
 
     // 관리 화면에서 저장한 템플릿이 완전한 HTML 문서라면 그대로 사용

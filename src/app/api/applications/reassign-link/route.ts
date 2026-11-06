@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 import { extractOptionCandidates, normalizeOptionKey, normalizeOptionLabel } from '@/lib/purchaseLink';
-import { sendSelectionNotification } from '@/lib/applicationSelectionNotification';
+import { getSelectionCampaignOptions, notifySelectedApplication } from '@/lib/applicationSelectionNotification';
 
 interface ReassignLinkBody {
   applicationId?: number;
@@ -11,30 +11,6 @@ interface ReassignLinkBody {
   assignedOptionLabel?: string;
   manualLinkId?: number | null;
   manualPurchaseLinkUrl?: string | null;
-}
-
-interface CampaignOptionsPayload {
-  step1Data?: {
-    productUrlIndividual?: boolean;
-    productName?: string;
-  };
-  step2Data?: {
-    reviewMissionContent?: string;
-    purchaseNotes?: string;
-    missionGuide?: string;
-  };
-}
-
-function formatDeadlineDate(rawValue?: string | null): string {
-  if (!rawValue) return '캠페인 상세 페이지 참조';
-  const parsed = new Date(rawValue);
-  if (Number.isNaN(parsed.getTime())) return '캠페인 상세 페이지 참조';
-  return new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(parsed);
 }
 
 function normalizePurchaseLinkUrl(value?: string | null) {
@@ -136,9 +112,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const campaignOptions = (Array.isArray(campaign.campaign_options)
-      ? campaign.campaign_options[0]
-      : campaign.campaign_options) as CampaignOptionsPayload | null;
+    const campaignOptions = getSelectionCampaignOptions(campaign.campaign_options);
     const requiresAssignedPurchaseLink = Boolean(campaignOptions?.step1Data?.productUrlIndividual);
     const campaignProductName = normalizeOptionLabel(
       campaign.product_name || campaignOptions?.step1Data?.productName || ''
@@ -287,31 +261,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const providedItems =
-      campaign.experience_details ||
-      campaign.product_name ||
-      '캠페인 상세 페이지 참조';
-    const guideSummary = [
-      campaignOptions?.step2Data?.purchaseNotes,
-      campaignOptions?.step2Data?.reviewMissionContent,
-      campaignOptions?.step2Data?.missionGuide,
-    ]
-      .map((value) => String(value || '').trim())
-      .filter(Boolean)
-      .join('\n')
-      .slice(0, 1000) || '캠페인 상세 페이지에서 구매평 작성 가이드를 확인해 주세요.';
-
-    const notificationResult = await sendSelectionNotification({
-      userId: application.user_id,
-      campaignId,
-      campaignTitle: campaign.title,
-      providedItems,
-      deadlineDate: formatDeadlineDate(campaign.end_date),
-      assignedOptionLabel: assignedRow.assigned_option_label,
-      assignedPurchaseLink: assignedRow.assigned_purchase_link_url,
-      campaignUrl: `https://daonview.com/campaigns/${campaignId}#guide`,
-      guideSummary,
-    });
+    const notificationResult = await notifySelectedApplication(campaign, application.user_id, assignedRow);
 
     return NextResponse.json({
       success: true,

@@ -68,24 +68,10 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
         : campaign?.campaign_options;
     const productUrlIndividual = Boolean(campaignOptions?.step1Data?.productUrlIndividual);
 
-    const campaignProvidedItems =
-        campaign?.provision ||
-        campaign?.experience_details ||
-        campaign?.product_name ||
-        '';
     const campaignProductName =
         campaign?.product_name ||
         campaignOptions?.step1Data?.productName ||
         '';
-
-    const campaignDeadlineDate = campaign?.end_date
-        ? new Intl.DateTimeFormat('ko-KR', {
-            timeZone: 'Asia/Seoul',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-        }).format(new Date(campaign.end_date))
-        : '';
 
     if (campaignRes.error || !campaign) {
         notFound();
@@ -122,8 +108,6 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
                 initialApplications={applications}
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
-                campaignProvidedItems={campaignProvidedItems}
-                campaignDeadlineDate={campaignDeadlineDate}
                 campaignCategory={campaign.category || ''}
                 campaignType={campaign.type}
                 campaignProductName={campaignProductName}

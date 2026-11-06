@@ -9,6 +9,23 @@ export interface PublicPurchaseLink {
   url: string;
 }
 
+export interface SelectionLinkAssignment {
+  optionLabel: string;
+  manualLinkId?: number;
+  manualPurchaseLinkUrl?: string;
+}
+
+export function normalizePurchaseLinkUrl(value: unknown): string {
+  if (typeof value !== 'string') return '';
+  const url = value.trim();
+  if (!/^https?:\/\/[^/?#]/i.test(url) || /[\s\\]/.test(url)) return '';
+  try {
+    return new URL(url).hostname ? url : '';
+  } catch {
+    return '';
+  }
+}
+
 export function normalizeOptionLabel(label: string): string {
   return String(label || '')
     .replace(/\s+/g, ' ')

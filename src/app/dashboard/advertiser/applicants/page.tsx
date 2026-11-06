@@ -7,9 +7,10 @@ import { useAuthStore } from '@/store/authStore';
 import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from 'sonner';
 import { ADVERTISER_LINKS } from '@/constants/navigation';
-import { sendInfluencerSelectedAlimtalk, sendShippingStartedAlimtalk } from '@/lib/alimtalk';
+import { sendShippingStartedAlimtalk } from '@/lib/alimtalk';
 import { ExternalLink } from 'lucide-react';
 import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
+import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type SelectionLinkDraft } from '@/components/campaign/SelectionPurchaseLinkFields';
 import { isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 
 interface Applicant {
@@ -100,6 +101,7 @@ export default function AdvertiserApplicantsPage() {
     const [selectionMode, setSelectionMode] = useState<'SELECT' | 'REASSIGN'>('SELECT');
     const [selectionTarget, setSelectionTarget] = useState<Applicant | null>(null);
     const [selectionOptions, setSelectionOptions] = useState<string[]>([]);
+    const [selectionLinkDrafts, setSelectionLinkDrafts] = useState<SelectionLinkDraft[]>([]);
     const [selectedOptionLabel, setSelectedOptionLabel] = useState('');
     const [manualLinkId, setManualLinkId] = useState<string>('');
     const [manualPurchaseLinkUrl, setManualPurchaseLinkUrl] = useState('');
@@ -286,87 +288,6 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
-    const sendSelectionNotifications = async (applicant: Applicant, campaignId: number) => {
-        const notifyErrors: string[] = [];
-
-        const { data: userData } = await supabase
-            .from('profiles')
-            .select('phone_number, name, nickname, email')
-            .eq('id', applicant.user.id)
-            .single();
-
-        const recipientName = userData?.nickname || userData?.name || '인플루언서';
-        const providedItems =
-            applicant.campaign.experience_details ||
-            applicant.campaign.product_name ||
-            '캠페인 상세 페이지 참조';
-        const deadlineDate = applicant.campaign.end_date
-            ? new Intl.DateTimeFormat('ko-KR', {
-                timeZone: 'Asia/Seoul',
-                year: 'numeric',
-                month: '2-digit',
-                day: '2-digit'
-            }).format(new Date(applicant.campaign.end_date))
-            : '캠페인 상세 페이지 참조';
-
-        if (userData?.phone_number) {
-            const alimtalkResult = await sendInfluencerSelectedAlimtalk(
-                userData.phone_number,
-                recipientName,
-                applicant.campaign.title,
-                campaignId,
-                {
-                    assignedOptionLabel: applicant.assigned_option_label,
-                    assignedPurchaseLink: applicant.assigned_purchase_link_url
-                }
-            );
-
-            if (!alimtalkResult.success) {
-                notifyErrors.push(`카카오 알림톡 실패: ${alimtalkResult.error || 'unknown error'}`);
-            }
-        } else {
-            notifyErrors.push('카카오 알림톡 스킵: 전화번호 없음');
-        }
-
-        if (userData?.email) {
-            const emailResponse = await fetch('/api/send-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    to: userData.email,
-                    type: 'CAMPAIGN_SELECTED',
-                    params: {
-                        nickname: recipientName,
-                        campaignTitle: applicant.campaign.title,
-                        providedItems,
-                        deadlineDate,
-                        assignedOptionLabel: applicant.assigned_option_label,
-                        assignedPurchaseLink: applicant.assigned_purchase_link_url,
-                        email: userData.email
-                    }
-                })
-            });
-
-            const emailResult = await emailResponse.json().catch(() => null);
-            if (!emailResponse.ok || !emailResult?.success) {
-                notifyErrors.push(`이메일 실패: ${emailResult?.error || emailResult?.message || emailResponse.statusText}`);
-            }
-        } else {
-            notifyErrors.push('이메일 스킵: 이메일 주소 없음');
-        }
-
-        if (notifyErrors.length > 0) {
-            console.error('Selection notification errors:', {
-                applicationId: applicant.id,
-                userId: applicant.user.id,
-                errors: notifyErrors
-            });
-            return { success: false };
-        }
-
-        return { success: true };
-    };
-
     const getOptionLabelsFromApplication = (applicant: Applicant) => {
         const productFallback = normalizeOptionLabel(applicant.campaign.product_name || '');
         const parsed = extractOptionCandidates(applicant.selected_option || '');
@@ -391,13 +312,17 @@ export default function AdvertiserApplicantsPage() {
     };
 
     const manualPurchaseLinkInput = manualPurchaseLinkUrl.trim();
-    const isSelectionLinkMissing =
+    const usesOptionLinkFields = Boolean(selectionTarget && isIndividualLinkCampaign(selectionTarget)) && selectionMode !== 'REASSIGN';
+    const optionAssignments = usesOptionLinkFields ? getSelectionLinkAssignments(selectionLinkDrafts) : null;
+    const isSelectionLinkMissing = usesOptionLinkFields ? !optionAssignments : (
         selectionTarget &&
         isIndividualLinkCampaign(selectionTarget) &&
         selectionOptions.length <= 1 &&
         !isCandidateLoading &&
         linkCandidates.length === 0 &&
-        !manualPurchaseLinkInput;
+        selectionMode === 'REASSIGN' &&
+        !manualPurchaseLinkInput
+    );
 
     const fetchLinkCandidates = async (campaignId: number, optionLabel: string) => {
         setIsCandidateLoading(true);
@@ -437,11 +362,12 @@ export default function AdvertiserApplicantsPage() {
         setSelectionMode(mode);
         setSelectionTarget(applicant);
         setSelectionOptions(options);
+        setSelectionLinkDrafts(options.slice(0, 2).map((optionLabel) => ({ optionLabel, included: true, linkId: '', url: '' })));
         setSelectedOptionLabel(defaultOption);
         setManualLinkId('');
         setManualPurchaseLinkUrl('');
         setIsSelectionModalOpen(true);
-        if (isIndividualLinkCampaign(applicant)) {
+        if (isIndividualLinkCampaign(applicant) && mode === 'REASSIGN') {
             await fetchLinkCandidates(applicant.campaign.id, defaultOption);
         } else {
             setLinkCandidates([]);
@@ -452,6 +378,7 @@ export default function AdvertiserApplicantsPage() {
         setIsSelectionModalOpen(false);
         setSelectionTarget(null);
         setSelectionOptions([]);
+        setSelectionLinkDrafts([]);
         setSelectedOptionLabel('');
         setManualLinkId('');
         setManualPurchaseLinkUrl('');
@@ -461,7 +388,7 @@ export default function AdvertiserApplicantsPage() {
     const handleSelectionSubmit = async () => {
         if (!selectionTarget) return;
         if (isSelectionLinkMissing) {
-            toast.error('구매링크가 없습니다. 캠페인 수정 화면에서 구매링크를 먼저 등록해 주세요.');
+            toast.error('확정할 옵션의 구매링크를 확인해 주세요.');
             return;
         }
         setIsSelectionSubmitting(true);
@@ -480,7 +407,7 @@ export default function AdvertiserApplicantsPage() {
                     campaignId: selectionTarget.campaign.id,
                     targetStatus: 'SELECTED',
                     assignedOptionLabel: selectedOptionLabel,
-                    assignedOptionLabels: selectionMode === 'SELECT' && selectionOptions.length > 1 ? selectionOptions : undefined,
+                    optionAssignments: optionAssignments || undefined,
                     manualLinkId: manualLinkId ? Number(manualLinkId) : null,
                     manualPurchaseLinkUrl: manualLinkId ? null : manualPurchaseLinkInput || null
                 })
@@ -563,17 +490,23 @@ export default function AdvertiserApplicantsPage() {
 
     const handleResendSelectionNotification = async (applicant: Applicant) => {
         try {
-            const notifyResult = await sendSelectionNotifications(applicant, applicant.campaign.id);
-            if (!notifyResult.success) {
-                toast.warning('일부 알림 발송에 실패했습니다. 콘솔 로그를 확인해주세요.');
+            const response = await fetch('/api/applications/resend-selection', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ applicationId: applicant.id })
+            });
+            const result = await response.json().catch(() => null);
+            if (!response.ok || !result?.success) {
+                toast.warning(result?.error || result?.errors?.[0] || '선정 알림 재발송에 실패했습니다.');
                 return;
             }
-            toast.success('카카오/이메일 재발송을 완료했습니다.');
+            toast.success('선정 알림을 재발송했습니다.');
         } catch (error) {
             console.error('Selection notification resend error:', error);
-            toast.error('재발송 중 오류가 발생했습니다.');
+            toast.error('선정 알림 재발송에 실패했습니다.');
         }
     };
+
 
     const groupedApplicants = applicants.reduce((acc, applicant) => {
         const campaignId = applicant.campaign.id;
@@ -907,7 +840,7 @@ export default function AdvertiserApplicantsPage() {
 
             {isSelectionModalOpen && selectionTarget && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[110] p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl max-h-[90dvh] overflow-y-auto">
                         <h2 className="text-xl font-bold mb-2">
                             {selectionMode === 'REASSIGN' ? '구매링크 재할당' : '선정 옵션 및 링크 배정'}
                         </h2>
@@ -916,11 +849,11 @@ export default function AdvertiserApplicantsPage() {
                         </p>
 
                         <div className="space-y-4">
-                            <div>
+                            {!usesOptionLinkFields && <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">확정 옵션</label>
                                 {selectionOptions.length > 1 ? (
                                     <div className="rounded-lg border border-blue-200 bg-blue-50 p-3">
-                                        <p className="mb-2 text-xs font-semibold text-blue-700">신청한 2개 옵션을 모두 확정하고 옵션별 링크를 자동 배정합니다.</p>
+                                        <p className="mb-2 text-xs font-semibold text-blue-700">신청한 옵션을 확인하세요.</p>
                                         <div className="flex flex-wrap gap-2">
                                             {selectionOptions.map((option) => (
                                                 <span key={option} className="rounded-md bg-white px-2 py-1 text-sm font-semibold text-blue-800">{option}</span>
@@ -946,11 +879,25 @@ export default function AdvertiserApplicantsPage() {
                                         </option>
                                     ))}
                                 </select>}
-                            </div>
+                            </div>}
 
-                            {isIndividualLinkCampaign(selectionTarget) && selectionOptions.length > 1 ? (
-                                <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                                    각 옵션의 활성 링크 풀에서 최소 사용 링크가 하나씩 배정됩니다.
+                            {usesOptionLinkFields ? (
+                                <div className="space-y-3">
+                                    {selectionLinkDrafts.map((draft, index) => (
+                                        <SelectionPurchaseLinkFields
+                                            key={draft.optionLabel}
+                                            campaignId={selectionTarget.campaign.id}
+                                            draft={draft}
+                                            optional={selectionLinkDrafts.length > 1}
+                                            disabled={isSelectionSubmitting}
+                                            onChange={(updated) => setSelectionLinkDrafts((previous) =>
+                                                previous.map((item, position) => position === index ? updated : item)
+                                            )}
+                                        />
+                                    ))}
+                                    {!selectionLinkDrafts.some((draft) => draft.included) && (
+                                        <p className="text-sm text-rose-700">확정할 옵션을 하나 이상 선택해 주세요.</p>
+                                    )}
                                 </div>
                             ) : isIndividualLinkCampaign(selectionTarget) ? (
                                 <div>
@@ -999,7 +946,7 @@ export default function AdvertiserApplicantsPage() {
                                 </div>
                             ) : (
                                 <div className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2">
-                                    이 캠페인은 개별 구매링크를 사용하지 않습니다.
+                                    공통 구매링크가 등록되어 있으면 선정 메일에 포함됩니다.
                                 </div>
                             )}
                         </div>
