@@ -2,6 +2,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
 import { ALIMTALK_PAUSED, sendInfluencerSelectedAlimtalk } from '@/lib/alimtalk';
 import { normalizePurchaseLinkUrl } from '@/lib/purchaseLink';
+import { getCampaignGuideContent } from '@/lib/campaignEmailContent';
 
 export interface SelectionCampaignOptions {
   step1Data?: {
@@ -61,12 +62,7 @@ export async function notifySelectedApplication(
   const deadlineDate = Number.isNaN(deadline.getTime()) ? '캠페인 상세 페이지 참조' : new Intl.DateTimeFormat('ko-KR', {
     timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
   }).format(deadline);
-  const purchaseNotes = String(options?.step2Data?.purchaseNotes || '').trim().slice(0, 1000);
-  const guideSummary = [options?.step2Data?.reviewMissionContent, options?.step2Data?.missionGuide]
-    .map((value) => String(value || '').trim())
-    .filter(Boolean)
-    .join('\n')
-    .slice(0, purchaseNotes ? Math.max(0, 999 - purchaseNotes.length) : 1000);
+  const { purchaseNotes, guideSummary } = getCampaignGuideContent(campaign.campaign_options);
 
   try {
     return await sendSelectionNotification({

@@ -5,6 +5,7 @@ import { createAdminClient } from './supabase/admin';
  * AWS SES 클라이언트 싱글톤 인스턴스
  */
 let sesClient: SESClient | null = null;
+let reminderSESClient: SESClient | null = null;
 
 const getSESClient = (): SESClient => {
   if (sesClient) return sesClient;
@@ -20,7 +21,7 @@ const getSESClient = (): SESClient => {
   return sesClient;
 };
 
-export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING';
+export type EmailType = 'WELCOME' | 'CAMPAIGN_SELECTED' | 'PRODUCT_SHIPPED' | 'DEADLINE_WARNING' | 'REVIEW_APPROVED' | 'CAMPAIGN_PROGRESS_REMINDER';
 
 interface EmailParams {
   nickname?: string;
@@ -38,6 +39,8 @@ interface EmailParams {
   deadlineDate?: string;
   link?: string;
   email?: string; // 수신 거부 링크용
+  isPurchaseReview?: boolean;
+  isDeadlinePassed?: boolean;
 }
 
 interface AdminPartnerInquiryEmailParams {
@@ -79,10 +82,10 @@ const isSafeHttpUrl = (value?: string) => {
   }
 };
 
-const buildSelectionDetailsHtml = (params: EmailParams) => {
+const buildSelectionDetailsHtml = (params: EmailParams, labelWidth = '26%') => {
   const row = (label: string, value: string, background = '#ffffff') => `
     <tr style="background:${background};">
-      <td width="26%" valign="top" style="padding:12px 4px 12px 12px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;font-weight:700;line-height:1.5;word-break:keep-all;">${label}</td>
+      <td width="${labelWidth}" valign="top" style="padding:12px 4px 12px 12px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;font-weight:700;line-height:1.5;word-break:keep-all;">${label}</td>
       <td valign="top" style="padding:12px 12px 12px 8px;border-bottom:1px solid #f1f5f9;font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${value}</td>
     </tr>`;
   const parts = [row('제공내역', escapeHtml(params.providedItems || '캠페인 상세 페이지 참조'))];
@@ -134,6 +137,8 @@ const buildSelectionDetailsHtml = (params: EmailParams) => {
  * DB에서 이메일 템플릿 로드 및 변수 치환
  */
 export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParams) => {
+  // 승인 메일은 캠페인별 페이백 안내를 포함하는 코드 템플릿으로 관리한다.
+  if (type === 'REVIEW_APPROVED' || type === 'CAMPAIGN_PROGRESS_REMINDER') return getEmailTemplate(type, params);
   try {
     const supabase = createAdminClient();
     
@@ -342,6 +347,59 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       break;
     }
 
+    case 'REVIEW_APPROVED': {
+      const nickname = escapeHtml(params.nickname || '인플루언서');
+      const campaignTitle = escapeHtml(params.campaignTitle || '캠페인');
+      subject = `[다온뷰] ‘${params.campaignTitle || '캠페인'}’ 리뷰가 승인되었습니다.`;
+      content = `
+        <div style="${heroStyle}">
+          <div style="${headerStyle}; font-size: 26px; word-break: keep-all; overflow-wrap: anywhere;">리뷰가 승인되었습니다</div>
+          <div style="font-size: 14px; color: #475569;">정성스러운 리뷰를 작성해 주셔서 감사합니다.</div>
+        </div>
+        <p style="word-break: keep-all; overflow-wrap: anywhere;">안녕하세요, ${nickname}님.</p>
+        <p style="word-break: keep-all; overflow-wrap: anywhere;">‘${campaignTitle}’ 캠페인에 등록해 주신 리뷰가 승인되었습니다.</p>
+        ${params.isPurchaseReview ? `
+          <div style="${infoGridStyle}; padding: 20px; background: #fff1f5; word-break: keep-all; overflow-wrap: anywhere;">
+            <p style="margin: 0 0 8px; font-weight: 800; color: #be123c;">페이백 안내</p>
+            <p style="margin: 0;">페이백은 리뷰 승인 후 <b>1~2일 내에</b> 등록하신 계좌로 지급될 예정입니다.</p>
+          </div>
+        ` : ''}
+        <p style="word-break: keep-all; overflow-wrap: anywhere;">문의사항은 다온뷰 카카오톡으로 연락해 주세요.</p>
+      `;
+      break;
+    }
+
+    case 'CAMPAIGN_PROGRESS_REMINDER': {
+      const nickname = escapeHtml(params.nickname || '인플루언서');
+      const campaignTitle = escapeHtml(params.campaignTitle || '캠페인');
+      const campaignUrl = isSafeHttpUrl(params.campaignUrl) ? escapeHtml(params.campaignUrl || '') : 'https://daonview.com/dashboard/influencer/campaigns';
+      subject = `[다온뷰] ‘${params.campaignTitle || '캠페인'}’ 체험 진행 및 마감 일정 안내`;
+      content = `
+        <div style="${heroStyle}; word-break: keep-all; overflow-wrap: anywhere;">
+          <div style="${headerStyle}; font-size: 25px;">체험 진행을 확인해 주세요</div>
+          <div style="font-size: 14px; color: #475569;">가이드와 리뷰 마감 일정을 안내드립니다.</div>
+        </div>
+        <div style="word-break: keep-all; overflow-wrap: anywhere;">
+          <p>안녕하세요, ${nickname}님.</p>
+          <p style="margin-bottom: 8px; font-size: 14px;"><b>‘${campaignTitle}’</b></p>
+          <p style="margin-top: 0;">리뷰 등록이 확인되지 않았습니다.</p>
+          <p>${params.isDeadlinePassed
+            ? '안내된 리뷰 마감일이 지났습니다. 체험 진행 여부를 확인해 주시고, 일정 조정이 필요하시면 다온뷰 카카오톡으로 연락해 주세요.'
+            : '아직 체험을 진행하지 않으셨다면 가이드를 확인하시고 체험 및 리뷰 등록을 진행해 주세요.'}</p>
+          ${buildSelectionDetailsHtml(params, '20%')}
+          <div style="padding: 18px; background: #fff1f5; border: 1px solid #fecdd3; border-radius: 14px;">
+            <b>일정 변경 및 취소 문의</b>
+            <p style="margin: 8px 0 0;">마감일 연장 또는 체험 취소가 필요하신 경우 다온뷰 카카오톡으로 연락해 주세요.</p>
+          </div>
+        </div>
+        <div style="text-align: center;">
+          <a href="${campaignUrl}" style="${buttonStyle}">캠페인 가이드 확인</a>
+          <a href="https://daonview.com/dashboard/influencer/campaigns" style="${buttonStyle}">리뷰 등록</a>
+        </div>
+      `;
+      break;
+    }
+
     case 'PRODUCT_SHIPPED':
       subject = `📦 [다온뷰] 신청하신 캠페인의 제품 배송이 시작되었습니다.`;
       content = `
@@ -401,9 +459,10 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
 
   const html = `
     <!DOCTYPE html>
-    <html>
+    <html lang="ko">
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
       </head>
       <body>
         <div style="${baseStyle}">
@@ -554,6 +613,9 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
       .single();
 
     if (profileError) {
+      if (type === 'CAMPAIGN_PROGRESS_REMINDER') {
+        return { success: false, message: '수신 정책을 확인하지 못해 발송하지 않았습니다.' };
+      }
       console.error('Error fetching profile for email check:', profileError);
     }
 
@@ -563,8 +625,8 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     if (status === 'UNSUBSCRIBED' || 
         status === 'BOUNCED' || 
         status === 'COMPLAINED') {
-      console.log(`[EMAIL SKIPPED] User ${to} has status: ${status}.`);
-      return { success: false, message: `User status is ${status}` };
+      console.log('[EMAIL SKIPPED]', { type, status });
+      return { success: false, skipped: true, message: `User status is ${status}` };
     }
 
     // 2. DB에서 템플릿 로드 (params에 email 추가)
@@ -577,12 +639,24 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     );
 
     if ((process.env.NODE_ENV === 'development' && !forceSend) || !process.env.AWS_ACCESS_KEY_ID) {
-      console.log('[EMAIL MOCK] Sending email:', { to, subject });
-      return { success: true, messageId: `mock-${Date.now()}` };
+      console.log('[EMAIL MOCK]', { type });
+      return { success: true, mock: true, messageId: `mock-${Date.now()}` };
     }
 
     // 4. AWS SES로 이메일 전송
-    const client = getSESClient();
+    // 예약 메일은 응답 유실 시 SDK가 같은 메일을 재전송하지 않도록 1회만 시도한다.
+    if (type === 'CAMPAIGN_PROGRESS_REMINDER' && !reminderSESClient) {
+      reminderSESClient = new SESClient({
+        region: process.env.AWS_SES_REGION || 'ap-northeast-2',
+        credentials: {
+          accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+          secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+        },
+        maxAttempts: 1,
+        requestHandler: { connectionTimeout: 3000, requestTimeout: 8000 },
+      });
+    }
+    const client = type === 'CAMPAIGN_PROGRESS_REMINDER' ? reminderSESClient! : getSESClient();
     const command = new SendEmailCommand({
       Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
       Destination: {
@@ -607,7 +681,7 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     console.log(`Email sent: ${response.MessageId}`);
     return { success: true, messageId: response.MessageId };
   } catch (error) {
-    console.error('Email send error:', error);
+    if (type !== 'CAMPAIGN_PROGRESS_REMINDER') console.error('Email send error:', error);
     throw error;
   }
 };

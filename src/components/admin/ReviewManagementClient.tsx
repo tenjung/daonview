@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
 import { REVIEW_STATUS_LABELS, REVIEW_STATUS_VARIANTS } from '@/constants/status';
-import type { ManagedReview } from '@/types/reviewManagement';
+import type { ManagedReview, ReviewEmailNotification } from '@/types/reviewManagement';
 
 interface ReviewManagementClientProps {
   initialReviews: ManagedReview[];
@@ -61,9 +61,15 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reviewId: review.id, status }),
       });
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; emailNotification?: ReviewEmailNotification };
       if (!response.ok) throw new Error(result.error || '상태 변경에 실패했습니다.');
       toast.success(status === 'APPROVED' ? '리뷰를 승인했습니다.' : status === 'REJECTED' ? '리뷰를 거절했습니다.' : status === 'HIDDEN' ? '리뷰를 숨겼습니다.' : '상태를 변경했습니다.');
+      const notification = result.emailNotification;
+      if (notification?.status === 'SENT') {
+        toast.success(notification.message || '승인 메일 발송 요청이 완료되었습니다.');
+      } else if (notification && notification.status !== 'NOT_REQUIRED') {
+        toast.warning(notification.message || '승인 메일이 발송되지 않았습니다.');
+      }
       await fetchReviews();
     } catch (error) {
       console.error('Review status update error:', error);
