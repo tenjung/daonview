@@ -4,9 +4,6 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://daonview.com'),
   title: "랜딩페이지 | DAONVIEW",
   description: "AI로 생성된 전문 랜딩페이지",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function LandingPageLayout({

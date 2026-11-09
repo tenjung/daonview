@@ -28,10 +28,11 @@ export const metadata: Metadata = {
   description: "다온뷰는 브랜드와 인플루언서를 연결하는 체험단 플랫폼입니다.",
   keywords: ["다온뷰", "DAONVIEW", "체험단 플랫폼", "인플루언서 마케팅", "브랜드 협업", "리뷰 플랫폼"],
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: { url: "https://daonview.com/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+    shortcut: "https://daonview.com/favicon.ico",
+    apple: { url: "https://daonview.com/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
   },
+  manifest: "https://daonview.com/site.webmanifest",
   openGraph: {
     title: "다온뷰 | DAONVIEW",
     description: "다온뷰는 브랜드와 인플루언서를 연결하는 체험단 플랫폼입니다.",
