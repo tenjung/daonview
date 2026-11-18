@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { Users, Clock, CheckCircle, XCircle, Download, Truck } from 'lucide-react';
@@ -20,9 +20,14 @@ import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLin
 import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type SelectionLinkDraft } from '@/components/campaign/SelectionPurchaseLinkFields';
 
 import { RATING_TAGS, SatisfactionLevel } from '@/types/review';
+import { getApplicationManagementStatus, isSelectedApplication, SELECTION_EMAIL_HOLD_REASONS, type SelectionEmailHold } from '@/lib/selectionEmailHold';
+import { APPLICATION_STATUS_LABELS } from '@/constants/status';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface ApplicationsTableClientProps {
     initialApplications: Application[];
+    initialEmailHolds: SelectionEmailHold[];
+    canResolveEmailHolds: boolean;
     campaignId: string;
     campaignTitle: string;
     campaignCategory?: string;
@@ -32,12 +37,14 @@ interface ApplicationsTableClientProps {
     recruitCount: number;
 }
 
-type FilterType = 'all' | 'pending' | 'approved' | 'rejected' | 'cancelled';
+type FilterType = 'all' | 'pending' | 'approved' | 'held' | 'rejected' | 'cancelled';
 
 import ReputationDetailModal from './ReputationDetailModal';
 
 export default function ApplicationsTableClient({
     initialApplications,
+    initialEmailHolds,
+    canResolveEmailHolds,
     campaignId,
     campaignTitle,
     campaignCategory,
@@ -48,6 +55,47 @@ export default function ApplicationsTableClient({
 }: ApplicationsTableClientProps) {
     const [applications, setApplications] = useState<Application[]>(initialApplications);
     const [filter, setFilter] = useState<FilterType>('all');
+    const [emailHolds, setEmailHolds] = useState(initialEmailHolds);
+    const [holdTarget, setHoldTarget] = useState<SelectionEmailHold | null>(null);
+    const [holdResolutionReason, setHoldResolutionReason] = useState('');
+    const [isResolvingHold, setIsResolvingHold] = useState(false);
+    const holdsByApplication = useMemo(() => new Map(emailHolds.map(hold => [hold.applicationId, hold])), [emailHolds]);
+    useEffect(() => { setEmailHolds(initialEmailHolds); }, [initialEmailHolds]);
+    const refreshEmailHolds = useCallback(async () => {
+        try {
+            const response = await fetch(`/api/campaigns/${campaignId}/email-holds`, { cache: 'no-store' });
+            if (!response.ok) throw new Error('보류 내역을 새로고침하지 못했습니다.');
+            const result = await response.json();
+            setEmailHolds(result.holds);
+        } catch {
+            toast.error('보류 내역을 새로고침하지 못했습니다. 화면을 다시 열어 확인해 주세요.');
+        }
+    }, [campaignId]);
+    useEffect(() => {
+        const onFocus = () => { void refreshEmailHolds(); };
+        window.addEventListener('focus', onFocus);
+        return () => window.removeEventListener('focus', onFocus);
+    }, [refreshEmailHolds]);
+    const handleResolveHold = async () => {
+        if (!holdTarget || !holdResolutionReason.trim() || isResolvingHold) return;
+        setIsResolvingHold(true);
+        try {
+            const response = await fetch(`/api/applications/${holdTarget.applicationId}/email-hold`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campaignId: Number(campaignId), holdId: holdTarget.id, reason: holdResolutionReason.trim() }),
+            });
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || '보류 해제에 실패했습니다.');
+            setEmailHolds(previous => previous.filter(hold => hold.id !== holdTarget.id));
+            setHoldTarget(null);
+            toast.success('보류를 해제했습니다. 선정 상태는 유지됩니다.');
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : '보류 해제에 실패했습니다.');
+        } finally {
+            setIsResolvingHold(false);
+            await refreshEmailHolds();
+        }
+    };
     const [selectedApplications, setSelectedApplications] = useState<Application[]>([]);
     const [reviewModal, setReviewModal] = useState<{
         isOpen: boolean;
@@ -209,21 +257,21 @@ export default function ApplicationsTableClient({
     const filteredApplications = useMemo(() => {
         return applications.filter(app => {
             if (filter === 'all') return true;
+            const managementStatus = getApplicationManagementStatus(app.status, holdsByApplication.get(app.id));
+            if (filter === 'held') return managementStatus === 'HELD';
             if (filter === 'approved') {
-                const status = app.status?.toUpperCase();
-                return status === 'APPROVED' || status === 'SELECTED';
+                return isSelectedApplication(managementStatus);
             }
             return app.status?.toUpperCase() === filter.toUpperCase();
         });
-    }, [applications, filter]);
+    }, [applications, filter, holdsByApplication]);
 
     // 통계 계산
     const stats: StatCard[] = useMemo(() => {
         const total = applications.length;
         const pending = applications.filter(app => app.status?.toUpperCase() === 'PENDING').length;
         const approved = applications.filter(app => {
-            const status = app.status?.toUpperCase();
-            return status === 'APPROVED' || status === 'SELECTED';
+            return isSelectedApplication(getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)));
         }).length;
         const rejected = applications.filter(app => app.status?.toUpperCase() === 'REJECTED').length;
         const cancelled = applications.filter(app => app.status?.toUpperCase() === 'CANCELLED').length;
@@ -253,6 +301,7 @@ export default function ApplicationsTableClient({
                 title: '승인됨',
                 value: `${approved}명`,
                 icon: CheckCircle,
+                description: `보류 ${applications.filter(app => getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)) === 'HELD').length}명 · 선정 인원에 포함`,
             },
             {
                 title: '거절/취소',
@@ -260,7 +309,7 @@ export default function ApplicationsTableClient({
                 icon: XCircle,
             },
         ];
-    }, [applications, recruitCount]);
+    }, [applications, recruitCount, holdsByApplication]);
 
     const getOptionLabelsFromApplication = (app: Application) => {
         const productFallback = normalizeOptionLabel(campaignProductName || app.campaign?.product_name || '');
@@ -706,7 +755,11 @@ export default function ApplicationsTableClient({
             '신청메시지': app.application_message || '',
             '택배사': app.tracking_company || '',
             '송장번호': app.tracking_number || '',
-            '상태': app.status || '',
+            '상태': getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)) === 'HELD' ? '보류됨' : APPLICATION_STATUS_LABELS[app.status] || app.status,
+            '선정 상태': APPLICATION_STATUS_LABELS[app.status] || app.status,
+            '보류 사유': isSelectedApplication(app.status) && holdsByApplication.has(app.id) ? SELECTION_EMAIL_HOLD_REASONS[holdsByApplication.get(app.id)!.reason] : '',
+            '반송 수신 주소': isSelectedApplication(app.status) ? holdsByApplication.get(app.id)?.recipient || '' : '',
+            '반송일시': isSelectedApplication(app.status) && holdsByApplication.has(app.id) ? new Date(holdsByApplication.get(app.id)!.occurredAt).toLocaleString('ko-KR') : '',
         }));
 
         const ws = XLSX.utils.json_to_sheet(exportData);
@@ -731,6 +784,8 @@ export default function ApplicationsTableClient({
 
     // 컬럼 정의
     const columns = useMemo(() => createApplicationColumns({
+        emailHolds: holdsByApplication,
+        onResolveEmailHold: canResolveEmailHolds ? (hold) => { setHoldTarget(hold); setHoldResolutionReason(''); } : undefined,
         onApprove: handleApprove,
         onReject: handleReject,
         onCancel: handleCancel,
@@ -744,19 +799,19 @@ export default function ApplicationsTableClient({
         reviewedInfluencerIds: reviewedInfluencerIds,
         campaignType: campaignType,
         productUrlIndividual,
-    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual]);
+    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual, holdsByApplication, canResolveEmailHolds]);
 
     // 필터별 개수
     const filterCounts = useMemo(() => ({
         all: applications.length,
         pending: applications.filter(app => app.status?.toUpperCase() === 'PENDING').length,
         approved: applications.filter(app => {
-            const status = app.status?.toUpperCase();
-            return status === 'APPROVED' || status === 'SELECTED';
+            return isSelectedApplication(getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)));
         }).length,
+        held: applications.filter(app => getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)) === 'HELD').length,
         rejected: applications.filter(app => app.status?.toUpperCase() === 'REJECTED').length,
         cancelled: applications.filter(app => app.status?.toUpperCase() === 'CANCELLED').length,
-    }), [applications]);
+    }), [applications, holdsByApplication]);
 
     return (
         <div className="space-y-6">
@@ -764,21 +819,25 @@ export default function ApplicationsTableClient({
             <StatsCards stats={stats} />
 
             {/* 필터 탭 & 액션 버튼 */}
-            <div className="flex items-center justify-between">
-                <Tabs value={filter} onValueChange={(value) => setFilter(value as FilterType)}>
-                    <TabsList>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <Tabs value={filter} onValueChange={(value) => { setFilter(value as FilterType); setSelectedApplications([]); }} className="min-w-0 max-w-full overflow-x-auto">
+                    <TabsList className="w-max">
                         <TabsTrigger value="all">전체 {filterCounts.all}</TabsTrigger>
                         <TabsTrigger value="pending">대기중 {filterCounts.pending}</TabsTrigger>
                         <TabsTrigger value="approved">승인됨 {filterCounts.approved}</TabsTrigger>
+                        <TabsTrigger value="held">보류됨 {filterCounts.held}</TabsTrigger>
                         <TabsTrigger value="rejected">거절됨 {filterCounts.rejected}</TabsTrigger>
                         <TabsTrigger value="cancelled">취소됨 {filterCounts.cancelled}</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
+                <div className="flex gap-2">
+                <Button onClick={() => void refreshEmailHolds()} variant="outline" size="sm">보류 새로고침</Button>
                 <Button onClick={handleExportExcel} variant="outline" size="sm">
                     <Download className="mr-2 h-4 w-4" />
                     Excel 다운로드
                 </Button>
+                </div>
             </div>
 
             {/* 일괄 작업 바 */}
@@ -801,6 +860,18 @@ export default function ApplicationsTableClient({
                 pageSize={10}
                 emptyMessage="신청자가 없습니다."
             />
+
+            <Dialog open={Boolean(holdTarget)} onOpenChange={(open) => { if (!open && !isResolvingHold) setHoldTarget(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>메일 반송 보류 해제</DialogTitle>
+                        <DialogDescription>주소 수정·재발송 결과 또는 별도 연락을 확인한 뒤 해제 사유를 남겨 주세요. 참여 권한은 유지되며, 이메일 수신 차단은 별도로 확인해야 합니다.</DialogDescription>
+                    </DialogHeader>
+                    <label htmlFor="hold-resolution-reason" className="text-sm font-medium">해제 사유</label>
+                    <textarea id="hold-resolution-reason" value={holdResolutionReason} onChange={(event) => setHoldResolutionReason(event.target.value)} maxLength={500} rows={3} className="w-full rounded-md border p-3 text-sm" disabled={isResolvingHold} />
+                    <Button onClick={() => void handleResolveHold()} disabled={isResolvingHold || !holdResolutionReason.trim()}>{isResolvingHold ? '처리 중…' : '보류 해제'}</Button>
+                </DialogContent>
+            </Dialog>
 
             {/* 확인 다이얼로그 */}
             <ConfirmDialog

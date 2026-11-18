@@ -7,6 +7,16 @@ import { createAdminClient } from './supabase/admin';
 let sesClient: SESClient | null = null;
 let reminderSESClient: SESClient | null = null;
 
+// RFC 2047 UTF-8 encoded-word for "다온뷰"; SES envelope names must be ASCII.
+const SES_DISPLAY_NAME = '=?UTF-8?B?64uk7Jio67ew?=';
+const SES_FEEDBACK_ADDRESS = 'master@daonview.com';
+
+const getSESMessageAddresses = () => ({
+  Source: `${SES_DISPLAY_NAME} <${process.env.EMAIL_FROM || SES_FEEDBACK_ADDRESS}>`,
+  // Keep feedback routing free of display names, including in SES-generated DSNs.
+  ReturnPath: SES_FEEDBACK_ADDRESS,
+});
+
 const getSESClient = (): SESClient => {
   if (sesClient) return sesClient;
 
@@ -503,7 +513,7 @@ const sendAdminEmail = async (to: string, subject: string, html: string) => {
   }
 
   const response = await getSESClient().send(new SendEmailCommand({
-    Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
+    ...getSESMessageAddresses(),
     Destination: { ToAddresses: [to] },
     Message: {
       Subject: { Data: subject, Charset: 'UTF-8' },
@@ -658,7 +668,7 @@ export const sendEmail = async (to: string, type: EmailType, params: EmailParams
     }
     const client = type === 'CAMPAIGN_PROGRESS_REMINDER' ? reminderSESClient! : getSESClient();
     const command = new SendEmailCommand({
-      Source: `"다온뷰" <${process.env.EMAIL_FROM || 'master@daonview.com'}>`,
+      ...getSESMessageAddresses(),
       Destination: {
         ToAddresses: [to],
       },

@@ -3,6 +3,7 @@ import { sendEmail } from '@/lib/email';
 import { ALIMTALK_PAUSED, sendInfluencerSelectedAlimtalk } from '@/lib/alimtalk';
 import { normalizePurchaseLinkUrl } from '@/lib/purchaseLink';
 import { getCampaignGuideContent } from '@/lib/campaignEmailContent';
+import { trackSelectionEmail } from '@/lib/selectionEmailDelivery';
 
 export interface SelectionCampaignOptions {
   step1Data?: {
@@ -27,6 +28,7 @@ export interface SelectionCampaign {
 }
 
 export interface SelectionApplication {
+  id: number;
   assigned_option_label?: string | null;
   assigned_purchase_link_url?: string | null;
   assigned_purchase_links?: Array<{ optionLabel: string; url: string }> | null;
@@ -66,6 +68,7 @@ export async function notifySelectedApplication(
 
   try {
     return await sendSelectionNotification({
+      applicationId: application.id,
       userId,
       campaignId: campaign.id,
       campaignTitle: campaign.title,
@@ -86,6 +89,7 @@ export async function notifySelectedApplication(
 }
 
 interface SendSelectionNotificationParams {
+  applicationId: number;
   userId: string;
   campaignId: number;
   campaignTitle: string;
@@ -149,7 +153,8 @@ export async function sendSelectionNotification(
 
   if (userProfile.email) {
     try {
-      const emailResult = await sendEmail(userProfile.email, 'CAMPAIGN_SELECTED', {
+      const emailResult = await trackSelectionEmail(params.applicationId, userProfile.email,
+        () => sendEmail(userProfile.email!, 'CAMPAIGN_SELECTED', {
         nickname: recipientName,
         campaignTitle: params.campaignTitle,
         providedItems: params.providedItems,
@@ -161,7 +166,7 @@ export async function sendSelectionNotification(
         guideSummary: params.guideSummary,
         assignedPurchases: params.assignedPurchases,
         commonPurchaseLink: params.commonPurchaseLink,
-      });
+      }));
 
       if (!emailResult.success) {
         errors.push(`이메일 실패: ${emailResult.message || 'unknown error'}`);

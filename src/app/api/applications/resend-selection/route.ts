@@ -33,7 +33,7 @@ export async function POST(request: Request) {
     const admin = createAdminClient();
     const { data: application, error: applicationError } = await admin
       .from('applications')
-      .select('user_id, status, assigned_option_label, assigned_purchase_link_url, assigned_purchase_links, campaign:campaign_id(id, title, created_by, end_date, experience_details, product_name, campaign_options)')
+      .select('id, user_id, status, assigned_option_label, assigned_purchase_link_url, assigned_purchase_links, campaign:campaign_id(id, title, created_by, end_date, experience_details, product_name, campaign_options)')
       .eq('id', applicationId)
       .maybeSingle()
       .overrideTypes<ResendApplication, { merge: false }>();

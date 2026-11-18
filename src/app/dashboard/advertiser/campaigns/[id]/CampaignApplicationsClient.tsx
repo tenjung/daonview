@@ -8,6 +8,7 @@ import type { Application } from '@/types/database';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import type { SelectionEmailHold } from '@/lib/selectionEmailHold';
 
 interface CampaignApplicationsClientProps {
     campaignId: string;
@@ -19,6 +20,8 @@ interface CampaignApplicationsClientProps {
     productUrlIndividual?: boolean;
     recruitCount: number;
     initialApplications: Application[];
+    initialEmailHolds: SelectionEmailHold[];
+    canResolveEmailHolds: boolean;
 }
 
 export default function CampaignApplicationsClient({
@@ -31,6 +34,8 @@ export default function CampaignApplicationsClient({
     productUrlIndividual = false,
     recruitCount,
     initialApplications,
+    initialEmailHolds,
+    canResolveEmailHolds,
 }: CampaignApplicationsClientProps) {
     const { profile } = useAuthStore();
 
@@ -66,6 +71,8 @@ export default function CampaignApplicationsClient({
 
                     <ApplicationsTableClient
                         initialApplications={initialApplications}
+                        initialEmailHolds={initialEmailHolds}
+                        canResolveEmailHolds={canResolveEmailHolds}
                         campaignId={campaignId}
                         campaignTitle={campaignTitle}
                         campaignCategory={campaignCategory || ''}

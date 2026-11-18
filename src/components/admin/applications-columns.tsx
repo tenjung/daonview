@@ -15,10 +15,13 @@ import {
 } from "@/components/data-table"
 import ApplicationStatusBadge from "@/components/admin/ApplicationStatusBadge"
 import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
+import { getApplicationManagementStatus, SELECTION_EMAIL_HOLD_REASONS, type SelectionEmailHold } from '@/lib/selectionEmailHold'
 
 import { SatisfactionLevel } from "@/types/review"
 
 interface ColumnContext {
+    emailHolds?: Map<number, SelectionEmailHold>
+    onResolveEmailHold?: (hold: SelectionEmailHold) => void
     onApprove: (app: Application) => void
     onReject: (id: number, name: string) => void
     onCancel: (id: number, name: string) => void
@@ -40,7 +43,7 @@ interface ColumnContext {
 }
 
 export function createApplicationColumns(context: ColumnContext): ColumnDef<Application>[] {
-    return [
+    const columns: ColumnDef<Application>[] = [
         // 체크박스
         {
             id: "select",
@@ -389,7 +392,17 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 )
             },
             meta: { columnLabel: "상태" },
-            cell: ({ row }) => <ApplicationStatusBadge status={row.getValue("status")} />,
+            cell: ({ row }) => {
+                const hold = context.emailHolds?.get(row.original.id);
+                if (getApplicationManagementStatus(row.original.status, hold) !== 'HELD' || !hold) return <ApplicationStatusBadge status={row.getValue("status")} />;
+                return <div className="flex min-w-[170px] max-w-[240px] flex-col gap-1 text-xs">
+                    <span className="w-fit rounded bg-amber-100 px-2 py-1 font-semibold text-amber-900">보류됨 · 메일 반송</span>
+                    <span>{SELECTION_EMAIL_HOLD_REASONS[hold.reason]}</span>
+                    <span className="break-all text-gray-600">{hold.recipient}</span>
+                    <time dateTime={hold.occurredAt} className="text-gray-500">{new Date(hold.occurredAt).toLocaleString('ko-KR')}</time>
+                    {context.onResolveEmailHold && <Button variant="outline" size="sm" className="mt-1 h-7 w-fit text-xs" onClick={() => context.onResolveEmailHold?.(hold)}>보류 해제</Button>}
+                </div>;
+            },
             size: 120,
         },
         // 관리
@@ -495,4 +508,9 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
             size: 130,
         },
     ];
+    // Keep the management classification beside the applicant, before operational fields.
+    const statusIndex = columns.findIndex(column => 'accessorKey' in column && column.accessorKey === 'status');
+    const [statusColumn] = columns.splice(statusIndex, 1);
+    columns.splice(3, 0, statusColumn);
+    return columns;
 }

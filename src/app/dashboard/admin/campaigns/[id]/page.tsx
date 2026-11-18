@@ -8,6 +8,7 @@ import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { Badge } from '@/components/ui/badge';
 import { Application } from '@/types/database';
 import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
+import { getCampaignEmailHolds } from '@/lib/selectionEmailHoldServer';
 
 // Next.js 캐싱 비활성화
 export const dynamic = 'force-dynamic';
@@ -76,6 +77,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
     if (campaignRes.error || !campaign) {
         notFound();
     }
+    const emailHolds = await getCampaignEmailHolds(Number(campaign.id));
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
@@ -106,6 +108,8 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
             {/* 메인 테이블 영역 */}
             <ApplicationsTableClient
                 initialApplications={applications}
+                initialEmailHolds={emailHolds.holds}
+                canResolveEmailHolds={emailHolds.canResolve}
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}
                 campaignCategory={campaign.category || ''}

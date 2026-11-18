@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Application } from '@/types/database';
 import CampaignApplicationsClient from './CampaignApplicationsClient';
 import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
+import { getCampaignEmailHolds } from '@/lib/selectionEmailHoldServer';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -68,6 +69,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
     if (campaignRes.error || !campaign) {
         notFound();
     }
+    const emailHolds = await getCampaignEmailHolds(Number(campaign.id));
 
     return (
         <CampaignApplicationsClient
@@ -80,6 +82,8 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
             productUrlIndividual={productUrlIndividual}
             recruitCount={getCampaignRecruitTarget(campaign) || 0}
             initialApplications={applications}
+            initialEmailHolds={emailHolds.holds}
+            canResolveEmailHolds={emailHolds.canResolve}
         />
     );
 }

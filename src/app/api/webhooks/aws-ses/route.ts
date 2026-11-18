@@ -1,66 +1,42 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { normalizeSESFeedback } from '@/lib/emailFeedback';
+import { SNSCertificateUnavailable, verifySNSMessage } from '@/lib/snsVerification';
 
-/**
- * AWS SES Feedback Loop Webhook Handler
- * AWS SNS를 통해 Bounce(반송) 및 Complaint(신고) 통보를 받아 유저 상태를 업데이트합니다.
- * 이 코드는 AWS SES 승인 심사 시 "반송 관리 로직"의 핵심 증거가 됩니다.
- */
+export const runtime = 'nodejs';
+
 export async function POST(request: Request) {
+  const topic = process.env.AWS_SES_FEEDBACK_TOPIC_ARN;
+  if (!topic) return NextResponse.json({ error: 'Feedback collection is not configured.' }, { status: 503 });
+  let envelope;
   try {
-    const body = await request.json();
-    
-    // 1. AWS SNS 구독 확인 처리 (최초 설정 시 필요)
-    if (body.Type === 'SubscriptionConfirmation') {
-      console.log('SNS Subscription Confirmation:', body.SubscribeURL);
-      // 브라우저에서 body.SubscribeURL을 실행하거나 아래와 같이 GET 요청을 보낼 수 있음
-      await fetch(body.SubscribeURL);
-      return NextResponse.json({ success: true, message: 'Subscribed' });
+    const text = await request.text();
+    if (Buffer.byteLength(text) > 256000) return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
+    envelope = await verifySNSMessage(JSON.parse(text), topic);
+  } catch (error) {
+    if (error instanceof SNSCertificateUnavailable) return NextResponse.json({ error: 'Certificate service unavailable.' }, { status: 503 });
+    return NextResponse.json({ error: 'Invalid SNS notification.' }, { status: 400 });
+  }
+  try {
+    if (envelope.Type === 'SubscriptionConfirmation') {
+      const response = await fetch(envelope.SubscribeURL!, { redirect: 'error', signal: AbortSignal.timeout(5000) });
+      if (!response.ok) throw new Error('Subscription confirmation failed');
+      return NextResponse.json({ success: true });
     }
-
-    // 2. 실제 알림 처리
-    if (body.Type === 'Notification') {
-      const message = JSON.parse(body.Message);
-      const notificationType = message.notificationType; // 'Bounce', 'Complaint', 'Delivery'
-      
-      const supabase = createAdminClient();
-
-      if (notificationType === 'Bounce') {
-        const bounce = message.bounce;
-        const bouncedRecipients = bounce.bouncedRecipients; // 반송된 수신자 목록
-
-        for (const recipient of bouncedRecipients) {
-          const email = recipient.emailAddress;
-          console.log(`[AWS SES] Hard Bounce detected: ${email}`);
-          
-          // DB 상태 업데이트: 해당 이메일의 수신 상태를 'BOUNCED'로 변경
-          await supabase
-            .from('profiles')
-            .update({ email_subscription_status: 'BOUNCED' })
-            .eq('email', recipient.emailAddress);
-        }
-      }
-
-      if (notificationType === 'Complaint') {
-        const complaint = message.complaint;
-        const complainedRecipients = complaint.complainedRecipients;
-
-        for (const recipient of complainedRecipients) {
-          const email = recipient.emailAddress;
-          console.log(`[AWS SES] Complaint detected: ${email}`);
-          
-          // DB 상태 업데이트: 해당 이메일의 수신 상태를 'COMPLAINED'로 변경
-          await supabase
-            .from('profiles')
-            .update({ email_subscription_status: 'COMPLAINED' })
-            .eq('email', recipient.emailAddress);
-        }
-      }
+    let events;
+    try {
+      events = normalizeSESFeedback(JSON.parse(envelope.Message), process.env.EMAIL_FROM || 'master@daonview.com');
+    } catch {
+      return NextResponse.json({ error: 'Invalid SES feedback.' }, { status: 400 });
     }
-
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    console.error('SES Webhook Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const admin = createAdminClient();
+    for (const event of events) {
+      const { error } = await admin.rpc('record_email_feedback', { p_event: event });
+      if (error) throw new Error('Feedback persistence failed');
+    }
+    return NextResponse.json({ success: true, processed: events.length });
+  } catch {
+    console.error('SES feedback persistence or subscription failed');
+    return NextResponse.json({ error: 'Feedback processing failed.' }, { status: 500 });
   }
 }
