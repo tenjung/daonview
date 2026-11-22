@@ -14,7 +14,8 @@ function compiled(path, replacements = {}) {
   for (const [source, target] of Object.entries(replacements)) code = code.replaceAll(`'${source}'`, `'${target}'`).replaceAll(`"${source}"`, `"${target}"`);
   return moduleUrl(code);
 }
-const coreUrl = compiled('src/lib/campaignActions.ts');
+const roleUrl = compiled('src/constants/role.ts');
+const coreUrl = compiled('src/lib/campaignActions.ts', { '../constants/role': roleUrl });
 const core = await import(coreUrl);
 const nextUrl = moduleUrl('export const NextResponse = {json: (body, options) => Response.json(body, options)}');
 const cacheUrl = moduleUrl('export const revalidatePath = path => globalThis.__campaignActionTest.paths.push(path); export const revalidateTag = tag => globalThis.__campaignActionTest.tags.push(tag);');
@@ -95,12 +96,15 @@ test('bulk route rejects anonymous, advertiser, missing profile and untrusted me
   assert.equal(db.reads.length, 0);
 });
 
-test('bulk route accepts stored administrator aliases', async () => {
-  for (const role of ['admin', 'MASTER', 'SUPER_ADMIN']) {
+test('bulk route accepts ADMIN case-insensitively and rejects removed aliases', async () => {
+  setIdentity('admin', 'admin');
+  const response = await route.POST(request({ action: 'CLOSE', campaignIds: [999] }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).results[0].httpStatus, 404);
+  // DB profiles_role_check는 ADMIN만 허용하므로 MASTER/SUPER_ADMIN 별칭은 관리자로 보지 않는다.
+  for (const role of ['MASTER', 'SUPER_ADMIN']) {
     setIdentity('admin', role);
-    const response = await route.POST(request({ action: 'CLOSE', campaignIds: [999] }));
-    assert.equal(response.status, 200);
-    assert.equal((await response.json()).results[0].httpStatus, 404);
+    assert.equal((await route.POST(request({ action: 'CLOSE', campaignIds: [999] }))).status, 403);
   }
 });
 

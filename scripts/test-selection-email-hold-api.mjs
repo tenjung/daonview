@@ -20,7 +20,8 @@ function fixture({ role = 'ADMIN', owner = 'actor', loggedIn = true, matchingApp
   return {server,calls,post};
 }
 test('hold reads permit admin and campaign owner, reject anonymous and unrelated advertiser', async () => {
-  for (const role of ['ADMIN','MASTER','SUPER_ADMIN']) assert.equal((await fixture({role,owner:'other'}).server.authorizeEmailHoldAccess(44)).canResolve,true);
+  assert.equal((await fixture({role:'ADMIN',owner:'other'}).server.authorizeEmailHoldAccess(44)).canResolve,true);
+  for (const role of ['MASTER','SUPER_ADMIN']) await assert.rejects(fixture({role,owner:'other'}).server.authorizeEmailHoldAccess(44));
   assert.equal((await fixture({role:'ADVERTISER'}).server.authorizeEmailHoldAccess(44)).canResolve,false);
   for (const options of [{loggedIn:false},{role:'ADVERTISER',owner:'other'},{role:'INFLUENCER'}]) await assert.rejects(fixture(options).server.authorizeEmailHoldAccess(44));
 });

@@ -92,14 +92,20 @@ function SignupForm() {
         setEmailChecking(true);
 
         try {
-            // 비로그인 사용자는 profiles.email 컬럼을 직접 읽을 수 없으므로 DB 함수로 중복 여부만 확인한다.
-            const { data, error } = await supabase.rpc('check_email_available', { email_to_check: trimmedEmail });
+            // 중복 여부는 요청 수 제한이 있는 서버 API에서만 확인한다.
+            const response = await fetch('/api/auth/check-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: trimmedEmail }),
+            });
+            const result = await response.json().catch(() => null);
 
-            if (error || typeof data !== 'boolean') {
-                console.error('Email check failed:', error);
+            if (!response.ok || typeof result?.available !== 'boolean') {
+                console.error('Email check failed:', result?.error || response.status);
                 setEmailAvailable(null);
+                if (response.status === 429) setEmailError('요청이 많습니다. 잠시 후 다시 시도해 주세요.');
             } else {
-                const available = data;
+                const available: boolean = result.available;
                 setEmailAvailable(available);
                 setEmailError(available ? '' : '이미 가입된 메일입니다.');
             }

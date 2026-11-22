@@ -1,5 +1,6 @@
 'use client';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
+import { isAdminRole } from '@/constants/role';
 import { campaignMutation } from '@/lib/campaignMutationClient';
 
 import { useCallback, useEffect, useState, useRef } from 'react';
@@ -165,7 +166,7 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                 router.replace('/dashboard/advertiser');
                 return;
             }
-            if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
+            if (isAdminRole(normalizedRole)) {
                 router.replace('/dashboard/admin');
                 return;
             }

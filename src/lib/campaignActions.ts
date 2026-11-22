@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { CampaignAction, CampaignActionCampaign, CampaignActionResult } from './campaignActionTypes';
+import { isAdminRole } from '../constants/role';
 
 export class CampaignActionError extends Error {
   statusCode: number;
@@ -13,7 +14,7 @@ export class CampaignActionError extends Error {
 export function assertCampaignActor(userId: string | null, role: string | null, allowAdvertiser = false) {
   if (!userId) throw new CampaignActionError('인증이 필요합니다.', 401);
   const normalized = (role || '').toUpperCase();
-  if (!['ADMIN', 'MASTER', 'SUPER_ADMIN'].includes(normalized) && !(allowAdvertiser && normalized === 'ADVERTISER')) {
+  if (!isAdminRole(normalized) && !(allowAdvertiser && normalized === 'ADVERTISER')) {
     throw new CampaignActionError('캠페인을 처리할 권한이 없습니다.', 403);
   }
   return { userId, role: normalized };

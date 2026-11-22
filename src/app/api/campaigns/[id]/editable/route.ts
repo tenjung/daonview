@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { isAdminRole } from '@/constants/role';
 import { normalizeOptionKey } from '@/lib/purchaseLink';
 
 interface RouteParams {
@@ -83,7 +84,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     }
 
     const role = String(profile.role || '').toUpperCase();
-    const isAdmin = role === 'ADMIN' || role === 'MASTER' || role === 'SUPER_ADMIN';
+    const isAdmin = isAdminRole(role);
     const isAdvertiser = role === 'ADVERTISER';
 
     if (!isAdmin && !isAdvertiser) {

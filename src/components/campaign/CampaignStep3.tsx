@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Handshake, Info, Check, Gift, ShoppingBag, Search, Loader2, CheckCircle2, Infinity } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { isAdminRole } from '@/constants/role';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
@@ -44,7 +45,7 @@ export default function CampaignStep3({
     }, [submitTrigger]);
 
     const { user, profile } = useAuthStore();
-    const isAdmin = ['ADMIN', 'MASTER', 'SUPER_ADMIN'].includes(String(profile?.role || '').toUpperCase());
+    const isAdmin = isAdminRole(profile?.role);
     const { requestPayment } = usePortonePayment();
     const { isUnlimited } = useSubscription();
 

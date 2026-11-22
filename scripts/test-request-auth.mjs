@@ -31,9 +31,12 @@ test('one request shares user/profile across concurrent consumers; requests stay
   assert.equal((await b.auth.getRequestAuth()).role, 'ADVERTISER');
   assert.equal((await a.auth.getRequestAuth()).role, 'ADMIN');
 });
-test('DB roles and admin aliases only; metadata cannot grant access', async () => {
-  for (const role of ['ADMIN', 'MASTER', 'SUPER_ADMIN', 'admin']) {
+test('DB ADMIN role only; metadata and removed aliases cannot grant access', async () => {
+  for (const role of ['ADMIN', 'admin']) {
     assert.equal((await fixture({ role }).guard.requireDashboardRole('ADMIN')).role, 'ADMIN');
+  }
+  for (const role of ['MASTER', 'SUPER_ADMIN']) {
+    await assert.rejects(fixture({ role }).guard.requireDashboardRole('ADMIN'));
   }
   await assert.rejects(fixture({ role: 'INFLUENCER', user: { id: 'actor', user_metadata: { role: 'ADMIN' } } })
     .guard.requireDashboardRole('ADMIN'), /dashboard\/influencer/);

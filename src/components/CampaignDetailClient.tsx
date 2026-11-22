@@ -76,7 +76,7 @@ import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import { getCampaignReviewMode } from '@/lib/campaignPurchase';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
 import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
-import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
+import { isAdminRole, isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
 import { normalizeOptionKey, type PublicPurchaseLink } from '@/lib/purchaseLink';
 import type { ProductOption, Profile } from '@/types/database';
@@ -211,10 +211,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
     const normalizedRole = normalizeRole(profile?.role);
-    const isAdmin =
-        normalizedRole === 'ADMIN' ||
-        normalizedRole === 'MASTER' ||
-        normalizedRole === 'SUPER_ADMIN';
+    const isAdmin = isAdminRole(normalizedRole);
     const canEditCampaign = canEditCampaignByRole({
         role: normalizedRole,
         userId: user?.id,

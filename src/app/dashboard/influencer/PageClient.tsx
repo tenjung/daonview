@@ -1,5 +1,6 @@
 'use client';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
+import { isAdminRole } from '@/constants/role';
 
 import { useCallback, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
@@ -104,7 +105,7 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
             return;
         }
 
-        if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
+        if (isAdminRole(normalizedRole)) {
             router.replace('/dashboard/admin');
             return;
         }

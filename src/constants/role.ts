@@ -7,8 +7,6 @@ export const USER_ROLES = {
 export type UserRoleKey = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 export type DashboardRoleKey = UserRoleKey;
 
-const ADMIN_ROLE_ALIASES = ['ADMIN', 'MASTER', 'SUPER_ADMIN'] as const;
-
 export function normalizeRole(role?: string | null) {
   return (role || '').toUpperCase();
 }
@@ -17,10 +15,11 @@ export function isRole(role: string | null | undefined, target: UserRoleKey) {
   return normalizeRole(role) === target;
 }
 
+/**
+ * 관리자 판정 단일 기준. DB profiles_role_check와 is_admin()이 ADMIN만 허용하므로 별칭을 두지 않는다.
+ */
 export function isAdminRole(role?: string | null) {
-  return ADMIN_ROLE_ALIASES.includes(
-    normalizeRole(role) as (typeof ADMIN_ROLE_ALIASES)[number]
-  );
+  return normalizeRole(role) === USER_ROLES.ADMIN;
 }
 
 export function coerceDashboardRole(role?: string | null): DashboardRoleKey | null {
