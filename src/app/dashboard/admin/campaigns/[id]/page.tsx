@@ -1,4 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -19,7 +20,9 @@ interface PageProps {
 }
 
 export default async function CampaignApplicationsPage({ params }: PageProps) {
-    const supabase = await createClient();
+    await requireDashboardRole('ADMIN');
+    // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 신청자 연락처를 포함해 조회한다.
+    const supabase = createAdminClient();
     const { id } = await params;
 
     // 캠페인 정보, 신청자 목록, 사이드바 카운트 병렬 조회

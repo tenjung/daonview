@@ -58,8 +58,9 @@ interface Payment {
     cancel_reason: string | null;
     created_at: string;
     profiles: {
+        id?: string;
         nickname: string;
-        email: string;
+        email: string | null;
         company_name?: string;
     } | null;
     campaigns: {
@@ -99,7 +100,7 @@ export default function PaymentManagementClient() {
             .from('payments')
             .select(`
                 *,
-                profiles:user_id (nickname, email, company_name),
+                profiles:user_id (id, nickname, company_name),
                 campaigns:campaign_id (title, type)
             `)
             .order('created_at', { ascending: false });
@@ -108,7 +109,21 @@ export default function PaymentManagementClient() {
             throw error;
         }
 
-        setPayments((data || []) as Payment[]);
+        // 결제자 이메일은 관리자 전용 RPC로 따로 조회해 붙인다.
+        const rows = (data || []) as Payment[];
+        const userIds = [...new Set(rows.map(row => row.user_id).filter(Boolean))];
+        const emailById = new Map<string, string | null>();
+        if (userIds.length > 0) {
+            const { data: contacts, error: contactError } = await supabase
+                .rpc('admin_list_profiles')
+                .select('id, email')
+                .in('id', userIds);
+            if (contactError) throw contactError;
+            (contacts as { id: string; email: string | null }[] | null)?.forEach(contact => emailById.set(contact.id, contact.email));
+        }
+        setPayments(rows.map(row => row.profiles
+            ? { ...row, profiles: { ...row.profiles, email: emailById.get(row.user_id) ?? null } }
+            : row));
     };
 
     const fetchRefundRequests = async () => {

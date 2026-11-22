@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import UserManagementClient from '@/components/admin/UserManagementClient';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
@@ -7,7 +7,8 @@ import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 
 export default async function UserManagementPage() {
     await requireDashboardRole('ADMIN');
-    const supabase = await createClient();
+    // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 회원 연락처를 포함해 조회한다.
+    const supabase = createAdminClient();
     // 유저 데이터 및 카운트 병렬 페칭
     const [profilesRes, sidebarCounts] = await Promise.all([
         supabase

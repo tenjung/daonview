@@ -217,7 +217,7 @@ export default function ReviewSubmitModal({
                     accountNumber,
                 }),
             });
-            const result = await response.json() as { error?: string };
+            const result = await response.json() as { error?: string; cacheWarning?: string };
             if (!response.ok) {
                 throw new Error(result.error || '리뷰 등록에 실패했습니다.');
             }
@@ -227,6 +227,8 @@ export default function ReviewSubmitModal({
                     ? '리뷰와 증빙이 등록되었습니다. 확인 후 페이백이 진행됩니다.'
                     : '리뷰가 성공적으로 등록되었습니다!'
             );
+            if (result.cacheWarning) toast.warning(result.cacheWarning);
+            window.dispatchEvent(new Event('campaign-data-changed'));
             onSuccess();
             onClose();
             // Reset state

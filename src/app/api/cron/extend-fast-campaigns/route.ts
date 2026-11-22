@@ -1,3 +1,4 @@
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { addDays, normalizeScheduleType } from '@/lib/campaignSchedule';
@@ -145,6 +146,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       success: true,
+      cacheWarning: results.some(result => result.extended)
+        ? invalidatePublicCampaigns(results.filter(result => result.extended).map(result => result.campaignId)) : undefined,
       checked: candidates.length,
       extended: results.filter((result) => result.extended).length,
       results,

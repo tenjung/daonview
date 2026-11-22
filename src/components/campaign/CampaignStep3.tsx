@@ -43,8 +43,8 @@ export default function CampaignStep3({
         }
     }, [submitTrigger]);
 
-    const { user } = useAuthStore();
-    const isAdmin = user?.user_metadata?.role === 'admin';
+    const { user, profile } = useAuthStore();
+    const isAdmin = ['ADMIN', 'MASTER', 'SUPER_ADMIN'].includes(String(profile?.role || '').toUpperCase());
     const { requestPayment } = usePortonePayment();
     const { isUnlimited } = useSubscription();
 

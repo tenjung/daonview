@@ -1,9 +1,11 @@
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import { createClient } from '@/lib/supabase/server';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import BannerManagementClient from '@/components/BannerManagementClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 
 export default async function BannerManagementPage() {
+    await requireDashboardRole('ADMIN');
     const supabase = await createClient();
 
     // Fetch Banners, Config, and Sidebar counts in parallel on the server

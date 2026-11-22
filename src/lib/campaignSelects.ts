@@ -1,5 +1,6 @@
 export const CAMPAIGN_CARD_SELECT = `
   id,
+  created_by,
   title,
   platform,
   type,
@@ -17,8 +18,8 @@ export const CAMPAIGN_CARD_SELECT = `
   sub_region,
   created_at,
   status,
-  applications(count),
-  selected_applications:applications(count)
+  applicant_count,
+  selected_count
 `.replace(/\s+/g, ' ').trim();
 
 export const CAMPAIGN_METADATA_SELECT = `
@@ -58,5 +59,6 @@ export const CAMPAIGN_DETAIL_SELECT = `
   product_options,
   option_config,
   product_name,
-  applications(count)
+  applicant_count,
+  selected_count
 `.replace(/\s+/g, ' ').trim();

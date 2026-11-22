@@ -203,7 +203,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             const { data: refetchData, error: refetchErr } = await withTimeout(
                 supabase
                     .from('campaigns')
-                    .select('*, applications(count), profiles:created_by(*)')
+                    .select('*, applications(count), profiles:created_by(id, nickname, company_name, role)')
                     .in('status', ['RECRUITING', 'ONGOING']),
                 BULK_EXTEND_TIMEOUT_MS,
                 'campaign refetch'

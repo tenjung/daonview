@@ -1,4 +1,5 @@
 "use client"
+import { campaignMutation } from '@/lib/campaignMutationClient';
 
 import * as React from "react"
 import { Campaign } from "@/types/database"
@@ -51,10 +52,8 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
       confirmText: "삭제하기",
       onConfirm: async () => {
         setIsLoading(true)
-        const { error } = await supabase
-          .from("campaigns")
-          .delete()
-          .eq("id", id)
+        const { error } = await campaignMutation('/api/campaigns/delete', { campaignId: id })
+          .then(() => ({ error: null }), (error: unknown) => ({ error }));
 
         if (error) {
           toast.error("삭제 중 오류가 발생했습니다.")
@@ -106,6 +105,8 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
         const endDate = typeof payload.endDate === 'string' ? payload.endDate : ''
         if (!endDate) throw new Error('연장 결과(endDate)를 받지 못했습니다.')
 
+        if (payload.cacheWarning) toast.warning(String(payload.cacheWarning))
+        window.dispatchEvent(new Event('campaign-data-changed'))
         toast.success(`모집 기간이 ${days}일 연장되었습니다!`)
         setShowExtendModal(false)
         
@@ -142,6 +143,8 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
           }
 
           const updatedCampaign = payload.campaign as { status?: string; end_date?: string | null } | undefined
+          if (payload.cacheWarning) toast.warning(String(payload.cacheWarning))
+          window.dispatchEvent(new Event('campaign-data-changed'))
           toast.success("캠페인이 마감되었습니다.")
           setData(prev => prev.map(c => c.id === id ? {
             ...c,

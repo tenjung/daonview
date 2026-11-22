@@ -1,5 +1,6 @@
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { createAdminClient } from './supabase/admin';
+import { buildUnsubscribeUrl } from './unsubscribeToken';
 
 /**
  * AWS SES 클라이언트 싱글톤 인스턴스
@@ -205,7 +206,7 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
     }
 
     // 푸터 추가 (로고, 카카오톡 문의, 수신거부)
-    const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
+    const unsubscribeUrl = buildUnsubscribeUrl(params.email);
     const kakaoInquiryUrl = 'https://pf.kakao.com/_xbxhDgn/chat';
 
     const fullHtml = `
@@ -464,7 +465,7 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       break;
   }
 
-  const unsubscribeUrl = `https://daonview.com/unsubscribe?email=${encodeURIComponent(params.email || '')}`;
+  const unsubscribeUrl = buildUnsubscribeUrl(params.email);
   const kakaoInquiryUrl = 'https://pf.kakao.com/_xbxhDgn/chat';
 
   const html = `

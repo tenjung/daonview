@@ -1,4 +1,5 @@
 "use client"
+import { campaignMutation } from '@/lib/campaignMutationClient';
 
 import * as React from "react"
 import type { RowSelectionState } from "@tanstack/react-table"
@@ -46,6 +47,7 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
       if (!response.ok) throw new Error(typeof payload.error === 'string' ? payload.error : '캠페인 처리에 실패했습니다.')
       if (!Array.isArray(payload.results)) throw new Error('처리 결과를 확인할 수 없습니다.')
       const result = payload as CampaignBulkResponse
+      window.dispatchEvent(new Event('campaign-data-changed'))
       setReport({ ...result, excluded })
       const applied = result.results.filter(item => item.campaign)
       const changes = new Map(applied.map(item => [item.id, item.campaign!]))
@@ -110,10 +112,8 @@ export function UnifiedAdminCampaigns({ initialData }: UnifiedAdminCampaignsProp
       confirmText: "삭제하기",
       onConfirm: async () => {
         setIsLoading(true)
-        const { error } = await supabase
-          .from("campaigns")
-          .delete()
-          .eq("id", id)
+        const { error } = await campaignMutation('/api/campaigns/delete', { campaignId: id })
+          .then(() => ({ error: null }), (error: unknown) => ({ error }));
 
         if (error) {
           toast.error("삭제 중 오류가 발생했습니다.")

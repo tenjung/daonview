@@ -8,9 +8,8 @@ function fixture({ role = 'ADMIN', owner = 'actor', loggedIn = true, matchingApp
   const admin = { from: query, rpc: async (name,args) => { calls.push({name,args}); return {data:resolved}; } };
   const server = load('src/lib/selectionEmailHoldServer.ts', {
     'server-only': {},
-    '@/lib/supabase/server': { createClient: async () => ({
-      auth: { getUser: async () => ({data:{user:loggedIn ? {id:'actor'} : null}}) },
-      from: () => ({ select() {return this;}, eq() {return this;}, single: async () => ({data:{role}}) }),
+    '@/lib/auth/requestAuth': { getRequestAuth: async () => ({
+      user: loggedIn ? {id:'actor'} : null, profile: {role}, profileError:null,
     }) },
     '@/lib/supabase/admin': { createAdminClient: () => admin },
   });

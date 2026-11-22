@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { supabase } from '@/lib/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { Profile } from '@/types/database';
+import { toClientProfile } from '@/lib/auth/clientProfile';
+import { coerceDashboardRole } from '@/constants/role';
 
 type AuthProfile = Profile | null;
 
@@ -12,6 +14,7 @@ interface AuthState {
   isInitialized: boolean;
   isSigningOut: boolean;
   isProfileLoading: boolean;
+  profileError: string | null;
 
   initialize: () => void;
   signOut: () => Promise<void>;
@@ -23,6 +26,7 @@ interface AuthState {
 // 리스너 중복 등록 방지용 모듈 레벨 플래그 (Zustand 외부)
 let listenerRegistered = false;
 let authGeneration = 0;
+let profileRequest: { userId: string; generation: number; promise: Promise<void> } | null = null;
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -31,6 +35,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
   isSigningOut: false,
   isProfileLoading: false,
+  profileError: null,
 
   // DB 값을 시스템 규격으로 정규화
   normalizeProfile: (raw: unknown) => {
@@ -38,10 +43,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const source = raw as Profile;
     const normalizedRole = source.role
       ? (source.role.toUpperCase() as Profile['role'])
-      : 'INFLUENCER';
+      : undefined;
 
     return {
-      ...source,
+      ...toClientProfile(source),
+      id: source.id,
       role: normalizedRole,
       nickname: source.nickname || '익명사용자',
     };
@@ -50,29 +56,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   // 프로필 조회
   fetchProfile: async (userId: string) => {
     if (get().isSigningOut || get().user?.id !== userId) return;
-
     const generation = authGeneration;
-    const isCurrent = () => generation === authGeneration && get().user?.id === userId;
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (!isCurrent()) return;
-
-      if (!error && data) {
-        set({ profile: get().normalizeProfile(data) });
-      } else {
-        set({ profile: null });
+    if (profileRequest?.userId === userId && profileRequest.generation === generation) return profileRequest.promise;
+    const isCurrent = () => generation === authGeneration && get().user?.id === userId && !get().isSigningOut;
+    const promise = (async () => {
+      set({ isProfileLoading: true, profileError: null });
+      try {
+        const { data, error } = await supabase.rpc('get_my_profile').single<Profile>();
+        if (!isCurrent()) return;
+        if (error || !data || !coerceDashboardRole(data.role)) {
+          set({ profileError: '프로필을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' });
+          return;
+        }
+        set({ profile: get().normalizeProfile(data), profileError: null });
+      } catch {
+        if (isCurrent()) set({ profileError: '프로필을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.' });
+      } finally {
+        if (isCurrent()) set({ isProfileLoading: false });
       }
-    } catch (err) {
-      if (!isCurrent()) return;
-      console.error('[AuthStore] fetchProfile 오류:', err);
-      set({ profile: null });
-    } finally {
-      if (isCurrent()) set({ isProfileLoading: false });
+    })();
+    profileRequest = { userId, generation, promise };
+    try { await promise; } finally {
+      if (profileRequest?.promise === promise) profileRequest = null;
     }
   },
 
@@ -92,6 +97,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const user = session?.user ?? null;
       const sameUser = Boolean(user && user.id === get().user?.id);
+      const reuseProfile = sameUser && Boolean(coerceDashboardRole(get().profile?.role)) && !get().profileError
+        && (event === 'INITIAL_SESSION' || event === 'SIGNED_IN');
       if (!sameUser) authGeneration++;
 
       set({
@@ -99,9 +106,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         profile: sameUser ? get().profile : null,
         isLoading: false,
         isInitialized: true,
-        isProfileLoading: Boolean(user),
+        isProfileLoading: Boolean(user) && !reuseProfile,
+        profileError: sameUser ? get().profileError : null,
       });
-      if (user) void get().fetchProfile(user.id);
+      if (user && !reuseProfile) void get().fetchProfile(user.id);
     });
   },
 
@@ -137,6 +145,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         user,
         profile: get().normalizeProfile(profile),
         isLoading: false,
+        profileError: null,
       });
     } else {
       set({ user: null, profile: null, isLoading: false });

@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import { getPublicServerClient } from '@/lib/supabase/publicServer';
+import { getPublicCampaignList } from '@/lib/publicCampaignServer';
 import { isCampaignOpenForApplications, mapCampaignToCard } from '@/lib/campaignUtils';
 import CampaignListClient from '@/components/CampaignListClient';
-import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
-import { CAMPAIGN_CARD_SELECT } from '@/lib/campaignSelects';
 import type { Campaign } from '@/types/database';
 
 export const revalidate = 30; // ISR: 30초마다 재생성
@@ -25,18 +23,7 @@ export const metadata: Metadata = {
 
 
 export default async function CampaignsPage() {
-    const supabase = getPublicServerClient();
-    // Fetch all campaigns on the server
-    const { data: rawCampaigns, error } = await supabase
-        .from('campaigns')
-        .select(CAMPAIGN_CARD_SELECT)
-        .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
-        .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
-        .order('created_at', { ascending: false });
-
-    if (error) {
-        console.error('[CampaignsPage] Failed to fetch campaigns:', error.message);
-    }
+    const rawCampaigns = await getPublicCampaignList();
 
     const campaigns = (rawCampaigns || [])
         .filter((campaign) => isCampaignOpenForApplications(campaign))

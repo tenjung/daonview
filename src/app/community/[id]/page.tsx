@@ -1,3 +1,4 @@
+import { getCommunityPost } from '@/lib/community/readServer';
 import { createClient as createServerClient } from '@/lib/supabase/server';
 import { notFound } from 'next/navigation';
 import PostDetailClient from './PostDetailClient';
@@ -11,13 +12,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
-    const supabase = await createServerClient();
 
-    const { data: post } = await supabase
-        .from('posts')
-        .select('title, content, type, created_at')
-        .eq('id', id)
-        .single();
+    const { data: post } = await getCommunityPost(id);
 
     if (!post) return {};
 
@@ -42,17 +38,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     const supabase = await createServerClient();
 
     // Fetch post data
-    const { data: post, error } = await supabase
-        .from('posts')
-        .select(`
-            *,
-            profiles:user_id (
-                nickname,
-                name
-            )
-        `)
-        .eq('id', id)
-        .single();
+    const { data: post, error } = await getCommunityPost(id);
 
     if (error || !post) return notFound();
 

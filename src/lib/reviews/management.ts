@@ -1,3 +1,4 @@
+import { requireRequestUser } from '@/lib/auth/requestAuth';
 import 'server-only';
 
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
@@ -50,15 +51,11 @@ const parseProofUrls = (value: unknown): string[] => {
   return value.filter((item): item is string => typeof item === 'string' && /^https?:\/\//i.test(item));
 };
 
-export async function getManagedReviewsForActor(actorId: string): Promise<ManagedReview[]> {
+export async function getManagedReviewsForActor(actorId: string, authenticated?: Awaited<ReturnType<typeof requireRequestUser>>): Promise<ManagedReview[]> {
+  const auth = authenticated ?? await requireRequestUser();
+  if (auth.user.id !== actorId) throw new Error('리뷰 조회 권한이 없습니다.');
   const admin = createAdminClient();
-  const { data: actorProfile } = await admin
-    .from('profiles')
-    .select('role')
-    .eq('id', actorId)
-    .maybeSingle();
-
-  const role = normalizeRoleValue(actorProfile?.role);
+  const role = normalizeRoleValue(auth.profile.role);
   const isAdmin = isAdminRole(role);
   let allowedCampaignIds: number[] | null = null;
 

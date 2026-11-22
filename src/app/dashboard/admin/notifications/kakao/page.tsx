@@ -1,26 +1,11 @@
-import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { MessageCircle, Construction } from 'lucide-react';
 
 export default async function AdminKakaoNotificationsPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/login');
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role !== 'ADMIN') {
-        redirect('/dashboard');
-    }
+    await requireDashboardRole('ADMIN');
+    const { supabase, user } = await getRequestAuth();
 
     return (
         <AdminPageLayout>

@@ -1,6 +1,7 @@
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { Badge } from '@/components/ui/badge';
@@ -232,7 +233,9 @@ function QuickActionCard({
 }
 
 export default async function AdminProgressDashboardPage() {
-  const supabase = await createClient();
+    await requireDashboardRole('ADMIN');
+  // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 신청자 이메일을 포함해 조회한다.
+  const supabase = createAdminClient();
   const now = new Date();
   const nowIso = now.toISOString();
   const sevenDaysAgoIso = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();

@@ -64,7 +64,8 @@ export const metadata: Metadata = {
 import AuthHydrator from '@/components/auth/AuthHydrator';
 import AuthBootstrap from '@/components/auth/AuthBootstrap';
 import OnboardingChecker from '@/components/auth/OnboardingChecker';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { toClientProfile } from '@/lib/auth/clientProfile';
 import AppShell from '@/components/AppShell';
 
 function isDynamicServerUsageError(error: unknown): boolean {
@@ -86,20 +87,9 @@ export default async function RootLayout({
   let initialProfile = null;
 
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (user) {
-      initialUser = user;
-
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
-      initialProfile = profile ?? null;
-    }
+    const { user, profile } = await getRequestAuth();
+    initialUser = user;
+    initialProfile = toClientProfile(profile);
   } catch (e) {
     // 정적 생성 중 cookies 접근 시 발생하는 Next.js 내부 예외는 로그를 생략한다.
     if (isDynamicServerUsageError(e)) {

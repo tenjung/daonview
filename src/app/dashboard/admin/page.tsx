@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
@@ -9,7 +9,8 @@ import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 
 export default async function AdminDashboard() {
     await requireDashboardRole('ADMIN');
-    const supabase = await createClient();
+    // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 회원 연락처를 포함해 조회한다.
+    const supabase = createAdminClient();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -47,6 +48,9 @@ export default async function AdminDashboard() {
         fetchAdminCampaignCounts(supabase)
     ]);
 
+    if ([advertiserRes, influencerRes, todayCampaignRes, pendingCampaignRes, campaignsRes].some(result => result.error)) {
+        throw new Error('관리자 대시보드 데이터를 불러오지 못했습니다.');
+    }
     const statsData = {
         totalAdvertisers: advertiserRes.count || 0,
         totalInfluencers: influencerRes.count || 0,

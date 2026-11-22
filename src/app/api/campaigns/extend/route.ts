@@ -1,5 +1,6 @@
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 interface ExtendBody {
@@ -11,16 +12,11 @@ const ALLOWED_DAYS = new Set([3, 7, 14]);
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { user, role, profileError } = await getRequestAuth();
+    if (!user) return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+    if (profileError || !role) return NextResponse.json({ error: '사용자 권한을 확인할 수 없습니다.' }, { status: 403 });
 
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
-    }
-
+    if (role !== 'ADMIN' && role !== 'ADVERTISER') return NextResponse.json({ error: '연장 권한이 없습니다.' }, { status: 403 });
     const body = (await request.json()) as ExtendBody;
     const campaignId = Number(body.campaignId);
     const days = Number(body.days);
@@ -33,17 +29,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'days는 3, 7, 14 중 하나여야 합니다.' }, { status: 400 });
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError || !profile) {
-      return NextResponse.json({ error: '사용자 권한을 확인할 수 없습니다.' }, { status: 403 });
-    }
-
-    const role = String(profile.role || '').toUpperCase();
     const adminClient = createAdminClient();
 
     const { data: campaign, error: campaignError } = await adminClient
@@ -84,6 +69,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       campaignId: updated.id,
+      cacheWarning: invalidatePublicCampaigns([updated.id]),
       endDate: updated.end_date,
       days,
     });

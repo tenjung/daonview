@@ -17,6 +17,7 @@ interface AppShellProps {
 
 export default function AppShell({ children, initialUser, initialProfile }: AppShellProps) {
   const pathname = usePathname();
+  const profileError = useAuthStore((state) => state.profileError);
   const isSigningOut = useAuthStore((state) => state.isSigningOut);
   const isLandingPage = pathname.startsWith('/lp/');
   const needsDashboardLogin = useAuthStore(
@@ -45,6 +46,13 @@ export default function AppShell({ children, initialUser, initialProfile }: AppS
         )
       )}
       <main className="flex-1" inert={isSigningOut}>
+        {profileError && <div role="alert" className="mx-auto max-w-6xl p-4 text-sm text-red-700">
+          {profileError}
+          <button className="ml-3 underline" onClick={() => {
+            const { user, fetchProfile } = useAuthStore.getState();
+            if (user) void fetchProfile(user.id);
+          }}>다시 시도</button>
+        </div>}
         {!needsDashboardLogin && children}
       </main>
       {!isLandingPage && <Footer />}

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath } from 'next/cache';
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
@@ -114,11 +114,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: '기존 링크 비활성화에 실패했습니다.' }, { status: 500 });
       }
 
-      revalidatePath(`/campaigns/${campaignId}`);
+      const cacheWarning = invalidatePublicCampaigns([campaignId]);
 
       return NextResponse.json({
         success: true,
         totalActive: 0,
+        cacheWarning,
       });
     }
 
@@ -150,11 +151,12 @@ export async function POST(request: Request) {
       }
     }
 
-    revalidatePath(`/campaigns/${campaignId}`);
+    const cacheWarning = invalidatePublicCampaigns([campaignId]);
 
     return NextResponse.json({
       success: true,
       totalActive: activeIds.length,
+      cacheWarning,
     });
   } catch (error) {
     console.error('Campaign purchase link sync API error:', error);

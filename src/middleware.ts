@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
-import { coerceDashboardRole, getRoleDashboardPath } from '@/constants/role'
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -16,7 +15,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.getAll()
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
           supabaseResponse = NextResponse.next({
             request,
           })
@@ -33,48 +32,25 @@ export async function middleware(request: NextRequest) {
   // issues with users being randomly logged out.
 
   const {
-    data: { user },
+    data: { user }, error: authError,
   } = await supabase.auth.getUser()
+
+  if (authError && (!authError.status || authError.name === 'AuthRetryableFetchError' || authError.status >= 500)) {
+    const response = NextResponse.json({ error: '인증 서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.' }, { status: 503 });
+    supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie));
+    return response;
+  }
 
   if (!user) {
     // no user, potentially respond by redirecting the user to the login page
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url);
+    supabaseResponse.cookies.getAll().forEach(cookie => response.cookies.set(cookie));
+    return response;
   }
 
-  const pathname = request.nextUrl.pathname
-  const dashboardRoleMap = [
-    { prefix: '/dashboard/admin', role: 'ADMIN' as const },
-    { prefix: '/dashboard/advertiser', role: 'ADVERTISER' as const },
-    { prefix: '/dashboard/influencer', role: 'INFLUENCER' as const },
-  ]
-
-  const matchedDashboard = dashboardRoleMap.find(
-    ({ prefix }) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  )
-
-  if (matchedDashboard) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .maybeSingle()
-
-    const currentRole = coerceDashboardRole(profile?.role || user.user_metadata?.role)
-
-    if (!currentRole) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/login'
-      return NextResponse.redirect(url)
-    }
-
-    if (currentRole !== matchedDashboard.role) {
-      const url = request.nextUrl.clone()
-      url.pathname = getRoleDashboardPath(currentRole)
-      return NextResponse.redirect(url)
-    }
-  }
+  // Pages and data access enforce DB roles. Keep cookie refresh and login checks here.
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:

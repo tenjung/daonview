@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { revalidatePath, revalidateTag } from 'next/cache';
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
@@ -275,10 +275,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: '선정 결과를 확인할 수 없습니다.' }, { status: 500 });
     }
 
-    revalidateTag('home-banner-data', 'max');
-    revalidatePath('/');
-    revalidatePath('/campaigns');
-    revalidatePath(`/campaigns/${campaignId}`);
+    const cacheWarning = invalidatePublicCampaigns([campaignId]);
 
     const notificationResult = await notifySelectedApplication(campaign, application.user_id, assignedRow);
 
@@ -286,6 +283,7 @@ export async function POST(request: Request) {
       success: true,
       application: assignedRow,
       notification: notificationResult,
+      cacheWarning,
     });
   } catch (error) {
     console.error('Application select API error:', error);

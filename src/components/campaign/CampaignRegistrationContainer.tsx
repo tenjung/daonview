@@ -1,4 +1,5 @@
 'use client';
+import { campaignMutation } from '@/lib/campaignMutationClient';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,7 +25,7 @@ export default function CampaignRegistrationContainer() {
     const searchParams = useSearchParams();
     const campaignIdParam = searchParams?.get('id');
     const draftIdParam = searchParams?.get('draftId');
-    const roleFromAuth = profile?.role || user?.user_metadata?.role;
+    const roleFromAuth = profile?.role;
     const isEdit = !!campaignIdParam;
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -522,11 +523,6 @@ export default function CampaignRegistrationContainer() {
                 },
                 contact_method: store.contactMethod,
             };
-            const campaignDataForInsert = {
-                ...campaignDataBase,
-                created_by: user.id,
-            };
-
             const campaignId = searchParams?.get('id');
             let result;
 
@@ -535,38 +531,23 @@ export default function CampaignRegistrationContainer() {
                 delete (updateData as { status?: string }).status;
                 // 수정 시 상태/소유자는 기존 값을 유지 (신규 등록시에만 결정)
 
-                let query = supabase
-                    .from('campaigns')
-                    .update(updateData)
-                    .eq('id', Number(campaignId));
-
-                if (!isAdmin) {
-                    query = query.eq('created_by', user.id);
-                }
-
-                const { data, error } = await query.select().single();
-
-                if (error) throw error;
-                result = data;
+                result = (await campaignMutation<{ campaign: { id: number } }>('/api/campaigns/save', {
+                    campaignId: Number(campaignId), campaign: updateData,
+                })).campaign;
                 await syncPurchaseLinkPools(result.id);
                 toast.success('수정완료되었습니다.');
                 router.push(`/campaigns/${result.id}`);
                 return;
             } else {
-                const { data, error } = await supabase
-                    .from('campaigns')
-                    .insert([campaignDataForInsert])
-                    .select()
-                    .single();
-
-                if (error) throw error;
-                result = data;
+                result = (await campaignMutation<{ campaign: { id: number } }>('/api/campaigns/save', {
+                    campaign: campaignDataBase,
+                })).campaign;
                 await syncPurchaseLinkPools(result.id);
 
                 if (currentCampaignId && currentCampaignId !== result.id.toString()) {
                     const isDraftNumeric = !isNaN(Number(currentCampaignId));
                     if (isDraftNumeric) {
-                        await supabase.from('campaigns').delete().eq('id', Number(currentCampaignId));
+                        await campaignMutation('/api/campaigns/delete', { campaignId: Number(currentCampaignId) });
                     }
                 }
 

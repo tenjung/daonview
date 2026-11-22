@@ -1,4 +1,6 @@
 'use client';
+import { campaignMutation } from '@/lib/campaignMutationClient';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
 
 import Image from 'next/image';
 import { useState, useEffect, type ReactNode } from 'react';
@@ -42,7 +44,6 @@ import { Button } from '@/components/ui/button';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
 import { formatDDay, mapCampaignToCard, resolveCampaignImageVariants, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 import { formatKstDate } from '@/lib/campaignSchedule';
-import { CAMPAIGN_CARD_SELECT } from '@/lib/campaignSelects';
 import {
     Dialog,
     DialogContent,
@@ -75,7 +76,6 @@ import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import { getCampaignReviewMode } from '@/lib/campaignPurchase';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
 import ShippingAddressModal from '@/components/influencer/ShippingAddressModal';
-import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
 import { isRole, normalizeRole, USER_ROLES } from '@/constants/role';
 import { canEditCampaign as canEditCampaignByRole } from '@/lib/campaignPermissions';
 import { normalizeOptionKey, type PublicPurchaseLink } from '@/lib/purchaseLink';
@@ -151,6 +151,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     const router = useRouter();
     const pathname = usePathname();
     const { user, profile } = useAuthStore();
+    const beginStatusRequest = useRequestGuard(user?.id);
+    const beginCountRequest = useRequestGuard(user?.id);
     const { items: cartItems, addItem, removeItem } = useCartStore();
     const [campaign, setCampaign] = useState(initialCampaign);
     const [hasApplied, setHasApplied] = useState(false);
@@ -181,19 +183,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     const [privateProductLink, setPrivateProductLink] = useState<string>('');
     const [mainApi, setMainApi] = useState<CarouselApi>();
 
-    async function revalidateCampaignListCaches() {
-        try {
-            await fetch('/api/cache/revalidate-home-banner', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ campaignId: id }),
-            });
-        } catch (error) {
-            console.error('Failed to revalidate campaign caches:', error);
-        }
-    }
+
 
 
     // Sync modal carousel when it opens or external index changes
@@ -220,7 +210,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
 
     // Check if campaign is in wishlist using Zustand store
     const isFavorite = cartItems.some(item => item.id === parseInt(id));
-    const normalizedRole = normalizeRole(profile?.role || user?.user_metadata?.role);
+    const normalizedRole = normalizeRole(profile?.role);
     const isAdmin =
         normalizedRole === 'ADMIN' ||
         normalizedRole === 'MASTER' ||
@@ -248,68 +238,43 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
         return () => { isMounted = false; };
     }, [user?.id, id]);
 
-    // Fetch Related Campaigns
+    // Public DTOs are sanitized before caching; never fetch raw campaign_options here.
     useEffect(() => {
-        const fetchRelatedCampaigns = async () => {
-            if (!campaign?.created_by) return;
-
+        const controller = new AbortController();
+        void (async () => {
             try {
-                // 1. Same brand campaigns
-                const { data: brandData } = await supabase
-                    .from('campaigns')
-                    .select(CAMPAIGN_CARD_SELECT)
-                    .eq('created_by', campaign.created_by)
-                    .neq('id', campaign.id)
-                    .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
-                    .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
-                    .limit(16);
-
-                let merged: Array<Record<string, unknown>> = ((brandData ?? []) as unknown as Array<Record<string, unknown>>)
-                    .filter((relatedCampaign) => isCampaignOpenForApplications(relatedCampaign))
-                    .slice(0, 8);
-
-                if (merged.length < 4) {
-                    const { data: nearbyData } = await supabase
-                        .from('campaigns')
-                        .select(CAMPAIGN_CARD_SELECT)
-                        .neq('id', campaign.id)
-                        .not('id', 'in', `(${merged.map(c => c.id).join(',') || '0'})`)
-                        .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
-                        .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
-                        .order('end_date', { ascending: true })
-                        .limit(16);
-
-                    const nearbyCampaigns = ((nearbyData ?? []) as unknown as Array<Record<string, unknown>>)
-                        .filter((relatedCampaign) => isCampaignOpenForApplications(relatedCampaign))
-                        .slice(0, 8 - merged.length);
-
-                    merged = [...merged, ...nearbyCampaigns];
-                }
-
-                setRelatedCampaigns(merged);
+                const response = await fetch('/api/campaigns/public', { signal: controller.signal });
+                if (!response.ok) throw new Error('관련 캠페인 조회 실패');
+                const { campaigns } = await response.json() as { campaigns: Array<Record<string, unknown>> };
+                const candidates = campaigns.filter(row => row.id !== campaign.id && isCampaignOpenForApplications(row));
+                const brand = candidates.filter(row => row.created_by === campaign.created_by).slice(0, 8);
+                const related = brand.length < 4 ? [...brand, ...candidates.filter(row => !brand.some(item => item.id === row.id))
+                    .sort((a, b) => String(a.end_date || '').localeCompare(String(b.end_date || ''))).slice(0, 8 - brand.length)] : brand;
+                if (!controller.signal.aborted) setRelatedCampaigns(related);
             } catch (error) {
-                console.error('Error fetching related campaigns:', error);
+                if (!controller.signal.aborted) console.error('Error fetching related campaigns:', error);
             }
-        };
-
-        fetchRelatedCampaigns();
+        })();
+        return () => controller.abort();
     }, [campaign.created_by, campaign.id]);
 
     const fetchCampaign = async () => {
         // 공개 상세 데이터 전체를 다시 읽으면 비공개 링크 필드가 클라이언트 응답에 섞일 수 있다.
         // 신청 액션 후에는 화면에 필요한 집계값만 갱신한다.
+        const isCurrent = beginCountRequest();
         const [{ count: totalCount }, { count: approvedCount }] = await Promise.all([
             supabase
                 .from('applications')
-                .select('*', { count: 'exact', head: true })
+                .select('id', { count: 'exact', head: true })
                 .eq('campaign_id', id),
             supabase
                 .from('applications')
-                .select('*', { count: 'exact', head: true })
+                .select('id', { count: 'exact', head: true })
                 .eq('campaign_id', id)
                 .in('status', ['SELECTED', 'APPROVED']),
         ]);
 
+        if (!isCurrent()) return;
         setCampaign((current: any) => ({
             ...current,
             total_app_count: totalCount || 0,
@@ -317,7 +282,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
         }));
     };
 
-    async function checkUserStatus(currentUser: any) {
+    async function checkUserStatus(currentUser: { id: string }) {
+        const isCurrent = beginStatusRequest();
         if (!currentUser || !id) return;
         try {
             // Only check application status (favorites handled by Zustand)
@@ -331,6 +297,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 .limit(1)
                 .maybeSingle();
 
+            if (!isCurrent()) return;
             if (appError) {
                 console.error('Error in checkUserStatus query:', appError);
                 return;
@@ -369,6 +336,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                         cache: 'no-store',
                     });
                     const linkPayload = await linkResponse.json().catch(() => null);
+                    if (!isCurrent()) return;
                     setPrivateProductLink(linkResponse.ok ? String(linkPayload?.url || '') : '');
                 } else {
                     setPrivateProductLink('');
@@ -509,10 +477,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
         // 프로필 필수 정보 검증 (배송형/구매평 케이스)
         try {
             const { data: profile, error: profileError } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', user.id)
-                .single();
+                .rpc('get_my_profile')
+                .single<Profile>();
 
             if (profileError || !profile) {
                 toast.error('사용자 정보를 불러올 수 없습니다.');
@@ -577,28 +543,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
         setIsApplying(true);
 
         try {
-            const { data, error } = await supabase
-                .from('applications')
-                .insert({
-                    user_id: user.id,
-                    campaign_id: id,
-                    status: 'PENDING',
-                    selected_option: formattedOption || null,
-                    application_message: applicationMessage || null
-                })
-                .select();
-
-            if (error) {
-                console.error('Supabase error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                throw error;
-            }
-
-            console.log('Application successful:', data);
+            const outcome = await campaignMutation<{ notificationWarning?: string }>('/api/applications/mutate', {
+                action: 'APPLY', campaignId: Number(id), selectedOption: formattedOption || null,
+                message: applicationMessage || null,
+            });
+            if (outcome.notificationWarning) toast.warning(outcome.notificationWarning);
 
             // 상태 즉시 업데이트
             setHasApplied(true);
@@ -606,43 +555,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
             toast.success('캠페인 신청이 완료되었습니다!');
 
             fetchCampaign();
-            void revalidateCampaignListCaches();
 
-            // 캠페인 생성자(광고주/관리자)에게 마일스톤 알림 발송
-            if (campaign.created_by) {
-                // 현재 총 신청자 수 다시 확인 (정확한 유효 신청자 수)
-                const { count: currentCount } = await supabase
-                    .from('applications')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('campaign_id', id);
-
-                if (currentCount !== null) {
-                    const recruitCount = getCampaignRecruitTarget(campaign);
-                    if (typeof recruitCount === 'number' && recruitCount > 0) {
-                        const milestones = [
-                            { percent: 50, count: Math.floor(recruitCount * 0.5) },
-                            { percent: 100, count: recruitCount },
-                            { percent: 120, count: Math.floor(recruitCount * 1.2) }
-                        ];
-
-                        const milestone = milestones.find(m => m.count === currentCount);
-
-                        if (milestone) {
-                            const message = milestone.percent === 120
-                                ? `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 초과했습니다! 🔥`
-                                : `[${campaign.title}] 캠페인 모집 인원이 정원의 ${milestone.percent}%를 달성했습니다! 🎉`;
-
-                            await supabase.from('notifications').insert({
-                                user_id: campaign.created_by,
-                                type: 'CAMPAIGN_MILESTONE',
-                                title: `📈 모집 현황 ${milestone.percent}% 달성`,
-                                content: message,
-                                link: `/dashboard/advertiser/applicants?campaignId=${id}`
-                            });
-                        }
-                    }
-                }
-            }
 
         } catch (error: any) {
             console.error('Error applying:', error);
@@ -665,33 +578,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
         }
 
         try {
-            const { data: appData, error: appQueryError } = await supabase
-                .from('applications')
-                .select('status')
-                .eq('user_id', user.id)
-                .eq('campaign_id', id)
-                .order('created_at', { ascending: false })
-                .limit(1)
-                .maybeSingle();
-
-            if (appQueryError) throw appQueryError;
-            if (!appData) {
-                toast.error('신청 내역을 찾을 수 없습니다.');
-                return;
-            }
-
-            if (appData?.status?.toUpperCase() !== 'PENDING') {
-                toast.error('심사중인 신청만 취소할 수 있습니다.');
-                return;
-            }
-
-            const { error } = await supabase
-                .from('applications')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('campaign_id', id);
-
-            if (error) throw error;
+            await campaignMutation('/api/applications/mutate', { action: 'CANCEL', campaignId: Number(id) });
 
             toast.success('신청이 취소되었습니다.');
             setHasApplied(false);
@@ -699,7 +586,6 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
             setSelectedOptions([]);
             setApplicationMessage('');
             fetchCampaign();
-            void revalidateCampaignListCaches();
         } catch (error) {
             console.error('Error canceling application:', error);
             toast.error('취소 중 오류가 발생했습니다.');
@@ -708,7 +594,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
 
     // UI Helpers (derived from campaign data)
     const appCount = campaign.total_app_count ?? campaign.applications?.[0]?.count ?? campaign.applications?.count ?? 0;
-    const approvedCount = campaign.approved_app_count ?? 0;
+    const approvedCount = campaign.approved_app_count ?? campaign.selected_applications?.[0]?.count ?? 0;
     const campaignOptions = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const step1Data = campaignOptions?.step1Data || {};
     const step2Data = campaignOptions?.step2Data || {};
@@ -2038,7 +1924,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 campaignTitle={campaign.title}
                 reviewMode={getCampaignReviewMode(campaign)}
                 onSuccess={() => {
-                    checkUserStatus(user);
+                    if (user) void checkUserStatus(user);
                 }}
             />
 

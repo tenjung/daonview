@@ -155,48 +155,64 @@ export default function DashboardSidebar({
 
     useEffect(() => {
         if (userType !== 'ADMIN') return;
-
+        let active = true;
+        let running = false;
+        let queued = false;
         const fetchCounts = async () => {
+            if (!active || document.visibilityState === 'hidden') return;
+            if (running) { queued = true; return; }
+            running = true;
             try {
                 const nextCounts = await fetchAdminCampaignCounts(supabase);
-                setCounts(nextCounts);
+                if (active) setCounts(nextCounts);
             } catch (error) {
                 console.error('Failed to fetch admin sidebar counts:', error);
+            } finally {
+                running = false;
+                if (queued && active) { queued = false; void fetchCounts(); }
             }
         };
-
-        void fetchCounts();
-        const interval = setInterval(() => {
-            void fetchCounts();
-        }, 30000);
-
-        return () => clearInterval(interval);
-    }, [userType]);
+        const refresh = () => { void fetchCounts(); };
+        if (initialCounts) setCounts(initialCounts);
+        else refresh();
+        const interval = setInterval(refresh, 30000);
+        document.addEventListener('visibilitychange', refresh);
+        window.addEventListener('campaign-data-changed', refresh);
+        return () => {
+            active = false;
+            clearInterval(interval);
+            document.removeEventListener('visibilitychange', refresh);
+            window.removeEventListener('campaign-data-changed', refresh);
+        };
+    }, [userType, user?.id, initialCounts]);
 
     useEffect(() => {
+        if (userType !== 'INFLUENCER' || !user?.id) return;
+        let active = true;
+        let running = false;
         const fetchReviewPendingCount = async () => {
-            if (userType !== 'INFLUENCER' || !user?.id) {
-                setReviewPendingCount(0);
-                return;
-            }
-
-            const { count, error } = await supabase
-                .from('applications')
-                .select('id', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .in('status', ['SELECTED', 'APPROVED'])
-                .or('review_submitted.is.null,review_submitted.eq.false');
-
-            if (error) {
+            if (!active || running || document.visibilityState === 'hidden') return;
+            running = true;
+            try {
+                const { count, error } = await supabase.from('applications')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('user_id', user.id).in('status', ['SELECTED', 'APPROVED'])
+                    .or('review_submitted.is.null,review_submitted.eq.false');
+                if (error) throw error;
+                if (active) setReviewPendingCount(count || 0);
+            } catch (error) {
                 console.error('Failed to fetch pending review count:', error);
-                setReviewPendingCount(0);
-                return;
-            }
-
-            setReviewPendingCount(count || 0);
+            } finally { running = false; }
         };
-
-        void fetchReviewPendingCount();
+        const refresh = () => { void fetchReviewPendingCount(); };
+        refresh();
+        window.addEventListener('campaign-data-changed', refresh);
+        document.addEventListener('visibilitychange', refresh);
+        return () => {
+            active = false;
+            window.removeEventListener('campaign-data-changed', refresh);
+            document.removeEventListener('visibilitychange', refresh);
+        };
     }, [userType, user?.id]);
 
     const toggleCollapse = () => {

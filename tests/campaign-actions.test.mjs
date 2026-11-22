@@ -18,11 +18,17 @@ const coreUrl = compiled('src/lib/campaignActions.ts');
 const core = await import(coreUrl);
 const nextUrl = moduleUrl('export const NextResponse = {json: (body, options) => Response.json(body, options)}');
 const cacheUrl = moduleUrl('export const revalidatePath = path => globalThis.__campaignActionTest.paths.push(path); export const revalidateTag = tag => globalThis.__campaignActionTest.tags.push(tag);');
-const sessionUrl = moduleUrl('export const createClient = async () => globalThis.__campaignActionTest.session;');
+const sessionUrl = moduleUrl(`export const getRequestAuth = async () => {
+ const s = globalThis.__campaignActionTest.session;
+ const {data:{user}} = await s.auth.getUser();
+ const {data:profile} = user ? await s.from('profiles').select('role').eq('id',user.id).maybeSingle() : {data:null};
+ return {user,profile,profileError:user&&!profile?'missing':null};
+};`);
+const campaignCacheUrl = compiled('src/lib/campaignCache.ts', { 'server-only': moduleUrl(''), 'next/cache': cacheUrl });
 const adminUrl = moduleUrl('export const createAdminClient = () => globalThis.__campaignActionTest.db;');
 const serverUrl = compiled('src/lib/campaignActionServer.ts', {
   'server-only': moduleUrl(''), 'next/cache': cacheUrl,
-  '@/lib/supabase/server': sessionUrl, '@/lib/supabase/admin': adminUrl,
+  '@/lib/auth/requestAuth': sessionUrl, '@/lib/campaignCache': campaignCacheUrl, '@/lib/supabase/admin': adminUrl,
   '@/lib/campaignActions': coreUrl,
 });
 const replacements = { 'next/server': nextUrl, '@/lib/campaignActions': coreUrl, '@/lib/campaignActionServer': serverUrl };
@@ -118,7 +124,7 @@ test('approval updates only pending payments, creates one notification and inval
   assert(globalThis.__campaignActionTest.paths.includes('/campaigns/1'));
   assert(globalThis.__campaignActionTest.paths.includes('/c/1'));
   assert(globalThis.__campaignActionTest.paths.includes('/dashboard/admin/campaigns'));
-  assert.deepEqual(globalThis.__campaignActionTest.tags, ['home-banner-data']);
+  assert.deepEqual(globalThis.__campaignActionTest.tags, ['public-campaigns', 'home-banner-data', 'public-campaign:1']);
   const repeated = await route.POST(request({ action: 'APPROVE', campaignIds: [1] }));
   assert.equal((await repeated.json()).results[0].outcome, 'SKIPPED');
   assert.equal(db.notifications.length, 1);

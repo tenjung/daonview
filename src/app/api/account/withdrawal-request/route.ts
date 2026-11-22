@@ -43,7 +43,7 @@ export async function POST(request: Request) {
             .maybeSingle();
 
         if (profileError) throw profileError;
-        const role = coerceDashboardRole(profile?.role || user.user_metadata?.role);
+        const role = coerceDashboardRole(profile?.role);
         if (role !== 'INFLUENCER' && role !== 'ADVERTISER') {
             return NextResponse.json({ success: false, error: '이 계정은 직접 탈퇴할 수 없습니다.' }, { status: 403 });
         }

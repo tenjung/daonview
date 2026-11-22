@@ -1,0 +1,681 @@
+'use client';
+import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
+import { campaignMutation } from '@/lib/campaignMutationClient';
+
+import { useCallback, useEffect, useState, useRef } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase/client';
+import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardViewer';
+import { useRequestGuard } from '@/hooks/useRequestGuard';
+import { useRouter } from 'next/navigation';
+import { Application, Campaign } from '@/types/database';
+import DashboardSidebar from '@/components/DashboardSidebar';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { toast } from 'sonner';
+import {
+    MoreHorizontal,
+    Eye,
+    XCircle,
+    ClipboardCheck,
+    Truck,
+    Camera,
+    Megaphone,
+    ShoppingBag,
+    Calendar
+} from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+    DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button';
+import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
+import { DataTable } from '@/components/ui/data-table';
+import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { INFLUENCER_LINKS } from '@/constants/navigation';
+import { ColumnDef } from '@tanstack/react-table';
+import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
+import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
+import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
+
+interface ApplicationWithCampaign extends Application {
+    campaigns: Campaign;
+}
+
+type CampaignFilter = 'all' | 'PENDING' | 'SELECTED' | 'REJECTED' | 'COMPLETED';
+
+interface CountRow {
+    status: Application['status'];
+}
+
+interface RowCellProps {
+    row: {
+        original: ApplicationWithCampaign;
+    };
+}
+
+const mobileStatusConfig: Record<string, { label: string; tone: 'neutral' | 'orange' | 'green' | 'red' | 'blue'; className: string }> = {
+    PENDING: { label: '심사중', tone: 'orange', className: 'bg-orange-100 text-orange-600' },
+    APPROVED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
+    SELECTED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
+    REJECTED: { label: '미선정', tone: 'red', className: 'bg-red-100 text-red-600' },
+    COMPLETED: { label: '완료', tone: 'blue', className: 'bg-blue-100 text-blue-600' },
+};
+
+export default function MyCampaignsPage({ initialViewer, initialApplications = [] }: { initialViewer?: DashboardViewer; initialApplications?: ApplicationWithCampaign[] }) {
+    const { user, profile, isLoading } = useDashboardViewer(initialViewer);
+    const router = useRouter();
+    const beginRequest = useRequestGuard(user?.id);
+    const loadedKey = useRef(initialViewer ? initialViewer.user.id + ':all' : '');
+    const [applications, setApplications] = useState<ApplicationWithCampaign[]>(initialApplications);
+    const [filter, setFilter] = useState<CampaignFilter>('all');
+    const [loading, setLoading] = useState(!initialViewer);
+    const [cancelDialog, setCancelDialog] = useState<{ isOpen: boolean; appId: number; title: string; status: string }>({
+        isOpen: false,
+        appId: 0,
+        title: '',
+        status: ''
+    });
+    const [counts, setCounts] = useState({
+        all: initialApplications.length,
+        PENDING: initialApplications.filter(a => String(a.status).toUpperCase() === 'PENDING').length,
+        SELECTED: initialApplications.filter(a => ['SELECTED', 'APPROVED'].includes(String(a.status).toUpperCase())).length,
+        REJECTED: initialApplications.filter(a => String(a.status).toUpperCase() === 'REJECTED').length,
+        COMPLETED: initialApplications.filter(a => String(a.status).toUpperCase() === 'COMPLETED').length
+    });
+    const [reviewModal, setReviewModal] = useState<{
+        isOpen: boolean;
+        appId: number;
+        campaignId: number;
+        campaignTitle: string;
+        reviewMode: CampaignReviewMode;
+    }>({
+        isOpen: false,
+        appId: 0,
+        campaignId: 0,
+        campaignTitle: '',
+        reviewMode: 'LINK',
+    });
+    const [extensionModal, setExtensionModal] = useState<{
+        isOpen: boolean;
+        appId: number;
+        campaignTitle: string;
+        reason: string;
+    }>({
+        isOpen: false,
+        appId: 0,
+        campaignTitle: '',
+        reason: ''
+    });
+
+    const fetchData = useCallback(async () => {
+        if (!user) return;
+        const isCurrent = beginRequest();
+
+        try {
+            setLoading(true);
+
+            let query = supabase
+                .from('applications')
+                .select('*, campaigns(*)')
+                .eq('user_id', user.id)
+                .neq('status', 'CANCELLED')
+                .order('created_at', { ascending: false });
+
+            if (filter === 'SELECTED') {
+                query = query.in('status', ['SELECTED', 'APPROVED']);
+            } else if (filter !== 'all') {
+                query = query.eq('status', filter);
+            }
+
+            const [{ data: applicationsData, error: listError }, { data: countData, error: countError }] = await Promise.all([
+                query,
+                supabase.from('applications').select('status').eq('user_id', user.id).neq('status', 'CANCELLED'),
+            ]);
+            if (!isCurrent()) return;
+            if (listError || countError) throw listError || countError;
+            setApplications(((applicationsData || []) as ApplicationWithCampaign[]).map(row => ({ ...row, campaigns: toPublicCampaignRelation(row.campaigns) })));
+
+            if (countData) {
+                const rows = countData as CountRow[];
+                const newCounts = {
+                    all: rows.length,
+                    PENDING: rows.filter((a) => a.status === 'PENDING').length,
+                    SELECTED: rows.filter((a) => a.status === 'SELECTED' || a.status === 'APPROVED').length,
+                    REJECTED: rows.filter((a) => a.status === 'REJECTED').length,
+                    COMPLETED: rows.filter((a) => a.status === 'COMPLETED').length,
+                };
+                setCounts(newCounts);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            if (isCurrent()) setLoading(false);
+        }
+    }, [filter, user?.id, beginRequest]);
+
+    useEffect(() => {
+        if (!isLoading && user) {
+            const normalizedRole = String(profile?.role || '').toUpperCase();
+            if (normalizedRole === 'ADVERTISER') {
+                router.replace('/dashboard/advertiser');
+                return;
+            }
+            if (normalizedRole === 'ADMIN' || normalizedRole === 'MASTER' || normalizedRole === 'SUPER_ADMIN') {
+                router.replace('/dashboard/admin');
+                return;
+            }
+            const key = `${user.id}:${filter}`;
+            if (loadedKey.current === key) return;
+            loadedKey.current = key;
+            void fetchData();
+        } else if (!isLoading && !user) {
+            setLoading(false);
+        }
+    }, [isLoading, user?.id, profile?.role, router, fetchData, filter]);
+
+    async function handleCancel(applicationId: number, campaignTitle: string, status: string) {
+        if (status !== 'PENDING') {
+            toast.error('심사중인 신청만 취소할 수 있습니다.');
+            return;
+        }
+
+        setCancelDialog({
+            isOpen: true,
+            appId: applicationId,
+            title: campaignTitle,
+            status
+        });
+    }
+
+    async function confirmCancel() {
+        try {
+            await campaignMutation('/api/applications/mutate', { action: 'CANCEL', applicationId: cancelDialog.appId });
+
+            toast.success('신청이 취소되었습니다.');
+            fetchData();
+        } catch (error) {
+            console.error('Error canceling application:', error);
+            toast.error('취소 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function handleConfirmPurchase(applicationId: number) {
+        try {
+            const now = new Date();
+            const deadline = new Date(now);
+            deadline.setDate(deadline.getDate() + 7); // 구매 확인 후 1주
+
+            const { error } = await supabase
+                .from('applications')
+                .update({
+                    purchased_at: now.toISOString(),
+                    review_deadline: deadline.toISOString()
+                })
+                .eq('id', applicationId);
+
+            if (error) throw error;
+
+            toast.success('구매 확인이 완료되었습니다. 1주일 이내에 리뷰를 등록해주세요!');
+            fetchData();
+        } catch (error) {
+            console.error('Error confirming purchase:', error);
+            toast.error('구매 확인 중 오류가 발생했습니다.');
+        }
+    }
+
+    async function handleRequestExtension() {
+        if (!extensionModal.reason.trim()) {
+            toast.error('연장 사유를 입력해주세요.');
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('applications')
+                .update({
+                    extension_status: 'PENDING',
+                    extension_reason: extensionModal.reason
+                })
+                .eq('id', extensionModal.appId);
+
+            if (error) throw error;
+
+            toast.success('연장 요청이 전송되었습니다.');
+            setExtensionModal({ ...extensionModal, isOpen: false, reason: '' });
+            fetchData();
+        } catch (error) {
+            console.error('Error requesting extension:', error);
+            toast.error('연장 요청 중 오류가 발생했습니다.');
+        }
+    }
+
+    const shippingColumn: ColumnDef<ApplicationWithCampaign> = {
+        accessorKey: "tracking_number",
+        header: "배송 정보",
+        cell: ({ row }: RowCellProps) => {
+            const app = row.original;
+            return app.tracking_number ? (
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-1.5 text-blue-600 font-bold text-xs">
+                        <Truck size={12} />
+                        <span>{app.tracking_company}</span>
+                    </div>
+                    <div className="text-slate-400 font-mono text-[10px]">{app.tracking_number}</div>
+                </div>
+            ) : (
+                <span className="text-slate-300 text-xs">발송 대기</span>
+            );
+        }
+    };
+
+    const baseColumns = influencerApplicationColumns as ColumnDef<ApplicationWithCampaign>[];
+
+    const columns: ColumnDef<ApplicationWithCampaign>[] = [
+        ...baseColumns,
+        ...(filter === 'SELECTED' ? [shippingColumn] : []),
+        {
+            id: "actions",
+            header: "액션",
+            cell: ({ row }: RowCellProps) => {
+                const app = row.original;
+                const isSelected = app.status === 'SELECTED' || app.status === 'APPROVED';
+                const isPending = app.status === 'PENDING';
+
+                return (
+                    <div className="flex items-center gap-2">
+                        {isSelected && (
+                            <>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-9 border-green-200 text-green-600 hover:bg-green-50 hover:text-green-700 font-bold gap-1.5 px-3 rounded-xl shadow-sm transition-all active:scale-95"
+                                    asChild
+                                >
+                                    <Link href={`/campaigns/${app.campaign_id}#guide`}>
+                                        <ClipboardCheck size={14} className="stroke-[2.5px]" />
+                                        <span>가이드 확인</span>
+                                    </Link>
+                                </Button>
+                                
+                                {app.campaigns?.type === 'PURCHASE' && !app.purchased_at && (
+                                    <Button
+                                        size="sm"
+                                        className="h-9 bg-amber-500 hover:bg-amber-600 text-white font-bold gap-1.5 px-3 rounded-xl shadow-md transition-all active:scale-95"
+                                        onClick={() => handleConfirmPurchase(app.id)}
+                                    >
+                                        <ShoppingBag size={14} className="stroke-[2.5px]" />
+                                        <span>구매 확인</span>
+                                    </Button>
+                                )}
+
+                                <Button
+                                    size="sm"
+                                    className="h-9 bg-rose-500 hover:bg-rose-600 text-white font-bold gap-1.5 px-3 rounded-xl shadow-md shadow-rose-100 transition-all active:scale-95"
+                                    onClick={() => setReviewModal({
+                                        isOpen: true,
+                                        appId: app.id,
+                                        campaignId: app.campaign_id,
+                                        campaignTitle: app.campaigns.title,
+                                        reviewMode: getCampaignReviewMode(app.campaigns),
+                                    })}
+                                >
+                                    <Camera size={14} className="stroke-[2.5px]" />
+                                    <span>리뷰 등록</span>
+                                </Button>
+                            </>
+                        )}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full">
+                                    <MoreHorizontal className="h-4 w-4 text-slate-400" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-32 rounded-xl shadow-xl border-slate-100 p-1">
+                                <DropdownMenuItem asChild className="rounded-lg cursor-pointer">
+                                    <Link href={`/campaigns/${app.campaign_id}`} className="flex items-center gap-2 py-2">
+                                        <Eye size={14} className="text-slate-500" />
+                                        <span className="text-xs font-bold text-slate-600">상세보기</span>
+                                    </Link>
+                                </DropdownMenuItem>
+                                {isPending && (
+                                    <DropdownMenuItem
+                                        onClick={() => handleCancel(app.id, app.campaigns.title, app.status)}
+                                        className="rounded-lg cursor-pointer text-red-600 focus:text-red-600 flex items-center gap-2 py-2"
+                                    >
+                                        <XCircle size={14} />
+                                        <span className="text-xs font-bold">신청 취소</span>
+                                    </DropdownMenuItem>
+                                )}
+                                {isSelected && app.status !== 'COMPLETED' && (
+                                    <DropdownMenuSeparator />
+                                )}
+                                {isSelected && app.status !== 'COMPLETED' && (
+                                    <DropdownMenuItem 
+                                        onClick={() => setExtensionModal({
+                                            isOpen: true,
+                                            appId: app.id,
+                                            campaignTitle: app.campaigns.title,
+                                            reason: ''
+                                        })}
+                                        className="rounded-lg cursor-pointer text-orange-600 flex items-center gap-2 py-2"
+                                    >
+                                        <Calendar className="h-4 w-4" />
+                                        <span className="text-xs font-bold">리뷰 기한 연장 요청</span>
+                                    </DropdownMenuItem>
+                                )}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                );
+            }
+        }
+    ];
+
+    const filterItems = [
+        { value: 'all' as CampaignFilter, label: '전체', count: counts.all, tone: 'neutral' as const },
+        { value: 'PENDING' as CampaignFilter, label: '심사중', count: counts.PENDING, tone: 'orange' as const },
+        { value: 'SELECTED' as CampaignFilter, label: '선정됨', count: counts.SELECTED, tone: 'green' as const },
+        { value: 'REJECTED' as CampaignFilter, label: '미선정', count: counts.REJECTED, tone: 'red' as const },
+        { value: 'COMPLETED' as CampaignFilter, label: '완료', count: counts.COMPLETED, tone: 'blue' as const },
+    ];
+
+    const formatDate = (value?: string | null) => {
+        if (!value) return '-';
+        return new Intl.DateTimeFormat('ko-KR', { month: 'numeric', day: 'numeric' }).format(new Date(value));
+    };
+
+    if (loading && applications.length === 0) {
+        return (
+            <div className="flex min-h-screen items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-gray-500 font-bold">캠페인 목록을 불러오는 중...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex min-h-screen bg-background text-foreground">
+            <DashboardSidebar
+                userType="INFLUENCER"
+                userName={profile?.nickname || '사용자'}
+                links={INFLUENCER_LINKS}
+            />
+
+            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-0 py-0 sm:p-8">
+                <div className="max-w-[1600px] mx-auto">
+                    {/* Header */}
+                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
+                        <InfluencerMobileHeader
+                            icon={<Megaphone className="h-5 w-5" />}
+                            title="My Campaigns"
+                            subtitle="참여 중인 모든 캠페인의 진행 상태를 확인하세요."
+                            action={
+                                <Link
+                                    href="/campaigns"
+                                    className="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-black"
+                                >
+                                    신규 찾기
+                                </Link>
+                            }
+                        />
+                        <div className="hidden sm:block">
+                            <div>
+                                <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
+                                    <Megaphone className="w-10 h-10 text-primary" />
+                                    My Campaigns
+                                </h1>
+                                <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
+                            </div>
+                        </div>
+                        <Link
+                            href="/campaigns"
+                            className="hidden sm:inline-flex bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all items-center gap-2 transform hover:-translate-y-1"
+                        >
+                            신규 캠페인 찾기
+                        </Link>
+                    </div>
+
+                    {/* Tabs / Filters */}
+                    <div className="border-b border-gray-100 bg-white px-4 py-4 sm:hidden">
+                        <div className="flex flex-wrap gap-2">
+                            {filterItems.map((tab) => (
+                                <button
+                                    key={tab.value}
+                                    type="button"
+                                    onClick={() => setFilter(tab.value)}
+                                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-bold transition-colors ${
+                                        filter === tab.value
+                                            ? 'border-gray-900 bg-gray-900 text-white'
+                                            : 'border-gray-200 bg-white text-gray-500'
+                                    }`}
+                                >
+                                    {tab.label}
+                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                                        filter === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                        {tab.count}
+                                    </span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="mb-8 hidden sm:block">
+                        <Tabs
+                            defaultValue="all"
+                            value={filter}
+                            onValueChange={(v) => setFilter(v as CampaignFilter)}
+                            className="w-full"
+                        >
+                            <TabsList className="bg-transparent h-auto p-0 flex-wrap gap-2">
+                                {[
+                                    { value: 'all', label: '전체', count: counts.all, color: 'bg-gray-500' },
+                                    { value: 'PENDING', label: '심사중', count: counts.PENDING, color: 'bg-orange-500' },
+                                    { value: 'SELECTED', label: '선정됨', count: counts.SELECTED, color: 'bg-green-500' },
+                                    { value: 'REJECTED', label: '미선정', count: counts.REJECTED, color: 'bg-red-500' },
+                                    { value: 'COMPLETED', label: '완료', count: counts.COMPLETED, color: 'bg-blue-500' },
+                                ].map((tab) => (
+                                    <TabsTrigger
+                                        key={tab.value}
+                                        value={tab.value}
+                                        className={`
+                                            px-6 py-3 rounded-2xl font-bold text-sm border transition-all gap-3
+                                            data-[state=active]:bg-white data-[state=active]:text-gray-900 data-[state=active]:border-gray-200 data-[state=active]:shadow-md
+                                            data-[state=inactive]:bg-white/50 data-[state=inactive]:text-gray-400 data-[state=inactive]:border-transparent hover:bg-white
+                                        `}
+                                    >
+                                        {tab.label}
+                                        <Badge className={`${tab.color} text-white border-none text-[10px] px-1.5 py-0`}>
+                                            {tab.count}
+                                        </Badge>
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </Tabs>
+                    </div>
+
+                    {/* Table Section */}
+                    <div className="bg-white px-4 py-4 sm:rounded-3xl sm:shadow-sm sm:border sm:border-gray-100 sm:p-8">
+                        <div className="space-y-3 sm:hidden">
+                            {loading ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                                </div>
+                            ) : applications.length > 0 ? (
+                                applications.map((app) => {
+                                    const campaign = app.campaigns;
+                                    const status = mobileStatusConfig[String(app.status || '').toUpperCase()] || {
+                                        label: String(app.status || '-'),
+                                        tone: 'neutral' as const,
+                                        className: 'bg-gray-100 text-gray-600',
+                                    };
+                                    const isSelected = app.status === 'SELECTED' || app.status === 'APPROVED';
+                                    return (
+                                        <InfluencerMobileListCard
+                                            key={app.id}
+                                            href={`/campaigns/${app.campaign_id}`}
+                                            thumbnail={
+                                                campaign?.thumbnail_url ? (
+                                                    <img
+                                                        src={campaign.thumbnail_url}
+                                                        alt={campaign.title}
+                                                        className="h-14 w-14 rounded-2xl object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-xs font-bold text-gray-400">
+                                                        없음
+                                                    </div>
+                                                )
+                                            }
+                                            title={campaign?.title || '캠페인'}
+                                            badge={<Badge className={`${status.className} border-none font-bold`}>{status.label}</Badge>}
+                                            meta={
+                                                <>
+                                                    <span>{String(campaign?.platform || '-').toUpperCase()}</span>
+                                                    <span className="text-gray-300">•</span>
+                                                    <span>{formatDate(app.created_at)}</span>
+                                                    {filter === 'SELECTED' && app.tracking_number ? (
+                                                        <>
+                                                            <span className="text-gray-300">•</span>
+                                                            <span>{app.tracking_company || '배송중'}</span>
+                                                        </>
+                                                    ) : null}
+                                                </>
+                                            }
+                                            actions={
+                                                <>
+                                                    {isSelected && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="h-8 rounded-full border-green-200 px-3 text-xs font-bold text-green-600"
+                                                            asChild
+                                                        >
+                                                            <Link href={`/campaigns/${app.campaign_id}#guide`}>가이드</Link>
+                                                        </Button>
+                                                    )}
+                                                    {isSelected && app.campaigns?.type === 'PURCHASE' && !app.purchased_at && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 rounded-full bg-amber-500 px-3 text-xs font-bold text-white hover:bg-amber-600"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                handleConfirmPurchase(app.id);
+                                                            }}
+                                                        >
+                                                            구매 확인
+                                                        </Button>
+                                                    )}
+                                                    {isSelected && (
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-8 rounded-full bg-rose-500 px-3 text-xs font-bold text-white hover:bg-rose-600"
+                                                            onClick={(event) => {
+                                                                event.preventDefault();
+                                                                setReviewModal({
+                                                                    isOpen: true,
+                                                                    appId: app.id,
+                                                                    campaignId: app.campaign_id,
+                                                                    campaignTitle: app.campaigns.title,
+                                                                    reviewMode: getCampaignReviewMode(app.campaigns),
+                                                                });
+                                                            }}
+                                                        >
+                                                            리뷰 등록
+                                                        </Button>
+                                                    )}
+                                                </>
+                                            }
+                                        />
+                                    );
+                                })
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-500">
+                                    선택한 조건의 캠페인이 없습니다.
+                                </div>
+                            )}
+                        </div>
+                        <div className="hidden sm:block">
+                            <DataTable
+                                columns={columns}
+                                data={applications}
+                                isLoading={loading}
+                                emptyMessage="선택한 조건의 캠페인이 없습니다."
+                            />
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <ConfirmDialog
+                isOpen={cancelDialog.isOpen}
+                onClose={() => setCancelDialog({ ...cancelDialog, isOpen: false })}
+                onConfirm={confirmCancel}
+                title="신청 취소"
+                message={`"${cancelDialog.title}" 캠페인 신청을 취소하시겠습니까?\n\n취소 후 다시 신청하실 수 있습니다.`}
+                confirmText="취소하기"
+                cancelText="돌아가기"
+                type="danger"
+            />
+
+            <ReviewSubmitModal
+                isOpen={reviewModal.isOpen}
+                onClose={() => setReviewModal((prev) => ({ ...prev, isOpen: false }))}
+                applicationId={reviewModal.appId}
+                campaignId={reviewModal.campaignId}
+                campaignTitle={reviewModal.campaignTitle}
+                reviewMode={reviewModal.reviewMode}
+                onSuccess={fetchData}
+            />
+
+            {/* 기한 연장 요청 모달 */}
+            {extensionModal.isOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                                <Calendar size={20} />
+                            </div>
+                            <h2 className="text-xl font-bold">리뷰 기한 연장 요청</h2>
+                        </div>
+                        <p className="text-sm text-gray-500 mb-4">{extensionModal.campaignTitle}</p>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1 font-bold">연장 사유</label>
+                                <textarea
+                                    required
+                                    rows={4}
+                                    value={extensionModal.reason}
+                                    onChange={e => setExtensionModal({ ...extensionModal, reason: e.target.value })}
+                                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none text-sm"
+                                    placeholder="예: 상품 배송이 늦어지고 있습니다, 불가피한 사정으로 3일 뒤까지 등록 가능합니다."
+                                />
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                                <Button
+                                    className="flex-1 bg-primary h-11 font-bold rounded-xl"
+                                    onClick={handleRequestExtension}
+                                >
+                                    요청하기
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 h-11 font-bold rounded-xl border-gray-200"
+                                    onClick={() => setExtensionModal({ ...extensionModal, isOpen: false })}
+                                >
+                                    취소
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

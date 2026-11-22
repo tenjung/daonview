@@ -68,10 +68,8 @@ export async function updateInfluencerStats(userId: string): Promise<boolean> {
         // 4. 통계 업데이트
         const { error: updateError } = await supabase
             .from('profiles')
+            // 통계 값은 /api/crawl-blog가 influencer_stats에 저장한다. profiles에는 존재하는 갱신 시각만 기록한다.
             .update({
-                blog_visitor_count: crawlData.data.visitorCount || 0,
-                blog_post_count: crawlData.data.postCount || 0,
-                blog_subscriber_count: crawlData.data.subscriberCount || 0,
                 last_stats_updated_at: new Date().toISOString()
             })
             .eq('id', userId);

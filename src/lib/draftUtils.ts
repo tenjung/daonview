@@ -1,6 +1,7 @@
 // 임시저장 캠페인 관리 유틸리티
 
 import { supabase } from './supabase/client';
+import { campaignMutation } from './campaignMutationClient';
 import { buildCampaignStep1Snapshot, deriveCampaignHydrationState, normalizeCampaignType, resolveCampaignImageVariants } from './campaignUtils';
 
 export interface DraftCampaign {
@@ -46,19 +47,6 @@ export const getUserDrafts = async (userId: string): Promise<DraftCampaign[]> =>
 // 임시저장 추가/업데이트
 export const saveDraft = async (userId: string, campaignData: DraftCampaignInput): Promise<DraftCampaign> => {
     try {
-        // 1. 프로필 존재 여부 확인 (외래 키 제약 조건 체크)
-        console.log('[saveDraft] 프로필 확인 중...');
-        const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('id', userId)
-            .single();
-
-        if (profileError || !profile) {
-            console.error('프로필 확인 실패:', profileError);
-            throw new Error('프로필 정보가 없습니다. DB의 profiles 테이블에 사용자 정보를 등록해야 합니다.');
-        }
-
         const { canonical, step1Data: normalizedStep1Data } = buildCampaignStep1Snapshot(campaignData.step1Data);
 
         // 4. campaign_options 구조 (단일 객체 구조로 표준화)
@@ -95,26 +83,12 @@ export const saveDraft = async (userId: string, campaignData: DraftCampaignInput
         // 5. ID 처리 및 DB 쿼리 실행
         const isExisting = campaignData.id && !isNaN(Number(campaignData.id)) && Number(campaignData.id) > 0;
 
-        console.log(`[saveDraft] 실제 DB 전송 시작... (${isExisting ? 'UPDATE' : 'INSERT'})`, draftPayload);
-
-        if (isExisting) {
-            const { data, error } = await supabase
-                .from('campaigns')
-                .update(draftPayload)
-                .eq('id', Number(campaignData.id))
-                .select();
-
-            if (error) throw error;
-            return normalizeDraftFromDB(data?.[0]);
-        } else {
-            const { data, error } = await supabase
-                .from('campaigns')
-                .insert([draftPayload])
-                .select();
-
-            if (error) throw error;
-            return normalizeDraftFromDB(data?.[0]);
-        }
+        const result = await campaignMutation<{ campaign: Record<string, unknown> }>('/api/campaigns/save', {
+            campaignId: isExisting ? Number(campaignData.id) : undefined,
+            campaign: draftPayload,
+            intent: 'DRAFT',
+        });
+        return normalizeDraftFromDB(result.campaign);
     } catch (error: any) {
         console.error('saveDraft 최종 실패 원인:', error.message || error);
         throw error;
@@ -124,13 +98,7 @@ export const saveDraft = async (userId: string, campaignData: DraftCampaignInput
 // 임시저장 삭제
 export const deleteDraft = async (userId: string, draftId: string): Promise<void> => {
     try {
-        const { error } = await supabase
-            .from('campaigns')
-            .delete()
-            .eq('id', draftId)
-            .eq('created_by', userId);
-
-        if (error) throw error;
+        await campaignMutation('/api/campaigns/delete', { campaignId: Number(draftId) });
     } catch (error) {
         console.error('임시저장 삭제 실패:', error);
         throw error;

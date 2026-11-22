@@ -42,16 +42,17 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
     const fetchUsers = async () => {
         setLoading(true);
         try {
+            // 회원 연락처·계좌 정보는 관리자 전용 RPC로만 조회한다.
             const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
+                .rpc('admin_list_profiles')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
             if (data) {
-                setUsers(data as Profile[]);
-                const counts = data.reduce((acc, user) => {
+                const rows = data as Profile[];
+                setUsers(rows);
+                const counts = rows.reduce((acc, user) => {
                     acc.total++;
                     if (user.role === 'INFLUENCER') acc.influencer++;
                     else if (user.role === 'ADVERTISER') acc.advertiser++;

@@ -32,6 +32,9 @@ export async function fetchAdminCampaignCounts(supabase: SupabaseClient): Promis
             supabase.from('campaigns').select('id', { count: 'exact', head: true }).eq('status', 'DRAFT')
         ]);
 
+        if (pendingRes.error || recruitingRes.error || completedRes.error || draftRes.error) {
+            throw new Error('캠페인 집계를 불러오지 못했습니다.');
+        }
         const recruitingCampaigns = recruitingRes.data || [];
         let upcomingCount = 0;
         let activeCount = 0;
@@ -63,12 +66,6 @@ export async function fetchAdminCampaignCounts(supabase: SupabaseClient): Promis
         };
     } catch (error) {
         console.error('Error fetching admin campaign counts:', error);
-        return {
-            pending: 0,
-            upcoming: 0,
-            active: 0,
-            completed: 0,
-            draft: 0
-        };
+        throw error;
     }
 }

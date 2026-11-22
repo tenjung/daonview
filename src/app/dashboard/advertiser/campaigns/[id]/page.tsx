@@ -1,4 +1,7 @@
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound, redirect } from 'next/navigation';
 import type { Application } from '@/types/database';
 import CampaignApplicationsClient from './CampaignApplicationsClient';
@@ -13,25 +16,26 @@ interface PageProps {
 }
 
 export default async function AdvertiserCampaignApplicationsPage({ params }: PageProps) {
+    await requireDashboardRole('ADVERTISER');
     const supabase = await createClient();
     const { id } = await params;
 
-    const {
-        data: { user },
-    } = await supabase.auth.getUser();
+    const { user } = await getRequestAuth();
 
     if (!user) {
         redirect('/login?returnTo=/dashboard/advertiser/campaigns');
     }
 
-    const [campaignRes, applicationsRes] = await Promise.all([
-        supabase
-            .from('campaigns')
-            .select('id, title, category, type, product_name, total_recruitment, created_by, campaign_options')
-            .eq('id', id)
-            .eq('created_by', user.id)
-            .single(),
-        supabase
+    const campaignRes = await supabase
+        .from('campaigns')
+        .select('id, title, category, type, product_name, total_recruitment, created_by, campaign_options')
+        .eq('id', id)
+        .eq('created_by', user.id)
+        .single();
+
+    // 신청자 연락처(이메일·전화번호)는 내 캠페인임을 확인한 뒤에만 서버 권한으로 조회한다.
+    const applicationsRes = campaignRes.data
+        ? await createAdminClient()
             .from('applications')
             .select(`
                 *,
@@ -52,8 +56,8 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
                 )
             `)
             .eq('campaign_id', id)
-            .order('created_at', { ascending: false }),
-    ]);
+            .order('created_at', { ascending: false })
+        : { data: [] as Application[], error: null };
 
     const campaign = campaignRes.data;
     const applications: Application[] = (applicationsRes.data || []) as Application[];

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 
 const getSupabaseAdmin = () => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!url || !key) {
         throw new Error('Missing Supabase environment variables');
@@ -26,13 +27,26 @@ const getSupabaseAdmin = () => {
  */
 export async function POST(request: NextRequest) {
     try {
+        // 저장 대상은 요청 본문이 아니라 로그인 세션의 인플루언서 본인으로만 결정한다.
+        const { user, role, profileError } = await getRequestAuth();
+        if (!user) {
+            return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+        }
+        if (profileError) {
+            return NextResponse.json({ error: profileError }, { status: 503 });
+        }
+        if (role !== 'INFLUENCER') {
+            return NextResponse.json({ error: '인플루언서 계정만 요청할 수 있습니다.' }, { status: 403 });
+        }
+        const userId = user.id;
+
         const supabaseAdmin = getSupabaseAdmin();
         const body = await request.json();
-        const { userId, blogUrl } = body;
+        const { blogUrl } = body;
 
-        if (!userId || !blogUrl) {
+        if (!blogUrl) {
             return NextResponse.json(
-                { error: 'Missing required fields: userId and blogUrl' },
+                { error: 'Missing required field: blogUrl' },
                 { status: 400 }
             );
         }

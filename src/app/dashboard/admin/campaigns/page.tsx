@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { UnifiedAdminCampaigns } from '@/components/admin/UnifiedAdminCampaigns';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
 import Link from 'next/link';
@@ -12,10 +12,11 @@ export const revalidate = 0;
 
 export default async function AdminCampaignsPage() {
     await requireDashboardRole('ADMIN');
-    const supabase = await createClient();
+    // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 회원 연락처를 포함해 조회한다.
+    const supabase = createAdminClient();
 
     // 모든 캠페인 데이터 가져오기 (관리자는 전체를 봐야 하므로 필터 최소화)
-    const { data: campaignsRes, error } = await supabase
+    const [{ data: campaignsRes, error }, sidebarCounts] = await Promise.all([supabase
         .from('campaigns')
         .select(`
             *,
@@ -28,13 +29,13 @@ export default async function AdminCampaignsPage() {
                 company_name
             )
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false }), fetchAdminCampaignCounts(supabase)]);
 
     if (error) {
-        console.error('Error fetching campaigns:', error);
+        throw new Error('캠페인 목록을 불러오지 못했습니다.');
     }
 
-    const sidebarCounts = await fetchAdminCampaignCounts(supabase);
+
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface MyInquiryListProps {
@@ -8,10 +8,8 @@ interface MyInquiryListProps {
 }
 
 export default async function MyInquiryList({ basePath = '/contact' }: MyInquiryListProps) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, profileError } = await getRequestAuth();
+  if (profileError) throw new Error(profileError);
 
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(`${basePath}/my`)}`);

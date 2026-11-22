@@ -1,8 +1,11 @@
-import { getPublicServerClient } from '@/lib/supabase/publicServer';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { CAMPAIGN_DETAIL_SELECT } from '@/lib/campaignSelects';
+import { toPublicCampaign } from '@/lib/publicCampaignDto';
+import { canEditCampaign } from '@/lib/campaignPermissions';
+import { getPublicCampaign } from '@/lib/publicCampaignServer';
 import { createAdminClient } from '@/lib/supabase/admin';
 import CampaignDetailClient from '@/components/CampaignDetailClient';
 import { notFound } from 'next/navigation';
-import { CAMPAIGN_DETAIL_SELECT, CAMPAIGN_METADATA_SELECT } from '@/lib/campaignSelects';
 import { normalizeOptionKey, type PublicPurchaseLink } from '@/lib/purchaseLink';
 
 export const revalidate = 60; // ISR: 1분마다 재생성
@@ -54,13 +57,7 @@ function sanitizeCampaignOptions(value: unknown, hideProductUrl: boolean): unkno
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
-    const supabase = getPublicServerClient();
-
-    const { data: campaign } = await supabase
-        .from('campaigns')
-        .select(CAMPAIGN_METADATA_SELECT)
-        .eq('id', id)
-        .single();
+    const campaign = await getPublicCampaign(id);
 
     const metadataCampaign = campaign as {
         title?: string | null;
@@ -104,19 +101,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CampaignDetailPage({ params }: PageProps) {
     const { id } = await params;
-    const supabase = getPublicServerClient();
-
-    // Fetch campaign data on the server
-    const { data: campaign, error } = await supabase
-        .from('campaigns')
-        .select(CAMPAIGN_DETAIL_SELECT)
-        .eq('id', id)
-        .single();
-
-    if (error || !campaign) {
-        console.error('Campaign not found or error:', error);
-        return notFound();
+    let campaign = await getPublicCampaign(id);
+    if (!campaign && /^\d+$/.test(id)) {
+        const auth = await getRequestAuth();
+        if (auth.user && !auth.profileError && ['ADMIN', 'ADVERTISER'].includes(auth.role || '')) {
+            const result = await auth.supabase.from('campaigns').select(CAMPAIGN_DETAIL_SELECT).eq('id', id).maybeSingle();
+            if (result.error) throw new Error('캠페인 미리보기를 불러오지 못했습니다.');
+            const preview = result.data as unknown as (Record<string, unknown> & { created_by: string }) | null;
+            if (preview && canEditCampaign({ userId: auth.user.id, role: auth.role, campaignCreatorId: preview.created_by })) campaign = toPublicCampaign(preview);
+        }
     }
+    if (!campaign) return notFound();
 
     const campaignRecord = campaign as unknown as CampaignDetailRecord;
     const campaignOptions = getCampaignOptionsRecord(campaignRecord.campaign_options);

@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 import {
-  coerceDashboardRole,
   getRoleDashboardPath,
   type DashboardRoleKey,
 } from '@/constants/role';
@@ -14,28 +13,22 @@ interface RequireDashboardRoleResult {
 export async function requireDashboardRole(
   requiredRole: DashboardRoleKey
 ): Promise<RequireDashboardRoleResult> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  return requireDashboardRoles([requiredRole]);
+}
+
+export async function requireDashboardRoles(requiredRoles: DashboardRoleKey[]): Promise<RequireDashboardRoleResult> {
+  const { user, role: normalizedRole, profileError } = await getRequestAuth();
 
   if (!user) {
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .maybeSingle();
-
-  const normalizedRole = coerceDashboardRole(profile?.role || user.user_metadata?.role);
-
+  if (profileError) throw new Error(profileError);
   if (!normalizedRole) {
-    redirect('/login');
+    throw new Error('사용자 권한을 확인할 수 없습니다.');
   }
 
-  if (normalizedRole !== requiredRole) {
+  if (!requiredRoles.includes(normalizedRole)) {
     redirect(getRoleDashboardPath(normalizedRole));
   }
 

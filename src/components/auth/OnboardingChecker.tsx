@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
+import type { Profile } from '@/types/database';
 import { usePathname } from 'next/navigation';
 import OnboardingModal from '@/components/OnboardingModal';
 import SnsInputModal from '@/components/influencer/SnsInputModal';
 
-function hasRegisteredSns(profile: any) {
+function hasRegisteredSns(profile: Profile | null) {
     return Boolean(
         profile?.blog_url ||
         profile?.sns_url ||
@@ -21,15 +22,26 @@ function hasRegisteredSns(profile: any) {
  * 온보딩 모달을 자동으로 표시하는 컴포넌트
  */
 export default function OnboardingChecker() {
-    const { user, profile, isLoading } = useAuthStore();
+    const { user, profile, isLoading, isProfileLoading, profileError } = useAuthStore();
     const pathname = usePathname();
     const [showOnboarding, setShowOnboarding] = useState(false);
     const [showSnsModal, setShowSnsModal] = useState(false);
     const [hasChecked, setHasChecked] = useState(false);
 
     useEffect(() => {
+        let active = true;
+        queueMicrotask(() => {
+            if (!active) return;
+            setHasChecked(false);
+            setShowOnboarding(false);
+            setShowSnsModal(false);
+        });
+        return () => { active = false; };
+    }, [user?.id]);
+
+    useEffect(() => {
         // 로딩 중이거나 이미 확인했으면 스킵
-        if (isLoading || hasChecked) return;
+        if (isLoading || isProfileLoading || profileError || hasChecked) return;
 
         // 로그인하지 않았거나 인플루언서가 아니면 스킵
         if (!user || !profile || profile.role !== 'INFLUENCER') {
@@ -67,7 +79,7 @@ export default function OnboardingChecker() {
         }
 
         setHasChecked(true);
-    }, [user, profile, isLoading, pathname, hasChecked]);
+    }, [user?.id, profile, isLoading, isProfileLoading, profileError, pathname, hasChecked]);
 
     // 모달이 닫히면 다시 표시하지 않음
     const handleComplete = () => {
@@ -79,7 +91,7 @@ export default function OnboardingChecker() {
         }
     };
 
-    if (!user) return null;
+    if (!user || profileError || isProfileLoading) return null;
 
     return (
         <>

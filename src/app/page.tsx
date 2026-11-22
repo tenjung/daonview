@@ -32,7 +32,7 @@ const fetchLatestNotices = unstable_cache(
 
 export default async function Home() {
     // Fetch banner items for SSR (includes campaign data)
-    const bannerItems = await fetchAllBannerData();
+    const [bannerItems, notices] = await Promise.all([fetchAllBannerData(), fetchLatestNotices()]);
 
     // Extract campaigns from banner data
     const latestCampaigns = bannerItems
@@ -107,7 +107,6 @@ export default async function Home() {
             created_at: ''
         }));
 
-    const notices = await fetchLatestNotices();
 
     return (
         <div className="bg-background">

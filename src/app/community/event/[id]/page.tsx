@@ -1,4 +1,4 @@
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getCommunityNotice } from '@/lib/community/readServer';
 import { notFound } from 'next/navigation';
 import PostDetailLayout from '@/components/community/PostDetailLayout';
 import { incrementCommunityViewCount } from '@/lib/community/view-count';
@@ -22,14 +22,8 @@ function formatKoreanDate(input: string): string {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
     const { id } = await params;
-    const supabase = await createServerClient();
 
-    const { data: post } = await supabase
-        .from('notices')
-        .select('title, content, created_at')
-        .eq('id', id)
-        .eq('type', '이벤트')
-        .single();
+    const { data: post } = await getCommunityNotice(id, true);
 
     if (!post) return {};
 
@@ -50,15 +44,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function EventDetailPage({ params }: PageProps) {
     const { id } = await params;
-    const supabase = await createServerClient();
 
     // Fetch event data (from notices table since events are stored there with type='이벤트')
-    const { data: post, error } = await supabase
-        .from('notices')
-        .select('*, profiles(nickname)')
-        .eq('id', id)
-        .eq('type', '이벤트')
-        .single();
+    const { data: post, error } = await getCommunityNotice(id, true);
 
     if (error || !post) return notFound();
 

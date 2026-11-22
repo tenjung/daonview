@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface MyInquiryDetailProps {
@@ -12,10 +12,8 @@ export default async function MyInquiryDetail({
   id,
   basePath = '/contact',
 }: MyInquiryDetailProps) {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user, profileError } = await getRequestAuth();
+  if (profileError) throw new Error(profileError);
 
   if (!user) {
     redirect(`/login?next=${encodeURIComponent(`${basePath}/my/${id}`)}`);

@@ -57,7 +57,6 @@ export default function InfluencerReviewModal({
                     reviewer:profiles!influencer_reviews_reviewer_id_fkey (
                         id,
                         nickname,
-                        email,
                         role,
                         company_name
                     ),

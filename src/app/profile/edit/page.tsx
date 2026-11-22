@@ -240,11 +240,10 @@ function ProfileEditContent() {
             initializedRef.current = true;
             try {
                 // 타임아웃 10초 설정
+                // 본인 프로필 전체(계좌·주소 포함)는 본인 전용 RPC로만 조회한다.
                 const fetchPromise = supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', authUser.id)
-                    .maybeSingle();
+                    .rpc('get_my_profile')
+                    .maybeSingle<Profile>();
 
                 const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase 요청 타임아웃')), 10000));
                 
@@ -266,16 +265,17 @@ function ProfileEditContent() {
                         email: fallbackEmail,
                         role: 'INFLUENCER'
                     };
-                    const { data: inserted, error: insertError } = await supabase
+                    const { error: insertError } = await supabase
                         .from('profiles')
-                        .insert([newProfile])
-                        .select()
-                        .maybeSingle();
-                        
+                        .insert([newProfile]);
+
                     if (insertError) {
                         console.error('Initial profile creation failed:', insertError);
                         throw insertError;
                     }
+                    const { data: inserted } = await supabase
+                        .rpc('get_my_profile')
+                        .maybeSingle<Profile>();
                     if (inserted) {
                         profileData = inserted;
                     }

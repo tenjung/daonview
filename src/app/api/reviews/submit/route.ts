@@ -1,3 +1,4 @@
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { sendReviewSubmittedAlimtalk } from '@/lib/alimtalk';
@@ -203,6 +204,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '신청 완료 상태를 저장하지 못했습니다.' }, { status: 409 });
   }
 
+  const cacheWarning = invalidatePublicCampaigns([campaignId]);
   if (isPurchaseExperience) {
     try {
       await sendAdminPurchaseReviewEmail(campaign.title, review.id);
@@ -255,6 +257,6 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  return NextResponse.json({ success: true, reviewId: review.id });
+  return NextResponse.json({ success: true, reviewId: review.id, cacheWarning });
 }
 

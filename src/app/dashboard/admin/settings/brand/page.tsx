@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import BrandSettingsClient from '@/components/admin/BrandSettingsClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
@@ -8,40 +8,15 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function BrandSettingsPage() {
-    const supabase = await createClient();
+    await requireDashboardRole('ADMIN');
+    const { supabase } = await getRequestAuth();
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/login');
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role?.toUpperCase() !== 'ADMIN') {
-        redirect('/');
-    }
-
-    // 브랜드 설정 데이터 fetch
-    const { data: settings } = await supabase
-        .from('site_settings')
-        .select('value')
-        .eq('key', 'brand_config')
-        .single();
-
-    const initialConfig = settings?.value || {
-        favicon_url: '',
-        logo_url: ''
-    };
-
-    // 사이드바 카운트 가져오기
-    const sidebarCounts = await fetchAdminCampaignCounts(supabase);
-
+    const [settingsResult, sidebarCounts] = await Promise.all([
+        supabase.from('site_settings').select('value').eq('key', 'brand_config').single(),
+        fetchAdminCampaignCounts(supabase),
+    ]);
+    if (settingsResult.error) throw new Error('브랜드 설정을 불러오지 못했습니다.');
+    const initialConfig = settingsResult.data?.value || { favicon_url: '', logo_url: '' };
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
             <div className="bg-gray-50/50 py-12">

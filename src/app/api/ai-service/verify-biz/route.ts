@@ -2,12 +2,26 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateWithGemini } from '@/lib/services/googleAI';
 import { generateBizVerificationPrompt } from '@/lib/ai/bizPrompts';
 import { createClient } from '@supabase/supabase-js';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 
 export async function POST(request: NextRequest) {
     try {
-        const { companyName, bizNumber, fileBase64, userId } = await request.json();
+        // 승인 대상은 요청 본문이 아니라 로그인 세션의 사용자로만 결정한다.
+        const { user, role, profileError } = await getRequestAuth();
+        if (!user) {
+            return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 });
+        }
+        if (profileError) {
+            return NextResponse.json({ error: profileError }, { status: 503 });
+        }
+        if (String(role || '').toUpperCase() !== 'ADVERTISER') {
+            return NextResponse.json({ error: '광고주 계정만 사업자 인증을 요청할 수 있습니다.' }, { status: 403 });
+        }
+        const userId = user.id;
 
-        if (!companyName || !bizNumber || !fileBase64 || !userId) {
+        const { companyName, bizNumber, fileBase64 } = await request.json();
+
+        if (!companyName || !bizNumber || !fileBase64) {
             return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
         }
 

@@ -11,14 +11,14 @@ import {
 
 export function useRoleGuard(allowedRoles: DashboardRoleKey[], returnTo?: string) {
   const router = useRouter();
-  const { user, profile, isLoading, isInitialized, isSigningOut, isProfileLoading } = useAuthStore();
-  const role = coerceDashboardRole(profile?.role || user?.user_metadata?.role);
+  const { user, profile, isLoading, isInitialized, isSigningOut, isProfileLoading, profileError } = useAuthStore();
+  const role = coerceDashboardRole(profile?.role);
 
   const isChecking = isLoading || !isInitialized || isSigningOut || (!role && isProfileLoading);
   const isAllowed = Boolean(user && role && allowedRoles.includes(role));
 
   useEffect(() => {
-    if (isChecking) return;
+    if (isChecking || profileError) return;
 
     if (!user) {
       router.replace(returnTo ? `/login?returnTo=${encodeURIComponent(returnTo)}` : '/login');
@@ -33,13 +33,14 @@ export function useRoleGuard(allowedRoles: DashboardRoleKey[], returnTo?: string
     if (!isAllowed) {
       router.replace(getRoleDashboardPath(role));
     }
-  }, [isAllowed, isChecking, returnTo, role, router, user]);
+  }, [isAllowed, isChecking, returnTo, role, router, user, profileError]);
 
   return {
     user,
     profile,
     role,
     isChecking,
-    isAllowed,
+    isAllowed: isAllowed && !profileError,
+    profileError,
   };
 }

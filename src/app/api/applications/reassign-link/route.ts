@@ -1,3 +1,4 @@
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -264,6 +265,7 @@ export async function POST(request: Request) {
     const notificationResult = await notifySelectedApplication(campaign, application.user_id, assignedRow);
 
     return NextResponse.json({
+      cacheWarning: invalidatePublicCampaigns([campaignId]),
       success: true,
       application: assignedRow,
       notification: notificationResult,

@@ -63,7 +63,7 @@ export default function CouponManagementClient() {
                 .from('coupons')
                 .select(`
                     *,
-                    profiles:used_by (nickname, email)
+                    profiles:used_by (nickname)
                 `)
                 .order('created_at', { ascending: false });
 

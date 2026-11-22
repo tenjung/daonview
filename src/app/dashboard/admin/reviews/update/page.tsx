@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import ReviewUpdateClient from '@/components/admin/ReviewUpdateClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
@@ -8,24 +8,8 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function UpdateReviewsPage() {
-    const supabase = await createClient();
-
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        redirect('/login');
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-    if (profile?.role?.toUpperCase() !== 'ADMIN') {
-        redirect('/');
-    }
+    await requireDashboardRole('ADMIN');
+    const { supabase, user } = await getRequestAuth();
 
     // 사이드바 카운트 가져오기
     const sidebarCounts = await fetchAdminCampaignCounts(supabase);

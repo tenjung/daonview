@@ -1,4 +1,5 @@
 'use client';
+import { campaignMutation } from '@/lib/campaignMutationClient';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
@@ -421,6 +422,8 @@ export default function ApplicationsTableClient({
                 return;
             }
 
+            if (payload.cacheWarning) toast.warning(String(payload.cacheWarning));
+            window.dispatchEvent(new Event('campaign-data-changed'));
             const assigned = payload.application || {};
             setApplications((prev) =>
                 prev.map((app) =>
@@ -472,10 +475,8 @@ export default function ApplicationsTableClient({
             message: `${name}님의 신청을 거절하시겠습니까?`,
             type: 'danger',
             onConfirm: async () => {
-                const { error } = await supabase
-                    .from('applications')
-                    .update({ status: 'REJECTED' })
-                    .eq('id', id);
+                const { error } = await campaignMutation('/api/applications/manage', { ids: [id], status: 'REJECTED' })
+                    .then(() => ({ error: null }), (error: unknown) => ({ error }));
 
                 if (error) {
                     toast.error('거절 처리 중 오류가 발생했습니다.');
@@ -504,14 +505,9 @@ export default function ApplicationsTableClient({
     const handleConfirmCancel = async (reason: string) => {
         if (!cancellationModal.applicationId) return;
 
-        const { error } = await supabase
-            .from('applications')
-            .update({
-                status: 'CANCELLED',
-                cancellation_reason: reason,
-                cancelled_at: new Date().toISOString()
-            })
-            .eq('id', cancellationModal.applicationId);
+        const { error } = await campaignMutation('/api/applications/manage', {
+            ids: [cancellationModal.applicationId], status: 'CANCELLED', reason,
+        }).then(() => ({ error: null }), (error: unknown) => ({ error }));
 
         if (error) {
             toast.error('취소 처리 중 오류가 발생했습니다.');
@@ -581,6 +577,8 @@ export default function ApplicationsTableClient({
                     continue;
                 }
 
+                if (payload.cacheWarning) toast.warning(String(payload.cacheWarning));
+                window.dispatchEvent(new Event('campaign-data-changed'));
                 const assigned = payload.application || {};
                 setApplications((prev) =>
                     prev.map((item) =>
@@ -619,10 +617,8 @@ export default function ApplicationsTableClient({
         const ids = selectedApplications.map(app => app.id);
         if (ids.length === 0) return;
 
-        const { error } = await supabase
-            .from('applications')
-            .update({ status: 'REJECTED' })
-            .in('id', ids);
+        const { error } = await campaignMutation('/api/applications/manage', { ids, status: 'REJECTED' })
+            .then(() => ({ error: null }), (error: unknown) => ({ error }));
 
         if (error) {
             toast.error('일괄 거절 중 오류가 발생했습니다.');

@@ -1,5 +1,5 @@
 import 'server-only';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAdminRole, canEditCampaign } from '@/lib/campaignPermissions';
 import { normalizeSelectionEmailHold, isSelectedApplication } from '@/lib/selectionEmailHold';
@@ -8,11 +8,10 @@ export class EmailHoldAccessError extends Error {
   constructor(public status: number) { super('Email hold access denied'); }
 }
 export async function authorizeEmailHoldAccess(campaignId: number, adminOnly = false) {
-  const session = await createClient();
-  const { data: { user }, error: authError } = await session.auth.getUser();
-  if (authError || !user) throw new EmailHoldAccessError(401);
-  const { data: profile, error: profileError } = await session.from('profiles').select('role').eq('id', user.id).single();
-  if (profileError || !profile) throw new EmailHoldAccessError(403);
+  const { user, profile, profileError } = await getRequestAuth();
+  if (!user) throw new EmailHoldAccessError(401);
+  if (profileError) throw new EmailHoldAccessError(503);
+  if (!profile) throw new EmailHoldAccessError(403);
   const isAdmin = isAdminRole(profile.role);
   if (adminOnly && !isAdmin) throw new EmailHoldAccessError(403);
   const admin = createAdminClient();

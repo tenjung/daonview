@@ -1,41 +1,25 @@
-import { revalidatePath, revalidateTag } from 'next/cache';
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
+import { invalidatePublicCampaigns } from '@/lib/campaignCache';
+import { canEditCampaign } from '@/lib/campaignPermissions';
 
 export async function POST(request: Request) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    const { user, role, profileError, supabase } = await getRequestAuth();
+    if (!user) return NextResponse.json({ error: 'UNAUTHORIZED' }, { status: 401 });
+    if (profileError) return NextResponse.json({ error: profileError }, { status: 503 });
+    const body = await request.json().catch(() => ({}));
+    const id = body?.campaignId;
+    if (id !== undefined && (!/^\d+$/.test(String(id)) || Number(id) < 1)) return NextResponse.json({ error: 'INVALID_CAMPAIGN' }, { status: 400 });
+    if (role !== 'ADMIN') {
+      if (!id || role !== 'ADVERTISER') return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
+      const result = await supabase.from('campaigns').select('created_by').eq('id', id).maybeSingle();
+      if (result.error) throw result.error;
+      if (!result.data || !canEditCampaign({ userId: user.id, role, campaignCreatorId: result.data.created_by })) return NextResponse.json({ error: 'FORBIDDEN' }, { status: 403 });
     }
-
-    let campaignId: string | null = null;
-    try {
-      const body = await request.json();
-      const rawCampaignId = body?.campaignId;
-      if (rawCampaignId !== undefined && rawCampaignId !== null) {
-        campaignId = String(rawCampaignId);
-      }
-    } catch {
-      // JSON body is optional.
-    }
-
-    revalidateTag('home-banner-data', 'max');
-    revalidatePath('/');
-    revalidatePath('/campaigns');
-
-    if (campaignId && campaignId.trim() !== '') {
-      revalidatePath(`/campaigns/${campaignId}`);
-    }
-
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('[revalidate-home-banner] error:', error);
+    const cacheWarning = invalidatePublicCampaigns(id ? [id] : []);
+    return NextResponse.json({ success: !cacheWarning, cacheWarning });
+  } catch {
     return NextResponse.json({ error: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
   }
 }

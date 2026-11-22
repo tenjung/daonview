@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server';
 
 import { getManagedReviewsForActor } from '@/lib/reviews/management';
-import { createClient } from '@/lib/supabase/server';
+import { getRequestAuth } from '@/lib/auth/requestAuth';
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const auth = await getRequestAuth();
+    const { user, profile } = auth;
     if (!user) return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 });
 
-    const reviews = await getManagedReviewsForActor(user.id);
+    if (auth.profileError || !profile || !auth.role) return NextResponse.json({ error: '사용자 프로필을 확인하지 못했습니다.' }, { status: 503 });
+    const reviews = await getManagedReviewsForActor(user.id, { ...auth, user, profile });
     return NextResponse.json({ reviews });
   } catch (error) {
     console.error('Managed reviews lookup error:', error);
