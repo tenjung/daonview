@@ -261,24 +261,24 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
     const fetchCampaign = async () => {
         // 공개 상세 데이터 전체를 다시 읽으면 비공개 링크 필드가 클라이언트 응답에 섞일 수 있다.
         // 신청 액션 후에는 화면에 필요한 집계값만 갱신한다.
+        // applications 행은 당사자·캠페인 소유자·관리자만 읽을 수 있으므로
+        // 공개 집계는 DB 계산 컬럼(applicant_count, selected_count)으로 조회한다.
         const isCurrent = beginCountRequest();
-        const [{ count: totalCount }, { count: approvedCount }] = await Promise.all([
-            supabase
-                .from('applications')
-                .select('id', { count: 'exact', head: true })
-                .eq('campaign_id', id),
-            supabase
-                .from('applications')
-                .select('id', { count: 'exact', head: true })
-                .eq('campaign_id', id)
-                .in('status', ['SELECTED', 'APPROVED']),
-        ]);
+        const { data: counts, error: countError } = await supabase
+            .from('campaigns')
+            .select('applicant_count, selected_count')
+            .eq('id', id)
+            .maybeSingle();
 
         if (!isCurrent()) return;
+        if (countError || !counts) {
+            if (countError) console.error('Error fetching campaign counts:', countError);
+            return;
+        }
         setCampaign((current: any) => ({
             ...current,
-            total_app_count: totalCount || 0,
-            approved_app_count: approvedCount || 0,
+            total_app_count: Number(counts.applicant_count) || 0,
+            approved_app_count: Number(counts.selected_count) || 0,
         }));
     };
 
