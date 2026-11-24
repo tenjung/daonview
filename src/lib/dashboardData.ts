@@ -15,7 +15,7 @@ export async function getInfluencerInitialData(kind: 'overview' | 'campaigns' | 
   if (!user) throw new Error('인증이 필요합니다.');
   const viewer = { user, profile };
   if (kind === 'favorites') {
-    const result = await supabase.from('favorites').select('*, campaigns(*, applications(count))').eq('user_id', user.id).order('created_at', { ascending: false });
+    const result = await supabase.from('favorites').select('*, campaigns(*, applicant_count, selected_count)').eq('user_id', user.id).order('created_at', { ascending: false });
     if (result.error) throw new Error('관심 캠페인을 불러오지 못했습니다.');
     return { viewer, applications: [], favorites: (result.data as DashboardFavorite[]).map(row => ({ ...row, campaigns: toPublicCampaignRelation(row.campaigns) })), pending: [], submitted: [] };
   }

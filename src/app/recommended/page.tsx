@@ -9,7 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { getCampaignRecruitTarget, isCampaignOpenForApplications, mapCampaignToCard, normalizeCampaignPlatform } from '@/lib/campaignUtils';
 import { Badge } from '@/components/ui/badge';
-import { ACTIVE_CAMPAIGN_STATUSES, SELECTED_APPLICATION_STATUSES } from '@/constants/campaign';
+import { ACTIVE_CAMPAIGN_STATUSES } from '@/constants/campaign';
+import { withRelationCounts } from '@/lib/publicCampaignDto';
 import { isRole, USER_ROLES } from '@/constants/role';
 
 const REGION_MAP: Record<string, string> = {
@@ -58,15 +59,16 @@ export default function RecommendedCampaigns() {
         setLoading(true);
         
         // 모집 중이거나 진행 중인 캠페인만 조회
-        const { data: campaignData, error: campaignError } = await supabase
+        // 선정 인원은 RLS에 영향받지 않는 DB 계산 컬럼(selected_count)으로 조회한다.
+        const { data: rawCampaignData, error: campaignError } = await supabase
           .from('campaigns')
-          .select('*, selected_applications:applications(count)')
+          .select('*, applicant_count, selected_count')
           .in('status', ACTIVE_CAMPAIGN_STATUSES as unknown as string[])
-          .in('selected_applications.status', SELECTED_APPLICATION_STATUSES as unknown as string[])
           .order('created_at', { ascending: false });
 
         if (campaignError) throw campaignError;
-        if (!campaignData) return;
+        if (!rawCampaignData) return;
+        const campaignData = rawCampaignData.map((campaign) => withRelationCounts(campaign));
 
         // 추천 점수 계산 최적화
         const userInterests = new Set(profile?.interests || []);

@@ -4,14 +4,15 @@ import { load } from '../tests/helpers/load-typescript.mjs';
 
 function fixture({ anonymous = false, full = false, cancelled = false, otherOwner = false, cacheFailure = false } = {}) {
   const writes = [], invalidations = [], reads = [];
-  const campaign = { id: 44, created_by: 'brand', status: 'RECRUITING', type: 'VISIT', platform: 'BLOG', total_recruitment: 1, end_date: '2099-12-31', selected_applications: [{ count: full ? 1 : 0 }], campaign_options: {} };
+  // 선정 인원은 RLS 영향이 없는 계산 컬럼(selected_count)으로 판정한다.
+  const campaign = { id: 44, created_by: 'brand', status: 'RECRUITING', type: 'VISIT', platform: 'BLOG', total_recruitment: 1, end_date: '2099-12-31', applicant_count: 3, selected_count: full ? 1 : 0, campaign_options: {} };
   const supabase = { from(table) {
-    let operation = 'read', payload; const filters = [];
-    const q = { select() { return this; }, eq(...args) { filters.push(args); return this; }, in(...args) { filters.push(args); return this; }, order() { return this; }, limit() { return this; },
+    let operation = 'read', payload, columns = ''; const filters = [];
+    const q = { select(cols) { if (typeof cols === 'string') columns = cols; return this; }, eq(...args) { filters.push(args); return this; }, in(...args) { filters.push(args); return this; }, order() { return this; }, limit() { return this; },
       insert(data) { operation = 'insert'; payload = data; return this; },
       delete() { operation = 'delete'; return this; },
       result() {
-        reads.push({ table, filters });
+        reads.push({ table, filters, columns });
         if (operation !== 'read') { writes.push({ table, operation, payload, filters }); return { data: cancelled && operation === 'delete' ? [] : [{ id: 5 }], error: null }; }
         if (table === 'campaigns') return { data: campaign, error: null };
         if (filters.some(([key, value]) => key === 'user_id' && value === 'actor')) return { data: otherOwner ? null : { id: 5, campaign_id: 44, status: 'PENDING' }, error: null };
@@ -32,7 +33,8 @@ const apply = { action: 'APPLY', campaignId: 44, selectedOption: null, message: 
 test('application uses latest capacity and authenticated identity; full and anonymous writes denied', async () => {
   const f = fixture(); assert.equal((await f.run(apply)).status, 200);
   assert.equal(f.writes[0].payload.user_id, 'actor'); assert.equal(f.writes[0].payload.status, 'PENDING');
-  assert(f.reads.some(q => q.filters.some(([key]) => key === 'selected_applications.status')));
+  assert(f.reads.some(q => q.table === 'campaigns' && q.columns.includes('selected_count')));
+  assert(!f.reads.some(q => q.columns.includes('applications(count)')));
   for (const options of [{ full: true }, { anonymous: true }]) { const blocked = fixture(options); assert((await blocked.run(apply)).status >= 400); assert.equal(blocked.writes.length, 0); }
 });
 test('cancel is owner scoped and conditional on still pending; races do not invalidate', async () => {

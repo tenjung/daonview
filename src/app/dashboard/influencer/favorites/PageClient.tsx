@@ -40,7 +40,7 @@ export default function FavoritesPage({ initialViewer, initialFavorites = [] }: 
             // Fetch favorite campaigns with application counts
             const { data: favoritesData, error } = await supabase
                 .from('favorites')
-                .select('*, campaigns(*, applications(count))')
+                .select('*, campaigns(*, applicant_count, selected_count)')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false });
 

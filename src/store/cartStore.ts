@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { supabase } from '@/lib/supabase/client';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
+import { withRelationCounts } from '@/lib/publicCampaignDto';
 
 interface CartItem {
   id: string | number;
@@ -59,7 +60,7 @@ export const useCartStore = create<CartState>()(
           try {
             const { data, error } = await supabase
               .from('favorites')
-              .select('*, campaigns(*, applications(count))')
+              .select('*, campaigns(*, applicant_count, selected_count)')
               .eq('user_id', userId);
 
             if (error) throw error;
@@ -67,7 +68,7 @@ export const useCartStore = create<CartState>()(
             if (data) {
               // 삭제되었거나 RLS로 인해 조회되지 않은 캠페인(favorites) 필터링 처리
               const validFavorites = data.filter((fav: any) => fav.campaigns);
-              const formattedItems = validFavorites.map((fav: any) => mapCampaignToCard(fav.campaigns));
+              const formattedItems = validFavorites.map((fav: any) => mapCampaignToCard(withRelationCounts(fav.campaigns)));
               set({ items: formattedItems });
             }
           } catch (error) {

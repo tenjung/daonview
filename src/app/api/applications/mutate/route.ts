@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { invalidatePublicCampaigns } from '@/lib/campaignCache';
+import { withRelationCounts } from '@/lib/publicCampaignDto';
 import { getCampaignRecruitTarget, isCampaignOpenForApplications, resolveCampaignPlatformState } from '@/lib/campaignUtils';
 
 const schema = z.discriminatedUnion('action', [
@@ -32,9 +33,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, cacheWarning: invalidatePublicCampaigns([existing.data.campaign_id]) });
     }
     if (role !== 'INFLUENCER') return NextResponse.json({ error: '인플루언서 계정만 캠페인에 신청할 수 있습니다.' }, { status: 403 });
-    const campaignResult = await supabase.from('campaigns').select('*, selected_applications:applications(count)').eq('id', body.campaignId).in('selected_applications.status', ['SELECTED', 'APPROVED']).maybeSingle();
+    // 선정 인원은 RLS(본인 신청만 보임)에 영향받지 않는 DB 계산 컬럼(selected_count)으로 판정한다.
+    const campaignResult = await supabase.from('campaigns').select('*, applicant_count, selected_count').eq('id', body.campaignId).maybeSingle();
     if (campaignResult.error) throw new Error('캠페인을 조회하지 못했습니다.');
-    const campaign = campaignResult.data;
+    const campaign = campaignResult.data ? withRelationCounts(campaignResult.data) : null;
     if (!campaign || !isCampaignOpenForApplications(campaign)) return NextResponse.json({ error: '현재 신청 가능한 캠페인이 아닙니다.' }, { status: 409 });
     const options = Array.isArray(campaign.campaign_options) ? campaign.campaign_options[0] : campaign.campaign_options;
     const flags = resolveCampaignPlatformState({ type: campaign.type, platform: campaign.platform, step1Data: options?.step1Data || {} });
