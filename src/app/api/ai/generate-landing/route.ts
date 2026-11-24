@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateInfluencerPrompt, generateBusinessPrompt } from '@/lib/ai/landingPagePrompts';
 import { LandingPageInput, AIGeneratedContent } from '@/types/landingPage';
+import { extractGeminiText, GEMINI_GENERATE_URL } from '@/lib/services/googleAI';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       : generateBusinessPrompt(input);
 
     // Gemini REST API 호출
-    const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const API_URL = `${GEMINI_GENERATE_URL}?key=${apiKey}`;
 
     const response = await fetch(API_URL, {
       method: 'POST',
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = extractGeminiText(result);
     if (!text) {
       console.error('AI 응답 본문이 비어 있습니다.');
       return NextResponse.json(

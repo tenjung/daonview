@@ -1,5 +1,19 @@
 /**
- * 라이브러리 및 특수 설정을 전혀 사용하지 않는 
+ * Gemini 텍스트 생성 모델. 모델 지원 종료 시 코드 수정 없이 GEMINI_MODEL 환경변수로 교체한다.
+ * (2026-11: gemini-2.0-flash 종료, 2.5 계열은 신규 사용자 차단 → 무료 등급인 gemini-3.5-flash-lite 사용.
+ *  3.x 모델은 v1이 아닌 v1beta generateContent에서만 응답한다.)
+ */
+export const GEMINI_TEXT_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite';
+export const GEMINI_GENERATE_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_TEXT_MODEL}:generateContent`;
+
+/** 3.x 응답은 사고 서명 등 텍스트가 없는 조각을 포함할 수 있어, 텍스트 조각을 모두 합친다. */
+export function extractGeminiText(result: { candidates?: { content?: { parts?: { text?: unknown }[] } }[] }): string {
+  const parts = result.candidates?.[0]?.content?.parts || [];
+  return parts.map((part) => (typeof part.text === 'string' ? part.text : '')).join('');
+}
+
+/**
+ * 라이브러리 및 특수 설정을 전혀 사용하지 않는
  * 가장 순수한 REST API 호출 방식입니다.
  */
 export async function generateWithGemini(
@@ -10,8 +24,7 @@ export async function generateWithGemini(
   const apiKey = process.env.GOOGLE_AI_API_KEY;
   if (!apiKey) throw new Error("GOOGLE_AI_API_KEY가 설정되지 않았습니다.");
 
-  // 근본적인 해결: 현재 지원 목록에 있는 gemini-2.0-flash 사용
-  const API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const API_URL = `${GEMINI_GENERATE_URL}?key=${apiKey}`;
 
   try {
     const parts: any[] = [{ text: prompt }];
@@ -55,7 +68,7 @@ export async function generateWithGemini(
       throw new Error(result.error?.message || "API 호출에 실패했습니다.");
     }
 
-    const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = extractGeminiText(result);
     if (!text) throw new Error("AI 응답 본문이 비어 있습니다.");
 
     if (!isJson) return text;

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { createClient } from '@supabase/supabase-js';
 import * as crypto from 'crypto';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GEMINI_TEXT_MODEL } from '@/lib/services/googleAI';
 
 // 네이버 검색광고 API 환경변수
 const NAVER_AD_API_URL = 'https://api.naver.com';
@@ -75,7 +76,7 @@ async function extractKeywordsWithAI(title: string): Promise<string[]> {
             return extractKeywordsFallback(title);
         }
 
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+        const model = genAI.getGenerativeModel({ model: GEMINI_TEXT_MODEL });
         const prompt = `다음 블로그 제목에서 조회수가 가장 높을 만한 핵심 '정보/마케팅 명사 키워드'를 1~3개만 콤마로 구분해서 추출해줘. 
 (조사, 수식어, 의미없는 일상어, '오늘', '내돈내산', '솔직후기', '추천', 숫자 등의 범용어절 제외. 오직 검색에 유효한 구체적 타겟 명사 단어만).
 답변은 부연설명 없이 오직 단어들만 콤마로 이어서 할 것.
