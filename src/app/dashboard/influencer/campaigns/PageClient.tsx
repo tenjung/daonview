@@ -42,6 +42,7 @@ import { ColumnDef } from '@tanstack/react-table';
 import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
+import { postApplicationProgress } from '@/lib/applicationProgress';
 
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
@@ -207,25 +208,14 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
 
     async function handleConfirmPurchase(applicationId: number) {
         try {
-            const now = new Date();
-            const deadline = new Date(now);
-            deadline.setDate(deadline.getDate() + 7); // 구매 확인 후 1주
-
-            const { error } = await supabase
-                .from('applications')
-                .update({
-                    purchased_at: now.toISOString(),
-                    review_deadline: deadline.toISOString()
-                })
-                .eq('id', applicationId);
-
-            if (error) throw error;
+            // 구매 확인 시각과 리뷰 마감일(1주)은 서버에서 기록한다.
+            await postApplicationProgress({ action: 'CONFIRM_PURCHASE', applicationId });
 
             toast.success('구매 확인이 완료되었습니다. 1주일 이내에 리뷰를 등록해주세요!');
             fetchData();
         } catch (error) {
             console.error('Error confirming purchase:', error);
-            toast.error('구매 확인 중 오류가 발생했습니다.');
+            toast.error(error instanceof Error ? error.message : '구매 확인 중 오류가 발생했습니다.');
         }
     }
 
@@ -236,22 +226,18 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
         }
 
         try {
-            const { error } = await supabase
-                .from('applications')
-                .update({
-                    extension_status: 'PENDING',
-                    extension_reason: extensionModal.reason
-                })
-                .eq('id', extensionModal.appId);
-
-            if (error) throw error;
+            await postApplicationProgress({
+                action: 'REQUEST_EXTENSION',
+                applicationId: extensionModal.appId,
+                reason: extensionModal.reason.trim(),
+            });
 
             toast.success('연장 요청이 전송되었습니다.');
             setExtensionModal({ ...extensionModal, isOpen: false, reason: '' });
             fetchData();
         } catch (error) {
             console.error('Error requesting extension:', error);
-            toast.error('연장 요청 중 오류가 발생했습니다.');
+            toast.error(error instanceof Error ? error.message : '연장 요청 중 오류가 발생했습니다.');
         }
     }
 

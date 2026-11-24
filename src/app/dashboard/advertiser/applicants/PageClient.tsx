@@ -13,6 +13,7 @@ import { ExternalLink } from 'lucide-react';
 import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
 import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type SelectionLinkDraft } from '@/components/campaign/SelectionPurchaseLinkFields';
 import { isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
+import { postApplicationProgress } from '@/lib/applicationProgress';
 
 interface Applicant {
     id: number;
@@ -203,32 +204,19 @@ export default function AdvertiserApplicantsPage() {
 
     const handleExtensionAction = async (applicationId: number, action: 'APPROVED' | 'REJECTED') => {
         try {
-            const applicant = applicants.find(a => a.id === applicationId);
-            let updateData: any = { extension_status: action };
-
-            if (action === 'APPROVED' && applicant?.review_deadline) {
-                const currentDeadline = new Date(applicant.review_deadline);
-                currentDeadline.setDate(currentDeadline.getDate() + 7); // 7일 연장
-                updateData.review_deadline = currentDeadline.toISOString();
-            }
-
-            const { error } = await supabase
-                .from('applications')
-                .update(updateData)
-                .eq('id', applicationId);
-
-            if (error) throw error;
+            // 승인 시 마감일 7일 연장은 서버에서 DB 값 기준으로 계산한다.
+            const { reviewDeadline } = await postApplicationProgress({ action: 'DECIDE_EXTENSION', applicationId, decision: action });
 
             toast.success(action === 'APPROVED' ? '연장 요청이 승인되었습니다.' : '연장 요청이 거절되었습니다.');
-            
-            setApplicants(prev => prev.map(app => 
-                app.id === applicationId 
-                    ? { ...app, extension_status: action, review_deadline: updateData.review_deadline || app.review_deadline } 
+
+            setApplicants(prev => prev.map(app =>
+                app.id === applicationId
+                    ? { ...app, extension_status: action, review_deadline: reviewDeadline || app.review_deadline }
                     : app
             ));
         } catch (error) {
             console.error('Extension action error:', error);
-            toast.error('처리 중 오류가 발생했습니다.');
+            toast.error(error instanceof Error ? error.message : '처리 중 오류가 발생했습니다.');
         }
     };
 
@@ -237,21 +225,13 @@ export default function AdvertiserApplicantsPage() {
         if (!editingTracking) return;
 
         try {
-            const now = new Date();
-            const deadline = new Date(now);
-            deadline.setDate(deadline.getDate() + 7); // 배송 시작 후 1주
-
-            const { error } = await supabase
-                .from('applications')
-                .update({
-                    tracking_company: editingTracking.company,
-                    tracking_number: editingTracking.number,
-                    shipped_at: now.toISOString(),
-                    review_deadline: deadline.toISOString()
-                })
-                .eq('id', editingTracking.applicationId);
-
-            if (error) throw error;
+            // 배송 시작 시각과 리뷰 마감일(1주)은 서버에서 기록한다. 저장 실패 시 알림톡을 보내지 않는다.
+            await postApplicationProgress({
+                action: 'REGISTER_TRACKING',
+                applicationId: editingTracking.applicationId,
+                company: editingTracking.company,
+                number: editingTracking.number,
+            });
 
             toast.success('운송장 정보가 등록되었습니다.');
 
@@ -284,7 +264,7 @@ export default function AdvertiserApplicantsPage() {
 
         } catch (error) {
             console.error('Tracking update error:', error);
-            toast.error('운송장 등록 중 오류가 발생했습니다.');
+            toast.error(error instanceof Error ? error.message : '운송장 등록 중 오류가 발생했습니다.');
         }
     };
 
