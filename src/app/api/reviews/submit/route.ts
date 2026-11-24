@@ -6,6 +6,7 @@ import { getCampaignReviewMode, isNaverBlogPostUrl } from '@/lib/campaignPurchas
 import { sendAdminPurchaseReviewEmail } from '@/lib/email';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isOwnReviewProofPath } from '@/lib/reviews/proofStorage';
 
 interface SubmitReviewBody {
   applicationId?: number;
@@ -31,10 +32,6 @@ const isHttpUrl = (value: string) => {
   }
 };
 
-const getAllowedUploadPrefix = (campaignId: number, userId: string) => {
-  const supabaseUrl = String(process.env.NEXT_PUBLIC_SUPABASE_URL || '').replace(/\/$/, '');
-  return `${supabaseUrl}/storage/v1/object/public/files/reviews/${campaignId}/${userId}/`;
-};
 
 export async function GET() {
   const supabase = await createClient();
@@ -133,7 +130,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: '리뷰 주소를 입력해 주세요.' }, { status: 400 });
   }
 
-  const allowedUploadPrefix = getAllowedUploadPrefix(campaignId, user.id);
   const requestedProofUrls = isPurchaseExperience
     ? [body.purchaseAmountProofUrl, body.purchaseReviewProofUrl]
     : reviewMode === 'LINK' && Array.isArray(body.mediaUrls) ? body.mediaUrls.slice(0, 5) : [];
@@ -141,7 +137,7 @@ export async function POST(request: NextRequest) {
     .map((value) => cleanText(value, 3000))
     .filter(Boolean);
 
-  if (proofUrls.some((url) => !url.startsWith(allowedUploadPrefix))) {
+  if (proofUrls.some((path) => !isOwnReviewProofPath(path, campaignId, user.id))) {
     return NextResponse.json({ error: '이 캠페인에 직접 업로드한 증빙 파일만 등록할 수 있습니다.' }, { status: 400 });
   }
   if (isPurchaseExperience && proofUrls.length !== 2) {
@@ -176,8 +172,8 @@ export async function POST(request: NextRequest) {
       campaign_id: campaignId,
       post_url: reviewUrl || 'PURCHASE_PROOF',
       description: reviewContent,
-      // 구매형은 [구매금액 증빙, 구매평 증빙] 순서이므로 결제 정보가 없는 구매평 증빙을 썸네일로 쓴다.
-      thumbnail_url: (isPurchaseExperience ? proofUrls[1] : proofUrls[0]) || null,
+      // 증빙은 private 버킷 경로라 공개 썸네일로 쓸 수 없다. 공개면에는 노출하지 않는다.
+      thumbnail_url: null,
       title: campaign.title,
       author_name: profile.nickname || profile.name || '인플루언서',
       status: 'PENDING',

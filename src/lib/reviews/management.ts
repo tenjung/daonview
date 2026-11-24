@@ -5,6 +5,7 @@ import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 import { isPurchaseReviewCampaign } from '@/lib/campaignPurchase';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ManagedReview } from '@/types/reviewManagement';
+import { REVIEW_PROOF_BUCKET, isReviewProofPath } from '@/lib/reviews/proofStorage';
 
 interface ReviewRow {
   id: number;
@@ -48,7 +49,25 @@ const pairKey = (campaignId: number | null, userId: string | null) => `${campaig
 
 const parseProofUrls = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
-  return value.filter((item): item is string => typeof item === 'string' && /^https?:\/\//i.test(item));
+  return value.filter((item): item is string => typeof item === 'string' && (/^https?:\/\//i.test(item) || isReviewProofPath(item)));
+};
+
+const SIGNED_PROOF_URL_TTL_SECONDS = 60 * 10;
+
+/** private 버킷 경로는 짧은 서명 URL로 바꾸고, 이전에 저장된 http(s) URL은 그대로 둔다. */
+const signReviewProofPaths = async (admin: ReturnType<typeof createAdminClient>, values: string[]) => {
+  const paths = Array.from(new Set(values.filter(isReviewProofPath)));
+  const signed = new Map<string, string>();
+  if (paths.length === 0) return signed;
+  const { data, error } = await admin.storage.from(REVIEW_PROOF_BUCKET).createSignedUrls(paths, SIGNED_PROOF_URL_TTL_SECONDS);
+  if (error) {
+    console.error('Review proof signing error:', error);
+    return signed;
+  }
+  for (const item of data || []) {
+    if (item.path && item.signedUrl) signed.set(item.path, item.signedUrl);
+  }
+  return signed;
 };
 
 export async function getManagedReviewsForActor(actorId: string, authenticated?: Awaited<ReturnType<typeof requireRequestUser>>): Promise<ManagedReview[]> {
@@ -115,12 +134,16 @@ export async function getManagedReviewsForActor(actorId: string, authenticated?:
     if (!applications.has(key)) applications.set(key, application);
   }
 
+  const allProofValues = Array.from(applications.values()).flatMap((application) => parseProofUrls(application.review_media_urls));
+  const signedProofUrls = await signReviewProofPaths(admin, allProofValues);
+  const resolveProofUrl = (value: string) => (isReviewProofPath(value) ? signedProofUrls.get(value) || '' : value);
+
   return reviews.map((review) => {
     const campaign = review.campaign_id == null ? null : campaigns.get(review.campaign_id) || null;
     const profile = review.user_id ? profiles.get(review.user_id) || null : null;
     const application = applications.get(pairKey(review.campaign_id, review.user_id)) || null;
     const isPurchaseExperience = isPurchaseReviewCampaign(campaign);
-    const proofUrls = parseProofUrls(application?.review_media_urls);
+    const proofUrls = parseProofUrls(application?.review_media_urls).map(resolveProofUrl).filter(Boolean);
 
     return {
       id: review.id,
@@ -131,7 +154,7 @@ export async function getManagedReviewsForActor(actorId: string, authenticated?:
       title: review.title || campaign?.title || null,
       author_name: review.author_name || profile?.nickname || profile?.name || null,
       author_email: profile?.email || null,
-      thumbnail_url: review.thumbnail_url,
+      thumbnail_url: review.thumbnail_url && isReviewProofPath(review.thumbnail_url) ? null : review.thumbnail_url,
       status: String(review.status || 'PENDING').toUpperCase(),
       created_at: review.created_at,
       is_purchase_experience: isPurchaseExperience,

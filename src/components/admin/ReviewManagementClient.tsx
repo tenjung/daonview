@@ -155,7 +155,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                           {review.proof_urls.slice(0, 2).map((url, index) => (
                             <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
                               <div className="relative aspect-[4/3] w-full">
-                                <Image src={url} alt={index === 0 ? '구매금액 증빙' : '구매평 증빙'} fill sizes="(max-width: 640px) 100vw, 40vw" className="object-cover transition-transform group-hover:scale-[1.02]" />
+                                <Image src={url} alt={index === 0 ? '구매금액 증빙' : '구매평 증빙'} fill unoptimized sizes="(max-width: 640px) 100vw, 40vw" className="object-cover transition-transform group-hover:scale-[1.02]" />
                               </div>
                               <span className="block px-3 py-2 text-xs font-bold text-gray-700">{index === 0 ? '1. 구매금액 스샷' : '2. 구매평 스샷'}</span>
                             </a>

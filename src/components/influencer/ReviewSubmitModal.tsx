@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { X, Upload, Loader2, Camera, Link as LinkIcon } from 'lucide-react';
 import { isNaverBlogPostUrl, type CampaignReviewMode } from '@/lib/campaignPurchase';
+import { REVIEW_PROOF_BUCKET, getReviewProofPathPrefix } from '@/lib/reviews/proofStorage';
 
 interface ReviewSubmitModalProps {
     isOpen: boolean;
@@ -45,6 +46,8 @@ export default function ReviewSubmitModal({
     const [mediaUrls, setMediaUrls] = useState<string[]>([]);
     const [purchaseAmountProofUrl, setPurchaseAmountProofUrl] = useState('');
     const [purchaseReviewProofUrl, setPurchaseReviewProofUrl] = useState('');
+    // 증빙은 private 버킷 경로로 저장하므로, 미리보기는 업로드한 로컬 파일의 object URL로만 보여준다.
+    const [previewUrls, setPreviewUrls] = useState<Record<string, string>>({});
     const [bankName, setBankName] = useState('');
     const [accountHolder, setAccountHolder] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -106,21 +109,19 @@ export default function ReviewSubmitModal({
         try {
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
-                const fileExt = file.name.split('.').pop()?.toLowerCase();
+                const fileExt = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
                 const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-                const filePath = `reviews/${campaignId}/${user.id}/${fileName}`;
+                const filePath = `${getReviewProofPathPrefix(campaignId, user.id)}${fileName}`;
 
                 const { error: uploadError } = await supabase.storage
-                    .from('files') // 기존 버킷 활용
+                    .from(REVIEW_PROOF_BUCKET)
                     .upload(filePath, file);
 
                 if (uploadError) throw uploadError;
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('files')
-                    .getPublicUrl(filePath);
-
-                newUrls.push(publicUrl);
+                const previewUrl = URL.createObjectURL(file);
+                setPreviewUrls(prev => ({ ...prev, [filePath]: previewUrl }));
+                newUrls.push(filePath);
             }
 
             setMediaUrls(prev => [...prev, ...newUrls]);
@@ -153,21 +154,19 @@ export default function ReviewSubmitModal({
 
         setIsUploading(true);
         try {
-            const fileExt = file.name.split('.').pop()?.toLowerCase();
+            const fileExt = (file.name.split('.').pop() || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
             const fileName = `${Date.now()}_${slot.toLowerCase()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-            const filePath = `reviews/${campaignId}/${user.id}/${fileName}`;
+            const filePath = `${getReviewProofPathPrefix(campaignId, user.id)}${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('files')
+                .from(REVIEW_PROOF_BUCKET)
                 .upload(filePath, file);
             if (uploadError) throw uploadError;
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('files')
-                .getPublicUrl(filePath);
-
-            if (slot === 'PAYMENT') setPurchaseAmountProofUrl(publicUrl);
-            else setPurchaseReviewProofUrl(publicUrl);
+            const previewUrl = URL.createObjectURL(file);
+            setPreviewUrls(prev => ({ ...prev, [filePath]: previewUrl }));
+            if (slot === 'PAYMENT') setPurchaseAmountProofUrl(filePath);
+            else setPurchaseReviewProofUrl(filePath);
             toast.success('증빙 이미지가 업로드되었습니다.');
         } catch (error) {
             console.error('Single proof upload error:', error);
@@ -305,7 +304,7 @@ export default function ReviewSubmitModal({
                                     </p>
                                     {purchaseAmountProofUrl ? (
                                         <div className="relative h-24 rounded-lg overflow-hidden border border-slate-200 group">
-                                            <img src={purchaseAmountProofUrl} alt="구매금액 증빙" className="w-full h-full object-contain" />
+                                            <img src={previewUrls[purchaseAmountProofUrl]} alt="구매금액 증빙" className="w-full h-full object-contain" />
                                             <button
                                                 type="button"
                                                 onClick={() => setPurchaseAmountProofUrl('')}
@@ -334,7 +333,7 @@ export default function ReviewSubmitModal({
                                     </p>
                                     {purchaseReviewProofUrl ? (
                                         <div className="relative h-24 rounded-lg overflow-hidden border border-slate-200 group">
-                                            <img src={purchaseReviewProofUrl} alt="구매평 증빙" className="w-full h-full object-contain" />
+                                            <img src={previewUrls[purchaseReviewProofUrl]} alt="구매평 증빙" className="w-full h-full object-contain" />
                                             <button
                                                 type="button"
                                                 onClick={() => setPurchaseReviewProofUrl('')}
@@ -382,7 +381,7 @@ export default function ReviewSubmitModal({
                             <div className="grid grid-cols-5 gap-2">
                                 {mediaUrls.map((url, index) => (
                                     <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-100 group">
-                                        <img src={url} alt={`media-${index}`} className="w-full h-full object-cover" />
+                                        <img src={previewUrls[url]} alt={`media-${index}`} className="w-full h-full object-cover" />
                                         <button
                                             type="button"
                                             onClick={() => removeMedia(url)}
