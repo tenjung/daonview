@@ -1,8 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
-import { ALIMTALK_PAUSED, sendInfluencerSelectedAlimtalk } from '@/lib/alimtalk';
-import { normalizePurchaseLinkUrl } from '@/lib/purchaseLink';
-import { getCampaignGuideContent } from '@/lib/campaignEmailContent';
+import { buildSelectionContent } from '@/lib/selectionContent';
 import { trackSelectionEmail } from '@/lib/selectionEmailDelivery';
 
 export interface SelectionCampaignOptions {
@@ -43,28 +41,9 @@ export async function notifySelectedApplication(
   userId: string,
   application: SelectionApplication,
 ): Promise<SendSelectionNotificationResult> {
-  const options = getSelectionCampaignOptions(campaign.campaign_options);
-  const individual = Boolean(options?.step1Data?.productUrlIndividual);
-  const assignedPurchases = individual && Array.isArray(application.assigned_purchase_links)
-    ? application.assigned_purchase_links
-      .map((item) => ({ optionLabel: item?.optionLabel, url: normalizePurchaseLinkUrl(item?.url) }))
-      .filter((item) => item.optionLabel && item.url)
-    : [];
-  const assignedPurchaseLink = individual
-    ? normalizePurchaseLinkUrl(application.assigned_purchase_link_url)
-    : '';
-  if (individual && (
-    (application.assigned_purchase_links?.length && assignedPurchases.length !== application.assigned_purchase_links.length) ||
-    (!assignedPurchases.length && !assignedPurchaseLink)
-  )) {
-    return { success: false, errors: ['배정된 구매링크를 확인할 수 없습니다.'] };
-  }
-
-  const deadline = new Date(campaign.end_date || '');
-  const deadlineDate = Number.isNaN(deadline.getTime()) ? '캠페인 상세 페이지 참조' : new Intl.DateTimeFormat('ko-KR', {
-    timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-  }).format(deadline);
-  const { purchaseNotes, guideSummary } = getCampaignGuideContent(campaign.campaign_options);
+  const built = buildSelectionContent(campaign, application);
+  if (!built.ok) return { success: false, errors: [built.error] };
+  const content = built.content;
 
   try {
     return await sendSelectionNotification({
@@ -72,15 +51,15 @@ export async function notifySelectedApplication(
       userId,
       campaignId: campaign.id,
       campaignTitle: campaign.title,
-      providedItems: campaign.experience_details || campaign.product_name || '캠페인 상세 페이지 참조',
-      deadlineDate,
-      assignedOptionLabel: application.assigned_option_label,
-      assignedPurchaseLink,
-      assignedPurchases,
-      commonPurchaseLink: individual ? undefined : normalizePurchaseLinkUrl(options?.step1Data?.productUrl),
-      campaignUrl: `https://daonview.com/campaigns/${campaign.id}#guide`,
-      purchaseNotes,
-      guideSummary,
+      providedItems: content.providedItems,
+      deadlineDate: content.deadlineDate,
+      assignedOptionLabel: content.assignedOptionLabel,
+      assignedPurchaseLink: content.assignedPurchaseLink,
+      assignedPurchases: content.assignedPurchases,
+      commonPurchaseLink: content.commonPurchaseLink,
+      campaignUrl: content.campaignUrl,
+      purchaseNotes: content.purchaseNotes,
+      guideSummary: content.guideSummary,
     });
   } catch (error) {
     console.error('Selection notification failed:', { campaignId: campaign.id, error });
@@ -117,7 +96,7 @@ export async function sendSelectionNotification(
 
   const { data: userProfile, error: profileError } = await admin
     .from('profiles')
-    .select('id, phone_number, name, nickname, email')
+    .select('id, name, nickname, email')
     .eq('id', params.userId)
     .maybeSingle();
 
@@ -132,25 +111,7 @@ export async function sendSelectionNotification(
   const assignedOptionLabel = params.assignedOptionLabel || undefined;
   const assignedPurchaseLink = params.assignedPurchaseLink || undefined;
 
-  if (!ALIMTALK_PAUSED && userProfile.phone_number) {
-    const talkResult = await sendInfluencerSelectedAlimtalk(
-      userProfile.phone_number,
-      recipientName,
-      params.campaignTitle,
-      params.campaignId,
-      {
-        assignedOptionLabel,
-        assignedPurchaseLink,
-      }
-    );
-
-    if (!talkResult.success) {
-      errors.push(`카카오 알림톡 실패: ${talkResult.error || 'unknown error'}`);
-    }
-  } else if (!ALIMTALK_PAUSED) {
-    errors.push('카카오 알림톡 스킵: 전화번호 없음');
-  }
-
+  // 카카오 알림톡은 자동 발송하지 않는다. 메일 반송 보류 건만 관리자가 수동 발송(selectionKakaoServer).
   if (userProfile.email) {
     try {
       const emailResult = await trackSelectionEmail(params.applicationId, userProfile.email,

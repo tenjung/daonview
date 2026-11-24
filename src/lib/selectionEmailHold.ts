@@ -11,6 +11,26 @@ export interface SelectionEmailHold {
   reason: keyof typeof SELECTION_EMAIL_HOLD_REASONS;
   occurredAt: string;
   smtpStatus: string | null;
+  kakao: { status: SelectionKakaoStatus; at: string } | null;
+}
+export const SELECTION_KAKAO_STATUS_LABELS = {
+  PREPARED: '카톡 발송 중', SENT: '카톡 발송됨', FAILED: '카톡 발송 실패', UNKNOWN: '카톡 결과 확인 필요',
+} as const;
+export type SelectionKakaoStatus = keyof typeof SELECTION_KAKAO_STATUS_LABELS;
+function normalizeKakao(raw: unknown): SelectionEmailHold['kakao'] {
+  const rows = Array.isArray(raw) ? raw as Array<Record<string, unknown>> : [];
+  const latest = rows.filter(row => typeof row?.id === 'number' && typeof row?.created_at === 'string')
+    .sort((a, b) => Number(b.id) - Number(a.id))[0];
+  if (!latest) return null;
+  const status = String(latest.status || '').toUpperCase();
+  return {
+    status: status in SELECTION_KAKAO_STATUS_LABELS ? status as SelectionKakaoStatus : 'UNKNOWN',
+    at: typeof latest.completed_at === 'string' ? latest.completed_at : String(latest.created_at),
+  };
+}
+/** 재발송 가능 여부: 기록 없음 또는 접수 거부(FAILED)만 허용. DB 유니크 인덱스와 같은 기준. */
+export function canSendSelectionKakao(hold: SelectionEmailHold) {
+  return !hold.kakao || hold.kakao.status === 'FAILED';
 }
 export function normalizeSelectionEmailHold(raw: unknown): SelectionEmailHold {
   if (!raw || typeof raw !== 'object') throw new Error('Invalid hold record');
@@ -23,6 +43,7 @@ export function normalizeSelectionEmailHold(raw: unknown): SelectionEmailHold {
     id: r.id, applicationId: Number(r.application_id), recipient: feedback.recipient,
     reason: reason in SELECTION_EMAIL_HOLD_REASONS ? reason as SelectionEmailHold['reason'] : 'OTHER',
     occurredAt: feedback.occurred_at, smtpStatus: typeof feedback.smtp_status === 'string' ? feedback.smtp_status : null,
+    kakao: normalizeKakao(r.kakao),
   };
 }
 export function isSelectedApplication(status: string) {

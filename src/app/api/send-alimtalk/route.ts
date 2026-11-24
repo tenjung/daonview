@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
             );
         }
 
+        // 선정 안내 템플릿은 관리자 전용 서버 경로(/api/applications/[id]/selection-kakao)로만 발송한다.
+        const selectionTemplate = process.env.SOLAPI_TEMPLATE_INFLUENCER_SELECTED;
+        if (templateCode === 'INFLUENCER_SELECTED' || (selectionTemplate && templateCode === selectionTemplate)) {
+            return NextResponse.json(
+                { success: false, error: '허용되지 않은 템플릿입니다.' },
+                { status: 403 }
+            );
+        }
+
         // 환경 변수 검증
         if (!SOLAPI_API_KEY || !SOLAPI_API_SECRET || !SOLAPI_SENDER_PHONE || !SOLAPI_KAKAO_CHANNEL_ID) {
             console.error('솔라피 환경 변수가 설정되지 않았습니다.');

@@ -26,7 +26,7 @@ export async function getCampaignEmailHolds(campaignId: number) {
   const holds = [];
   for (let offset = 0; ; offset += 500) {
     const { data, error } = await admin.from('selection_email_holds')
-      .select('id,application_id,feedback:email_feedback_events(recipient,reason,occurred_at,smtp_status),application:applications!inner(campaign_id,status)')
+      .select('id,application_id,feedback:email_feedback_events(recipient,reason,occurred_at,smtp_status),kakao:selection_kakao_deliveries(id,status,created_at,completed_at),application:applications!inner(campaign_id,status)')
       .eq('application.campaign_id', campaignId).is('resolved_at', null).order('id').range(offset, offset + 499);
     if (error) throw new Error('보류 내역을 불러오지 못했습니다.');
     for (const row of data || []) {

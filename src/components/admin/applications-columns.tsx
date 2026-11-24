@@ -15,13 +15,14 @@ import {
 } from "@/components/data-table"
 import ApplicationStatusBadge from "@/components/admin/ApplicationStatusBadge"
 import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
-import { getApplicationManagementStatus, SELECTION_EMAIL_HOLD_REASONS, type SelectionEmailHold } from '@/lib/selectionEmailHold'
+import { canSendSelectionKakao, getApplicationManagementStatus, SELECTION_EMAIL_HOLD_REASONS, SELECTION_KAKAO_STATUS_LABELS, type SelectionEmailHold } from '@/lib/selectionEmailHold'
 
 import { SatisfactionLevel } from "@/types/review"
 
 interface ColumnContext {
     emailHolds?: Map<number, SelectionEmailHold>
     onResolveEmailHold?: (hold: SelectionEmailHold) => void
+    onSendSelectionKakao?: (hold: SelectionEmailHold) => void
     onApprove: (app: Application) => void
     onReject: (id: number, name: string) => void
     onCancel: (id: number, name: string) => void
@@ -386,7 +387,13 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                     <span>{SELECTION_EMAIL_HOLD_REASONS[hold.reason]}</span>
                     <span className="break-all text-gray-600">{hold.recipient}</span>
                     <time dateTime={hold.occurredAt} className="text-gray-500">{new Date(hold.occurredAt).toLocaleString('ko-KR')}</time>
-                    {context.onResolveEmailHold && <Button variant="outline" size="sm" className="mt-1 h-7 w-fit text-xs" onClick={() => context.onResolveEmailHold?.(hold)}>보류 해제</Button>}
+                    {(context.onSendSelectionKakao || context.onResolveEmailHold) && <div className="mt-1 flex flex-wrap gap-1">
+                        {context.onSendSelectionKakao && canSendSelectionKakao(hold) && <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={() => context.onSendSelectionKakao?.(hold)}>{hold.kakao ? '카톡 재발송' : '카톡 발송'}</Button>}
+                        {context.onResolveEmailHold && <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={() => context.onResolveEmailHold?.(hold)}>보류 해제</Button>}
+                    </div>}
+                    {hold.kakao && <span className={hold.kakao.status === 'SENT' ? 'text-green-700' : hold.kakao.status === 'FAILED' ? 'text-red-600' : 'text-amber-700'}>
+                        {SELECTION_KAKAO_STATUS_LABELS[hold.kakao.status]} · <time dateTime={hold.kakao.at}>{new Date(hold.kakao.at).toLocaleString('ko-KR')}</time>
+                    </span>}
                 </div>;
             },
             size: 120,

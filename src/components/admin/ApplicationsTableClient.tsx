@@ -38,6 +38,12 @@ interface ApplicationsTableClientProps {
     recruitCount: number;
 }
 
+function maskPhone(phone?: string | null) {
+    const digits = String(phone || '').replace(/[^0-9]/g, '');
+    if (!/^01[0-9]{8,9}$/.test(digits)) return '번호 없음 (발송 불가)';
+    return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
+}
+
 type FilterType = 'all' | 'pending' | 'approved' | 'held' | 'rejected' | 'cancelled';
 
 import ReputationDetailModal from './ReputationDetailModal';
@@ -94,6 +100,28 @@ export default function ApplicationsTableClient({
             toast.error(error instanceof Error ? error.message : '보류 해제에 실패했습니다.');
         } finally {
             setIsResolvingHold(false);
+            await refreshEmailHolds();
+        }
+    };
+    const [kakaoTarget, setKakaoTarget] = useState<SelectionEmailHold | null>(null);
+    const [isSendingKakao, setIsSendingKakao] = useState(false);
+    const kakaoTargetApplication = kakaoTarget ? applications.find(app => app.id === kakaoTarget.applicationId) : undefined;
+    const handleSendKakao = async () => {
+        if (!kakaoTarget || isSendingKakao) return;
+        setIsSendingKakao(true);
+        try {
+            const response = await fetch(`/api/applications/${kakaoTarget.applicationId}/selection-kakao`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campaignId: Number(campaignId), holdId: kakaoTarget.id }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(result.error || '알림톡 발송에 실패했습니다.');
+            setKakaoTarget(null);
+            toast.success('선정 안내 알림톡을 발송했습니다. 확인 후 보류를 해제해 주세요.');
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : '알림톡 발송에 실패했습니다.');
+        } finally {
+            setIsSendingKakao(false);
             await refreshEmailHolds();
         }
     };
@@ -781,7 +809,8 @@ export default function ApplicationsTableClient({
     // 컬럼 정의
     const columns = useMemo(() => createApplicationColumns({
         emailHolds: holdsByApplication,
-        onResolveEmailHold: canResolveEmailHolds ? (hold) => { setHoldTarget(hold); setHoldResolutionReason(''); } : undefined,
+        onResolveEmailHold: canResolveEmailHolds ? (hold) => { setHoldTarget(hold); setHoldResolutionReason(hold.kakao?.status === 'SENT' ? '카카오 알림톡으로 선정 안내' : ''); } : undefined,
+        onSendSelectionKakao: canResolveEmailHolds ? (hold) => setKakaoTarget(hold) : undefined,
         onApprove: handleApprove,
         onReject: handleReject,
         onCancel: handleCancel,
@@ -866,6 +895,22 @@ export default function ApplicationsTableClient({
                     <label htmlFor="hold-resolution-reason" className="text-sm font-medium">해제 사유</label>
                     <textarea id="hold-resolution-reason" value={holdResolutionReason} onChange={(event) => setHoldResolutionReason(event.target.value)} maxLength={500} rows={3} className="w-full rounded-md border p-3 text-sm" disabled={isResolvingHold} />
                     <Button onClick={() => void handleResolveHold()} disabled={isResolvingHold || !holdResolutionReason.trim()}>{isResolvingHold ? '처리 중…' : '보류 해제'}</Button>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={Boolean(kakaoTarget)} onOpenChange={(open) => { if (!open && !isSendingKakao) setKakaoTarget(null); }}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>선정 안내 알림톡 발송</DialogTitle>
+                        <DialogDescription>메일이 반송된 선정자에게 승인된 선정 안내 템플릿으로 1회 발송합니다. 실패 시 문자로 대체 발송되지 않습니다.</DialogDescription>
+                    </DialogHeader>
+                    <dl className="grid grid-cols-[72px_1fr] gap-y-1 text-sm">
+                        <dt className="text-gray-500">수신자</dt>
+                        <dd>{kakaoTargetApplication?.user?.nickname || kakaoTargetApplication?.user?.name || '인플루언서'}</dd>
+                        <dt className="text-gray-500">휴대폰</dt>
+                        <dd>{maskPhone(kakaoTargetApplication?.user?.phone_number)}</dd>
+                    </dl>
+                    <Button onClick={() => void handleSendKakao()} disabled={isSendingKakao}>{isSendingKakao ? '발송 중…' : '알림톡 발송'}</Button>
                 </DialogContent>
             </Dialog>
 
