@@ -16,6 +16,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import PrivacyContent from '@/components/legal/PrivacyContent';
 import TermsContent from '@/components/legal/TermsContent';
+import { getAuthPasswordErrorMessage, getPasswordPolicyError, PASSWORD_MIN_LENGTH, PASSWORD_RULE_TEXT } from '@/lib/passwordPolicy';
 
 type UserType = 'INFLUENCER' | 'ADVERTISER';
 
@@ -125,8 +126,9 @@ function SignupForm() {
             return;
         }
 
-        if (password.length < 6) {
-            setPasswordError('비밀번호는 최소 6자 이상이어야 합니다.');
+        const policyError = getPasswordPolicyError(password);
+        if (policyError) {
+            setPasswordError(policyError);
             setPasswordStrength('weak');
             return;
         }
@@ -170,6 +172,13 @@ function SignupForm() {
 
         if (password !== passwordConfirm) {
             toast.error('비밀번호가 일치하지 않습니다.');
+            setLoading(false);
+            return;
+        }
+
+        const policyError = getPasswordPolicyError(password);
+        if (policyError) {
+            toast.error(policyError);
             setLoading(false);
             return;
         }
@@ -332,7 +341,13 @@ function SignupForm() {
 
         } catch (error: any) {
             console.error('Signup Error:', error);
-            toast.error(`회원가입 실패: ${error.message}`);
+            const passwordMessage = getAuthPasswordErrorMessage(error);
+            if (passwordMessage) {
+                setPasswordError(passwordMessage);
+                toast.error(passwordMessage);
+            } else {
+                toast.error(`회원가입 실패: ${error.message}`);
+            }
         } finally {
             setLoading(false);
         }
@@ -474,10 +489,10 @@ function SignupForm() {
                                     ? 'border-green-500 focus:border-green-500 focus:ring-green-500/10'
                                     : 'border-border focus:border-primary focus:ring-primary/10'
                                 }`}
-                            placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                            placeholder={PASSWORD_RULE_TEXT}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            minLength={6}
+                            minLength={PASSWORD_MIN_LENGTH}
                             required
                         />
                         {password && (

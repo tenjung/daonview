@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase/client';
+import { getAuthPasswordErrorMessage, getPasswordPolicyError, PASSWORD_MIN_LENGTH, PASSWORD_RULE_TEXT } from '@/lib/passwordPolicy';
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
@@ -51,8 +52,9 @@ export default function UpdatePasswordPage() {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password.length < 6) {
-      toast.error('비밀번호는 최소 6자 이상이어야 합니다.');
+    const policyError = getPasswordPolicyError(password);
+    if (policyError) {
+      toast.error(policyError);
       return;
     }
 
@@ -78,8 +80,9 @@ export default function UpdatePasswordPage() {
       router.push('/login');
     } catch (error) {
       console.error('Password update failed:', error);
+      const passwordMessage = getAuthPasswordErrorMessage(error);
       toast.error('비밀번호 변경에 실패했습니다.', {
-        description: '재설정 링크를 다시 요청한 뒤 시도해주세요.',
+        description: passwordMessage || '재설정 링크를 다시 요청한 뒤 시도해주세요.',
       });
     } finally {
       setLoading(false);
@@ -110,7 +113,8 @@ export default function UpdatePasswordPage() {
                 type="password"
                 id="password"
                 className="w-full px-4 py-3 border border-border rounded-lg text-base transition-all bg-white focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 placeholder:text-slate-300"
-                placeholder="새 비밀번호를 입력해주세요"
+                placeholder={PASSWORD_RULE_TEXT}
+                minLength={PASSWORD_MIN_LENGTH}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
