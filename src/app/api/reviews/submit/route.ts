@@ -176,7 +176,8 @@ export async function POST(request: NextRequest) {
       campaign_id: campaignId,
       post_url: reviewUrl || 'PURCHASE_PROOF',
       description: reviewContent,
-      thumbnail_url: proofUrls[0] || null,
+      // 구매형은 [구매금액 증빙, 구매평 증빙] 순서이므로 결제 정보가 없는 구매평 증빙을 썸네일로 쓴다.
+      thumbnail_url: (isPurchaseExperience ? proofUrls[1] : proofUrls[0]) || null,
       title: campaign.title,
       author_name: profile.nickname || profile.name || '인플루언서',
       status: 'PENDING',

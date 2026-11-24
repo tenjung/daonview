@@ -26,6 +26,8 @@ const getWeeklyReviewSnapshot = unstable_cache(async () => {
         .from('reviews')
         .select('id, post_url, platform, title, description, thumbnail_url, author_name, author_profile_url, is_featured, view_count, like_count, created_at')
         .eq('status', 'APPROVED')
+        // 구매형 리뷰는 증빙 스샷(주문·결제 정보)이 포함되어 공개면에 노출하지 않는다.
+        .neq('platform', 'PURCHASE')
         .order('created_at', { ascending: false })
         .limit(1000);
 
@@ -34,7 +36,7 @@ const getWeeklyReviewSnapshot = unstable_cache(async () => {
         return [];
     }
     return reviews || [];
-}, ['reviews-weekly-snapshot-v1'], {
+}, ['reviews-weekly-snapshot-v2'], {
     revalidate: WEEKLY_REVALIDATE_SECONDS,
     tags: ['reviews-snapshot'],
 });
