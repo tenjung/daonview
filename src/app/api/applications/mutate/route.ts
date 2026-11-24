@@ -55,10 +55,13 @@ export async function POST(request: Request) {
     // Preserve the existing exact-count milestone notification, without retrying the application.
     let notificationWarning: string | undefined;
     try {
-      const { count, error } = await supabase.from('applications').select('id', { count: 'exact', head: true }).eq('campaign_id', body.campaignId);
+      // 사용자 세션의 applications count는 RLS로 본인 신청만 세므로, 신청 저장 후 계산 컬럼(applicant_count)을 다시 읽는다.
+      const latest = await supabase.from('campaigns').select('applicant_count').eq('id', body.campaignId).maybeSingle();
+      if (latest.error) throw latest.error;
+      const rawCount = latest.data?.applicant_count;
+      const count = typeof rawCount === 'number' ? rawCount : typeof rawCount === 'string' && rawCount.trim() !== '' ? Number(rawCount) : null;
       const target = getCampaignRecruitTarget(campaign);
-      if (error) throw error;
-      if (count !== null && target && campaign.created_by) {
+      if (count !== null && Number.isFinite(count) && target && campaign.created_by) {
         const percent = [50, 100, 120].find(value => Math.floor(target * value / 100) === count);
         if (percent) {
           // notifications INSERT는 관리자 정책만 허용하므로, 신청 저장 후 서버 권한으로 광고주 알림만 생성한다.

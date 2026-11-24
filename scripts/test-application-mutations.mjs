@@ -2,10 +2,11 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { load } from '../tests/helpers/load-typescript.mjs';
 
-function fixture({ anonymous = false, full = false, cancelled = false, otherOwner = false, cacheFailure = false } = {}) {
-  const writes = [], invalidations = [], reads = [];
-  // 선정 인원은 RLS 영향이 없는 계산 컬럼(selected_count)으로 판정한다.
-  const campaign = { id: 44, created_by: 'brand', status: 'RECRUITING', type: 'VISIT', platform: 'BLOG', total_recruitment: 1, end_date: '2099-12-31', applicant_count: 3, selected_count: full ? 1 : 0, campaign_options: {} };
+function fixture({ anonymous = false, full = false, cancelled = false, otherOwner = false, cacheFailure = false, target = 1, applicantCount = 3 } = {}) {
+  const writes = [], invalidations = [], reads = [], notices = [];
+  // 선정 인원·신청 수는 RLS 영향이 없는 계산 컬럼(selected_count, applicant_count)으로 판정한다.
+  const campaign = { id: 44, title: '테스트', created_by: 'brand', status: 'RECRUITING', type: 'VISIT', platform: 'BLOG', total_recruitment: target, end_date: '2099-12-31', applicant_count: applicantCount, selected_count: full ? target : 0, campaign_options: {} };
+  const adminClient = { from(table) { return { insert: async (data) => { notices.push({ table, data }); return { error: null }; } }; } };
   const supabase = { from(table) {
     let operation = 'read', payload, columns = ''; const filters = [];
     const q = { select(cols) { if (typeof cols === 'string') columns = cols; return this; }, eq(...args) { filters.push(args); return this; }, in(...args) { filters.push(args); return this; }, order() { return this; }, limit() { return this; },
@@ -26,8 +27,9 @@ function fixture({ anonymous = false, full = false, cancelled = false, otherOwne
   const { POST } = load('src/app/api/applications/mutate/route.ts', {
     '@/lib/auth/requestAuth': { getRequestAuth: async () => ({ supabase, user: anonymous ? null : { id: 'actor' }, profile: { phone_number: '01012345678', blog_url: 'https://example.com' }, role: 'INFLUENCER', profileError: null }) },
     '@/lib/campaignCache': { invalidatePublicCampaigns: ids => { invalidations.push(ids); return cacheFailure ? '저장은 완료됐으나 캐시 실패' : undefined; } },
+    '@/lib/supabase/admin': { createAdminClient: () => adminClient },
   });
-  return { writes, invalidations, reads, run: body => POST(new Request('https://test.local', { method: 'POST', body: JSON.stringify(body) })) };
+  return { writes, invalidations, reads, notices, run: body => POST(new Request('https://test.local', { method: 'POST', body: JSON.stringify(body) })) };
 }
 const apply = { action: 'APPLY', campaignId: 44, selectedOption: null, message: null, user_id: 'forged', status: 'APPROVED' };
 test('application uses latest capacity and authenticated identity; full and anonymous writes denied', async () => {
@@ -36,6 +38,18 @@ test('application uses latest capacity and authenticated identity; full and anon
   assert(f.reads.some(q => q.table === 'campaigns' && q.columns.includes('selected_count')));
   assert(!f.reads.some(q => q.columns.includes('applications(count)')));
   for (const options of [{ full: true }, { anonymous: true }]) { const blocked = fixture(options); assert((await blocked.run(apply)).status >= 400); assert.equal(blocked.writes.length, 0); }
+});
+test('milestone notice uses re-read applicant_count, not the RLS-limited session count', async () => {
+  const half = fixture({ target: 10, applicantCount: 5 });
+  assert.equal((await half.run(apply)).status, 200);
+  assert.equal(half.notices.length, 1);
+  assert.equal(half.notices[0].data.user_id, 'brand');
+  assert.match(half.notices[0].data.title, /50%/);
+  assert(!half.reads.some(q => q.table === 'applications' && q.filters.some(([key]) => key === 'campaign_id')));
+  assert(half.reads.some(q => q.table === 'campaigns' && q.columns === 'applicant_count'));
+  const none = fixture({ target: 10, applicantCount: 4 });
+  assert.equal((await none.run(apply)).status, 200);
+  assert.equal(none.notices.length, 0);
 });
 test('cancel is owner scoped and conditional on still pending; races do not invalidate', async () => {
   const body = { action: 'CANCEL', applicationId: 5 };
