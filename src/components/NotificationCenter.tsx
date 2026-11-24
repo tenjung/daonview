@@ -77,15 +77,17 @@ export default function NotificationCenter() {
   const role: UserRole = rawRole === 'ADMIN' || rawRole === 'ADVERTISER' ? rawRole : 'INFLUENCER';
   const roleTabs = ROLE_TAB_CONFIG[role];
 
+  // 사용자 객체는 세션 갱신·프로필 로드마다 바뀌므로, 사용자 ID가 바뀔 때만 조회·구독한다.
+  const userId = user?.id;
   useEffect(() => {
-    if (user) {
-      fetchNotifications(user.id);
-      
-      // 실시간 구독 시작 및 클린업 반환
-      const unsubscribe = useNotificationStore.getState().subscribeToNotifications(user.id);
+    if (userId) {
+      fetchNotifications(userId);
+
+      // 실시간 구독 시작 및 클린업 반환 (같은 사용자 구독은 스토어에서 공유)
+      const unsubscribe = useNotificationStore.getState().subscribeToNotifications(userId);
       return () => unsubscribe();
     }
-  }, [user, fetchNotifications]);
+  }, [userId, fetchNotifications]);
 
   const resolvedActiveTab = roleTabs.some((tab) => tab.key === activeTab) ? activeTab : roleTabs[0].key;
 

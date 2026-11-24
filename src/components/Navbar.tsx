@@ -50,16 +50,17 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [companyInfoOpen, setCompanyInfoOpen] = useState(false);
 
-  // 유저 로그인 시 관심 캠페인(찜) 동기화
+  // 유저 로그인 시 관심 캠페인(찜) 동기화. 사용자 객체가 아니라 ID가 바뀔 때만 다시 조회한다.
+  const userId = user?.id;
   useEffect(() => {
     if (!isLoading) {
-      if (user) {
-        fetchItems(user.id);
+      if (userId) {
+        fetchItems(userId);
       } else {
         clearCart();
       }
     }
-  }, [user, isLoading, fetchItems, clearCart]);
+  }, [userId, isLoading, fetchItems, clearCart]);
 
   const handleLogout = async () => {
     try {

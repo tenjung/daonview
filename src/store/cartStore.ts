@@ -25,6 +25,9 @@ interface CartState {
   fetchItems: (userId: string) => Promise<void>;
 }
 
+// 같은 사용자의 찜 목록 동시 조회를 하나로 합친다.
+let inflightFetch: { userId: string; promise: Promise<void> } | null = null;
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -49,24 +52,34 @@ export const useCartStore = create<CartState>()(
         return !!items.find((i) => String(i.id) === String(id));
       },
 
-      fetchItems: async (userId) => {
-        try {
-          const { data, error } = await supabase
-            .from('favorites')
-            .select('*, campaigns(*, applications(count))')
-            .eq('user_id', userId);
+      fetchItems: (userId) => {
+        if (inflightFetch?.userId === userId) return inflightFetch.promise;
 
-          if (error) throw error;
+        const load = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('favorites')
+              .select('*, campaigns(*, applications(count))')
+              .eq('user_id', userId);
 
-          if (data) {
-            // 삭제되었거나 RLS로 인해 조회되지 않은 캠페인(favorites) 필터링 처리
-            const validFavorites = data.filter((fav: any) => fav.campaigns);
-            const formattedItems = validFavorites.map((fav: any) => mapCampaignToCard(fav.campaigns));
-            set({ items: formattedItems });
+            if (error) throw error;
+
+            if (data) {
+              // 삭제되었거나 RLS로 인해 조회되지 않은 캠페인(favorites) 필터링 처리
+              const validFavorites = data.filter((fav: any) => fav.campaigns);
+              const formattedItems = validFavorites.map((fav: any) => mapCampaignToCard(fav.campaigns));
+              set({ items: formattedItems });
+            }
+          } catch (error) {
+            console.error('Error fetching favorites for cartStore:', error instanceof Error ? error.message : error);
           }
-        } catch (error) {
-          console.error('Error fetching favorites for cartStore:', error instanceof Error ? error.message : error);
-        }
+        };
+
+        const promise: Promise<void> = load().finally(() => {
+          if (inflightFetch?.promise === promise) inflightFetch = null;
+        });
+        inflightFetch = { userId, promise };
+        return promise;
       },
     }),
     {

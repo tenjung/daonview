@@ -92,28 +92,43 @@ function getEntityForNotification(notification: Notification): { entityType: Not
   return { entityType: null, entityId: null };
 }
 
+// 알림 센터가 데스크톱·모바일 메뉴 두 곳에 렌더되므로, 같은 사용자의 동시 조회와 실시간 구독을 하나로 합친다.
+let inflightFetch: { userId: string; promise: Promise<void> } | null = null;
+let sharedChannel: { userId: string; channel: ReturnType<typeof supabase.channel>; subscribers: number } | null = null;
+
 export const useNotificationStore = create<NotificationState>((set, get) => ({
     notifications: [],
     unreadCount: 0,
     isLoading: false,
-    fetchNotifications: async (userId: string) => {
-      set({ isLoading: true });
-      try {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
+    fetchNotifications: (userId: string) => {
+      if (inflightFetch?.userId === userId) return inflightFetch.promise;
 
-        if (error) throw error;
+      const load = async () => {
+        set({ isLoading: true });
+        try {
+          const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
 
-        const normalized = (data || []).map((item) => normalizeNotification(item as Record<string, unknown>));
-        const unreadCount = normalized.filter((n) => !n.is_read).length;
-        set({ notifications: normalized, unreadCount, isLoading: false });
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-        set({ isLoading: false });
-      }
+          if (error) throw error;
+
+          const normalized = (data || []).map((item) => normalizeNotification(item as Record<string, unknown>));
+          const unreadCount = normalized.filter((n) => !n.is_read).length;
+          set({ notifications: normalized, unreadCount, isLoading: false });
+        } catch (error) {
+          console.error('Error fetching notifications:', error);
+          set({ isLoading: false });
+        }
+      };
+
+      const promise: Promise<void> = load().finally(() => {
+        if (inflightFetch?.promise === promise) inflightFetch = null;
+      });
+
+      inflightFetch = { userId, promise };
+      return promise;
     },
     markAsRead: async (notification: Notification, userId: string) => {
       const now = new Date().toISOString();
@@ -212,33 +227,51 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       }
     },
     subscribeToNotifications: (userId: string) => {
-      const channel = supabase
-        .channel(`notifications:user_id=eq.${userId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'notifications',
-            filter: `user_id=eq.${userId}`,
-          },
-          (payload) => {
-            const newNotification = normalizeNotification(payload.new as Record<string, unknown>);
-            set((state) => {
-              if (state.notifications.some(n => n.id === newNotification.id)) return state;
-              
-              const updatedNotifications = [newNotification, ...state.notifications];
-              return {
-                notifications: updatedNotifications,
-                unreadCount: updatedNotifications.filter(n => !n.is_read).length
-              };
-            });
-          }
-        )
-        .subscribe();
+      if (sharedChannel && sharedChannel.userId !== userId) {
+        supabase.removeChannel(sharedChannel.channel);
+        sharedChannel = null;
+      }
+
+      if (!sharedChannel) {
+        const channel = supabase
+          .channel(`notifications:user_id=eq.${userId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${userId}`,
+            },
+            (payload) => {
+              const newNotification = normalizeNotification(payload.new as Record<string, unknown>);
+              set((state) => {
+                if (state.notifications.some(n => n.id === newNotification.id)) return state;
+
+                const updatedNotifications = [newNotification, ...state.notifications];
+                return {
+                  notifications: updatedNotifications,
+                  unreadCount: updatedNotifications.filter(n => !n.is_read).length
+                };
+              });
+            }
+          )
+          .subscribe();
+        sharedChannel = { userId, channel, subscribers: 0 };
+      }
+
+      const current = sharedChannel;
+      current.subscribers += 1;
+      let released = false;
 
       return () => {
-        supabase.removeChannel(channel);
+        if (released) return;
+        released = true;
+        current.subscribers -= 1;
+        if (current.subscribers <= 0 && sharedChannel === current) {
+          supabase.removeChannel(current.channel);
+          sharedChannel = null;
+        }
       };
     },
   })
