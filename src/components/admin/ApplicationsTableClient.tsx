@@ -44,7 +44,7 @@ function maskPhone(phone?: string | null) {
     return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
 }
 
-type FilterType = 'all' | 'pending' | 'approved' | 'held' | 'rejected' | 'cancelled';
+type FilterType = 'all' | 'pending' | 'approved' | 'held' | 'completed' | 'rejected' | 'cancelled';
 
 import ReputationDetailModal from './ReputationDetailModal';
 
@@ -327,7 +327,7 @@ export default function ApplicationsTableClient({
                 icon: Clock,
             },
             {
-                title: '승인됨',
+                title: APPLICATION_STATUS_LABELS.SELECTED,
                 value: `${approved}명`,
                 icon: CheckCircle,
                 description: `보류 ${applications.filter(app => getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)) === 'HELD').length}명 · 선정 인원에 포함`,
@@ -834,6 +834,7 @@ export default function ApplicationsTableClient({
             return isSelectedApplication(getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)));
         }).length,
         held: applications.filter(app => getApplicationManagementStatus(app.status, holdsByApplication.get(app.id)) === 'HELD').length,
+        completed: applications.filter(app => app.status?.toUpperCase() === 'COMPLETED').length,
         rejected: applications.filter(app => app.status?.toUpperCase() === 'REJECTED').length,
         cancelled: applications.filter(app => app.status?.toUpperCase() === 'CANCELLED').length,
     }), [applications, holdsByApplication]);
@@ -848,11 +849,12 @@ export default function ApplicationsTableClient({
                 <Tabs value={filter} onValueChange={(value) => { setFilter(value as FilterType); setSelectedApplications([]); }} className="min-w-0 max-w-full overflow-x-auto">
                     <TabsList className="w-max">
                         <TabsTrigger value="all">전체 {filterCounts.all}</TabsTrigger>
-                        <TabsTrigger value="pending">대기중 {filterCounts.pending}</TabsTrigger>
-                        <TabsTrigger value="approved">승인됨 {filterCounts.approved}</TabsTrigger>
+                        <TabsTrigger value="pending">{APPLICATION_STATUS_LABELS.PENDING} {filterCounts.pending}</TabsTrigger>
+                        <TabsTrigger value="approved">{APPLICATION_STATUS_LABELS.SELECTED} {filterCounts.approved}</TabsTrigger>
                         <TabsTrigger value="held">보류됨 {filterCounts.held}</TabsTrigger>
-                        <TabsTrigger value="rejected">거절됨 {filterCounts.rejected}</TabsTrigger>
-                        <TabsTrigger value="cancelled">취소됨 {filterCounts.cancelled}</TabsTrigger>
+                        <TabsTrigger value="completed">{APPLICATION_STATUS_LABELS.COMPLETED} {filterCounts.completed}</TabsTrigger>
+                        <TabsTrigger value="rejected">{APPLICATION_STATUS_LABELS.REJECTED} {filterCounts.rejected}</TabsTrigger>
+                        <TabsTrigger value="cancelled">{APPLICATION_STATUS_LABELS.CANCELLED} {filterCounts.cancelled}</TabsTrigger>
                     </TabsList>
                 </Tabs>
 
