@@ -10,6 +10,7 @@ import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { Badge } from '@/components/ui/badge';
 import { Application } from '@/types/database';
 import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
+import { getManagedReviewsForActor } from '@/lib/reviews/management';
 import { getCampaignEmailHolds } from '@/lib/selectionEmailHoldServer';
 
 // Next.js 캐싱 비활성화
@@ -21,7 +22,7 @@ interface PageProps {
 }
 
 export default async function CampaignApplicationsPage({ params }: PageProps) {
-    await requireDashboardRole('ADMIN');
+    const { userId } = await requireDashboardRole('ADMIN');
     // 관리자 확인(requireDashboardRole) 후에만 서버 권한으로 신청자 연락처를 포함해 조회한다.
     const supabase = createAdminClient();
     const { id } = await params;
@@ -81,7 +82,10 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
     if (campaignRes.error || !campaign) {
         notFound();
     }
-    const emailHolds = await getCampaignEmailHolds(Number(campaign.id));
+    const [emailHolds, campaignReviews] = await Promise.all([
+        getCampaignEmailHolds(Number(campaign.id)),
+        getManagedReviewsForActor(userId, undefined, { campaignId: Number(campaign.id) }),
+    ]);
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
@@ -111,6 +115,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
             <ApplicationsTableClient
                 initialApplications={applications}
                 initialEmailHolds={emailHolds.holds}
+                initialReviews={campaignReviews}
                 canResolveEmailHolds={emailHolds.canResolve}
                 campaignId={campaign.id}
                 campaignTitle={campaign.title}

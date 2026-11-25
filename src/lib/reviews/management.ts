@@ -70,7 +70,16 @@ const signReviewProofPaths = async (admin: ReturnType<typeof createAdminClient>,
   return signed;
 };
 
-export async function getManagedReviewsForActor(actorId: string, authenticated?: Awaited<ReturnType<typeof requireRequestUser>>): Promise<ManagedReview[]> {
+export interface ManagedReviewsOptions {
+  /** 특정 캠페인의 리뷰만 조회 (권한 범위는 그대로 적용) */
+  campaignId?: number;
+}
+
+export async function getManagedReviewsForActor(
+  actorId: string,
+  authenticated?: Awaited<ReturnType<typeof requireRequestUser>>,
+  options: ManagedReviewsOptions = {},
+): Promise<ManagedReview[]> {
   const auth = authenticated ?? await requireRequestUser();
   if (auth.user.id !== actorId) throw new Error('리뷰 조회 권한이 없습니다.');
   const admin = createAdminClient();
@@ -94,7 +103,12 @@ export async function getManagedReviewsForActor(actorId: string, authenticated?:
     .select('id, campaign_id, user_id, post_url, platform, title, author_name, thumbnail_url, status, created_at')
     .order('created_at', { ascending: false });
 
-  if (allowedCampaignIds) reviewQuery = reviewQuery.in('campaign_id', allowedCampaignIds);
+  if (options.campaignId != null) {
+    if (allowedCampaignIds && !allowedCampaignIds.includes(Number(options.campaignId))) return [];
+    reviewQuery = reviewQuery.eq('campaign_id', options.campaignId);
+  } else if (allowedCampaignIds) {
+    reviewQuery = reviewQuery.in('campaign_id', allowedCampaignIds);
+  }
   const { data: reviewData, error: reviewError } = await reviewQuery;
   if (reviewError) throw reviewError;
 

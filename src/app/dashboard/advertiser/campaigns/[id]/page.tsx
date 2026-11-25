@@ -6,6 +6,7 @@ import { notFound, redirect } from 'next/navigation';
 import type { Application } from '@/types/database';
 import CampaignApplicationsClient from './CampaignApplicationsClient';
 import { getCampaignRecruitTarget } from '@/lib/campaignUtils';
+import { getManagedReviewsForActor } from '@/lib/reviews/management';
 import { getCampaignEmailHolds } from '@/lib/selectionEmailHoldServer';
 
 export const dynamic = 'force-dynamic';
@@ -73,7 +74,10 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
     if (campaignRes.error || !campaign) {
         notFound();
     }
-    const emailHolds = await getCampaignEmailHolds(Number(campaign.id));
+    const [emailHolds, campaignReviews] = await Promise.all([
+        getCampaignEmailHolds(Number(campaign.id)),
+        getManagedReviewsForActor(user.id, undefined, { campaignId: Number(campaign.id) }),
+    ]);
 
     return (
         <CampaignApplicationsClient
@@ -87,6 +91,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
             recruitCount={getCampaignRecruitTarget(campaign) || 0}
             initialApplications={applications}
             initialEmailHolds={emailHolds.holds}
+            initialReviews={campaignReviews}
             canResolveEmailHolds={emailHolds.canResolve}
         />
     );

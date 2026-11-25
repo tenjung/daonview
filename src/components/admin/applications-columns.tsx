@@ -15,9 +15,11 @@ import {
 } from "@/components/data-table"
 import ApplicationStatusBadge from "@/components/admin/ApplicationStatusBadge"
 import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
-import { canSendSelectionKakao, getApplicationManagementStatus, SELECTION_EMAIL_HOLD_REASONS, SELECTION_KAKAO_STATUS_LABELS, type SelectionEmailHold } from '@/lib/selectionEmailHold'
+import { canSendSelectionKakao, getApplicationManagementStatus, isSelectedApplication, SELECTION_EMAIL_HOLD_REASONS, SELECTION_KAKAO_STATUS_LABELS, type SelectionEmailHold } from '@/lib/selectionEmailHold'
 
 import { SatisfactionLevel } from "@/types/review"
+import type { ManagedReview } from "@/types/reviewManagement"
+import { StatusBadge } from "@/components/dashboard/StatusBadge"
 
 interface ColumnContext {
     emailHolds?: Map<number, SelectionEmailHold>
@@ -41,6 +43,15 @@ interface ColumnContext {
     reviewedInfluencerIds?: Set<string>;
     campaignType?: string;
     productUrlIndividual?: boolean;
+    /** 신청자(user_id)별 제출 리뷰 */
+    reviewsByUser?: Map<string, ManagedReview>;
+    onOpenReviewDetail?: (review: ManagedReview) => void;
+}
+
+function getDaysLeft(date: string) {
+    const target = new Date(date);
+    if (Number.isNaN(target.getTime())) return null;
+    return Math.ceil((target.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
 export function createApplicationColumns(context: ColumnContext): ColumnDef<Application>[] {
@@ -397,6 +408,40 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                 </div>;
             },
             size: 120,
+        },
+        // 리뷰 (제출 내역 + 상세 모달)
+        {
+            id: "review",
+            header: "리뷰",
+            meta: { columnLabel: "리뷰" },
+            cell: ({ row }) => {
+                const app = row.original;
+                const review = context.reviewsByUser?.get(app.user_id);
+                if (review) {
+                    return (
+                        <div className="flex min-w-[130px] flex-col items-start gap-1">
+                            <StatusBadge domain="REVIEW" status={review.status} />
+                            <span className="text-xs text-gray-500">{new Date(review.created_at).toLocaleDateString('ko-KR')} 제출</span>
+                            {context.onOpenReviewDetail && (
+                                <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => context.onOpenReviewDetail?.(review)}>
+                                    상세 보기
+                                </Button>
+                            )}
+                        </div>
+                    );
+                }
+                if (isSelectedApplication(app.status)) {
+                    const daysLeft = app.review_deadline ? getDaysLeft(app.review_deadline) : null;
+                    return (
+                        <span className="text-xs font-medium text-gray-500">
+                            미제출{daysLeft !== null ? ` · ${daysLeft < 0 ? '마감 지남' : daysLeft === 0 ? 'D-Day' : `D-${daysLeft}`}` : ''}
+                        </span>
+                    );
+                }
+                return <span className="text-gray-400">-</span>;
+            },
+            enableSorting: false,
+            size: 140,
         },
         // 관리
         {

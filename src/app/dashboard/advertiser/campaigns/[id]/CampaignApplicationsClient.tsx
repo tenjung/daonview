@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import ApplicationsTableClient from '@/components/admin/ApplicationsTableClient';
 
 import type { Application } from '@/types/database';
+import type { ManagedReview } from '@/types/reviewManagement';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -23,6 +24,7 @@ interface CampaignApplicationsClientProps {
     initialApplications: Application[];
     initialEmailHolds: SelectionEmailHold[];
     canResolveEmailHolds: boolean;
+    initialReviews: ManagedReview[];
 }
 
 export default function CampaignApplicationsClient({
@@ -37,6 +39,7 @@ export default function CampaignApplicationsClient({
     initialApplications,
     initialEmailHolds,
     canResolveEmailHolds,
+    initialReviews,
 }: CampaignApplicationsClientProps) {
     const { profile } = useAuthStore();
 
@@ -65,6 +68,7 @@ export default function CampaignApplicationsClient({
                     <ApplicationsTableClient
                         initialApplications={initialApplications}
                         initialEmailHolds={initialEmailHolds}
+                        initialReviews={initialReviews}
                         canResolveEmailHolds={canResolveEmailHolds}
                         campaignId={campaignId}
                         campaignTitle={campaignTitle}

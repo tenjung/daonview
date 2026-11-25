@@ -23,6 +23,8 @@ import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type Selectio
 import { RATING_TAGS, SatisfactionLevel } from '@/types/review';
 import { getApplicationManagementStatus, isSelectedApplication, SELECTION_EMAIL_HOLD_REASONS, type SelectionEmailHold } from '@/lib/selectionEmailHold';
 import { APPLICATION_STATUS_LABELS } from '@/constants/status';
+import type { ManagedReview } from '@/types/reviewManagement';
+import { ReviewDetailCard } from '@/components/reviews/ReviewDetailCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface ApplicationsTableClientProps {
@@ -36,6 +38,8 @@ interface ApplicationsTableClientProps {
     campaignProductName?: string;
     productUrlIndividual?: boolean;
     recruitCount: number;
+    /** 이 캠페인의 제출 리뷰 (권한 범위 내) */
+    initialReviews?: ManagedReview[];
 }
 
 function maskPhone(phone?: string | null) {
@@ -58,9 +62,20 @@ export default function ApplicationsTableClient({
     campaignType,
     campaignProductName,
     productUrlIndividual = false,
-    recruitCount
+    recruitCount,
+    initialReviews = [],
 }: ApplicationsTableClientProps) {
     const [applications, setApplications] = useState<Application[]>(initialApplications);
+    const [reviews, setReviews] = useState<ManagedReview[]>(initialReviews);
+    const [reviewDetail, setReviewDetail] = useState<ManagedReview | null>(null);
+    // 신청자별 최신 리뷰 (getManagedReviewsForActor는 최신순 정렬)
+    const reviewsByUser = useMemo(() => {
+        const map = new Map<string, ManagedReview>();
+        for (const review of reviews) {
+            if (review.user_id && !map.has(review.user_id)) map.set(review.user_id, review);
+        }
+        return map;
+    }, [reviews]);
     const [filter, setFilter] = useState<FilterType>('all');
     const [emailHolds, setEmailHolds] = useState(initialEmailHolds);
     const [holdTarget, setHoldTarget] = useState<SelectionEmailHold | null>(null);
@@ -824,7 +839,9 @@ export default function ApplicationsTableClient({
         reviewedInfluencerIds: reviewedInfluencerIds,
         campaignType: campaignType,
         productUrlIndividual,
-    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual, holdsByApplication, canResolveEmailHolds]);
+        reviewsByUser,
+        onOpenReviewDetail: setReviewDetail,
+    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual, holdsByApplication, canResolveEmailHolds, reviewsByUser]);
 
     // 필터별 개수
     const filterCounts = useMemo(() => ({
@@ -887,6 +904,27 @@ export default function ApplicationsTableClient({
                 pageSize={10}
                 emptyMessage="신청자가 없습니다."
             />
+
+            {/* 리뷰 상세 (리뷰 관리 화면과 같은 공통 카드) */}
+            <Dialog open={Boolean(reviewDetail)} onOpenChange={(open) => { if (!open) setReviewDetail(null); }}>
+                <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>리뷰 상세</DialogTitle>
+                        <DialogDescription>제출한 리뷰와 증빙, 검수 상태를 확인합니다.</DialogDescription>
+                    </DialogHeader>
+                    {reviewDetail && (
+                        <ReviewDetailCard
+                            bare
+                            review={reviewDetail}
+                            onStatusChanged={(changed, status) => {
+                                const updated = { ...changed, status };
+                                setReviews((current) => current.map((item) => (item.id === changed.id ? updated : item)));
+                                setReviewDetail(updated);
+                            }}
+                        />
+                    )}
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={Boolean(holdTarget)} onOpenChange={(open) => { if (!open && !isResolvingHold) setHoldTarget(null); }}>
                 <DialogContent>
