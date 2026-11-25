@@ -116,6 +116,8 @@ export async function GET(request: Request) {
             .from('profiles')
             .select('id')
             .eq('role', 'ADMIN')
+            .eq('is_test_account', false)
+            .order('created_at', { ascending: true })
             .limit(1)
             .single();
 

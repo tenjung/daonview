@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Serif_KR } from "next/font/google";
 import { Toaster } from 'sonner';
+import DevRoleSwitcher from '@/components/dev/DevRoleSwitcher';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -207,6 +208,7 @@ export default async function RootLayout({
           {children}
         </AppShell>
         <Toaster position="top-center" richColors />
+        <DevRoleSwitcher />
       </body>
     </html>
   );

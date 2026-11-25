@@ -8,7 +8,12 @@ import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
 import { useEffect } from 'react';
-import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
+import {
+    getCampaignOptions,
+    getCampaignRecruitTarget,
+    isCampaignAutoExtendEnabled,
+    resolveCampaignPlatformState,
+} from '@/lib/campaignUtils';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,12 +32,60 @@ function scrollToSection(sectionId: string) {
     document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
 }
 
+type ActiveCampaignSort = 'LATEST' | 'DEADLINE' | 'LOW_RATE';
+
+const ACTIVE_CAMPAIGN_SORT_OPTIONS: Array<{ value: ActiveCampaignSort; label: string }> = [
+    { value: 'LATEST', label: '최신 등록' },
+    { value: 'DEADLINE', label: '마감 임박' },
+    { value: 'LOW_RATE', label: '신청률 낮은순' },
+];
+
+const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
+    DELIVERY: '배송',
+    VISIT: '방문',
+    PRESS: '기자단',
+};
+
+// DB 값 → 정규화 → 표시용 배지 목록
+function getCampaignTypeBadges(campaign: CampaignRow) {
+    const step1Data = getCampaignOptions({ campaign_options: campaign.campaign_options })?.step1Data ?? null;
+    const state = resolveCampaignPlatformState({
+        type: campaign.type,
+        platform: campaign.platform,
+        step1Data,
+    });
+    const typeKey = String(state.normalizedType).toUpperCase();
+    const platforms = [
+        state.includeReview ? '구매평' : null,
+        state.includeNaver ? '블로그' : null,
+        state.includeInstagram ? '인스타' : null,
+    ].filter((label): label is string => Boolean(label));
+
+    return { typeLabel: CAMPAIGN_TYPE_LABELS[typeKey] ?? '기타', platforms };
+}
+
+function formatCreatedDate(value?: string | null) {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} 등록`;
+}
+
+function getCreatedTime(campaign: CampaignRow) {
+    const time = campaign.created_at ? new Date(campaign.created_at).getTime() : 0;
+    return Number.isNaN(time) ? 0 : time;
+}
+
 interface CampaignRow {
     id: number;
     title: string;
     end_date: string | null;
     total_recruitment?: number | null;
     is_unlimited_recruitment?: boolean;
+    created_at?: string | null;
+    type?: string | null;
+    platform?: string | null;
+    campaign_options?: unknown;
     profiles?: {
         company_name?: string | null;
         nickname?: string | null;
@@ -64,6 +117,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
     const [showBulkModal, setShowBulkModal] = useState(false);
     const [isBulkExtending, setIsBulkExtending] = useState(false);
     const [quickExtendingId, setQuickExtendingId] = useState<number | null>(null);
+    const [activeSort, setActiveSort] = useState<ActiveCampaignSort>('LATEST');
     const { user } = useAuthStore();
 
     // 지능형 모니터링 및 알림 (관리자용)
@@ -132,6 +186,26 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
 
     const criticalCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'critical');
     const warningCampaigns = campaigns.filter(c => analyzeCampaignRisk(c).riskLevel === 'warning');
+
+    // 운영 중 카드 목록 정렬 (판정용 원본 순서는 유지)
+    const sortedActiveCampaigns = [...campaigns].sort((a, b) => {
+        const latestOrder = getCreatedTime(b) - getCreatedTime(a);
+        if (activeSort === 'LATEST') return latestOrder;
+
+        const analysisA = analyzeCampaignRisk(a);
+        const analysisB = analyzeCampaignRisk(b);
+
+        if (activeSort === 'DEADLINE') {
+            const daysA = analysisA.daysLeft ?? Number.POSITIVE_INFINITY;
+            const daysB = analysisB.daysLeft ?? Number.POSITIVE_INFINITY;
+            return daysA === daysB ? latestOrder : daysA - daysB;
+        }
+
+        // LOW_RATE: 모집 목표가 없는(무제한) 캠페인은 뒤로
+        const rateA = analysisA.targetCount > 0 ? analysisA.applicationRate : Number.POSITIVE_INFINITY;
+        const rateB = analysisB.targetCount > 0 ? analysisB.applicationRate : Number.POSITIVE_INFINITY;
+        return rateA === rateB ? latestOrder : rateA - rateB;
+    });
 
     async function updateCampaignEndDateWithRetry(campaignId: number, days: number): Promise<string> {
         const requestExtend = async () => {
@@ -489,12 +563,31 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
 
             {/* 📋 운영 중 캠페인 */}
             <div id="active-campaigns-section" className="mb-8">
-                <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 mb-3">
                     <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         <Megaphone className="w-5 h-5 text-primary" />
                         운영 중 캠페인
                         <span className="text-sm font-bold text-gray-400">{campaigns.length}</span>
                     </h2>
+                    <div className="flex items-center gap-2 sm:gap-3 order-last sm:order-none w-full sm:w-auto sm:ml-auto">
+                        <div className="flex items-center gap-1 rounded-lg bg-gray-100 p-1" role="group" aria-label="운영 중 캠페인 정렬">
+                            {ACTIVE_CAMPAIGN_SORT_OPTIONS.map((option) => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => setActiveSort(option.value)}
+                                    aria-pressed={activeSort === option.value}
+                                    className={`px-2.5 py-1 rounded-md text-xs font-bold whitespace-nowrap transition-colors ${
+                                        activeSort === option.value
+                                            ? 'bg-white text-gray-900 shadow-sm'
+                                            : 'text-gray-500 hover:text-gray-800'
+                                    }`}
+                                >
+                                    {option.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                     <Link
                         href="/dashboard/admin/campaigns"
                         className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-0.5 shrink-0"
@@ -510,8 +603,10 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-                        {campaigns.map((campaign) => {
+                        {sortedActiveCampaigns.map((campaign) => {
                             const analysis = analyzeCampaignRisk(campaign);
+                            const { typeLabel, platforms } = getCampaignTypeBadges(campaign);
+                            const createdLabel = formatCreatedDate(campaign.created_at);
                             const advertiser = campaign.profiles;
                             const advertiserName = advertiser?.company_name || advertiser?.nickname || '광고주 미상';
                             const hasTarget = analysis.targetCount > 0;
@@ -531,17 +626,31 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                             return (
                                 <Link
                                     key={campaign.id}
-                                    href={`/campaigns/${campaign.id}`}
+                                    href={`/dashboard/admin/campaigns/${campaign.id}`}
                                     className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all"
                                 >
-                                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                                        <span className="text-[11px] font-bold text-gray-400">#{campaign.id}</span>
+                                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                                        <div className="flex flex-wrap items-center gap-1 min-w-0">
+                                            <span className="text-[11px] font-bold text-gray-400 mr-0.5">#{campaign.id}</span>
+                                            <span className="text-[11px] font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">{typeLabel}</span>
+                                            {platforms.map((label) => (
+                                                <span
+                                                    key={label}
+                                                    className="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded"
+                                                >
+                                                    {label}
+                                                </span>
+                                            ))}
+                                        </div>
                                         {analysis.isAutoExtend && (
-                                            <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
+                                            <span className="shrink-0 text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                         )}
                                     </div>
                                     <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 min-h-[2.5rem]">{campaign.title}</h3>
-                                    <p className="text-xs text-gray-500 mt-1 truncate">{advertiserName}</p>
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                        {advertiserName}
+                                        {createdLabel && <span className="text-gray-400"> · {createdLabel}</span>}
+                                    </p>
 
                                     <div className="mt-3">
                                         <div className="flex items-center justify-between text-xs mb-1">

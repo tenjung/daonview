@@ -7,6 +7,7 @@ const CLIENT_FIELDS = [
   'point', 'interests', 'preferred_platforms', 'preferred_regions',
   'biz_verification_status', 'email_subscription_status',
   'biz_number', 'biz_certificate_url', 'biz_verification_requested_at', 'biz_rejection_reason',
+  'is_test_account',
 ] as const;
 
 export function toClientProfile(profile: Profile | null): Profile | null {

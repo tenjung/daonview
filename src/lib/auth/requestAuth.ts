@@ -14,6 +14,10 @@ export const getRequestAuth = cache(async () => {
   if (invalidSession || !user) return { supabase, user: null, profile: null, role: null, profileError: null };
   const { data, error } = await supabase.rpc('get_my_profile').maybeSingle();
   const profile = data as Profile | null;
+  // 에이전트 테스트 계정은 운영 배포에서 비로그인으로 처리한다 (로컬·프리뷰 전용).
+  if (!error && profile?.is_test_account && process.env.VERCEL_ENV === 'production') {
+    return { supabase, user: null, profile: null, role: null, profileError: null };
+  }
   return {
     supabase, user, profile: error ? null : profile,
     role: error ? null : coerceDashboardRole(profile?.role),

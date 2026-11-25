@@ -49,6 +49,9 @@ function UserInfoCell({ user }: { user: Profile }) {
             <div className="flex flex-col min-w-0">
                 <span className="font-bold text-gray-900 truncate">
                     {user.nickname || '닉네임 없음'}
+                    {user.is_test_account && (
+                        <span className="ml-1.5 align-middle text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">테스트</span>
+                    )}
                 </span>
                 <span className="text-xs text-gray-500 flex items-center gap-1">
                     <Mail size={12} className="text-gray-400" />

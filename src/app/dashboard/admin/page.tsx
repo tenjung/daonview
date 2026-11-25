@@ -23,10 +23,10 @@ export default async function AdminDashboard() {
         sidebarCounts
     ] = await Promise.all([
         // 1. 광고주 수
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'ADVERTISER'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'ADVERTISER').eq('is_test_account', false),
 
         // 2. 인플루언서 수
-        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'INFLUENCER'),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'INFLUENCER').eq('is_test_account', false),
 
         // 3. 오늘 생성된 캠페인 수
         supabase.from('campaigns').select('id', { count: 'exact', head: true }).gte('created_at', today.toISOString()),

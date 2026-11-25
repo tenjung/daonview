@@ -159,6 +159,8 @@ SSR 준수: 초기 로딩 최적화 및 SEO를 위해 Next.js의 SSR 방식을 �
 - 명령 출력은 성공 여부와 핵심 오류만 요약하고, 긴 정상 로그와 이미 알려진 기존 오류의 반복 출력은 피한다.
 - 토큰 절약을 이유로 배포 전 필수 검증이나 데이터·인증·결제 등 고위험 변경 검증을 생략하지 않는다.
 
+에이전트 테스트 계정: 관리자/광고주/인플루언서 테스트 계정(`profiles.is_test_account = true`)의 이메일·비밀번호는 Vercel Development 환경변수 `AGENT_TEST_{ADMIN,ADVERTISER,INFLUENCER}_{EMAIL,PASSWORD}`로만 관리하고 작업 시작 동기화로 `.env.local`에 받는다. 값은 채팅·커밋·업무일지에 적지 않는다. 운영 배포(`VERCEL_ENV=production`)에서는 서버가 비로그인으로 처리하므로 로컬 개발 서버에서만 사용한다. 계정 재생성·비밀번호 재설정은 `node --env-file=.env.local scripts/create-agent-test-accounts.mjs`. 에이전트는 비밀번호를 입력하지 않고, 로컬 개발 서버(`npm run dev`, localhost) 화면 왼쪽 아래 `🛠 DEV` 배지의 역할 전환(`POST /api/dev/login-as`)으로 로그인한다. 이 경로는 개발 모드·localhost 외에는 404이며 전환 시 해당 브라우저의 기존 로그인이 대체된다. 테스트 계정으로 신청·선정·결제 등 운영 데이터를 바꾸는 동작은 매번 사용자 확인 후 진행한다.
+
 워커 실행 규칙: `scripts/video-job-worker.mjs` 또는 `.env.local` 수정 시 수동으로 `video:worker`를 반복 재실행하지 말고, 개발 환경에서는 반드시 `npm run video:worker:dev`를 사용한다.
 
 워커 중복 금지: 영상 워커는 동시에 1개만 실행한다. 수동 점검용 `npm run video:worker`와 개발용 `npm run video:worker:dev`를 함께 띄우지 않는다.

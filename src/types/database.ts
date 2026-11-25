@@ -31,6 +31,8 @@ export interface Profile {
     name?: string;
     company_name?: string;
     role?: UserRole;
+    /** 에이전트 테스트 계정 여부 (운영 화면 차단, 통계 제외) */
+    is_test_account?: boolean;
     phone_number?: string;
     sns_url?: string;
     blog_url?: string;
