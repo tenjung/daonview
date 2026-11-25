@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Check, ChevronRight, ChevronLeft } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import {
   buildPreferredPlatforms,
   CREATOR_PLATFORM_OPTIONS,
@@ -92,22 +92,17 @@ export default function OnboardingModal({ userId, onComplete, allowSkip = false 
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: name,
-          phone_number: phoneNumber,
-          preferred_platforms: buildPreferredPlatforms(profileMode, selectedPlatforms),
-          preferred_regions: selectedRegions,
-          interests: selectedCategories,
-        })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await updateMyProfile({
+        name: name,
+        phone_number: phoneNumber,
+        preferred_platforms: buildPreferredPlatforms(profileMode, selectedPlatforms),
+        preferred_regions: selectedRegions,
+        interests: selectedCategories,
+      }, { expectedUserId: userId });
       onComplete();
     } catch (error) {
       console.error('Error saving onboarding info:', error);
-      alert('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+      alert(getProfileUpdateErrorMessage(error, '저장 중 오류가 발생했습니다. 다시 시도해주세요.'));
     } finally {
       setLoading(false);
     }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import { toast } from 'sonner';
 
 interface PhoneInputModalProps {
@@ -25,18 +25,13 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
 
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ phone_number: phoneNumber })
-        .eq('id', userId);
-
-      if (error) throw error;
+      await updateMyProfile({ phone_number: phoneNumber }, { expectedUserId: userId });
 
       toast.success('전화번호가 저장되었습니다');
       onComplete(phoneNumber);
     } catch (error) {
       console.error('Error saving phone number:', error);
-      toast.error('저장 중 오류가 발생했습니다');
+      toast.error(getProfileUpdateErrorMessage(error));
     } finally {
       setLoading(false);
     }

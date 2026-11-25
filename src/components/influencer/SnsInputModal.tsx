@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase/client';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -90,12 +90,7 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
                 updateData.tiktok_url = null;
             }
 
-            const { error } = await supabase
-                .from('profiles')
-                .update(updateData)
-                .eq('id', user.id);
-
-            if (error) throw error;
+            await updateMyProfile(updateData, { expectedUserId: user.id });
             
             toast.success('활동 소셜 링크가 성공적으로 저장되었습니다.');
             onSuccess();

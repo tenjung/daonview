@@ -3,6 +3,7 @@
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect } from 'react';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -120,19 +121,14 @@ export default function AdvertiserVerificationPage() {
             // AI가 이미 승인한 경우와 아닌 경우의 상태 결정
             const status = isAutoApproved ? 'APPROVED' : 'PENDING';
 
-            const { error: updateError } = await supabase
-                .from('profiles')
-                .update({
-                    company_name: companyName,
-                    biz_number: bizNumber,
-                    biz_certificate_url: certificateUrl,
-                    biz_verification_status: status,
-                    biz_verification_requested_at: new Date().toISOString(),
-                    biz_rejection_reason: null
-                })
-                .eq('id', user.id);
-
-            if (updateError) throw updateError;
+            await updateMyProfile({
+                company_name: companyName,
+                biz_number: bizNumber,
+                biz_certificate_url: certificateUrl,
+                biz_verification_status: status,
+                biz_verification_requested_at: new Date().toISOString(),
+                biz_rejection_reason: null
+            }, { expectedUserId: user.id });
 
             if (!isAutoApproved) {
                 // 관리자에게 알림 전송 (수동 심사 레이어). 알림 실패가 인증 제출 자체를 막지 않도록 분리한다.

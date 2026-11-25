@@ -4,7 +4,7 @@ import { Settings } from 'lucide-react';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '@/lib/supabase/client';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
 
@@ -46,24 +46,16 @@ export default function SettingsPage() {
         setMessage('');
 
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    nickname: formData.nickname,
-                    phone_number: formData.phone_number,
-                    sns_url: formData.sns_url
-                })
-                .eq('id', user.id);
-
-            if (error) throw error;
+            await updateMyProfile({
+                nickname: formData.nickname,
+                phone_number: formData.phone_number,
+                sns_url: formData.sns_url
+            }, { expectedUserId: user.id });
 
             setMessage('프로필이 성공적으로 업데이트되었습니다.');
-            // 전역 상태 동기화 요청 (필요한 경우 authStore에 추가 로직 필요)
-            // 현재는 fetchProfile이 fetch만 하고 set하므로 이를 호출하거나 
-            // 직접 setProfile을 노출하여 호출 가능
         } catch (error) {
             console.error('Error updating profile:', error);
-            setMessage('프로필 업데이트에 실패했습니다.');
+            setMessage(getProfileUpdateErrorMessage(error, '프로필 업데이트에 실패했습니다.'));
         } finally {
             setSaving(false);
         }

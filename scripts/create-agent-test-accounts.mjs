@@ -15,7 +15,7 @@ if (!url || !serviceKey) {
 
 const ACCOUNTS = [
   { role: 'ADMIN', nickname: '에이전트 관리자', prefix: 'AGENT_TEST_ADMIN' },
-  { role: 'ADVERTISER', nickname: '에이전트 광고주', prefix: 'AGENT_TEST_ADVERTISER', companyName: '에이전트 테스트 광고주' },
+  { role: 'ADVERTISER', nickname: '에이전트 광고주', prefix: 'AGENT_TEST_ADVERTISER', companyName: '다온뷰' },
   { role: 'INFLUENCER', nickname: '에이전트 인플루언서', prefix: 'AGENT_TEST_INFLUENCER' },
 ];
 

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import DaumPostcodeEmbed from 'react-daum-postcode';
 import { AlertTriangle, ArrowLeft, LoaderCircle, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/lib/supabase/client';
+import { updateMyProfile, getProfileUpdateErrorMessage } from '@/lib/profile/updateMyProfile';
 import { formatDaumAddress, type DaumAddressData } from '@/lib/address';
 import type { Profile } from '@/types/database';
 import { Button } from '@/components/ui/button';
@@ -117,18 +117,13 @@ export default function ShippingAddressModal({
 
         setSaving(true);
         try {
-            const { error } = await supabase
-                .from('profiles')
-                .update({
-                    name,
-                    phone_number: formatPhoneNumber(phoneDigits),
-                    zip_code: formData.zipCode,
-                    address_base: formData.addressBase,
-                    address_detail: addressDetail,
-                })
-                .eq('id', userId);
-
-            if (error) throw error;
+            await updateMyProfile({
+                name,
+                phone_number: formatPhoneNumber(phoneDigits),
+                zip_code: formData.zipCode,
+                address_base: formData.addressBase,
+                address_detail: addressDetail,
+            }, { expectedUserId: userId });
 
             toast.success('배송지가 저장되었습니다. 신청을 계속합니다.');
             await onSuccess();
