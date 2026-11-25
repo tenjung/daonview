@@ -2,7 +2,6 @@ import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase/admin';
 import AdminDashboardClient from '@/components/AdminDashboardClient';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
-import { DashboardStatsCards } from '@/components/admin/DashboardStatsCards';
 import { LayoutDashboard } from 'lucide-react';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
@@ -80,12 +79,9 @@ export default async function AdminDashboard() {
                 </Link>
             </div>
 
-            {/* Section A: 통합 현황판 */}
-            <DashboardStatsCards stats={statsData} />
-
-            {/* Section B: 위젯 및 모니터링 */}
+            {/* 통합 현황 타일 + 위젯 및 모니터링 */}
             <div className="space-y-6">
-                <AdminDashboardClient initialCampaigns={campaigns} />
+                <AdminDashboardClient initialCampaigns={campaigns} stats={statsData} />
             </div>
         </AdminPageLayout>
     );

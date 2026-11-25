@@ -1,95 +1,93 @@
 "use client"
 
 import * as React from "react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Users, Megaphone, Clock, Briefcase } from "lucide-react"
 import Link from "next/link"
 
-interface StatCardProps {
-  title: string
-  value: string | number
-  description: string
-  icon: React.ReactNode
-  color: string
-  href?: string
+type TileTone = "blue" | "purple" | "green" | "orange" | "red" | "yellow" | "gray"
+
+const TONE_STYLES: Record<TileTone, { bar: string; active: string }> = {
+  blue: { bar: "bg-blue-500", active: "bg-blue-50 border-blue-200" },
+  purple: { bar: "bg-purple-500", active: "bg-purple-50 border-purple-200" },
+  green: { bar: "bg-green-500", active: "bg-green-50 border-green-200" },
+  orange: { bar: "bg-orange-500", active: "bg-orange-50 border-orange-200" },
+  red: { bar: "bg-red-500", active: "bg-red-50 border-red-200" },
+  yellow: { bar: "bg-yellow-400", active: "bg-yellow-50 border-yellow-200" },
+  gray: { bar: "bg-gray-300", active: "bg-gray-50 border-gray-200" },
 }
 
-function StatCard({ title, value, description, icon, color, href }: StatCardProps) {
+export interface StatTileProps {
+  label: string
+  value: number
+  tone: TileTone
+  /** 0이 아닐 때 배경을 진하게 강조 */
+  highlight?: boolean
+  href?: string
+  onClick?: () => void
+  disabled?: boolean
+  title?: string
+}
+
+export function StatTile({ label, value, tone, highlight, href, onClick, disabled, title }: StatTileProps) {
+  const style = TONE_STYLES[tone]
+  const isActive = Boolean(highlight && value > 0)
+  const className = `relative flex flex-col items-center sm:items-start justify-center gap-0.5 overflow-hidden rounded-xl border px-2 sm:px-4 py-2.5 sm:py-3 text-center sm:text-left transition-all ${
+    isActive ? style.active : "bg-white border-gray-100"
+  } ${disabled ? "opacity-50 cursor-not-allowed" : "hover:shadow-md hover:border-gray-300 cursor-pointer"}`
+
   const content = (
-    <Card className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all group h-full">
-      <CardContent className="p-0 h-full">
-        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
-          {/* 모바일에서는 상단 라인, 데스크탑에서는 좌측 라인 */}
-          <div className={`h-1.5 sm:h-auto sm:w-2 shrink-0 ${color}`} />
-          <div className="flex-1 p-4 flex flex-col justify-center sm:justify-between items-start sm:items-start text-left relative gap-2 sm:gap-0">
-            {/* 아이콘: 모바일은 우측 상단 절대배치, 데스크탑은 우측 흐름배치 */}
-            <div className={`absolute top-4 right-4 sm:static sm:absolute sm:right-4 sm:top-1/2 sm:-translate-y-1/2 p-2 rounded-xl ${color.replace('bg-', 'bg-opacity-10 bg-')} flex-shrink-0 ${color.replace('bg-', 'text-')}`}>
-              {icon}
-            </div>
-            
-            <div className="flex flex-col w-full pr-10 sm:pr-14">
-              <p className="text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">{title}</p>
-              <h3 className="text-2xl sm:text-xl font-bold group-hover:scale-105 transition-transform origin-left">{value}</h3>
-            </div>
-            
-            <p className="hidden sm:block text-xs text-gray-400 font-medium">{description}</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      <span className={`absolute left-0 top-0 h-1 w-full sm:h-full sm:w-1 ${style.bar}`} />
+      <span className="text-[11px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">{label}</span>
+      <span className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{value.toLocaleString()}</span>
+    </>
   )
 
-  if (href) {
-    return <Link href={href}>{content}</Link>
+  if (disabled) {
+    return <div className={className} title={title} aria-disabled="true">{content}</div>
   }
 
-  return content
+  if (href) {
+    return <Link href={href} className={className} title={title}>{content}</Link>
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className} title={title}>
+      {content}
+    </button>
+  )
+}
+
+export interface DashboardStats {
+  totalAdvertisers: number
+  totalInfluencers: number
+  todayCampaigns: number
+  pendingApprovals: number
 }
 
 interface DashboardStatsCardsProps {
-  stats: {
-    totalAdvertisers: number
-    totalInfluencers: number
-    todayCampaigns: number
-    pendingApprovals: number
-  }
+  stats: DashboardStats
+  criticalCount: number
+  warningCount: number
+  onCriticalClick: () => void
+  onWarningClick: () => void
 }
 
-export function DashboardStatsCards({ stats }: DashboardStatsCardsProps) {
+export function DashboardStatsCards({
+  stats,
+  criticalCount,
+  warningCount,
+  onCriticalClick,
+  onWarningClick,
+}: DashboardStatsCardsProps) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6 sm:mb-8">
-      <StatCard
-        title="총 광고주"
-        value={stats.totalAdvertisers.toLocaleString()}
-        description="기업/브랜드 계정 수"
-        icon={<Briefcase size={20} />}
-        color="bg-blue-500"
-        href="/admin/users?tab=ADVERTISER"
-      />
-      <StatCard
-        title="총 인플루언서"
-        value={stats.totalInfluencers.toLocaleString()}
-        description="리뷰어 계정 수"
-        icon={<Users size={20} />}
-        color="bg-purple-500"
-        href="/admin/users?tab=INFLUENCER"
-      />
-      <StatCard
-        title="오늘 신규 캠페인"
-        value={stats.todayCampaigns}
-        description="오늘 등록된 캠페인"
-        icon={<Megaphone size={20} />}
-        color="bg-green-500"
-        href="/dashboard/admin/campaigns"
-      />
-      <StatCard
-        title="승인 대기"
-        value={stats.pendingApprovals}
-        description="검토 필요한 캠페인"
-        icon={<Clock size={20} />}
-        color="bg-orange-500"
-        href="/dashboard/admin/campaigns"
-      />
+    <div className="grid grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6 sm:mb-8">
+      <StatTile label="광고주" value={stats.totalAdvertisers} tone="blue" href="/dashboard/admin/users/advertisers" />
+      <StatTile label="인플루언서" value={stats.totalInfluencers} tone="purple" href="/dashboard/admin/users/influencers" />
+      <StatTile label="오늘 신규" value={stats.todayCampaigns} tone="green" href="/dashboard/admin/campaigns" />
+      <StatTile label="승인 대기" value={stats.pendingApprovals} tone="orange" highlight href="/dashboard/admin/campaigns" />
+      <StatTile label="🔴 위험" value={criticalCount} tone="red" highlight onClick={onCriticalClick} title="마감 3일 이내 + 신청률 50% 미만" />
+      <StatTile label="🟡 주의" value={warningCount} tone="yellow" highlight onClick={onWarningClick} title="마감 임박 또는 신청률 50% 미만" />
+      <StatTile label="⚖️ 법적" value={0} tone="gray" disabled title="데이터 연결 전" />
     </div>
   )
 }

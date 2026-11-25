@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AlertTriangle, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, Clock, CheckCircle, ChevronRight, Megaphone } from 'lucide-react';
+import { DashboardStatsCards, type DashboardStats } from '@/components/admin/DashboardStatsCards';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
@@ -19,6 +20,11 @@ import { Card, CardContent } from '@/components/ui/card';
 
 interface AdminDashboardClientProps {
     initialCampaigns: CampaignRow[];
+    stats: DashboardStats;
+}
+
+function scrollToSection(sectionId: string) {
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: 'smooth' });
 }
 
 interface CampaignRow {
@@ -52,7 +58,7 @@ function isTimeoutError(error: unknown): error is Error {
     return error instanceof Error && error.message.includes('timeout');
 }
 
-export default function AdminDashboardClient({ initialCampaigns }: AdminDashboardClientProps) {
+export default function AdminDashboardClient({ initialCampaigns, stats }: AdminDashboardClientProps) {
     const [campaigns, setCampaigns] = useState(initialCampaigns);
     const [selectedCampaigns, setSelectedCampaigns] = useState<number[]>([]);
     const [showBulkModal, setShowBulkModal] = useState(false);
@@ -105,7 +111,9 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
         let riskLevel: 'critical' | 'warning' | 'normal' = 'normal';
 
         if (isAutoExtend) {
-            riskLevel = 'normal'; // 자동연장 캠페인은 수동 개입 우선순위가 낮음
+            // 자동연장 캠페인은 마감이 자동으로 늘어나므로 '위험'에서는 제외하고,
+            // 모집 목표가 있는 캠페인의 신청률 저조만 '주의'로 표시한다.
+            riskLevel = targetCount > 0 && applicationRate < 50 ? 'warning' : 'normal';
         } else if ((daysLeft ?? Infinity) <= 3 && applicationRate < 50) {
             riskLevel = 'critical';
         } else if ((daysLeft ?? Infinity) <= 3 || applicationRate < 50) {
@@ -258,85 +266,14 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
 
     return (
         <>
-            {/* 위험 신호등 */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-8">
-                <Card 
-                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
-                  onClick={() => document.getElementById('critical-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                    <CardContent className="p-0 h-full">
-                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
-                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-red-500" />
-                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
-                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-red-50 text-red-500 flex-shrink-0">
-                                    <AlertTriangle className="w-5 h-5" />
-                                </div>
-                                <div className="sm:hidden p-1.5 rounded-full bg-red-50 text-red-500">
-                                    <AlertTriangle className="w-5 h-5" />
-                                </div>
-                                
-                                <div className="flex flex-col w-full sm:pr-14">
-                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">🔴 위험 (모집 미달 D-3)</p>
-                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">긴급 조치</p>
-                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">{criticalCampaigns.length}<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
-                                </div>
-                                <p className="hidden sm:block text-xs text-gray-400 font-medium">즉시 조치 필요</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card 
-                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
-                  onClick={() => document.getElementById('warning-section')?.scrollIntoView({ behavior: 'smooth' })}
-                >
-                    <CardContent className="p-0 h-full">
-                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
-                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-yellow-400" />
-                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
-                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-yellow-50 text-yellow-500 flex-shrink-0">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                                <div className="sm:hidden p-1.5 rounded-full bg-yellow-50 text-yellow-500">
-                                    <Clock className="w-5 h-5" />
-                                </div>
-                                
-                                <div className="flex flex-col w-full sm:pr-14">
-                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">🟡 주의 (마감 임박)</p>
-                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">주의/임박</p>
-                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">{warningCampaigns.length}<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
-                                </div>
-                                <p className="hidden sm:block text-xs text-gray-400 font-medium">모니터링 필요</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card 
-                  className="overflow-hidden border-none shadow-sm hover:shadow-md transition-all cursor-pointer group h-full"
-                >
-                    <CardContent className="p-0 h-full">
-                        <div className="flex flex-col sm:flex-row items-stretch h-full sm:h-24">
-                            <div className="h-1.5 sm:h-auto sm:w-2 shrink-0 bg-purple-500" />
-                            <div className="flex-1 p-3 sm:p-4 flex flex-col justify-center sm:justify-between items-center sm:items-start text-center sm:text-left relative gap-2 sm:gap-0">
-                                <div className="hidden sm:flex absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl bg-purple-50 text-purple-500 flex-shrink-0 text-lg">
-                                    ⚖️
-                                </div>
-                                <div className="sm:hidden p-1.5 rounded-full bg-purple-50 text-purple-500 text-sm flex items-center justify-center">
-                                    ⚖️
-                                </div>
-                                
-                                <div className="flex flex-col w-full sm:pr-14">
-                                    <p className="hidden sm:block text-xs font-medium text-gray-500 whitespace-nowrap mb-0.5">⚖️ 법적 대응</p>
-                                    <p className="sm:hidden text-[10px] font-medium text-gray-500 whitespace-nowrap mb-0.5">법적 대응</p>
-                                    <h3 className="text-lg sm:text-2xl font-bold group-hover:scale-105 transition-transform origin-center sm:origin-left text-gray-900 leading-none">0<span className="sm:hidden text-[10px] text-gray-500 ml-0.5 font-normal leading-none inline-block align-baseline">건</span><span className="hidden sm:inline-block text-lg font-bold">건</span></h3>
-                                </div>
-                                <p className="hidden sm:block text-xs text-gray-400 font-medium">먹튀/미제출</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
+            {/* 통합 현황 타일 */}
+            <DashboardStatsCards
+                stats={stats}
+                criticalCount={criticalCampaigns.length}
+                warningCount={warningCampaigns.length}
+                onCriticalClick={() => scrollToSection(criticalCampaigns.length > 0 ? 'critical-section' : 'active-campaigns-section')}
+                onWarningClick={() => scrollToSection(warningCampaigns.length > 0 ? 'warning-section' : 'active-campaigns-section')}
+            />
 
             {/* 🔴 긴급: 모집 미달 구조대 */}
             {criticalCampaigns.length > 0 && (
@@ -499,7 +436,7 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
                                         <div>
                                             <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
-                                                신청 현황: {analysis.isAutoExtend ? <span className="text-sky-600 font-extrabold">{analysis.applicantCount}명</span> : `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)`} |
+                                                신청 현황: {analysis.targetCount > 0 ? `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)` : <span className="text-sky-600 font-extrabold">{analysis.applicantCount}명</span>} |
                                                 <span className="ml-2 font-bold text-yellow-600">
                                                     {analysis.isAutoExtend ? (
                                                         <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
@@ -544,12 +481,94 @@ export default function AdminDashboardClient({ initialCampaigns }: AdminDashboar
             )}
 
             {criticalCampaigns.length === 0 && warningCampaigns.length === 0 && (
-                <div className="text-center py-20 bg-white rounded-xl border border-gray-200 shadow-sm">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">모든 캠페인이 정상 운영 중입니다!</h3>
-                    <p className="text-gray-500">문제가 발생하면 자동으로 알려드립니다.</p>
+                <div className="mb-8 flex items-center gap-3 px-4 py-3 bg-green-50 rounded-xl border border-green-100">
+                    <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                    <p className="text-sm font-bold text-green-800">위험·주의 캠페인이 없습니다.</p>
                 </div>
             )}
+
+            {/* 📋 운영 중 캠페인 */}
+            <div id="active-campaigns-section" className="mb-8">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Megaphone className="w-5 h-5 text-primary" />
+                        운영 중 캠페인
+                        <span className="text-sm font-bold text-gray-400">{campaigns.length}</span>
+                    </h2>
+                    <Link
+                        href="/dashboard/admin/campaigns"
+                        className="text-sm font-bold text-gray-500 hover:text-gray-900 flex items-center gap-0.5 shrink-0"
+                    >
+                        전체 관리
+                        <ChevronRight className="w-4 h-4" />
+                    </Link>
+                </div>
+
+                {campaigns.length === 0 ? (
+                    <div className="text-center py-10 bg-white rounded-xl border border-gray-200 text-sm text-gray-500">
+                        모집 중이거나 진행 중인 캠페인이 없습니다.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                        {campaigns.map((campaign) => {
+                            const analysis = analyzeCampaignRisk(campaign);
+                            const advertiser = campaign.profiles;
+                            const advertiserName = advertiser?.company_name || advertiser?.nickname || '광고주 미상';
+                            const hasTarget = analysis.targetCount > 0;
+                            const barColor = analysis.riskLevel === 'critical'
+                                ? 'bg-red-500'
+                                : analysis.riskLevel === 'warning'
+                                    ? 'bg-yellow-400'
+                                    : 'bg-green-500';
+                            const daysLeftLabel = analysis.daysLeft === null
+                                ? '마감일 없음'
+                                : analysis.daysLeft < 0
+                                    ? '마감 지남'
+                                    : analysis.daysLeft === 0
+                                        ? 'D-Day'
+                                        : `D-${analysis.daysLeft}`;
+
+                            return (
+                                <Link
+                                    key={campaign.id}
+                                    href={`/campaigns/${campaign.id}`}
+                                    className="block bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md hover:border-gray-300 transition-all"
+                                >
+                                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                                        <span className="text-[11px] font-bold text-gray-400">#{campaign.id}</span>
+                                        {analysis.isAutoExtend && (
+                                            <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
+                                        )}
+                                    </div>
+                                    <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 min-h-[2.5rem]">{campaign.title}</h3>
+                                    <p className="text-xs text-gray-500 mt-1 truncate">{advertiserName}</p>
+
+                                    <div className="mt-3">
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="font-bold text-gray-700">
+                                                {hasTarget
+                                                    ? `${analysis.applicantCount}/${analysis.targetCount}명 · ${Math.round(analysis.applicationRate)}%`
+                                                    : `${analysis.applicantCount}명 신청 · 무제한`}
+                                            </span>
+                                            <span className={`font-bold ${analysis.daysLeft !== null && analysis.daysLeft <= 3 ? 'text-red-600' : 'text-gray-500'}`}>
+                                                {daysLeftLabel}
+                                            </span>
+                                        </div>
+                                        {hasTarget && (
+                                            <div className="w-full bg-gray-100 rounded-full h-1.5">
+                                                <div
+                                                    className={`${barColor} h-1.5 rounded-full`}
+                                                    style={{ width: `${Math.min(analysis.applicationRate, 100)}%` }}
+                                                />
+                                            </div>
+                                        )}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
 
             {/* Bulk Extend Modal */}
             {showBulkModal && (
