@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DateCell } from "@/components/data-table"
 import { StatusBadgeCell } from "@/components/data-table/cells/StatusBadgeCell"
-import { CAMPAIGN_STATUS_LABELS, CAMPAIGN_STATUS_VARIANTS } from "@/constants/campaign"
+import { CAMPAIGN_STATUS_LABELS } from "@/constants/campaign"
 import { canEditCampaign as canEditCampaignByRole } from "@/lib/campaignPermissions"
 import AdminListActionMenu from "@/components/admin/AdminListActionMenu"
 import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled, isCampaignUnlimitedRecruitment } from "@/lib/campaignUtils"
@@ -162,8 +162,7 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
         cell: ({ row }) => (
             <StatusBadgeCell
                 status={row.getValue("status")}
-                customLabels={CAMPAIGN_STATUS_LABELS}
-                customVariants={CAMPAIGN_STATUS_VARIANTS}
+                domain="CAMPAIGN"
             />
         ),
         size: 100,

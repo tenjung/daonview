@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { campaignMutation } from '@/lib/campaignMutationClient';
@@ -68,29 +69,6 @@ interface LinkCandidate {
     optionLabel: string;
     purchaseLinkUrl: string;
     usageCount: number;
-}
-
-function getApplicantStatusMeta(applicant: Applicant) {
-    const isSelected = applicant.status === 'SELECTED' || applicant.status === 'APPROVED';
-
-    if (applicant.status === 'REJECTED') {
-        return {
-            label: '거절됨',
-            className: 'bg-gray-100 text-gray-500',
-        };
-    }
-
-    if (isSelected) {
-        return {
-            label: '선정됨',
-            className: 'bg-emerald-100 text-emerald-700',
-        };
-    }
-
-    return {
-        label: '대기중',
-        className: 'bg-blue-100 text-blue-700',
-    };
 }
 
 export default function AdvertiserApplicantsPage() {
@@ -581,7 +559,6 @@ export default function AdvertiserApplicantsPage() {
                                                 {items.map((app) => {
                                                     const isSelectedStatus = app.status === 'SELECTED' || app.status === 'APPROVED';
                                                     const individualLinkCampaign = isIndividualLinkCampaign(app);
-                                                    const statusMeta = getApplicantStatusMeta(app);
 
                                                     return (
                                                         <div
@@ -657,9 +634,7 @@ export default function AdvertiserApplicantsPage() {
 
                                                             <div className="space-y-2">
                                                                 <div className="flex flex-wrap items-center gap-2">
-                                                                    <span className={`rounded-full px-3 py-1 text-sm font-bold ${statusMeta.className}`}>
-                                                                        {statusMeta.label}
-                                                                    </span>
+                                                                    <StatusBadge domain="APPLICATION" status={app.status} />
                                                                     {app.extension_status === 'PENDING' && (
                                                                         <span className="rounded-full bg-orange-100 px-2.5 py-1 text-xs font-bold text-orange-600">
                                                                             연장 요청

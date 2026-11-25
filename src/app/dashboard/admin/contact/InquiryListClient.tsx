@@ -1,12 +1,13 @@
 'use client';
 
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { Headset } from 'lucide-react';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
-import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
+import { getInquiryCategoryLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface Inquiry {
     id: string;
@@ -82,12 +83,7 @@ export default function InquiryListClient() {
                             inquiries.map((inquiry) => (
                                 <tr key={inquiry.id} className="hover:bg-slate-50 transition-colors">
                                     <td className="px-6 py-4">
-                                        <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${isInquiryAnswered(inquiry.status)
-                                            ? 'bg-blue-100 text-blue-600'
-                                            : 'bg-slate-100 text-slate-500'
-                                            }`}>
-                                            {getInquiryStatusLabel(inquiry.status)}
-                                        </span>
+                                        <StatusBadge domain="INQUIRY" status={inquiry.status} />
                                     </td>
                                     <td className="px-6 py-4 text-slate-600 font-medium">
                                         {getInquiryCategoryLabel(inquiry.category)}

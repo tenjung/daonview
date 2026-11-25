@@ -22,9 +22,6 @@ import { cn } from '@/lib/utils';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
 import {
     PAYMENT_STATUS_LABELS,
-    PAYMENT_STATUS_VARIANTS,
-    REFUND_REQUEST_STATUS_LABELS,
-    REFUND_REQUEST_STATUS_VARIANTS,
 } from '@/constants/status';
 import type { RefundRequestPresenter, RefundType } from '@/types/paymentRefund';
 import {
@@ -414,8 +411,7 @@ export default function PaymentManagementClient() {
                                                 <div className="flex justify-center">
                                                     <StatusBadgeCell
                                                         status={payment.status}
-                                                        customLabels={PAYMENT_STATUS_LABELS}
-                                                        customVariants={PAYMENT_STATUS_VARIANTS}
+                                                        domain="PAYMENT"
                                                         className="text-[11px] font-bold"
                                                     />
                                                 </div>
@@ -426,8 +422,7 @@ export default function PaymentManagementClient() {
                                                         <>
                                                             <StatusBadgeCell
                                                                 status={refundRequest.status}
-                                                                customLabels={REFUND_REQUEST_STATUS_LABELS}
-                                                                customVariants={REFUND_REQUEST_STATUS_VARIANTS}
+                                                                domain="REFUND_REQUEST"
                                                                 className="text-[11px] font-bold"
                                                             />
                                                             <span className="max-w-[180px] text-[9px] leading-relaxed font-bold text-slate-400 line-clamp-2">

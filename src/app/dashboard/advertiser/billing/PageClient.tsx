@@ -31,12 +31,6 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
-import {
-    PAYMENT_STATUS_LABELS,
-    PAYMENT_STATUS_VARIANTS,
-    REFUND_REQUEST_STATUS_LABELS,
-    REFUND_REQUEST_STATUS_VARIANTS,
-} from '@/constants/status';
 import type { RefundRequestPresenter } from '@/types/paymentRefund';
 
 export default function BillingPage() {
@@ -389,8 +383,7 @@ export default function BillingPage() {
                                                                 <div className="flex justify-center">
                                                                     <StatusBadgeCell
                                                                         status={p.status}
-                                                                        customLabels={PAYMENT_STATUS_LABELS}
-                                                                        customVariants={PAYMENT_STATUS_VARIANTS}
+                                                                        domain="PAYMENT"
                                                                         className="text-[10px] font-black"
                                                                     />
                                                                 </div>
@@ -401,8 +394,7 @@ export default function BillingPage() {
                                                                         <>
                                                                             <StatusBadgeCell
                                                                                 status={refundRequest.status}
-                                                                                customLabels={REFUND_REQUEST_STATUS_LABELS}
-                                                                                customVariants={REFUND_REQUEST_STATUS_VARIANTS}
+                                                                                domain="REFUND_REQUEST"
                                                                                 className="text-[10px] font-black"
                                                                             />
                                                                             <span className="max-w-[140px] text-center text-[10px] font-bold text-gray-400 line-clamp-2">

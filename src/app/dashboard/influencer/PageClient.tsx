@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
@@ -22,14 +23,6 @@ import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobi
 interface ApplicationWithCampaign extends Application {
     campaigns: Campaign;
 }
-
-const statusConfig: Record<string, { label: string; color: string }> = {
-    PENDING: { label: '심사중', color: 'bg-orange-100 text-orange-600' },
-    APPROVED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
-    SELECTED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
-    REJECTED: { label: '미선정', color: 'bg-red-100 text-red-600' },
-    COMPLETED: { label: '완료', color: 'bg-blue-100 text-blue-600' },
-};
 
 export default function InfluencerDashboard({ initialViewer, initialApplications = [] }: { initialViewer?: DashboardViewer; initialApplications?: ApplicationWithCampaign[] }) {
     const { user, profile, isLoading: authLoading } = useDashboardViewer(initialViewer);
@@ -189,8 +182,6 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
                                     <div className="space-y-3">
                                         {applications.map((application) => {
                                             const campaign = application.campaigns;
-                                            const normalizedStatus = String(application.status || '').toUpperCase();
-                                            const status = statusConfig[normalizedStatus] || { label: application.status, color: 'bg-gray-100 text-gray-600' };
 
                                             return (
                                                 <InfluencerMobileListCard
@@ -210,7 +201,7 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
                                                         )
                                                     }
                                                     title={campaign?.title || '캠페인'}
-                                                    badge={<Badge className={`${status.color} shrink-0 border-none font-bold`}>{status.label}</Badge>}
+                                                    badge={<StatusBadge domain="INFLUENCER_APPLICATION" status={application.status} className="shrink-0" />}
                                                     meta={
                                                         <>
                                                             <span>{campaign?.platform || '-'}</span>

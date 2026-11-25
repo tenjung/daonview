@@ -68,39 +68,7 @@ export default function AdvertiserVerificationPage() {
 
         setLoading(true);
         try {
-            // 1. AI 자동 인증 시도
-            let isAutoApproved = false;
-            if (file) {
-                setIsAiVerifying(true);
-                try {
-                    const base64 = await fileToBase64(file);
-                    const aiRes = await fetch('/api/ai-service/verify-biz', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            companyName,
-                            bizNumber,
-                            fileBase64: base64,
-                            userId: user.id
-                        })
-                    });
-                    const aiData = await aiRes.json();
-
-                    if (aiData.autoApproved) {
-                        isAutoApproved = true;
-                        toast.success('AI 심사 결과 정보가 일치하여 즉시 승인되었습니다! 🎉');
-                    } else if (aiData.reason) {
-                        toast.info(`AI 심사 알림: ${aiData.reason}\n(수동 심사로 전환됩니다.)`);
-                    }
-                } catch (aiErr) {
-                    console.error('AI verification failed:', aiErr);
-                    // AI 실패해도 수동 심사는 진행
-                } finally {
-                    setIsAiVerifying(false);
-                }
-            }
-
-            // 2. 파일 업로드 및 최종 업데이트
+            // 1. 사업자등록증 업로드 (AI 승인 시 서버가 이 경로를 함께 저장한다)
             let certificateUrl = profile?.biz_certificate_url;
             if (file) {
                 const fileExt = file.name.split('.').pop();
@@ -118,17 +86,49 @@ export default function AdvertiserVerificationPage() {
                 certificateUrl = publicUrl;
             }
 
-            // AI가 이미 승인한 경우와 아닌 경우의 상태 결정
-            const status = isAutoApproved ? 'APPROVED' : 'PENDING';
+            // 2. AI 자동 인증 시도: 일치하면 서버가 승인 상태와 사업자 정보를 한 번에 저장한다.
+            let isAutoApproved = false;
+            if (file) {
+                setIsAiVerifying(true);
+                try {
+                    const base64 = await fileToBase64(file);
+                    const aiRes = await fetch('/api/ai-service/verify-biz', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            companyName,
+                            bizNumber,
+                            fileBase64: base64,
+                            certificateUrl,
+                        })
+                    });
+                    const aiData = await aiRes.json();
 
-            await updateMyProfile({
-                company_name: companyName,
-                biz_number: bizNumber,
-                biz_certificate_url: certificateUrl,
-                biz_verification_status: status,
-                biz_verification_requested_at: new Date().toISOString(),
-                biz_rejection_reason: null
-            }, { expectedUserId: user.id });
+                    if (aiRes.ok && aiData.autoApproved) {
+                        isAutoApproved = true;
+                        toast.success('AI 심사 결과 정보가 일치하여 즉시 승인되었습니다! 🎉');
+                    } else if (aiData.reason) {
+                        toast.info(`AI 심사 알림: ${aiData.reason}\n(수동 심사로 전환됩니다.)`);
+                    }
+                } catch (aiErr) {
+                    console.error('AI verification failed:', aiErr);
+                    // AI 실패해도 수동 심사는 진행
+                } finally {
+                    setIsAiVerifying(false);
+                }
+            }
+
+            // 3. 자동 승인이 아니면 수동 심사(PENDING)로 제출
+            if (!isAutoApproved) {
+                await updateMyProfile({
+                    company_name: companyName,
+                    biz_number: bizNumber,
+                    biz_certificate_url: certificateUrl,
+                    biz_verification_status: 'PENDING',
+                    biz_verification_requested_at: new Date().toISOString(),
+                    biz_rejection_reason: null
+                }, { expectedUserId: user.id });
+            }
 
             if (!isAutoApproved) {
                 // 관리자에게 알림 전송 (수동 심사 레이어). 알림 실패가 인증 제출 자체를 막지 않도록 분리한다.

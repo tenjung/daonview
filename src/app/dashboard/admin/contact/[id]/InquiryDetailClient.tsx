@@ -1,5 +1,6 @@
 'use client';
 
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
@@ -7,7 +8,7 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
-import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
+import { getInquiryCategoryLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface InquiryDetail {
     id: string;
@@ -116,12 +117,7 @@ export default function InquiryDetailClient() {
                     목록으로 돌아가기
                 </Link>
                 <div className="flex items-center gap-3 mb-3">
-                    <span className={`inline-block whitespace-nowrap px-3 py-1 rounded-md text-xs font-bold ${isInquiryAnswered(inquiry.status)
-                        ? 'bg-blue-100 text-blue-600'
-                        : 'bg-slate-100 text-slate-500'
-                        }`}>
-                        {getInquiryStatusLabel(inquiry.status)}
-                    </span>
+                    <StatusBadge domain="INQUIRY" status={inquiry.status} />
                     <span className="text-sm text-primary font-bold">{getInquiryCategoryLabel(inquiry.category)}</span>
                     <span className="text-sm text-slate-400 ml-auto font-medium">
                         {format(new Date(inquiry.created_at), 'yyyy.MM.dd HH:mm')}

@@ -1,3 +1,5 @@
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
+import { TypeBadge, PlatformBadge } from '@/components/campaign/CampaignBadges';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
@@ -444,9 +446,9 @@ export default async function AdminProgressDashboardPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0 flex-1">
                           <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <Badge variant="outline" className="font-bold">{CAMPAIGN_STATUS_LABELS[campaign.status] || campaign.status}</Badge>
-                            {campaign.type && <Badge variant="secondary">{campaign.type}</Badge>}
-                            {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
+                            <StatusBadge domain="CAMPAIGN" status={campaign.status} />
+                            {campaign.type && <TypeBadge type={campaign.type} />}
+                            {campaign.platform && <PlatformBadge platform={campaign.platform} />}
                           </div>
                           <div className="line-clamp-2 text-base font-black leading-snug text-slate-900">{campaign.title}</div>
                           <div className="mt-2 text-xs font-medium text-slate-600">{health.message}</div>

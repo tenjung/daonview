@@ -1,5 +1,6 @@
 "use client"
 
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { ColumnDef } from "@tanstack/react-table"
 import Image from "next/image"
 import Link from 'next/link'
@@ -65,20 +66,7 @@ export const influencerApplicationColumns: ColumnDef<any>[] = [
         header: "상태",
         cell: ({ row }) => {
             const status = row.getValue("status") as string;
-            const statusConfig: Record<string, { label: string; color: string }> = {
-                PENDING: { label: '심사중', color: 'bg-orange-100 text-orange-600' },
-                APPROVED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
-                SELECTED: { label: '선정됨', color: 'bg-green-100 text-green-600' },
-                REJECTED: { label: '미선정', color: 'bg-red-100 text-red-600' },
-                COMPLETED: { label: '완료', color: 'bg-blue-100 text-blue-600' },
-            };
-            const config = statusConfig[status?.toUpperCase()] || { label: status, color: 'bg-gray-100 text-gray-600' };
-            
-            return (
-                <Badge className={`${config.color} border-none font-bold`}>
-                    {config.label}
-                </Badge>
-            );
+            return <StatusBadge domain="INFLUENCER_APPLICATION" status={status} />;
         }
     }
 ];

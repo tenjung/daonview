@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
@@ -59,14 +60,6 @@ interface RowCellProps {
         original: ApplicationWithCampaign;
     };
 }
-
-const mobileStatusConfig: Record<string, { label: string; tone: 'neutral' | 'orange' | 'green' | 'red' | 'blue'; className: string }> = {
-    PENDING: { label: '심사중', tone: 'orange', className: 'bg-orange-100 text-orange-600' },
-    APPROVED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
-    SELECTED: { label: '선정됨', tone: 'green', className: 'bg-green-100 text-green-600' },
-    REJECTED: { label: '미선정', tone: 'red', className: 'bg-red-100 text-red-600' },
-    COMPLETED: { label: '완료', tone: 'blue', className: 'bg-blue-100 text-blue-600' },
-};
 
 export default function MyCampaignsPage({ initialViewer, initialApplications = [] }: { initialViewer?: DashboardViewer; initialApplications?: ApplicationWithCampaign[] }) {
     const { user, profile, isLoading } = useDashboardViewer(initialViewer);
@@ -476,11 +469,6 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                             ) : applications.length > 0 ? (
                                 applications.map((app) => {
                                     const campaign = app.campaigns;
-                                    const status = mobileStatusConfig[String(app.status || '').toUpperCase()] || {
-                                        label: String(app.status || '-'),
-                                        tone: 'neutral' as const,
-                                        className: 'bg-gray-100 text-gray-600',
-                                    };
                                     const isSelected = app.status === 'SELECTED' || app.status === 'APPROVED';
                                     return (
                                         <InfluencerMobileListCard
@@ -500,7 +488,7 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                                                 )
                                             }
                                             title={campaign?.title || '캠페인'}
-                                            badge={<Badge className={`${status.className} border-none font-bold`}>{status.label}</Badge>}
+                                            badge={<StatusBadge domain="INFLUENCER_APPLICATION" status={app.status} />}
                                             meta={
                                                 <>
                                                     <span>{String(campaign?.platform || '-').toUpperCase()}</span>

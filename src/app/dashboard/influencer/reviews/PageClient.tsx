@@ -1,4 +1,5 @@
 'use client';
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
@@ -444,14 +445,6 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
                             ) : submittedReviews.length > 0 ? (
                                 submittedReviews.map((review) => {
                                     const status = String(review.status || '').toUpperCase();
-                                    const badgeClass =
-                                        status === 'APPROVED'
-                                            ? 'bg-emerald-100 text-emerald-700'
-                                            : status === 'REJECTED'
-                                              ? 'bg-rose-100 text-rose-700'
-                                              : 'bg-amber-100 text-amber-700';
-                                    const badgeLabel =
-                                        status === 'APPROVED' ? '승인됨' : status === 'REJECTED' ? '반려됨' : '검수중';
                                     const postUrl = String(review.post_url || '').trim();
                                     const isLink = postUrl.startsWith('http://') || postUrl.startsWith('https://');
 
@@ -460,7 +453,7 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
                                             key={review.id}
                                             href={`/campaigns/${review.campaign_id}`}
                                             title={review.campaigns?.title || `캠페인 #${review.campaign_id}`}
-                                            badge={<Badge className={`${badgeClass} border-none font-bold`}>{badgeLabel}</Badge>}
+                                            badge={<StatusBadge domain="INFLUENCER_REVIEW" status={status} />}
                                             meta={
                                                 <>
                                                     <span>{String(review.platform || review.campaigns?.platform || 'UNKNOWN').toUpperCase()}</span>

@@ -19,10 +19,18 @@ export async function POST(request: NextRequest) {
         }
         const userId = user.id;
 
-        const { companyName, bizNumber, fileBase64 } = await request.json();
+        const { companyName, bizNumber, fileBase64, certificateUrl } = await request.json();
 
         if (!companyName || !bizNumber || !fileBase64) {
             return NextResponse.json({ error: '필수 정보가 누락되었습니다.' }, { status: 400 });
+        }
+
+        // 등록증 URL은 본인이 방금 올린 사업자등록증 경로만 허용한다.
+        const certificatePrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/files/biz-certificates/${userId}_`;
+        const safeCertificateUrl =
+            typeof certificateUrl === 'string' && certificateUrl.startsWith(certificatePrefix) ? certificateUrl : null;
+        if (!safeCertificateUrl) {
+            return NextResponse.json({ error: '사업자등록증 파일 정보가 올바르지 않습니다.' }, { status: 400 });
         }
 
         // 1. Gemini를 통한 서류 분석
@@ -46,17 +54,24 @@ export async function POST(request: NextRequest) {
                 auth: { autoRefreshToken: false, persistSession: false }
             });
 
-            // 자동 승인 처리
-            const { error: updateError } = await supabaseAdmin
+            // 자동 승인: 승인 상태와 심사한 사업자 정보·등록증을 한 번에 저장한다.
+            const { data: updatedRows, error: updateError } = await supabaseAdmin
                 .from('profiles')
                 .update({
+                    company_name: companyName,
+                    biz_number: bizNumber,
+                    biz_certificate_url: safeCertificateUrl,
                     biz_verification_status: 'APPROVED',
                     biz_verification_requested_at: new Date().toISOString(),
-                    // memo: 'AI 자동 승인됨' // optional
+                    biz_rejection_reason: null,
                 })
-                .eq('id', userId);
+                .eq('id', userId)
+                .select('id');
 
             if (updateError) throw updateError;
+            if (!updatedRows || updatedRows.length === 0) {
+                throw new Error('사업자 인증 정보를 저장하지 못했습니다.');
+            }
 
             // 알림 추가
             await supabaseAdmin.from('notifications').insert({

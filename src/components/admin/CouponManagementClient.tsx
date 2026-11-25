@@ -17,7 +17,7 @@ import {
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
-import { COUPON_STATUS_LABELS, COUPON_STATUS_VARIANTS } from '@/constants/status';
+import { COUPON_STATUS_LABELS } from '@/constants/status';
 
 interface Coupon {
     id: string;
@@ -187,8 +187,7 @@ export default function CouponManagementClient() {
                                         <td className="px-6 py-5 text-center">
                                             <StatusBadgeCell
                                                 status={coupon.status}
-                                                customLabels={COUPON_STATUS_LABELS}
-                                                customVariants={COUPON_STATUS_VARIANTS}
+                                                domain="COUPON"
                                                 className="text-[11px] font-bold"
                                             />
                                         </td>

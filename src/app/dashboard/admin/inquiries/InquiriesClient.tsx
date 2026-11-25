@@ -1,5 +1,6 @@
 'use client';
 
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { Handshake } from 'lucide-react';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useState, useEffect } from 'react';
@@ -217,13 +218,10 @@ export default function InquiriesClient() {
                                                     e.stopPropagation();
                                                     updateStatus(inquiry.id, inquiry.status);
                                                 }}
-                                                className={`px-3 py-1 text-xs font-bold font-sans rounded-full transition-all border shadow-sm ${
-                                                    inquiry.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100' :
-                                                    inquiry.status === 'IN_PROGRESS' ? 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100' :
-                                                    'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
-                                                }`}
+                                                className="rounded-full transition-opacity hover:opacity-80"
+                                                title="클릭하여 상태 변경"
                                             >
-                                                {inquiry.status === 'PENDING' ? '대기중' : inquiry.status === 'IN_PROGRESS' ? '확인중' : '답변완료'}
+                                                <StatusBadge domain="PARTNER_INQUIRY" status={inquiry.status} />
                                             </button>
                                         </td>
                                     </tr>

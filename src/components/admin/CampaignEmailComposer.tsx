@@ -1,5 +1,6 @@
 "use client";
 
+import { CAMPAIGN_STATUS_LABELS } from '@/constants/campaign';
 import { useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, Clipboard, Mail, MousePointerClick, RotateCcw, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,11 +19,6 @@ interface CampaignEmailComposerProps {
   campaigns: AdminCampaignEmailCampaign[];
 }
 
-const statusLabels: Record<string, string> = {
-  RECRUITING: '모집중',
-  ONGOING: '진행중',
-};
-
 type StatusFilter = 'ALL' | 'RECRUITING' | 'ONGOING';
 type CampaignListTab = 'VISIT' | 'DELIVERY';
 type DeliveryChannelFilter = 'ALL' | 'BLOG_ONLY' | 'PURCHASE_ONLY' | 'PURCHASE_WITH_SNS' | 'INSTAGRAM_ONLY';
@@ -40,7 +36,7 @@ function getSearchText(campaign: AdminCampaignEmailCampaign) {
     `#${campaign.id}`,
     campaign.title,
     campaign.status,
-    statusLabels[campaign.status] || '',
+    CAMPAIGN_STATUS_LABELS[campaign.status] || '',
     campaign.type,
     campaign.platform,
     campaign.category,
@@ -110,7 +106,7 @@ function CampaignSelectCard({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <Badge variant="secondary" className="rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-100">
-              {statusLabels[campaign.status] || campaign.status}
+              {CAMPAIGN_STATUS_LABELS[campaign.status] || campaign.status}
             </Badge>
             {campaign.type === 'DELIVERY' ? (
               <>

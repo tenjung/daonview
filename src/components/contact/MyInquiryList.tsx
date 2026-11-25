@@ -1,7 +1,8 @@
+import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { getRequestAuth } from '@/lib/auth/requestAuth';
-import { getInquiryCategoryLabel, getInquiryStatusLabel, isInquiryAnswered } from '@/constants/inquiry';
+import { getInquiryCategoryLabel, isInquiryAnswered } from '@/constants/inquiry';
 
 interface MyInquiryListProps {
   basePath?: string;
@@ -48,15 +49,7 @@ export default async function MyInquiryList({ basePath = '/contact' }: MyInquiry
             <li key={inquiry.id} className="py-4 first:pt-0 last:pb-0">
               <Link href={`${basePath}/my/${inquiry.id}`} className="block rounded-xl px-2 py-2 hover:bg-slate-50">
                 <div className="mb-1 flex items-center gap-2">
-                  <span
-                    className={`inline-flex rounded-md px-2 py-0.5 text-[11px] font-black ${
-                      isInquiryAnswered(inquiry.status)
-                        ? 'bg-emerald-50 text-emerald-600'
-                        : 'bg-amber-50 text-amber-600'
-                    }`}
-                  >
-                    {getInquiryStatusLabel(inquiry.status)}
-                  </span>
+                  <StatusBadge domain="INQUIRY" status={inquiry.status} />
                   <span className="text-xs font-bold text-slate-400">
                     {getInquiryCategoryLabel(inquiry.category)}
                   </span>

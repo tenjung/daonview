@@ -8,7 +8,7 @@ import { Copy, CreditCard, ExternalLink, Eye, EyeOff, RefreshCw, Search, ShieldC
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
-import { REVIEW_STATUS_LABELS, REVIEW_STATUS_VARIANTS } from '@/constants/status';
+import { REVIEW_STATUS_LABELS } from '@/constants/status';
 import type { ManagedReview, ReviewEmailNotification } from '@/types/reviewManagement';
 
 interface ReviewManagementClientProps {
@@ -144,7 +144,7 @@ export default function ReviewManagementClient({ initialReviews }: ReviewManagem
                         </a>
                       ) : <p className="mt-2 text-sm text-gray-400">리뷰 링크 미입력 · 구매평 증빙으로 제출</p>}
                     </div>
-                    <StatusBadgeCell status={review.status} customLabels={REVIEW_STATUS_LABELS} customVariants={REVIEW_STATUS_VARIANTS} />
+                    <StatusBadgeCell status={review.status} domain="REVIEW" />
                   </div>
 
                   {review.is_purchase_experience && (
