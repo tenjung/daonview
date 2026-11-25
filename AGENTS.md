@@ -142,6 +142,11 @@ UI 표시: DB 값을 직접 노출하지 않고 Label/Badge로 매핑하여 표�
 
 캠페인 운영 테이블: 관리자/광고주 캠페인 목록과 운영 액션은 반드시 공통 컴포넌트 구조(`CampaignDataTable` + 역할별 래퍼)를 유지한다. 동일 기능을 관리자용/광고주용으로 분리 구현하거나 복붙하지 않는다.
 
+대시보드 공통 부품: 관리자·광고주·인플루언서 대시보드(마이페이지 포함)는 아래 공통 부품을 먼저 사용하고, 역할별로 새로 만들거나 복붙하지 않는다. 새 부품이 필요하면 `src/components/dashboard/`에 공통으로 만든다.
+- 페이지 틀: `DashboardPageLayout`(role, 관리자는 `AdminPageLayout` 래퍼) / 제목: `DashboardPageHeader`(아이콘·한국어 제목·설명·오른쪽 액션)
+- 통계: `StatTile` + `StatTileGroup`
+- 캠페인 유형·플랫폼 배지: 메인과 같은 `TypeBadge`(`campaign/CampaignBadges`) + `CampaignPlatformBadges`
+
 5. ⚠️ 터미널 및 실행 제약
 명령어 제공: 설치, 복사 등 30초 이상 소요되는 작업은 직접 수행하지 않고 코드 블록(bash)으로 명령어를 제공하여 사용자가 실행하게 한다.
 

@@ -1,4 +1,6 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
 import { isAdminRole } from '@/constants/role';
 import { campaignMutation } from '@/lib/campaignMutationClient';
@@ -10,7 +12,6 @@ import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardVi
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { useRouter } from 'next/navigation';
 import { Application, Campaign } from '@/types/database';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { toast } from 'sonner';
 import {
@@ -37,9 +38,8 @@ import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { INFLUENCER_LINKS } from '@/constants/navigation';
+
 import { ColumnDef } from '@tanstack/react-table';
-import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
 import { postApplicationProgress } from '@/lib/applicationProgress';
@@ -388,46 +388,25 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-0 py-0 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
-                        <InfluencerMobileHeader
-                            icon={<Megaphone className="h-5 w-5" />}
-                            title="My Campaigns"
-                            subtitle="참여 중인 모든 캠페인의 진행 상태를 확인하세요."
-                            action={
-                                <Link
-                                    href="/campaigns"
-                                    className="inline-flex items-center justify-center rounded-full bg-gray-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-black"
-                                >
-                                    신규 찾기
-                                </Link>
-                            }
-                        />
-                        <div className="hidden sm:block">
-                            <div>
-                                <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
-                                    <Megaphone className="w-10 h-10 text-primary" />
-                                    My Campaigns
-                                </h1>
-                                <p className="text-gray-500 mt-2 font-medium">참여 중인 모든 캠페인의 진행 상태를 확인하세요.</p>
-                            </div>
-                        </div>
+                    <DashboardPageHeader
+                        icon={Megaphone}
+                        title="내 캠페인"
+                        description="참여 중인 모든 캠페인의 진행 상태를 확인하세요."
+                        actions={
+                            <>
                         <Link
                             href="/campaigns"
-                            className="hidden sm:inline-flex bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all items-center gap-2 transform hover:-translate-y-1"
+                            className="inline-flex bg-gray-900 text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:bg-black transition-all items-center gap-2 transform hover:-translate-y-1"
                         >
                             신규 캠페인 찾기
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Tabs / Filters */}
                     <div className="border-b border-gray-100 bg-white px-4 py-4 sm:hidden">
@@ -598,7 +577,6 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                         </div>
                     </div>
                 </div>
-            </main>
 
             <ConfirmDialog
                 isOpen={cancelDialog.isOpen}
@@ -663,6 +641,6 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                     </div>
                 </div>
             )}
-        </div>
+        </DashboardPageLayout>
     );
 }

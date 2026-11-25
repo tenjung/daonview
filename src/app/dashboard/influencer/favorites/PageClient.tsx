@@ -1,4 +1,6 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
 import { useCallback, useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
@@ -7,13 +9,11 @@ import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardVi
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { useRouter } from 'next/navigation';
 import { Campaign } from '@/types/database';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import CampaignCard from '@/components/CampaignCard';
 import CampaignSkeleton from '@/components/CampaignSkeleton';
 import { mapCampaignToCard } from '@/lib/campaignUtils';
-import { INFLUENCER_LINKS } from '@/constants/navigation';
+
 import { Heart } from 'lucide-react';
-import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerSummaryBanner } from '@/components/influencer/InfluencerSummaryBanner';
 
 interface FavoriteCampaign {
@@ -84,31 +84,19 @@ export default function FavoritesPage({ initialViewer, initialFavorites = [] }: 
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 md:px-10 md:py-10">
                 <div className="max-w-[1400px]">
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-center sm:justify-between">
-                        <InfluencerMobileHeader
-                            icon={<Heart className="h-5 w-5" />}
-                            title="관심 캠페인"
-                            subtitle="저장해 둔 캠페인을 빠르게 다시 확인하세요."
-                            action={
-                                <Link href="/campaigns" className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm">
-                                    찾아보기
-                                </Link>
-                            }
-                        />
-                        <div className="hidden sm:block">
-                            <h1 className="text-2xl font-bold text-text-main">관심 캠페인</h1>
-                        </div>
-                        <Link href="/campaigns" className="hidden sm:inline-flex btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
-                    </div>
+                    <DashboardPageHeader
+                        icon={Heart}
+                        title="관심 캠페인"
+                        description="저장해 둔 캠페인을 빠르게 다시 확인하세요."
+                        actions={
+                            <>
+                        <Link href="/campaigns" className="inline-flex btn btn-primary text-sm px-4 py-2">캠페인 찾아보기</Link>
+                            </>
+                        }
+                    />
 
                     <div className="mb-4 sm:hidden">
                         <InfluencerSummaryBanner
@@ -145,7 +133,6 @@ export default function FavoritesPage({ initialViewer, initialFavorites = [] }: 
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

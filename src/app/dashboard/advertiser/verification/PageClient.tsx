@@ -1,5 +1,7 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
@@ -21,8 +23,6 @@ import {
     FileSearch
 } from 'lucide-react';
 import AdvertiserSidebar from '@/components/AdvertiserSidebar';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 export default function AdvertiserVerificationPage() {
     const { user, profile, fetchProfile } = useAuthStore();
@@ -234,24 +234,14 @@ export default function AdvertiserVerificationPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
 
-            <main className="flex-1 p-4 md:p-6 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-3xl mx-auto">
-                    <div className="mb-6 flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-2">
-                                <ShieldCheck className="w-7 h-7 text-primary" />
-                                비즈니스 인증
-                            </h1>
-                            <p className="text-gray-500 mt-1 font-medium text-xs">AI 자동 시스템을 통해 사업자 정보를 즉시 인증받으세요.</p>
-                        </div>
-                    </div>
+                    <DashboardPageHeader
+                        icon={ShieldCheck}
+                        title="비즈니스 인증"
+                        description="AI 자동 시스템을 통해 사업자 정보를 즉시 인증받으세요."
+                    />
 
                     {renderStatus()}
 
@@ -412,7 +402,6 @@ export default function AdvertiserVerificationPage() {
                         </>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

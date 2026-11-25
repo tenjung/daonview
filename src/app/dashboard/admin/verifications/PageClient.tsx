@@ -1,5 +1,6 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -102,17 +103,13 @@ export default function AdminVerificationManagementPage() {
 
     return (
         <AdminPageLayout containerClassName="max-w-[1400px]">
-            <div className="p-8 overflow-y-auto bg-gray-50/50">
+            <div>
                 <div>
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
-                                <ShieldCheck className="w-8 h-8 text-primary" />
-                                사업자 인증 관리
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">광고주 회원의 사업자 등록증 및 정보를 심사합니다.</p>
-                        </div>
-                    </div>
+                    <DashboardPageHeader
+                        icon={ShieldCheck}
+                        title="사업자 인증 관리"
+                        description="광고주 회원의 사업자 등록증 및 정보를 심사합니다."
+                    />
 
                     <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row gap-4 items-center justify-between">
                         <div className="flex gap-2">

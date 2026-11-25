@@ -1,5 +1,6 @@
 "use client";
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { Profile } from '@/types/database';
@@ -107,16 +108,11 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
 
     return (
         <div className="flex flex-col w-full bg-transparent">
-            <header className="bg-white/80 backdrop-blur-sm border-b border-border py-4 sm:py-8 sticky top-0 z-10">
-                <div className="w-full px-4 sm:px-6">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <h1 className="text-xl sm:text-3xl font-bold text-text-main tracking-tight flex items-center gap-2 sm:gap-3">
-                                <ShieldCheck className="text-primary w-6 h-6 sm:w-8 sm:h-8" />
-                                회원 통합 관리
-                            </h1>
-                            <p className="text-gray-500 mt-1 text-xs sm:text-sm">플랫폼의 모든 회원을 관리하고 등급을 조정할 수 있습니다.</p>
-                        </div>
+            <DashboardPageHeader
+                icon={ShieldCheck}
+                title="회원 통합 관리"
+                description="플랫폼의 모든 회원을 관리하고 등급을 조정할 수 있습니다."
+                actions={
                         <div className="flex gap-1.5 sm:gap-2 bg-gray-100/80 p-1 rounded-xl overflow-x-auto w-full md:w-auto custom-scrollbar">
                             <button
                                 onClick={() => setCurrentTab('all')}
@@ -143,9 +139,8 @@ export default function UserManagementClient({ initialUsers, initialStats }: Use
                                 관리자 {stats.admin}
                             </button>
                         </div>
-                    </div>
-                </div>
-            </header>
+                }
+            />
 
             <main className="w-full px-0 sm:px-6 py-4 sm:py-8 flex-1">
                 <DataTable 

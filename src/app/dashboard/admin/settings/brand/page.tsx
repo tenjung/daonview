@@ -1,3 +1,5 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import { Palette } from 'lucide-react';
 import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
@@ -19,12 +21,13 @@ export default async function BrandSettingsPage() {
     const initialConfig = settingsResult.data?.value || { favicon_url: '', logo_url: '' };
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <div className="bg-gray-50/50 py-12">
-                <div className="container px-4">
-                    <div className="mb-8">
-                        <h1 className="text-3xl font-black text-gray-900 mb-2">브랜드 설정</h1>
-                        <p className="text-gray-500">사이트의 아이덴티티를 나타내는 파비콘과 로고를 관리합니다.</p>
-                    </div>
+            <div>
+                <div>
+                    <DashboardPageHeader
+                        icon={Palette}
+                        title="브랜드 설정"
+                        description="사이트의 아이덴티티를 나타내는 파비콘과 로고를 관리합니다."
+                    />
                     <BrandSettingsClient initialConfig={initialConfig} />
                 </div>
             </div>

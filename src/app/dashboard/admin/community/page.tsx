@@ -1,3 +1,4 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { createClient } from '@/lib/supabase/server';
 import CommunityManagementClient from '@/components/admin/CommunityManagementClient';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
@@ -68,17 +69,11 @@ export default async function AdminCommunityPage() {
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3 tracking-tight">
-                        <MessageSquare className="w-8 h-8 text-primary" />
-                        커뮤니티 통합 관리
-                    </h1>
-                    <p className="text-gray-500 mt-1 font-medium italic">
-                        공지사항부터 자유게시판까지, 모든 커뮤니티 활동을 한곳에서 쉽고 빠르게 관리하세요.
-                    </p>
-                </div>
-            </div>
+            <DashboardPageHeader
+                icon={MessageSquare}
+                title="커뮤니티 통합 관리"
+                description="공지사항부터 자유게시판까지, 모든 커뮤니티 활동을 한곳에서 관리하세요."
+            />
 
             <CommunityManagementClient 
                 initialPosts={allPosts} 

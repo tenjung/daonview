@@ -1,9 +1,10 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useAuthStore } from '@/store/authStore';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import ApplicationsTableClient from '@/components/admin/ApplicationsTableClient';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import type { Application } from '@/types/database';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
@@ -40,34 +41,26 @@ export default function CampaignApplicationsClient({
     const { profile } = useAuthStore();
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-[1600px] mx-auto">
-                    <Link
-                        href="/dashboard/advertiser/campaigns"
-                        className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900"
-                    >
-                        <ArrowLeft size={16} />
-                        목록으로 돌아가기
-                    </Link>
-
-                    <div className="mb-6 flex items-end justify-between">
-                        <div>
-                            <div className="mb-2 flex items-center gap-2">
-                                <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
-                                    {campaignCategory || '카테고리'}
-                                </Badge>
-                                <span className="text-sm text-gray-400">ID: {campaignNumericId}</span>
+                    <DashboardPageHeader
+                        eyebrow={
+                            <div className="flex flex-col gap-3">
+                                <Link href="/dashboard/advertiser/campaigns" className="inline-flex items-center gap-1 text-sm text-gray-500 transition-colors hover:text-gray-900 w-fit">
+                                    <ArrowLeft size={16} />
+                                    목록으로 돌아가기
+                                </Link>
+                                <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="border-primary/20 bg-primary/5 text-primary">
+                                        {campaignCategory || '카테고리'}
+                                    </Badge>
+                                    <span className="text-sm text-gray-400">ID: {campaignNumericId}</span>
+                                </div>
                             </div>
-                            <h1 className="text-3xl font-bold text-gray-900 leading-tight">{campaignTitle}</h1>
-                        </div>
-                    </div>
+                        }
+                        title={campaignTitle}
+                    />
 
                     <ApplicationsTableClient
                         initialApplications={initialApplications}
@@ -82,7 +75,6 @@ export default function CampaignApplicationsClient({
                         recruitCount={recruitCount}
                     />
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

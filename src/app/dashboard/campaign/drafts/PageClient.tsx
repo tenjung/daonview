@@ -1,10 +1,12 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserDrafts, deleteDraft, getCampaignTypeLabel, formatDate, DraftCampaign } from '@/lib/draftUtils';
 import { toast } from 'sonner';
-import { Edit, Trash2, Calendar, ChevronRight } from 'lucide-react';
+import { Edit, Trash2, Calendar, ChevronRight, FileText } from 'lucide-react';
 import { useRoleGuard } from '@/hooks/useRoleGuard';
 import RoleSidebar from '@/components/RoleSidebar';
 
@@ -66,20 +68,15 @@ export default function DraftCampaignsPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
-            <Suspense fallback={<div className="w-[260px] bg-white border-r border-border" />}>
-                <RoleSidebar role={role} />
-            </Suspense>
+        <DashboardPageLayout role={role}>
 
-            <div className="flex-1 bg-gradient-to-br from-gray-50 to-blue-50 py-8 overflow-y-auto">
-                <div className="max-w-6xl mx-auto px-4 py-8">
+                <div className="max-w-6xl">
                     {/* 헤더 */}
-                    <div className="mb-8">
-                        <h1 className="text-4xl font-bold text-gray-900 mb-2">임시저장 캠페인</h1>
-                        <p className="text-gray-600">
-                            작성 중이던 캠페인을 이어서 작성하거나 삭제할 수 있습니다. (최대 10개)
-                        </p>
-                    </div>
+                    <DashboardPageHeader
+                        icon={FileText}
+                        title="임시저장 캠페인"
+                        description="작성 중이던 캠페인을 이어서 작성하거나 삭제할 수 있습니다. (최대 10개)"
+                    />
 
                     {/* 임시저장 목록 */}
                     {drafts.length === 0 ? (
@@ -155,7 +152,6 @@ export default function DraftCampaignsPage() {
                         </div>
                     )}
                 </div>
-            </div>
-        </div>
+        </DashboardPageLayout>
     );
 }

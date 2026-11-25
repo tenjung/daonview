@@ -1,3 +1,4 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { UnifiedAdminCampaigns } from '@/components/admin/UnifiedAdminCampaigns';
 import { fetchAdminCampaignCounts } from '@/lib/adminUtils';
@@ -39,23 +40,19 @@ export default async function AdminCampaignsPage() {
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-8 px-4 sm:px-0">
-                <div>
-                    <h1 className="text-xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3">
-                        <Megaphone className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
-                        캠페인 통합 관리
-                    </h1>
-                    <p className="text-gray-500 mt-1 text-xs sm:text-sm">
-                        모든 상태의 캠페인을 한곳에서 쉽고 빠르게 관리하세요.
-                    </p>
-                </div>
+            <DashboardPageHeader
+                icon={Megaphone}
+                title="캠페인 통합 관리"
+                description="모든 상태의 캠페인을 한곳에서 쉽고 빠르게 관리하세요."
+                actions={
                 <Link 
                     href="/dashboard/campaign/new" 
                     className="w-full sm:w-auto bg-primary text-white px-5 py-2.5 sm:py-3 rounded-xl font-bold shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
                 >
                     + 신규 캠페인 등록
                 </Link>
-            </div>
+                }
+            />
 
             <div className="bg-transparent sm:bg-white rounded-none sm:rounded-2xl shadow-none sm:shadow-sm border-none sm:border sm:border-gray-200 p-0 sm:p-6">
                 <UnifiedAdminCampaigns initialData={campaignsRes || []} />

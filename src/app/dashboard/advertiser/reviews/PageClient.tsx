@@ -1,10 +1,11 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useCallback, useState, useEffect, useRef } from 'react';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardViewer';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import ReviewManagementClient from '@/components/admin/ReviewManagementClient';
 import { Loader2, MessageSquare } from 'lucide-react';
 import type { ManagedReview } from '@/types/reviewManagement';
@@ -44,21 +45,13 @@ export default function AdvertiserReviewsPage({ initialViewer, initialReviews = 
     }, [fetchAdvertiserReviews, isLoading, user]);
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
-            <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
                 <div className="max-w-[1600px] mx-auto">
-                    <div className="flex items-center gap-3 mb-8">
-                        <MessageSquare className="w-8 h-8 text-primary" />
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">리뷰 작업 현황</h1>
-                            <p className="text-gray-500">선정된 리뷰어들이 작성한 콘텐츠를 확인하고 관리합니다.</p>
-                        </div>
-                    </div>
+                    <DashboardPageHeader
+                        icon={MessageSquare}
+                        title="리뷰 작업 현황"
+                        description="선정된 리뷰어들이 작성한 콘텐츠를 확인하고 관리합니다."
+                    />
 
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
@@ -76,7 +69,6 @@ export default function AdvertiserReviewsPage({ initialViewer, initialReviews = 
                         <ReviewManagementClient initialReviews={reviews} />
                     )}
                 </div>
-            </div>
-        </div>
+        </DashboardPageLayout>
     );
 }

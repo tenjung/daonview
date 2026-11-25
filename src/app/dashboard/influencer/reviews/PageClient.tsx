@@ -1,4 +1,6 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
 import { isAdminRole } from '@/constants/role';
 
@@ -9,16 +11,14 @@ import { ColumnDef } from '@tanstack/react-table';
 import { supabase } from '@/lib/supabase/client';
 import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardViewer';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import ReviewSubmitModal from '@/components/influencer/ReviewSubmitModal';
 import { DataTable } from '@/components/ui/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { INFLUENCER_LINKS } from '@/constants/navigation';
+
 import { Campaign } from '@/types/database';
 import { Camera, ExternalLink, MessageSquare } from 'lucide-react';
-import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 import { getCampaignReviewMode, type CampaignReviewMode } from '@/lib/campaignPurchase';
 
@@ -337,45 +337,24 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
-                        <InfluencerMobileHeader
-                            icon={<MessageSquare className="h-5 w-5" />}
-                            title="나의 리뷰"
-                            subtitle="작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요."
-                            action={
-                                <Link
-                                    href="/dashboard/influencer/campaigns"
-                                    className="inline-flex items-center justify-center rounded-full bg-slate-900 px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-black"
-                                >
-                                    나의 캠페인
-                                </Link>
-                            }
-                        />
-                        <div className="hidden sm:block">
-                            <div>
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight flex items-center gap-3">
-                                    <MessageSquare className="w-9 h-9 text-primary" />
-                                    나의 리뷰
-                                </h1>
-                                <p className="text-gray-500 mt-2 font-medium">작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요.</p>
-                            </div>
-                        </div>
+                    <DashboardPageHeader
+                        icon={MessageSquare}
+                        title="나의 리뷰"
+                        description="작성해야 할 리뷰와 제출 이력을 한 곳에서 확인하세요."
+                        actions={
+                            <>
                         <Link
                             href="/dashboard/influencer/campaigns"
-                            className="hidden sm:inline-flex bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-black transition-all"
+                            className="inline-flex bg-slate-900 text-white px-6 py-3 rounded-2xl font-bold shadow-sm hover:bg-black transition-all"
                         >
                             나의 캠페인
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     <div className="border-b border-gray-100 bg-white px-4 py-4 sm:hidden">
                         <div className="flex flex-wrap gap-2">
@@ -533,7 +512,6 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
                         </div>
                     </div>
                 </div>
-            </main>
 
             <ReviewSubmitModal
                 isOpen={reviewModal.isOpen}
@@ -544,6 +522,6 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
                 reviewMode={reviewModal.reviewMode}
                 onSuccess={fetchReviewData}
             />
-        </div>
+        </DashboardPageLayout>
     );
 }

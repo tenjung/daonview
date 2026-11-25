@@ -1,14 +1,13 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { Sparkles, ExternalLink, Plus, Save, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 export default function AdvertiserLandingPagesPage() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -157,33 +156,25 @@ export default function AdvertiserLandingPagesPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
-                                <Sparkles className="w-10 h-10 text-primary" />
-                                나의 AI 랜딩페이지
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">
-                                AI로 생성한 랜딩페이지를 관리하고 공유하세요.
-                            </p>
-                        </div>
+                    <DashboardPageHeader
+                        icon={Sparkles}
+                        title="나의 AI 랜딩페이지"
+                        description="AI로 생성한 랜딩페이지를 관리하고 공유하세요."
+                        actions={
+                            <>
                         <Link
                             href="/ai-service/landing-builder"
                             className="bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
                         >
                             <Plus size={20} /> 새 랜딩페이지 만들기
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Landing Pages Grid */}
                     {landingPages.length > 0 ? (
@@ -280,7 +271,6 @@ export default function AdvertiserLandingPagesPage() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

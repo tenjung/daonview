@@ -1,5 +1,6 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -131,16 +132,12 @@ export default function CouponManagementClient() {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
-                <div>
-                    <h1 className="text-3xl font-black text-slate-900 flex items-center gap-3">
-                        <Ticket className="text-rose-500" size={32} />
-                        쿠폰 및 프로모션 관리
-                    </h1>
-                    <p className="text-slate-500 font-medium mt-1">제휴 체험단 및 프로모션을 위한 쿠폰 발행 및 대국민 관리 시스템</p>
-                </div>
+        <div className="max-w-7xl space-y-8">
+            <DashboardPageHeader
+                icon={Ticket}
+                title="쿠폰 및 프로모션 관리"
+                description="제휴 체험단 및 프로모션을 위한 쿠폰 발행과 관리"
+                actions={
                 <button 
                     onClick={() => setShowCreateModal(true)}
                     className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95"
@@ -148,8 +145,8 @@ export default function CouponManagementClient() {
                     <Plus size={20} />
                     쿠폰 신규 발행
                 </button>
-            </div>
-
+                }
+            />
             {/* Coupons Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">

@@ -1,3 +1,4 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
@@ -9,10 +10,7 @@ export default async function AdminKakaoNotificationsPage() {
 
     return (
         <AdminPageLayout>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">카카오톡 전송 관리</h1>
-                <p className="text-gray-600">카카오 알림톡 템플릿을 관리할 수 있습니다</p>
-            </div>
+            <DashboardPageHeader icon={MessageCircle} title="카카오톡 전송 관리" description="카카오 알림톡 템플릿을 관리할 수 있습니다." />
             <div className="flex flex-col items-center justify-center py-20 px-4">
                 <div className="bg-gradient-to-br from-yellow-50 to-amber-50 rounded-2xl p-12 max-w-md text-center border border-yellow-100">
                     <div className="bg-yellow-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">

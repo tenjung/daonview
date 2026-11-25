@@ -1,10 +1,11 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import { UNLIMITED_PLANS } from '@/constants/pricing';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -75,14 +76,8 @@ function PricingContent() {
     const monthlyPlan = UNLIMITED_PLANS[0];
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={displayName}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={displayName}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 p-8">
                 <div className="mx-auto max-w-[1200px]">
                     {!isVerified && (
                         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
@@ -107,16 +102,11 @@ function PricingContent() {
 
                     {isVerified && (
                         <>
-                            <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                                <div>
-                                    <div className="mb-2 flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                            <Star className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <h1 className="text-3xl font-black tracking-tight text-gray-900">이용요금 안내</h1>
-                                    </div>
-                                    <p className="ml-[52px] mt-1 text-gray-500">결제 방식을 먼저 고른 뒤, 해당 요금제를 선택하세요.</p>
-                                </div>
+                            <DashboardPageHeader
+                                icon={Star}
+                                title="이용요금 안내"
+                                description="결제 방식을 먼저 고른 뒤, 해당 요금제를 선택하세요."
+                                actions={
                                 <Link
                                     href="/dashboard/advertiser/billing"
                                     className="ml-[52px] inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-gray-700 shadow-sm transition-all hover:bg-gray-50 md:ml-0"
@@ -124,7 +114,8 @@ function PricingContent() {
                                     결제관리 대시보드
                                     <ArrowRight size={14} />
                                 </Link>
-                            </div>
+                                }
+                            />
 
                             <div className="mb-6 flex items-center rounded-2xl border border-gray-200 bg-white p-1 shadow-sm">
                                 <button
@@ -401,8 +392,7 @@ function PricingContent() {
                         </>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }
 

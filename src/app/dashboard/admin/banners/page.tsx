@@ -1,3 +1,5 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import { Image as ImageIcon } from 'lucide-react';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import { createClient } from '@/lib/supabase/server';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
@@ -20,18 +22,17 @@ export default async function BannerManagementPage() {
 
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
-            <main className="p-8">
-                <div className="max-w-5xl mx-auto">
-                    <header className="mb-8 flex justify-between items-center">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900 leading-tight">배너 관리 & 설정</h1>
-                            <p className="text-gray-500 text-sm font-medium">배너 노출 순서와 자동 노출 캠페인 개수를 제어합니다.</p>
-                        </div>
-                    </header>
+            <div>
+                <div className="max-w-5xl">
+                    <DashboardPageHeader
+                        icon={ImageIcon}
+                        title="배너 관리 & 설정"
+                        description="배너 노출 순서와 자동 노출 캠페인 개수를 제어합니다."
+                    />
 
                     <BannerManagementClient initialBanners={banners} initialConfig={config} />
                 </div>
-            </main>
+            </div>
         </AdminPageLayout>
     );
 }

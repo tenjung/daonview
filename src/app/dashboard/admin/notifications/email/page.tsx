@@ -1,3 +1,5 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import { Mail } from 'lucide-react';
 import { getRequestAuth } from '@/lib/auth/requestAuth';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import AdminPageLayout from '@/components/admin/AdminPageLayout';
@@ -50,10 +52,7 @@ export default async function AdminEmailNotificationsPage() {
 
     return (
         <AdminPageLayout>
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">이메일 전송 관리</h1>
-                <p className="text-gray-600">이메일 템플릿을 미리보기하고 수정할 수 있습니다</p>
-            </div>
+            <DashboardPageHeader icon={Mail} title="이메일 전송 관리" description="이메일 템플릿을 미리보기하고 수정할 수 있습니다." />
             <div className="space-y-8">
                 <CampaignEmailComposer campaigns={emailCampaigns} />
                 <EmailTemplateManager />

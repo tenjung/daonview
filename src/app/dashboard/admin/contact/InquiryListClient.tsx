@@ -1,5 +1,7 @@
 'use client';
 
+import { Headset } from 'lucide-react';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
@@ -55,8 +57,8 @@ export default function InquiryListClient() {
     if (isLoading) return <div className="p-8 text-center text-slate-500">로딩중...</div>;
 
     return (
-        <div className="p-8">
-            <h1 className="text-2xl font-bold mb-6 text-slate-900">고객센터 문의 관리</h1>
+        <div>
+            <DashboardPageHeader icon={Headset} title="고객센터 문의 관리" description="회원이 남긴 문의를 확인하고 답변합니다." />
 
             <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
                 <table className="w-full text-sm text-left">

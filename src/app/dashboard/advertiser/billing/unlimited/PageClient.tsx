@@ -1,10 +1,11 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import { UNLIMITED_PLANS } from '@/constants/pricing';
 import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
@@ -105,14 +106,8 @@ function UnlimitedPaymentContent() {
     const totalWithVat = selectedPlan.total + vat;
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={displayName}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={displayName}>
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-[900px] mx-auto">
 
                     {/* 뒤로가기 */}
@@ -125,17 +120,11 @@ function UnlimitedPaymentContent() {
                     </Link>
 
                     {/* 헤더 */}
-                    <div className="mb-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
-                                <Infinity className="w-5 h-5 text-purple-600" />
-                            </div>
-                            <h1 className="text-3xl font-black text-gray-900 tracking-tight">무제한 월 이용권 결제</h1>
-                        </div>
-                        <p className="text-gray-500 mt-1 ml-[52px]">
-                            다온뷰의 모든 체험단을 제한 없이 이용하세요.
-                        </p>
-                    </div>
+                    <DashboardPageHeader
+                        icon={Infinity}
+                        title="무제한 월 이용권 결제"
+                        description="다온뷰의 모든 체험단을 제한 없이 이용하세요."
+                    />
 
                     <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
 
@@ -359,7 +348,6 @@ function UnlimitedPaymentContent() {
                         </div>
                     </div>
                 </div>
-            </main>
 
             <Dialog open={isTermsModalOpen} onOpenChange={setIsTermsModalOpen}>
                 <DialogContent className="sm:max-w-lg rounded-3xl">
@@ -387,7 +375,7 @@ function UnlimitedPaymentContent() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </div>
+        </DashboardPageLayout>
     );
 }
 

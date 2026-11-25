@@ -1,4 +1,6 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { toPublicCampaignRelation } from '@/lib/publicCampaignDto';
 import { isAdminRole } from '@/constants/role';
 
@@ -9,14 +11,12 @@ import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardVi
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { useRouter } from 'next/navigation';
 import { Application, Campaign } from '@/types/database';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { LayoutDashboard, Megaphone, Clock, ChevronRight } from 'lucide-react';
 import { InfluencerStatsCards } from '@/components/influencer/InfluencerStatsCards';
-import { INFLUENCER_LINKS } from '@/constants/navigation';
+
 import { DataTable } from '@/components/ui/data-table';
 import { influencerApplicationColumns } from '@/components/influencer/influencer-applications-columns';
 import { Badge } from '@/components/ui/badge';
-import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 import { InfluencerMobileListCard } from '@/components/influencer/InfluencerMobileListCard';
 
 interface ApplicationWithCampaign extends Application {
@@ -135,47 +135,25 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
     };
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
                     {/* Header Section */}
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
-                        <InfluencerMobileHeader
-                            icon={<LayoutDashboard className="h-5 w-5" />}
-                            title="My Activity"
-                            subtitle="캠페인 활동과 리뷰 현황을 한눈에 관리하세요."
-                            action={
-                                <Link
-                                    href="/campaigns"
-                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-lg"
-                                >
-                                    <Megaphone size={16} />
-                                    찾아보기
-                                </Link>
-                            }
-                        />
-                        <div className="hidden sm:block">
-                            <div>
-                                <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
-                                    <LayoutDashboard className="w-10 h-10 text-primary" />
-                                    My Activity
-                                </h1>
-                                <p className="text-gray-500 mt-2 font-medium">캠페인 활동과 리뷰 현황을 한눈에 관리하세요.</p>
-                            </div>
-                        </div>
+                    <DashboardPageHeader
+                        icon={LayoutDashboard}
+                        title="내 활동"
+                        description="캠페인 활동과 리뷰 현황을 한눈에 관리하세요."
+                        actions={
+                            <>
                         <Link
                             href="/campaigns"
-                            className="hidden sm:inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-lg sm:self-auto sm:rounded-2xl sm:px-8 sm:py-4 sm:text-base sm:shadow-lg sm:hover:-translate-y-1 sm:active:translate-y-0"
+                            className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-lg sm:self-auto sm:rounded-2xl sm:px-8 sm:py-4 sm:text-base sm:shadow-lg sm:hover:-translate-y-1 sm:active:translate-y-0"
                         >
                             <Megaphone size={16} className="sm:h-5 sm:w-5" /> 캠페인 찾아보기
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Stats Cards Section */}
                     <InfluencerStatsCards stats={stats} />
@@ -279,7 +257,6 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

@@ -1,15 +1,16 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { campaignMutation } from '@/lib/campaignMutationClient';
 
-import { Suspense, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { toast } from 'sonner';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import { sendShippingStartedAlimtalk } from '@/lib/alimtalk';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, Users } from 'lucide-react';
 import { extractOptionCandidates, normalizeOptionLabel } from '@/lib/purchaseLink';
 import { getSelectionLinkAssignments, SelectionPurchaseLinkFields, type SelectionLinkDraft } from '@/components/campaign/SelectionPurchaseLinkFields';
 import { isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
@@ -482,7 +483,6 @@ export default function AdvertiserApplicantsPage() {
         }
     };
 
-
     const groupedApplicants = applicants.reduce((acc, applicant) => {
         const campaignId = applicant.campaign.id;
         const existingGroup = acc.get(campaignId);
@@ -501,18 +501,13 @@ export default function AdvertiserApplicantsPage() {
     }, new Map<number, { campaign: Applicant['campaign']; items: Applicant[] }>());
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <Suspense fallback={<div className="w-[280px] lg:static fixed h-screen bg-white" />}>
-                <DashboardSidebar
-                    userType="ADVERTISER"
-                    userName={profile?.company_name || profile?.nickname || '광고주'}
-                    links={ADVERTISER_LINKS}
-                />
-            </Suspense>
-            <div className="flex-1 bg-gray-50 p-8 overflow-y-auto">
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
                 <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">신청자 목록</h1>
-                    <p className="text-gray-500 mb-8">선택한 캠페인에 지원한 리뷰어들을 확인하고 선정하세요.</p>
+                    <DashboardPageHeader
+                        icon={Users}
+                        title="신청자 목록"
+                        description="선택한 캠페인에 지원한 리뷰어들을 확인하고 선정하세요."
+                    />
 
                     {loading ? (
                         <div className="text-center py-20">Loading...</div>
@@ -763,7 +758,6 @@ export default function AdvertiserApplicantsPage() {
                         </div>
                     )}
                 </div>
-            </div>
 
             {/* 운송장 입력 모달 (단순 구현) */}
             {editingTracking && (
@@ -950,6 +944,6 @@ export default function AdvertiserApplicantsPage() {
                     </div>
                 </div>
             )}
-        </div>
+        </DashboardPageLayout>
     );
 }

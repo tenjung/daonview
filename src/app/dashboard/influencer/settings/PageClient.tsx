@@ -1,11 +1,12 @@
 'use client';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import { Settings } from 'lucide-react';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase/client';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { INFLUENCER_LINKS } from '@/constants/navigation';
 
 export default function SettingsPage() {
     const { user, profile, isLoading } = useAuthStore();
@@ -77,16 +78,10 @@ export default function SettingsPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-background">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 p-10 overflow-y-auto">
                 <div className="max-w-2xl">
-                    <h1 className="text-2xl font-bold text-text-main mb-8">계정 설정</h1>
+                    <DashboardPageHeader icon={Settings} title="계정 설정" description="연락처와 SNS 정보 등 계정 정보를 관리합니다." />
 
                     <div className="bg-white border border-border rounded-xl p-8 shadow-sm">
                         <form onSubmit={handleSubmit}>
@@ -172,7 +167,6 @@ export default function SettingsPage() {
                         </form>
                     </div>
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

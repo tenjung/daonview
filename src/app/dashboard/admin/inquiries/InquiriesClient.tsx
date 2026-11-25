@@ -1,5 +1,7 @@
 'use client';
 
+import { Handshake } from 'lucide-react';
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { format } from 'date-fns';
@@ -123,12 +125,17 @@ export default function InquiriesClient() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-slate-800 tracking-tight">제휴 문의</h1>
-                <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
-                    총 {inquiries.length}건
-                </div>
-            </div>
+            <DashboardPageHeader
+                icon={Handshake}
+                title="제휴 문의"
+                description="기업·브랜드의 제휴 문의를 확인합니다."
+                actions={
+                    <div className="text-sm font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                        총 {inquiries.length}건
+                    </div>
+                }
+                className="mb-0"
+            />
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="overflow-x-auto">

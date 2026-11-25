@@ -1,5 +1,6 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import * as React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ReviewManagementClient from './ReviewManagementClient';
@@ -19,17 +20,11 @@ export default function UnifiedAdminReviews({ initialReviews, user }: UnifiedAdm
 
     return (
         <div className="max-w-[1600px] mx-auto w-full">
-            <div className="flex justify-between items-center mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3 italic">
-                        <ClipboardCheck className="w-8 h-8 text-primary" />
-                        Review Management
-                    </h1>
-                    <p className="text-gray-500 mt-1 font-medium">
-                        리뷰 검수 및 데이터 동기화, 중복 정리를 한 곳에서 관리하세요.
-                    </p>
-                </div>
-            </div>
+            <DashboardPageHeader
+                icon={ClipboardCheck}
+                title="리뷰 통합 관리"
+                description="리뷰 검수 및 데이터 동기화, 중복 정리를 한 곳에서 관리하세요."
+            />
 
             <Tabs defaultValue="manage" className="space-y-6" onValueChange={setActiveTab}>
                 <TabsList className="bg-white border p-1 h-auto rounded-2xl shadow-sm flex-wrap">

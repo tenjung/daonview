@@ -1,3 +1,4 @@
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import { requireDashboardRole } from '@/lib/auth/requireDashboardRole';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { notFound } from 'next/navigation';
@@ -85,28 +86,26 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
     return (
         <AdminPageLayout sidebarCounts={sidebarCounts}>
             {/* 헤더 */}
-            <div className="mb-6">
-                <Link
-                    href="/dashboard/admin/campaigns"
-                    className="flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors gap-1 mb-4 w-fit"
-                >
-                    <ArrowLeft size={16} />
-                    목록으로 돌아가기
-                </Link>
-                <div className="flex justify-between items-end">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
+            <DashboardPageHeader
+                eyebrow={
+                    <div className="flex flex-col gap-3">
+                        <Link
+                            href="/dashboard/admin/campaigns"
+                            className="flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors gap-1 w-fit"
+                        >
+                            <ArrowLeft size={16} />
+                            목록으로 돌아가기
+                        </Link>
+                        <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-primary border-primary/20 bg-primary/5">
                                 {campaign.category}
                             </Badge>
                             <span className="text-gray-400 text-sm">ID: {campaign.id}</span>
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900 leading-tight">
-                            {campaign.title}
-                        </h1>
                     </div>
-                </div>
-            </div>
+                }
+                title={campaign.title}
+            />
 
             {/* 메인 테이블 영역 */}
             <ApplicationsTableClient

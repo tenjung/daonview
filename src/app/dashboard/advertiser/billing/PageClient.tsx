@@ -1,9 +1,10 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useEffect, useCallback, useState } from 'react';
 import Link from 'next/link';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import { useAuthStore } from '@/store/authStore';
 import { supabase } from '@/lib/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -169,14 +170,8 @@ export default function BillingPage() {
     };
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={displayName}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={displayName}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 p-8">
                 <div className="mx-auto max-w-[1200px]">
                     {!isVerified && (
                         <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
@@ -206,18 +201,11 @@ export default function BillingPage() {
 
                     {isVerified && (
                         <>
-                            <div className="mb-8">
-                                <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
-                                    <div>
-                                        <div className="mb-2 flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
-                                                <CreditCard className="h-5 w-5 text-primary" />
-                                            </div>
-                                            <h1 className="text-3xl font-black tracking-tight text-gray-900">결제 관리</h1>
-                                        </div>
-                                        <p className="ml-[52px] mt-1 text-gray-500">이용 중인 플랜과 결제 내역을 확인하고 관리하세요.</p>
-                                    </div>
-
+                            <DashboardPageHeader
+                                icon={CreditCard}
+                                title="결제 관리"
+                                description="이용 중인 플랜과 결제 내역을 확인하고 관리하세요."
+                                actions={
                                     <Link
                                         href="/dashboard/advertiser/pricing"
                                         className="ml-[52px] inline-flex items-center justify-center gap-2 rounded-2xl border border-primary/20 bg-white px-5 py-3 text-sm font-black text-primary shadow-sm transition-all hover:bg-primary/5 md:ml-0"
@@ -225,8 +213,8 @@ export default function BillingPage() {
                                         이용요금 안내 보기
                                         <ArrowRight size={14} />
                                     </Link>
-                                </div>
-                            </div>
+                                }
+                            />
 
                             <div className="space-y-8 animate-in slide-in-from-bottom-4 fade-in duration-500">
                                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -464,7 +452,6 @@ export default function BillingPage() {
                         </>
                     )}
                 </div>
-            </main>
 
             {/* 구독 해지 확인 모달 */}
             {showCancelModal && subscription && (
@@ -545,6 +532,6 @@ export default function BillingPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </DashboardPageLayout>
     );
 }

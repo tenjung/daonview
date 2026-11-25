@@ -4,6 +4,8 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Clock, CheckCircle, ChevronRight, Megaphone } from 'lucide-react';
 import { DashboardStatsCards, type DashboardStats } from '@/components/admin/DashboardStatsCards';
+import { TypeBadge } from '@/components/campaign/CampaignBadges';
+import CampaignPlatformBadges from '@/components/campaign/CampaignPlatformBadges';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
@@ -12,7 +14,6 @@ import {
     getCampaignOptions,
     getCampaignRecruitTarget,
     isCampaignAutoExtendEnabled,
-    resolveCampaignPlatformState,
 } from '@/lib/campaignUtils';
 import {
     DropdownMenu,
@@ -40,28 +41,14 @@ const ACTIVE_CAMPAIGN_SORT_OPTIONS: Array<{ value: ActiveCampaignSort; label: st
     { value: 'LOW_RATE', label: '신청률 낮은순' },
 ];
 
-const CAMPAIGN_TYPE_LABELS: Record<string, string> = {
-    DELIVERY: '배송',
-    VISIT: '방문',
-    PRESS: '기자단',
-};
-
-// DB 값 → 정규화 → 표시용 배지 목록
-function getCampaignTypeBadges(campaign: CampaignRow) {
-    const step1Data = getCampaignOptions({ campaign_options: campaign.campaign_options })?.step1Data ?? null;
-    const state = resolveCampaignPlatformState({
-        type: campaign.type,
-        platform: campaign.platform,
-        step1Data,
-    });
-    const typeKey = String(state.normalizedType).toUpperCase();
-    const platforms = [
-        state.includeReview ? '구매평' : null,
-        state.includeNaver ? '블로그' : null,
-        state.includeInstagram ? '인스타' : null,
-    ].filter((label): label is string => Boolean(label));
-
-    return { typeLabel: CAMPAIGN_TYPE_LABELS[typeKey] ?? '기타', platforms };
+// 공용 배지(TypeBadge·CampaignPlatformBadges)에 넘길 참여 조건 플래그
+function getCampaignBadgeFlags(campaign: CampaignRow) {
+    const step1Data = getCampaignOptions({ campaign_options: campaign.campaign_options })?.step1Data ?? {};
+    return {
+        includeReview: Boolean(step1Data.includeReview),
+        includeNaver: Boolean(step1Data.includeNaver),
+        includeInstagram: Boolean(step1Data.includeInstagram),
+    };
 }
 
 function formatCreatedDate(value?: string | null) {
@@ -605,7 +592,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                         {sortedActiveCampaigns.map((campaign) => {
                             const analysis = analyzeCampaignRisk(campaign);
-                            const { typeLabel, platforms } = getCampaignTypeBadges(campaign);
+                            const badgeFlags = getCampaignBadgeFlags(campaign);
                             const createdLabel = formatCreatedDate(campaign.created_at);
                             const advertiser = campaign.profiles;
                             const advertiserName = advertiser?.company_name || advertiser?.nickname || '광고주 미상';
@@ -632,15 +619,12 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                     <div className="flex items-start justify-between gap-2 mb-1.5">
                                         <div className="flex flex-wrap items-center gap-1 min-w-0">
                                             <span className="text-[11px] font-bold text-gray-400 mr-0.5">#{campaign.id}</span>
-                                            <span className="text-[11px] font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded">{typeLabel}</span>
-                                            {platforms.map((label) => (
-                                                <span
-                                                    key={label}
-                                                    className="text-[11px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded"
-                                                >
-                                                    {label}
-                                                </span>
-                                            ))}
+                                            <TypeBadge type={campaign.type ?? undefined} />
+                                            <CampaignPlatformBadges
+                                                type={campaign.type}
+                                                platform={campaign.platform}
+                                                {...badgeFlags}
+                                            />
                                         </div>
                                         {analysis.isAutoExtend && (
                                             <span className="shrink-0 text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>

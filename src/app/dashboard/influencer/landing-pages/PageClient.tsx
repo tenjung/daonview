@@ -1,15 +1,13 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { Sparkles, ExternalLink, Plus, Save, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-
-import { INFLUENCER_LINKS } from '@/constants/navigation';
-import { InfluencerMobileHeader } from '@/components/influencer/InfluencerMobileHeader';
 
 export default function InfluencerLandingPagesPage() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -158,49 +156,25 @@ export default function InfluencerLandingPagesPage() {
     }
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="INFLUENCER"
-                userName={profile?.nickname || '사용자'}
-                links={INFLUENCER_LINKS}
-            />
+        <DashboardPageLayout role="INFLUENCER" userName={profile?.nickname || '사용자'}>
 
-            <main className="flex-1 overflow-y-auto bg-gray-50/50 px-4 py-5 sm:p-8">
                 <div className="max-w-[1600px] mx-auto">
                     {/* Header */}
-                    <div className="mb-6 flex flex-col gap-4 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
-                        <InfluencerMobileHeader
-                            icon={<Sparkles className="h-5 w-5" />}
-                            title="나의 AI 랜딩페이지"
-                            subtitle="AI로 생성한 랜딩페이지를 관리하고 공유하세요."
-                            action={
-                                <Link
-                                    href="/ai-service/landing-builder"
-                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-dark"
-                                >
-                                    <Plus size={16} />
-                                    새로 만들기
-                                </Link>
-                            }
-                        />
-                        <div className="hidden sm:block">
-                            <div>
-                                <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight">
-                                    <Sparkles className="w-10 h-10 text-primary" />
-                                    나의 AI 랜딩페이지
-                                </h1>
-                                <p className="text-gray-500 mt-2 font-medium">
-                                    AI로 생성한 랜딩페이지를 관리하고 공유하세요.
-                                </p>
-                            </div>
-                        </div>
+                    <DashboardPageHeader
+                        icon={Sparkles}
+                        title="나의 AI 랜딩페이지"
+                        description="AI로 생성한 랜딩페이지를 관리하고 공유하세요."
+                        actions={
+                            <>
                         <Link
                             href="/ai-service/landing-builder"
-                            className="hidden sm:inline-flex bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
+                            className="inline-flex bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
                         >
                             <Plus size={20} /> 새 랜딩페이지 만들기
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Landing Pages Grid */}
                     {landingPages.length > 0 ? (
@@ -297,7 +271,6 @@ export default function InfluencerLandingPagesPage() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

@@ -1,5 +1,7 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -7,11 +9,10 @@ import { supabase } from '@/lib/supabase/client';
 import { useDashboardViewer, type DashboardViewer } from '@/hooks/useDashboardViewer';
 import { useRequestGuard } from '@/hooks/useRequestGuard';
 import { LayoutDashboard, Megaphone, Plus, AlertCircle, ShieldCheck, ArrowRight } from 'lucide-react';
-import DashboardSidebar from '@/components/DashboardSidebar';
 import { AdvertiserStatsCards } from '@/components/advertiser/AdvertiserStatsCards';
 import { CampaignDataTable } from '@/components/admin/CampaignDataTable';
 import { Campaign } from '@/types/database';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
+
 import { toast } from 'sonner';
 import { getCampaignRecruitTarget, isCampaignAutoExtendEnabled } from '@/lib/campaignUtils';
 
@@ -145,30 +146,24 @@ export default function AdvertiserDashboard({ initialViewer, initialCampaigns = 
     };
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="max-w-[1600px] mx-auto">
-                    <div className="flex justify-between items-center mb-10">
-                        <div>
-                            <h1 className="text-4xl font-black text-gray-900 flex items-center gap-4 tracking-tight italic">
-                                <LayoutDashboard className="w-10 h-10 text-primary" />
-                                Advertiser
-                            </h1>
-                            <p className="text-gray-500 mt-2 font-medium">캠페인 효율과 브랜드 성과를 실시간으로 확인하세요.</p>
-                        </div>
+                    <DashboardPageHeader
+                        icon={LayoutDashboard}
+                        title="광고주 대시보드"
+                        description="캠페인 효율과 브랜드 성과를 실시간으로 확인하세요."
+                        actions={
+                            <>
                         <Link
                             href="/dashboard/campaign/new"
                             className="bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 transform hover:-translate-y-1 active:translate-y-0"
                         >
                             <Plus size={20} /> 새 캠페인 등록
                         </Link>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Business Verification Banner */}
                     {profile?.biz_verification_status !== 'APPROVED' && (
@@ -294,7 +289,6 @@ export default function AdvertiserDashboard({ initialViewer, initialCampaigns = 
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }

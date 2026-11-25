@@ -1,5 +1,6 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { toast } from 'sonner';
@@ -257,15 +258,12 @@ export default function PaymentManagementClient() {
     };
 
     return (
-        <div className="p-4 max-w-7xl mx-auto space-y-4 animate-in fade-in duration-500">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
-                <div>
-                    <h1 className="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <CreditCard className="text-blue-500" size={24} />
-                        결제 및 매출 관리
-                    </h1>
-                    <p className="text-slate-500 font-medium mt-0.5 text-xs">결제 내역, 환불 요청, 취소 처리 상태를 함께 관리합니다.</p>
-                </div>
+        <div className="max-w-7xl space-y-4 animate-in fade-in duration-500">
+            <DashboardPageHeader
+                icon={CreditCard}
+                title="결제 및 매출 관리"
+                description="결제 내역, 환불 요청, 취소 처리 상태를 함께 관리합니다."
+                actions={
                 <div className="flex items-center gap-2">
                     <button
                         onClick={() => void reloadData()}
@@ -274,8 +272,8 @@ export default function PaymentManagementClient() {
                         <RefreshCcw size={20} className={cn(isLoading && 'animate-spin')} />
                     </button>
                 </div>
-            </div>
-
+                }
+            />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-4">
                     <div className="w-12 h-12 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">

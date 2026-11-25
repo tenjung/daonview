@@ -1,5 +1,7 @@
 'use client';
 
+import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
+import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect } from 'react';
 import {
     Plus,
@@ -34,8 +36,6 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import DashboardSidebar from '@/components/DashboardSidebar';
-import { ADVERTISER_LINKS } from '@/constants/navigation';
 
 interface Brand {
     id: string;
@@ -205,31 +205,25 @@ export default function BrandManagementPage() {
     );
 
     return (
-        <div className="flex min-h-screen bg-background text-foreground">
-            <DashboardSidebar
-                userType="ADVERTISER"
-                userName={profile?.company_name || profile?.nickname || '광고주'}
-                links={ADVERTISER_LINKS}
-            />
+        <DashboardPageLayout role="ADVERTISER" userName={profile?.company_name || profile?.nickname || '광고주'}>
 
-            <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
                 <div className="space-y-8">
                     {/* Header Area */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 className="text-3xl font-bold text-text-main flex items-center gap-3">
-                                <Building2 className="text-primary" size={32} />
-                                브랜드 관리
-                            </h1>
-                            <p className="text-text-secondary mt-1">내가 운영하는 브랜드나 클라이언트를 효율적으로 관리하세요.</p>
-                        </div>
+                    <DashboardPageHeader
+                        icon={Building2}
+                        title="브랜드 관리"
+                        description="내가 운영하는 브랜드나 클라이언트를 효율적으로 관리하세요."
+                        actions={
+                            <>
                         <Button
                             className="bg-primary hover:bg-primary-dark text-white rounded-xl py-6 px-8 text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105"
                             onClick={() => { resetForm(); setIsAddModalOpen(true); }}
                         >
                             <Plus className="mr-2" /> 새 브랜드 등록
                         </Button>
-                    </div>
+                            </>
+                        }
+                    />
 
                     {/* Controls */}
                     <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-border shadow-sm">
@@ -444,7 +438,6 @@ export default function BrandManagementPage() {
                         </DialogContent>
                     </Dialog>
                 </div>
-            </main>
-        </div>
+        </DashboardPageLayout>
     );
 }
