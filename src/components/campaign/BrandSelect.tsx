@@ -263,7 +263,7 @@ export default function BrandSelect({ value, onChange, userId }: BrandSelectProp
                                                     <div className={cn("text-sm font-bold truncate", value === brand.id ? "text-primary" : "text-gray-900")}>
                                                         {brand.name}
                                                     </div>
-                                                    <div className="text-[10px] text-gray-400">캠페인 {brand.campaign_count}개</div>
+                                                    <div className="text-2xs text-gray-400">캠페인 {brand.campaign_count}개</div>
                                                 </div>
                                                 {value === brand.id && <Check size={14} className="text-primary shrink-0" />}
                                             </div>
@@ -296,7 +296,8 @@ export default function BrandSelect({ value, onChange, userId }: BrandSelectProp
                         <div className="p-2 bg-gray-50 border-t border-gray-100">
                             <Button 
                                 variant="ghost" 
-                                className="w-full justify-center gap-2 py-5 text-sm font-bold text-primary hover:bg-rose-100/50 hover:text-primary transition-colors"
+                                size="lg"
+                                className="w-full text-primary hover:bg-rose-100/50 hover:text-primary"
                                 onClick={() => {
                                     setEditingBrand(null);
                                     setNewName('');

@@ -7,7 +7,7 @@ interface BadgeProps {
 }
 
 const BadgeBase = ({ className, children }: BadgeProps) => (
-    <div className={`inline-flex items-center justify-center gap-1 sm:gap-1 px-2 sm:px-2.5 h-[22px] rounded-lg text-[10.5px] font-bold leading-none transition-all border shrink-0 ${className}`}>
+    <div className={`inline-flex items-center justify-center gap-1 sm:gap-1 px-2 sm:px-2.5 h-[22px] rounded-lg text-2xs font-bold leading-none transition-all border shrink-0 ${className}`}>
         {children}
     </div>
 );
@@ -16,7 +16,7 @@ export const PlatformBadge = ({ platform }: { platform: string }) => {
     const p = platform?.toUpperCase() || '';
     let icon = (
         <div className="w-[11px] h-[11px] flex items-center justify-center overflow-hidden">
-            <span className="font-black text-[11.5px] leading-none tracking-tighter">N</span>
+            <span className="font-bold text-xs leading-none tracking-tighter">N</span>
         </div>
     );
     let label = "블로그";
@@ -129,7 +129,7 @@ export const RegionBadge = ({ region, sub_region }: { region?: string | null, su
 
 export const DDayBadge = ({ dday }: { dday: string }) => {
     return (
-        <span className={`inline-flex items-center justify-center px-2.5 h-[1.4rem] min-w-[2.8rem] rounded-lg text-[10px] font-black shadow-lg shadow-rose-200 transition-all leading-none ${
+        <span className={`inline-flex items-center justify-center px-2.5 h-[1.4rem] min-w-[2.8rem] rounded-lg text-2xs font-bold shadow-lg shadow-rose-200 transition-all leading-none ${
             dday === '상시'
             ? 'bg-gradient-to-br from-orange-500 to-rose-500 text-white shadow-orange-200'
             : dday === '종료'

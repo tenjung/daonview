@@ -56,8 +56,8 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
     const isCompact = density === 'compact';
     const imageAspectClass = isCompact ? 'aspect-[1.58/1] lg:aspect-[4/3]' : 'aspect-[4/3]';
     const contentClass = isCompact ? 'p-2 lg:p-2.5 gap-1 lg:gap-1.5' : 'p-2.5 gap-1.5';
-    const titleClass = isCompact ? 'text-[13px] lg:text-sm' : 'text-sm';
-    const benefitClass = isCompact ? 'text-[10px] lg:text-[11px]' : 'text-[11px]';
+    const titleClass = isCompact ? 'text-body-sm lg:text-sm' : 'text-sm';
+    const benefitClass = isCompact ? 'text-2xs lg:text-2xs' : 'text-2xs';
     const progressClass = isCompact ? 'pt-1 lg:pt-1.5' : 'pt-1.5';
 
     const toggleWish = async (e: React.MouseEvent) => {
@@ -170,7 +170,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                 {/* 3. Benefit (public-safe label) */}
                 <div className={`flex flex-col gap-1 ${benefitClass} text-gray-500 items-start`}>
-                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-bold border border-slate-200 leading-none">
+                    <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-2xs font-bold border border-slate-200 leading-none">
                         체험단 혜택
                     </span>
                     <span className="line-clamp-1 text-slate-600 pl-0.5 font-medium">
@@ -184,7 +184,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
                     <div className="flex items-center justify-between text-xs mb-1.5">
                         {/* Percentage or ON Indicator */}
                         {isFastRecruitment ? (
-                            <div className="flex items-center gap-1.5 font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full text-[10px] animate-pulse">
+                            <div className="flex items-center gap-1.5 font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-full text-2xs animate-pulse">
                                 <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
                                 LIVE
                             </div>
@@ -194,7 +194,7 @@ export default function CampaignCard({ id, title, platform, type, applicants, to
 
                         {/* Count Text */}
                         <span className="text-gray-400 font-medium">
-                            <b className="text-gray-900">{applicants}</b> <span className="text-[10px] text-gray-300">/</span> {isUnlimitedTarget ? <span className="text-indigo-600 font-black">∞</span> : <>{total}명</>}
+                            <b className="text-gray-900">{applicants}</b> <span className="text-2xs text-gray-300">/</span> {isUnlimitedTarget ? <span className="text-indigo-600 font-bold">∞</span> : <>{total}명</>}
                         </span>
                     </div>
 

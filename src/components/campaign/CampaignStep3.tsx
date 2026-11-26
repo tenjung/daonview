@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
+import { buttonVariants } from '@/components/ui/button';
 import { Handshake, Info, Check, Gift, ShoppingBag, Search, Loader2, CheckCircle2, Infinity } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { isAdminRole } from '@/constants/role';
@@ -355,7 +357,7 @@ export default function CampaignStep3({
                                 {costs.selectedPlatformNames.join('+')} 비용 ({costs.recruitmentCount}명 × {costs.reviewCostPerPerson.toLocaleString()}원)
                             </span>
                             {isUnlimited && (
-                                <span className="text-[11px] font-bold text-purple-600 flex items-center gap-1">
+                                <span className="text-2xs font-bold text-purple-600 flex items-center gap-1">
                                     <Infinity size={12} /> 무제한 이용권 혜택 (전액 할인)
                                 </span>
                             )}
@@ -380,10 +382,10 @@ export default function CampaignStep3({
                             <div className="flex flex-col">
                                 <div className="flex items-center gap-1">
                                     <span className="text-gray-700">상품 결제금액</span>
-                                    {formData.purchaseRewardMethod === 'DAONVIEW' && <span className="text-[11px] text-rose-500 font-bold bg-rose-50 px-1.5 py-0.5 rounded">안심 지급금</span>}
+                                    {formData.purchaseRewardMethod === 'DAONVIEW' && <span className="text-2xs text-rose-500 font-bold bg-rose-50 px-1.5 py-0.5 rounded">안심 지급금</span>}
                                 </div>
                                 {formData.purchaseRewardMethod === 'DAONVIEW' && (
-                                    <span className="text-[11px] text-gray-500 mt-1">
+                                    <span className="text-2xs text-gray-500 mt-1">
                                         ※ 부가세 10% 포함
                                     </span>
                                 )}
@@ -419,12 +421,12 @@ export default function CampaignStep3({
                 <div className="mt-6 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
                     <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
                     <div className="space-y-2">
-                        <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                        <p className="text-body-sm text-indigo-700 leading-relaxed font-medium">
                             <strong className="font-bold">서비스 제공 기간:</strong> 선택하신 플랜에 따라 결제 완료 후 2주 이내 서비스 제공 완료됩니다.<br />
                             (단, 캠페인은 운영진 승인 후 오픈되며 통상 인플루언서 모집 1주일, 후기 등록 1주일의 기간이 소요됩니다.)
                         </p>
                         <div className="pt-2 border-t border-indigo-100/60">
-                            <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                            <p className="text-body-sm text-indigo-700 leading-relaxed font-medium">
                                 <strong className="font-bold">취소 및 환불 기준:</strong> 당첨자 선정 전 100% 환불, 모집 미달 시 차액 환불<br />
                                 <strong className="font-bold">환불 불가 및 제한:</strong> 당첨자 선정 후(이행 시작 시) 환불 제한, 단순 변심 환불 불가
                             </p>
@@ -459,8 +461,8 @@ export default function CampaignStep3({
                                     <Infinity size={22} strokeWidth={2.5} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">무제한 이용권 적용</span>
-                                    <span className="text-[13px] text-gray-500 font-medium">프리미엄 구독 혜택 (결제 금액 없음)</span>
+                                    <span className="font-bold text-sm text-gray-900 leading-none mb-1">무제한 이용권 적용</span>
+                                    <span className="text-body-sm text-gray-500 font-medium">프리미엄 구독 혜택 (결제 금액 없음)</span>
                                 </div>
                             </div>
                         </label>
@@ -497,8 +499,8 @@ export default function CampaignStep3({
                                 <Handshake size={22} strokeWidth={2.5} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">제휴 / 가상 결제</span>
-                                <span className="text-[13px] text-gray-500 font-medium">프로모션 쿠폰 또는 타사 주문번호 연동</span>
+                                <span className="font-bold text-sm text-gray-900 leading-none mb-1">제휴 / 가상 결제</span>
+                                <span className="text-body-sm text-gray-500 font-medium">프로모션 쿠폰 또는 타사 주문번호 연동</span>
                             </div>
                         </div>
                     </label>
@@ -517,7 +519,7 @@ export default function CampaignStep3({
                                         }`}
                                 >
                                     <Gift size={20} className={formData.promotionType === 'COUPON' ? 'text-rose-500' : 'text-slate-300'} />
-                                    <span className={`font-black text-sm ${formData.promotionType === 'COUPON' ? 'text-slate-900' : 'text-slate-400'}`}>다온뷰 쿠폰 입력</span>
+                                    <span className={`font-bold text-sm ${formData.promotionType === 'COUPON' ? 'text-slate-900' : 'text-slate-400'}`}>다온뷰 쿠폰 입력</span>
                                 </button>
                                 <button
                                     onClick={() => store.setField('promotionType', 'EXTERNAL')}
@@ -527,7 +529,7 @@ export default function CampaignStep3({
                                         }`}
                                 >
                                     <ShoppingBag size={20} className={formData.promotionType === 'EXTERNAL' ? 'text-rose-500' : 'text-slate-300'} />
-                                    <span className={`font-black text-sm ${formData.promotionType === 'EXTERNAL' ? 'text-slate-900' : 'text-slate-400'}`}>타사(크몽 등) 주문번호</span>
+                                    <span className={`font-bold text-sm ${formData.promotionType === 'EXTERNAL' ? 'text-slate-900' : 'text-slate-400'}`}>타사(크몽 등) 주문번호</span>
                                 </button>
                             </div>
 
@@ -541,14 +543,14 @@ export default function CampaignStep3({
                                                 value={couponCode}
                                                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                                                 placeholder="DAON-XXXX-XXXX-XXXX"
-                                                className="w-full bg-white border-2 border-rose-200 rounded-2xl py-4 pl-12 pr-4 font-black text-slate-900 placeholder:text-slate-200 focus:border-rose-500 outline-none transition-all shadow-sm group-hover:border-rose-300"
+                                                className="w-full bg-white border-2 border-rose-200 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-900 placeholder:text-slate-200 focus:border-rose-500 outline-none transition-all shadow-sm group-hover:border-rose-300"
                                             />
                                             <Gift className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 group-hover:text-rose-500 transition-colors" size={20} />
                                         </div>
                                         <button
                                             onClick={handleVerifyCoupon}
                                             disabled={isValidatingCoupon}
-                                            className="px-8 py-4 bg-rose-500 text-white rounded-2xl font-black hover:bg-rose-600 active:scale-95 transition-all shadow-lg shadow-rose-200 disabled:opacity-50 disabled:active:scale-100 flex items-center gap-2"
+                                            className={cn(buttonVariants({ size: 'lg' }), 'px-8')}
                                         >
                                             {isValidatingCoupon ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
                                             쿠폰 인증
@@ -560,14 +562,14 @@ export default function CampaignStep3({
                                             <div className="flex items-center gap-3">
                                                 <CheckCircle2 className="text-emerald-500" size={20} />
                                                 <div>
-                                                    <p className="text-sm font-black text-emerald-900">쿠폰이 인증되었습니다!</p>
+                                                    <p className="text-sm font-bold text-emerald-900">쿠폰이 인증되었습니다!</p>
                                                     <div className="flex gap-2 mt-1">
                                                         {validatedCoupon.benefits.is_vip ? (
-                                                            <span className="text-[10px] font-black bg-emerald-500 text-white px-2 py-0.5 rounded">VIP 평생무료</span>
+                                                            <span className="text-2xs font-bold bg-emerald-500 text-white px-2 py-0.5 rounded">VIP 평생무료</span>
                                                         ) : (
                                                             <>
-                                                                {validatedCoupon.benefits.visit_free > 0 && <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded">방문 {validatedCoupon.benefits.visit_free}회</span>}
-                                                                {validatedCoupon.benefits.delivery_free > 0 && <span className="text-[10px] font-black bg-indigo-500 text-white px-2 py-0.5 rounded">배송 {validatedCoupon.benefits.delivery_free}회</span>}
+                                                                {validatedCoupon.benefits.visit_free > 0 && <span className="text-2xs font-bold bg-blue-500 text-white px-2 py-0.5 rounded">방문 {validatedCoupon.benefits.visit_free}회</span>}
+                                                                {validatedCoupon.benefits.delivery_free > 0 && <span className="text-2xs font-bold bg-indigo-500 text-white px-2 py-0.5 rounded">배송 {validatedCoupon.benefits.delivery_free}회</span>}
                                                             </>
                                                         )}
                                                     </div>
@@ -579,7 +581,7 @@ export default function CampaignStep3({
                                                     setCouponCode('');
                                                     store.updateFields({ promotionType: null, couponCode: '' });
                                                 }}
-                                                className="text-[11px] font-bold text-slate-400 hover:text-slate-600 underline"
+                                                className="text-2xs font-bold text-slate-400 hover:text-slate-600 underline"
                                             >
                                                 취소
                                             </button>
@@ -597,11 +599,11 @@ export default function CampaignStep3({
                                             value={formData.externalOrderNumber}
                                             onChange={(e) => store.setField('externalOrderNumber', e.target.value)}
                                             placeholder="크몽/숨고 등 결제하신 플랫폼의 주문번호를 입력해 주세요"
-                                            className="w-full bg-white border-2 border-rose-200 rounded-2xl py-4 pl-12 pr-4 font-black text-slate-900 placeholder:text-slate-200 focus:border-rose-500 outline-none transition-all shadow-sm group-hover:border-rose-300"
+                                            className="w-full bg-white border-2 border-rose-200 rounded-2xl py-4 pl-12 pr-4 font-bold text-slate-900 placeholder:text-slate-200 focus:border-rose-500 outline-none transition-all shadow-sm group-hover:border-rose-300"
                                         />
                                         <ShoppingBag className="absolute left-4 top-1/2 -translate-y-1/2 text-rose-300 group-hover:text-rose-500 transition-colors" size={20} />
                                     </div>
-                                    <p className="text-[11px] text-rose-600 font-bold px-2 flex items-center gap-1">
+                                    <p className="text-2xs text-rose-600 font-bold px-2 flex items-center gap-1">
                                         <Info size={12} />
                                         운영진이 주문번호 대조 후 최종 승인 처리해 드립니다.
                                     </p>
@@ -615,13 +617,13 @@ export default function CampaignStep3({
                                             <Infinity size={24} />
                                         </div>
                                         <div>
-                                            <p className="text-base font-black text-purple-900 leading-tight">무제한 이용권 혜택이 적용되었습니다</p>
-                                            <p className="text-[11px] text-purple-600 font-bold mt-1">캠페인 진행 비용이 100% 면제됩니다.</p>
+                                            <p className="text-base font-bold text-purple-900 leading-tight">무제한 이용권 혜택이 적용되었습니다</p>
+                                            <p className="text-2xs text-purple-600 font-bold mt-1">캠페인 진행 비용이 100% 면제됩니다.</p>
                                         </div>
                                     </div>
                                     <div className="hidden md:flex flex-col items-end gap-1">
-                                        <span className="text-[10px] font-black bg-purple-600 text-white px-2 py-1 rounded-full shadow-sm">ACTIVE PLAN</span>
-                                        <span className="text-[10px] text-purple-400 font-bold">Benefit Applied</span>
+                                        <span className="text-2xs font-bold bg-purple-600 text-white px-2 py-1 rounded-full shadow-sm">ACTIVE PLAN</span>
+                                        <span className="text-2xs text-purple-400 font-bold">Benefit Applied</span>
                                     </div>
                                 </div>
                             )}
@@ -666,36 +668,36 @@ export default function CampaignStep3({
                     </h3>
                 </div>
                 {isAdmin ? (
-                    <ol className="space-y-3 text-[13px] text-indigo-700 font-medium">
+                    <ol className="space-y-3 text-body-sm text-indigo-700 font-medium">
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">1</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">1</span>
                             <span>등록 즉시 캠페인이 게시되며 리뷰어 모집이 시작됩니다.</span>
                         </li>
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">2</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">2</span>
                             <span>결제는 등록과 동시에 진행됩니다.</span>
                         </li>
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">3</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">3</span>
                             <span>대시보드에서 실시간으로 진행 상황을 확인할 수 있습니다.</span>
                         </li>
                     </ol>
                 ) : (
-                    <ol className="space-y-3 text-[13px] text-indigo-700 font-medium">
+                    <ol className="space-y-3 text-body-sm text-indigo-700 font-medium">
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">1</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">1</span>
                             <span>승인 요청 후 관리자가 캠페인 내용을 검토합니다. (영업일 기준 24시간 이내)</span>
                         </li>
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">2</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">2</span>
                             <span>승인이 완료되면 결제가 진행되고 캠페인이 게시됩니다.</span>
                         </li>
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">3</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">3</span>
                             <span>리뷰어 모집이 시작되며, 대시보드에서 진행 상황을 확인할 수 있습니다.</span>
                         </li>
                         <li className="flex gap-3">
-                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-[11px] font-bold">4</span>
+                            <span className="flex-shrink-0 w-5 h-5 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-2xs font-bold">4</span>
                             <span>승인이 거부된 경우 수정 가이드에 따라 재신청할 수 있습니다.</span>
                         </li>
                     </ol>

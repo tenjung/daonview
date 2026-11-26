@@ -21,9 +21,9 @@ export function InfluencerMobileHeader({
         <div className="min-w-0 flex-1">
           <div className="mb-2 flex items-center gap-2 text-primary">
             {icon}
-            <span className="text-xs font-black uppercase tracking-[0.24em]">Influencer</span>
+            <span className="text-xs font-bold uppercase tracking-[0.24em]">Influencer</span>
           </div>
-          <h1 className="text-[2rem] font-black leading-[0.92] tracking-tight text-gray-900">
+          <h1 className="text-[2rem] font-bold leading-[0.92] tracking-tight text-gray-900">
             {title}
           </h1>
           <p className="mt-2 text-sm font-medium text-gray-500">

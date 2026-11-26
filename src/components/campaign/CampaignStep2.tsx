@@ -84,7 +84,7 @@ function SortableImageItem({ id, url, index, onRemove }: SortableImageItemProps)
 
             {/* 대표 배지 */}
             {index === 0 && (
-                <div className="absolute top-2 left-2 px-2 py-0.5 bg-rose-500 text-white text-[10px] font-bold rounded-md shadow-sm z-10 animate-in fade-in zoom-in duration-300">
+                <div className="absolute top-2 left-2 px-2 py-0.5 bg-rose-500 text-white text-2xs font-bold rounded-md shadow-sm z-10 animate-in fade-in zoom-in duration-300">
                     대표 이미지
                 </div>
             )}
@@ -513,7 +513,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             <h2 className="text-lg font-bold text-slate-800">캠페인 제목 (모집글 제목)</h2>
                             <HelpTooltip content="캠페인 제목은 1단계에서 확인 및 수정이 가능합니다. 인플루언서에게 가장 먼저 노출되는 정보이니 신중히 검토해주세요." />
                         </div>
-                        <span className="text-[11px] font-bold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase">Step 1 완료</span>
+                        <span className="text-2xs font-bold bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full uppercase">Step 1 완료</span>
                     </div>
                     <div className="relative">
                         <input
@@ -597,7 +597,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                                                     <div className={`p-2 rounded-full ${imageVariants.length === 0 && idx === 0 ? 'bg-rose-100 text-rose-500' : 'bg-slate-100 text-slate-400'}`}>
                                                         {uploadingImage ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
                                                     </div>
-                                                    <span className="text-[11px] font-bold text-slate-400">
+                                                    <span className="text-2xs font-bold text-slate-400">
                                                         {uploadingImage
                                                             ? '업로드 중'
                                                             : imageVariants.length === 0 && idx === 0
@@ -627,10 +627,10 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                             <div className="flex gap-2 items-start">
                                 <Info size={16} className="text-slate-400 mt-0.5" />
                                 <div className="space-y-1">
-                                    <p className="text-[13px] text-slate-600 leading-snug">
+                                    <p className="text-body-sm text-slate-600 leading-snug">
                                         첫 번째 이미지가 <strong>대표 이미지</strong>로 설정됩니다.
                                     </p>
-                                    <p className="text-[12px] text-slate-500">
+                                    <p className="text-xs text-slate-500">
                                         이미지를 드래그하여 순서를 자유롭게 변경할 수 있습니다. (최대 4개)
                                     </p>
                                 </div>
@@ -841,8 +841,8 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                     <div className="mt-8 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3 text-left">
                         <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
                         <div className="flex-1">
-                            <h3 className="text-[14px] font-bold text-indigo-950 mb-1">⚠️ 경제적 대가 고지 필수 안내</h3>
-                            <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                            <h3 className="text-sm font-bold text-indigo-950 mb-1">⚠️ 경제적 대가 고지 필수 안내</h3>
+                            <p className="text-body-sm text-indigo-700 leading-relaxed font-medium">
                                 공정위 문구 게재 법에 따라 필수 포함되어야 하며, <strong className="font-bold">"협찬"</strong> 문구 없이 진행 시 발생하는 문제의 책임은 이용자에게 있습니다.
                             </p>
                         </div>
@@ -862,7 +862,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
                     {/* 메인 키워드 */}
                     <div className="mb-6">
-                        <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-1.5">
+                        <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
                             <Check size={16} className="text-purple-600" />
                             메인 필수 키워드 (2~3개 권장) <span className="text-red-500">*</span>
                         </label>
@@ -921,7 +921,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                         ) : recommendedKeywords.length > 0 && (
                             <div className="mt-3">
                                 <div className="flex items-center gap-1.5 mb-2">
-                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-[10px] text-white font-bold">AI</div>
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-2xs text-white font-bold">AI</div>
                                     <span className="text-xs font-bold text-indigo-600">다온 AI 추천 메인 키워드</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -951,7 +951,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
 
                     {/* 서브 키워드 */}
                     <div className="mb-6">
-                        <label className="block text-sm font-black text-gray-700 mb-2 flex items-center gap-1.5">
+                        <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-1.5">
                             <Check size={16} className="text-green-600" />
                             서브 필수 키워드
                         </label>
@@ -1003,7 +1003,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                         ) : recommendedSubKeywords.length > 0 && (
                             <div className="mb-3">
                                 <div className="flex items-center gap-1.5 mb-2">
-                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-[10px] text-white font-bold">AI</div>
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-2xs text-white font-bold">AI</div>
                                     <span className="text-xs font-bold text-emerald-600">다온 AI 추천 서브 키워드</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
@@ -1130,7 +1130,7 @@ export default function CampaignStep2({ onNext, onPrev, onSaveDraft, isEdit, sub
                         ) : recommendedInstagramHashtags.length > 0 && (
                             <div className="mb-4">
                                 <div className="flex items-center gap-1.5 mb-2">
-                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 text-[10px] text-white font-bold">AI</div>
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 text-2xs text-white font-bold">AI</div>
                                     <span className="text-xs font-bold text-pink-600">다온 AI 추천 인기 해시태그</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">

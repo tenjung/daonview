@@ -106,7 +106,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
               }`}
           >
             캠페인
-            <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
+            <span className="px-1.5 py-0.5 text-2xs font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
           </Link>
           <Link
             href="/reviews"
@@ -150,7 +150,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                   className="flex items-center gap-1.5 px-3 py-1 pl-4 rounded-l-full hover:bg-violet-50 text-gray-500 hover:text-violet-600 transition-colors group"
                 >
                   <Sparkles size={15} className="group-hover:text-violet-500 transition-colors" />
-                  <span className="text-[13px] font-bold">맞춤</span>
+                  <span className="text-body-sm font-bold">맞춤</span>
                 </Link>
 
                 <div className="w-[1px] h-4 bg-gray-200"></div>
@@ -199,7 +199,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                     <span className="text-sm font-bold text-text-main group-hover:text-primary transition-colors">
                       {profile?.nickname || user.email?.split('@')[0]}님
                     </span>
-                    <span className="text-[10px] text-gray-400 font-medium">{getRoleLabel()}</span>
+                    <span className="text-2xs text-gray-400 font-medium">{getRoleLabel()}</span>
                   </div>
                   <Avatar
                     src={profile?.avatar_url}
@@ -232,7 +232,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                 {profile?.role === 'ADMIN' && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-gray-400 py-1">System</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-2xs uppercase tracking-wider text-gray-400 py-1">System</DropdownMenuLabel>
                     <DropdownMenuItem asChild>
                       <Link href="/dashboard/admin/users" className="flex items-center gap-2 text-violet-600 focus:text-violet-700">
                         <ShieldCheck size={16} />
@@ -310,7 +310,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
               <div className="flex-1 min-w-0">
                 {profile && (
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white text-primary">
+                    <span className="px-2 py-0.5 rounded text-2xs font-bold bg-white text-primary">
                       {getRoleLabel()}
                     </span>
                   </div>
@@ -318,7 +318,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                 <p className="text-sm font-bold text-text-main truncate">
                   {profile?.nickname || user.email?.split('@')[0]}님
                 </p>
-                <p className="text-[10px] text-gray-400 truncate tracking-tight">{user.email}</p>
+                <p className="text-2xs text-gray-400 truncate tracking-tight">{user.email}</p>
               </div>
             </div>
           )}
@@ -335,7 +335,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                   }`}
               >
                 <span>캠페인</span>
-                <span className="px-1.5 py-0.5 text-[9px] font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
+                <span className="px-1.5 py-0.5 text-2xs font-semibold bg-rose-100 text-primary rounded-full border border-rose-200">NEW</span>
               </Link>
               <Link
                 href="/reviews"
@@ -529,7 +529,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
             </button>
             {companyInfoOpen && (
               <div className="px-4 pb-4">
-                <div className="space-y-1.5 text-[11px] text-text-secondary">
+                <div className="space-y-1.5 text-2xs text-text-secondary">
                   <p><strong className="text-text-main">상호명:</strong> 다온컴퍼니</p>
                   <p><strong className="text-text-main">사업자등록번호:</strong> 657-33-01007</p>
                   <p><strong className="text-text-main">대표자:</strong> 신지호</p>
@@ -537,7 +537,7 @@ export default function Navbar({ initialUser, initialProfile }: NavbarProps) {
                   <p><strong className="text-text-main">이메일:</strong> master@daonview.com</p>
                   <p className="pt-1"><strong className="text-text-main">주소:</strong> 경기도 부천시 소사구 양지로 229 골든IT타워 824호</p>
                 </div>
-                <div className="text-center text-[10px] text-text-secondary mt-3 pt-3 border-t border-border">
+                <div className="text-center text-2xs text-text-secondary mt-3 pt-3 border-t border-border">
                   © 2024 DAONVIEW. All rights reserved.
                 </div>
               </div>

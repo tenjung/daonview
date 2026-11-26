@@ -197,7 +197,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
             {status === MAP_STATUS.LOADING && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/70 backdrop-blur-md z-10 transition-opacity">
                     <div className="h-10 w-10 animate-spin rounded-full border-4 border-rose-500/10 border-t-rose-500 mb-4" />
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Map Loading...</p>
+                    <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest">Map Loading...</p>
                 </div>
             )}
 
@@ -209,21 +209,21 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                         </svg>
                     </div>
 
-                    <h5 className="font-black text-slate-900 mb-2">지도가 표시되지 않나요?</h5>
-                    <p className="text-[12px] text-slate-500 mb-4 leading-relaxed">
+                    <h5 className="font-bold text-slate-900 mb-2">지도가 표시되지 않나요?</h5>
+                    <p className="text-xs text-slate-500 mb-4 leading-relaxed">
                         NCP(VPC) 콘솔 설정이 맞지 않으면 지도가 사라집니다.<br />
                         <strong className="text-rose-600">www를 제외한 도메인</strong>을 등록해야 합니다.
                     </p>
                     
                     {/* 현재 접속 URL 표시 */}
                     <div className="mb-6 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <p className="text-[10px] text-slate-400 mb-1">NCP 콘솔에 등록할 URL:</p>
-                        <code className="text-[11px] font-mono text-rose-600 font-bold">
+                        <p className="text-2xs text-slate-400 mb-1">NCP 콘솔에 등록할 URL:</p>
+                        <code className="text-2xs font-mono text-rose-600 font-bold">
                             {typeof window !== 'undefined' 
                                 ? window.location.origin.replace('www.', '') 
                                 : ''}
                         </code>
-                        <p className="text-[9px] text-slate-400 mt-2">
+                        <p className="text-2xs text-slate-400 mt-2">
                             ⚠️ www는 빼고 등록하세요
                         </p>
                     </div>
@@ -231,7 +231,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                     <div className="w-full max-w-[240px] space-y-3">
                         <button
                             onClick={copyOrigin}
-                            className="w-full py-3 bg-slate-900 text-white rounded-xl text-[11px] font-black shadow-lg shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-slate-900 text-white rounded-xl text-2xs font-bold shadow-lg shadow-slate-200 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
                             URL 주소 복사하기 📋
                         </button>
@@ -239,7 +239,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                         <div className="flex gap-2">
                             <button
                                 onClick={() => window.location.reload()}
-                                className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-[11px] font-bold active:scale-95 transition-all"
+                                className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl text-2xs font-bold active:scale-95 transition-all"
                             >
                                 다시 시도
                             </button>
@@ -247,7 +247,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                                 href="https://console.ncloud.com/naver-service/application"
                                 target="_blank"
                                 rel="noreferrer"
-                                className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl text-[11px] font-bold active:scale-95 transition-all text-center"
+                                className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl text-2xs font-bold active:scale-95 transition-all text-center"
                             >
                                 NCP 콘솔
                             </a>
@@ -255,7 +255,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
                     </div>
 
                     <div className="mt-8 pt-6 border-t border-slate-100 w-full max-w-[200px]">
-                        <p className="text-[9px] text-slate-300 font-mono tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis">
+                        <p className="text-2xs text-slate-300 font-mono tracking-tighter uppercase whitespace-nowrap overflow-hidden text-ellipsis">
                             ID: {CLIENT_ID}
                         </p>
                     </div>
@@ -264,7 +264,7 @@ export default function NaverMap({ address, storeName, lat, lng }: NaverMapProps
 
             <div className={`absolute top-6 left-8 pointer-events-none select-none transition-opacity duration-1000 ${status === MAP_STATUS.READY ? 'opacity-100' : 'opacity-0'
                 }`}>
-                <span className="text-[10px] font-black italic text-slate-200 uppercase tracking-tighter">Naver Maps Core API (VPC)</span>
+                <span className="text-2xs font-bold italic text-slate-200 uppercase tracking-tighter">Naver Maps Core API (VPC)</span>
             </div>
         </div>
     );

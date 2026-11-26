@@ -210,7 +210,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
-                                    className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-1.5 rounded-full text-[13px] font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
+                                    className={`flex-1 sm:flex-none flex justify-center items-center px-2 sm:px-5 py-1.5 rounded-full text-body-sm font-medium transition-all whitespace-nowrap ${activeTab === tab ? 'bg-white text-rose-500 shadow-sm ring-1 ring-slate-200 font-bold' : 'text-slate-400 hover:text-slate-600'}`}
                                 >
                                     {tab === 'ALL' ? <><span className="sm:hidden">전체</span><span className="hidden sm:inline">전체보기</span></> : 
                                      tab === 'STEADY' ? <><span className="sm:hidden">빠른</span><span className="hidden sm:inline">빠른모집</span></> : 
@@ -287,7 +287,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                         <div className="mt-8 pt-8 border-t border-slate-50">
                             <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-10">
                                 <div>
-                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Channels</p>
+                                    <p className="text-2xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Channels</p>
                                     <div className="flex flex-wrap gap-2">
                                         {PLATFORMS.map(p => (
                                             <button key={p} onClick={() => toggleFilter(p, selectedPlatforms, setSelectedPlatforms)} className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${selectedPlatforms.includes(p) ? 'bg-slate-900 text-white font-semibold' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>{p}</button>
@@ -295,7 +295,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                                     </div>
                                 </div>
                                 <div className="md:col-span-2">
-                                    <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-4">Regions</p>
+                                    <p className="text-2xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Regions</p>
                                     <div className="flex flex-wrap gap-2 mb-4">
                                         {REGION_HIERARCHY.map(r => (
                                             <button
@@ -355,7 +355,7 @@ function CampaignListContent({ initialCampaigns }: CampaignListClientProps) {
                 ) : (
                     <div className="py-20 text-center bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
                         <p className="text-4xl mb-4">🔍</p>
-                        <p className="text-xl font-black text-slate-900">찾으시는 캠페인이 없어요</p>
+                        <p className="text-xl font-bold text-slate-900">찾으시는 캠페인이 없어요</p>
                         <p className="text-slate-500 mt-2">필터를 초기화하거나 다른 검색어를 입력해보세요.</p>
                     </div>
                 )}

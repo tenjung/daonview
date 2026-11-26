@@ -1095,7 +1095,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 </div>
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-start gap-3">
                     <Info size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                    <p className="text-body-sm text-slate-500 leading-relaxed font-medium">
                         이 캠페인을 진행할 브랜드를 선택하거나 새로 등록해주세요. 대행사의 경우 여러 클라이언트를 브랜드별로 나누어 관리할 수 있습니다.
                     </p>
                 </div>
@@ -1118,7 +1118,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                 </div>
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-start gap-3">
                     <Info size={16} className="text-slate-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-[13px] text-slate-500 leading-relaxed font-medium">
+                    <p className="text-body-sm text-slate-500 leading-relaxed font-medium">
                         인플루언서들이 모집 목록에서 보게 될 중요 제목입니다. 매력적인 제목으로 더 많은 참여를 유도해보세요.
                     </p>
                 </div>
@@ -1393,10 +1393,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 <div className="p-4 bg-indigo-50/40 border border-indigo-100 rounded-xl flex items-start gap-3">
                                     <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
                                     <div className="flex-1">
-                                        <p className="font-bold text-indigo-950 mb-2 text-[14px]">
+                                        <p className="font-bold text-indigo-950 mb-2 text-sm">
                                             1석2조 혜택! 구매평과 SNS를 함께 진행하세요
                                         </p>
-                                        <ul className="text-[13px] text-indigo-700 space-y-1.5 font-medium">
+                                        <ul className="text-body-sm text-indigo-700 space-y-1.5 font-medium">
                                             <li>• 제품비용 절약: 한 번의 제품 제공으로 2가지 리뷰 진행</li>
                                             <li>• 시간 효율: 동시 진행으로 캠페인 기간 단축</li>
                                             <li>• 다양한 노출: 쇼핑몰 + SNS 채널 동시 마케팅</li>
@@ -1823,7 +1823,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
 
                                     <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
                                         <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
-                                        <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                        <p className="text-body-sm text-indigo-700 leading-relaxed font-medium">
                                             연락처는 선정된 인플루언서에게만 안전하게 공개됩니다. 다온뷰는 광고주의 개인정보를 소중히 보호합니다.
                                         </p>
                                     </div>
@@ -1870,7 +1870,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                             />
                             <div className="mt-4 bg-indigo-50/40 border border-indigo-100 rounded-xl p-4 flex items-start gap-3">
                                 <Info size={18} className="text-indigo-600 mt-0.5 flex-shrink-0" />
-                                <p className="text-[13px] text-indigo-700 leading-relaxed font-medium">
+                                <p className="text-body-sm text-indigo-700 leading-relaxed font-medium">
                                     조율 체크 시 방문 시간은 선택사항입니다. 선정 후 인플루언서와 개별 연락을 통해 최적의 방문 시간을 조정하세요.
                                 </p>
                             </div>
@@ -2079,7 +2079,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         {formData.purchaseRewardMethod === 'DIRECT' && <div className="w-2 h-2 rounded-full bg-white" />}
                                     </div>
                                 </div>
-                                <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                                <p className="text-body-sm text-slate-500 font-medium leading-relaxed">
                                     구매금액과 구매평 증빙이 정상 확인되면, <strong className="text-slate-700">광고주가 등록된 정산 계좌로 1~2영업일 내 직접 송금</strong>합니다. (다온뷰 결제 시 리워드 금액 미포함)
                                 </p>
                             </button>
@@ -2098,18 +2098,18 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     <div className="flex items-center justify-between">
                                         <span className={`font-bold text-base flex items-center gap-1 ${formData.purchaseRewardMethod === 'DAONVIEW' ? 'text-rose-700' : 'text-slate-800'}`}>
                                             다온뷰 안심 지급
-                                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 font-black">추천</span>
+                                            <span className="text-2xs px-1.5 py-0.5 rounded-md bg-rose-100 text-rose-600 font-bold">추천</span>
                                         </span>
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.purchaseRewardMethod === 'DAONVIEW' ? 'border-rose-500 bg-rose-500' : 'border-slate-300'}`}>
                                             {formData.purchaseRewardMethod === 'DAONVIEW' && <div className="w-2 h-2 rounded-full bg-white" />}
                                         </div>
                                     </div>
-                                    <p className="text-[13px] text-slate-500 font-medium leading-relaxed">
+                                    <p className="text-body-sm text-slate-500 font-medium leading-relaxed">
                                         증빙이 정상 확인되면 다온뷰가 등록된 정산 계좌로 1~2영업일 내 지급합니다. 미리 <strong className="text-slate-700">상품 결제 금액 + 부가세(10%)</strong>를 다온뷰에 결제해 두시면 됩니다.
                                     </p>
                                 </button>
                                 {formData.isCouponRequired && (
-                                    <p className="text-[12px] text-rose-500 font-bold px-1">
+                                    <p className="text-xs text-rose-500 font-bold px-1">
                                         리워드를 개별 지급하는 경우 안심 지급 기능을 이용할 수 없습니다.
                                     </p>
                                 )}
@@ -2118,7 +2118,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                         {formData.purchaseRewardMethod === 'DAONVIEW' && (
                             <div className="mt-3 bg-rose-50/50 border border-rose-100 rounded-xl p-3 flex items-start gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
                                 <Info size={16} className="text-rose-500 flex-shrink-0 mt-0.5" />
-                                <p className="text-[12px] text-rose-700 font-medium">
+                                <p className="text-xs text-rose-700 font-medium">
                                     [상품 결제 금액 × 모집인원 × 1.1(부가세)]원 만큼이 최종 캠페인 등록비 결제 시 합산 청구됩니다. 공식 판매가가 아닌 위에서 설정하신 <strong className="font-bold underline">상품 결제 금액</strong>을 기준으로 산정되오니, 다시 한 번 확인해주세요.
                                 </p>
                             </div>
@@ -2246,10 +2246,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         >
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
-                                                    <div className={cn("text-[15px] font-bold", isActive ? "text-white" : "text-slate-900")}>
+                                                    <div className={cn("text-sm font-bold", isActive ? "text-white" : "text-slate-900")}>
                                                         {option.title}
                                                     </div>
-                                                    <p className={cn("mt-1 text-[12px] font-medium", isActive ? "text-slate-200" : "text-slate-500")}>
+                                                    <p className={cn("mt-1 text-xs font-medium", isActive ? "text-slate-200" : "text-slate-500")}>
                                                         {option.summary}
                                                     </p>
                                                 </div>
@@ -2269,10 +2269,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                 <div className="flex items-start gap-3">
                                     <Info size={18} className="mt-0.5 flex-shrink-0 text-blue-700" />
                                     <div className="space-y-1">
-                                        <p className="text-[13px] font-bold text-blue-900">
+                                        <p className="text-body-sm font-bold text-blue-900">
                                             결제 완료 시 시작일은 당일(KST)로 자동 고정됩니다.
                                         </p>
-                                        <p className="text-[12px] leading-relaxed font-medium text-blue-700">
+                                        <p className="text-xs leading-relaxed font-medium text-blue-700">
                                             {scheduleDescriptions[schedulePreview.scheduleType]}
                                         </p>
                                     </div>
@@ -2285,10 +2285,10 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         <div className="grid gap-2">
                                             {schedulePreview.displayRows.map((row) => (
                                                 <div key={row.label} className="grid grid-cols-[84px_1fr] items-center gap-2 md:grid-cols-[96px_1fr]">
-                                                    <span className="text-[14px] font-bold tracking-tight text-slate-900">{row.label}</span>
+                                                    <span className="text-sm font-bold tracking-tight text-slate-900">{row.label}</span>
                                                     <span
                                                         className={cn(
-                                                            "text-[14px] font-semibold tracking-tight md:text-[15px]",
+                                                            "text-sm font-semibold tracking-tight md:text-sm",
                                                             row.tone === 'selection' ? 'text-rose-500' : 'text-slate-800'
                                                         )}
                                                     >
@@ -2299,8 +2299,8 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                         </div>
 
                                         <div className="pt-1">
-                                            <p className="text-[10px] font-bold tracking-[0.12em] text-slate-400">RULE</p>
-                                            <div className="mt-2 space-y-1 text-[10px] leading-[1.5] font-medium text-slate-600">
+                                            <p className="text-2xs font-bold tracking-[0.12em] text-slate-400">RULE</p>
+                                            <div className="mt-2 space-y-1 text-2xs leading-[1.5] font-medium text-slate-600">
                                                 <p>시작일은 결제 완료 시점의 KST 기준 오늘로 자동 고정된다.</p>
                                                 {isFlexibleSchedule ? (
                                                     <>
@@ -2318,26 +2318,26 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                     <div className="w-full max-w-[450px] space-y-2">
                                         <div className="flex items-start justify-between gap-3">
                                             <div>
-                                                <p className="text-[11px] font-medium text-slate-500">모집 캘린더</p>
-                                                <p className="text-[15px] font-bold tracking-tight text-slate-900 md:text-[16px]">
+                                                <p className="text-2xs font-medium text-slate-500">모집 캘린더</p>
+                                                <p className="text-sm font-bold tracking-tight text-slate-900 md:text-base">
                                                     {scheduleMonthTitle}
                                                 </p>
                                             </div>
                                             <div className="flex flex-wrap items-center justify-end gap-1">
                                                 {!isFlexibleSchedule && (
-                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-700 px-2 text-[10px] font-bold text-white">신청</span>
+                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-700 px-2 text-2xs font-bold text-white">신청</span>
                                                 )}
                                                 {!isFlexibleSchedule && (
-                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-rose-500 px-2 text-[10px] font-bold text-white">발표</span>
+                                                    <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-rose-500 px-2 text-2xs font-bold text-white">발표</span>
                                                 )}
-                                                <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-200 px-2 text-[10px] font-bold text-slate-700">체험</span>
+                                                <span className="inline-flex h-5 min-w-10 items-center justify-center rounded-full bg-slate-200 px-2 text-2xs font-bold text-slate-700">체험</span>
                                             </div>
                                         </div>
 
                                         <div className="w-full rounded-[20px] bg-white/50 px-1.5 py-2 md:px-2 md:py-2.5">
                                             <div className="grid grid-cols-7 gap-0.5 border-b border-slate-100 pb-1.5">
                                                 {CALENDAR_DAYS.map((day) => (
-                                                    <div key={day} className="text-center text-[10px] font-medium text-slate-500 md:text-[11px]">
+                                                    <div key={day} className="text-center text-2xs font-medium text-slate-500 md:text-2xs">
                                                         {day}
                                                     </div>
                                                 ))}
@@ -2380,7 +2380,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                                         >
                                                                             <span
                                                                                 className={cn(
-                                                                                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold leading-none tracking-tight md:h-5.5 md:min-w-5.5 md:text-[12px]",
+                                                                                    "inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-2xs font-semibold leading-none tracking-tight md:h-5.5 md:min-w-5.5 md:text-xs",
                                                                                     cell.isCurrentMonth ? "text-slate-900" : "text-slate-300",
                                                                                     isSunday && (cell.isCurrentMonth ? "text-rose-500" : "text-rose-200"),
                                                                                     isToday && "border border-slate-400 bg-white"
@@ -2397,7 +2397,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                                 <div className="grid h-4 grid-cols-7 gap-0.5 pt-px">
                                                                         {experienceSegment ? (
                                                                             <div
-                                                                                className="flex items-center justify-center rounded-full bg-slate-200 px-1.5 text-[10px] font-bold tracking-tight text-slate-700"
+                                                                                className="flex items-center justify-center rounded-full bg-slate-200 px-1.5 text-2xs font-bold tracking-tight text-slate-700"
                                                                                 style={{ gridColumn: `${experienceSegment.startCol} / ${experienceSegment.endCol + 1}` }}
                                                                             >
                                                                                 {experienceSegment.label}
@@ -2413,7 +2413,7 @@ export default function CampaignStep1({ onNext, onSaveDraft, submitTrigger = 0 }
                                                                             <div
                                                                                 key={`${segment.tone}-${segment.startCol}-${segment.endCol}`}
                                                                                 className={cn(
-                                                                                    "flex items-center justify-center rounded-full px-1.5 text-[10px] font-bold tracking-tight",
+                                                                                    "flex items-center justify-center rounded-full px-1.5 text-2xs font-bold tracking-tight",
                                                                                     segment.tone === 'application' && "bg-slate-700 text-white",
                                                                                     segment.tone === 'selection' && "bg-rose-500 text-white",
                                                                                     segment.tone === 'experience' && "bg-slate-200 text-slate-700"

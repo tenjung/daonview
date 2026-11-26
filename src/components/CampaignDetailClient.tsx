@@ -40,7 +40,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import AdminControls from '@/components/AdminControls';
 import ConfirmDialog from '@/components/ConfirmDialog';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { updateInfluencerStats } from '@/lib/updateInfluencerStats';
 import { formatDDay, mapCampaignToCard, resolveCampaignImageVariants, resolveCampaignPlatformState, resolveCampaignScheduleDates } from '@/lib/campaignUtils';
 import { formatKstDate } from '@/lib/campaignSchedule';
@@ -132,11 +133,11 @@ function GuideGroup({ title, children }: { title: string; children: ReactNode })
 function GuideRow({ label, children, warning = false }: { label: string; children: ReactNode; warning?: boolean }) {
     return (
         <div className={`grid min-w-0 grid-cols-1 gap-1.5 sm:grid-cols-[128px_minmax(0,1fr)] sm:gap-5 ${warning ? 'rounded-xl border border-amber-200/70 bg-amber-50/70 p-4' : ''}`}>
-            <dt className={`flex items-start gap-1.5 text-[13px] font-semibold leading-[1.8] ${warning ? 'text-amber-900' : 'text-slate-600'}`}>
+            <dt className={`flex items-start gap-1.5 text-body-sm font-semibold leading-[1.8] ${warning ? 'text-amber-900' : 'text-slate-600'}`}>
                 {warning && <AlertTriangle aria-hidden="true" className="mt-1 h-4 w-4 shrink-0 text-amber-700" />}
                 {label}
             </dt>
-            <dd className={`min-w-0 break-keep text-sm font-normal leading-[1.8] [overflow-wrap:anywhere] sm:text-[15px] ${warning ? 'text-amber-950' : 'text-slate-700'}`}>
+            <dd className={`min-w-0 break-keep text-sm font-normal leading-[1.8] [overflow-wrap:anywhere] sm:text-sm ${warning ? 'text-amber-950' : 'text-slate-700'}`}>
                 {children}
             </dd>
         </div>
@@ -1056,7 +1057,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         aria-label={`${optionName} 상품 보기`}
-                                                                        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-[11px] font-bold text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                                                                        className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-50 px-2 py-1.5 text-2xs font-bold text-blue-700 transition-colors hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                                                                     >
                                                                         상품 보기
                                                                         <ExternalLink className="h-3 w-3" />
@@ -1134,11 +1135,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                         )}
                                                     </div>
                                                     <div>
-                                                        <p className="text-[15px] font-bold text-slate-900">참여 방법 안내</p>
-                                                        <p className="text-[13px] font-medium text-slate-600">{deliveryFlowLead}</p>
+                                                        <p className="text-sm font-bold text-slate-900">참여 방법 안내</p>
+                                                        <p className="text-body-sm font-medium text-slate-600">{deliveryFlowLead}</p>
                                                     </div>
                                                 </div>
-                                                <div className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-[12px] font-bold text-amber-700 ring-1 ring-amber-200">
+                                                <div className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200">
                                                     선정된 인원만 진행 가능합니다.
                                                 </div>
                                             </div>
@@ -1150,12 +1151,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 {deliveryFlowSteps.map((step, index) => (
                                                     <div key={step.title} className="h-full min-w-0 rounded-2xl bg-white px-4 py-4 ring-1 ring-slate-200">
                                                         <div className="flex items-center gap-2">
-                                                            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white">
+                                                            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-slate-900 text-2xs font-bold text-white">
                                                                 {index + 1}
                                                             </span>
-                                                            <p className="whitespace-nowrap text-[14px] font-bold text-slate-900">{step.title}</p>
+                                                            <p className="whitespace-nowrap text-sm font-bold text-slate-900">{step.title}</p>
                                                         </div>
-                                                        <p className="mt-2 whitespace-nowrap text-[11px] font-semibold leading-relaxed text-slate-600">
+                                                        <p className="mt-2 whitespace-nowrap text-2xs font-semibold leading-relaxed text-slate-600">
                                                             {step.description}
                                                         </p>
                                                     </div>
@@ -1181,13 +1182,13 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                             <GuideSection title="체험 미션 가이드" icon={<Target className="h-5 w-5" />}>
                                 <div className="grid grid-cols-2 divide-x divide-primary/15 overflow-hidden rounded-xl bg-primary/5 ring-1 ring-inset ring-primary/10">
                                     <div className="min-w-0 px-4 py-4 sm:px-5">
-                                        <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-rose-700">
+                                        <p className="mb-2 flex items-center gap-2 text-body-sm font-medium text-rose-700">
                                             <Camera aria-hidden="true" className="h-4 w-4 shrink-0" />사진 촬영
                                         </p>
                                         <p className="break-keep text-lg font-bold text-slate-900">{photoCount ? `${photoCount}장 이상` : '자율 촬영'}</p>
                                     </div>
                                     <div className="min-w-0 px-4 py-4 sm:px-5">
-                                        <p className="mb-2 flex items-center gap-2 text-[13px] font-medium text-rose-700">
+                                        <p className="mb-2 flex items-center gap-2 text-body-sm font-medium text-rose-700">
                                             <Video aria-hidden="true" className="h-4 w-4 shrink-0" />영상 포함
                                         </p>
                                         <p className="break-keep text-lg font-bold text-slate-900">{videoRequired === 'yes' ? '필수 포함' : '선택 사항'}</p>
@@ -1266,7 +1267,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
 
                                 {additionalNotes && (
                                     <GuideGroup title="추가 안내">
-                                        <div className="text-sm leading-[1.8] text-slate-700 [overflow-wrap:anywhere] sm:text-[15px]">
+                                        <div className="text-sm leading-[1.8] text-slate-700 [overflow-wrap:anywhere] sm:text-sm">
                                             <GuideText text={additionalNotes} />
                                         </div>
                                     </GuideGroup>
@@ -1285,7 +1286,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                             ) : (isAdmin || user?.id === campaign.created_by || applicationStatus === 'APPROVED' || applicationStatus === 'SELECTED') ? (
                                                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                                                     <span className="font-semibold text-slate-900">{contactPhone || '정보 없음'}</span>
-                                                    <span className="text-[13px] text-slate-600">
+                                                    <span className="text-body-sm text-slate-600">
                                                         {contactMethod === 'TEXT_ONLY' ? '💬 문자예약 가능' :
                                                             contactMethod === 'CALL_ONLY' ? '📞 전화예약 전용' : '📱 문자/전화 가능'}
                                                     </span>
@@ -1335,7 +1336,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                             <div id="options-section" className="flex flex-col">
                                 <div className="space-y-4 mb-6">
                                     <div className={`rounded-2xl border px-4 py-3.5 ${isClosed ? 'bg-slate-100 border-slate-200' : 'bg-sky-50 border-sky-100'}`}>
-                                        <p className={`text-[10px] font-black uppercase tracking-widest ${isClosed ? 'text-slate-500' : 'text-sky-600'}`}>
+                                        <p className={`text-2xs font-bold uppercase tracking-widest ${isClosed ? 'text-slate-500' : 'text-sky-600'}`}>
                                             신청 상태
                                         </p>
                                         <p className={`mt-1 text-sm font-bold ${isClosed ? 'text-slate-700' : 'text-sky-700'}`}>
@@ -1352,20 +1353,20 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 <div className="min-w-0">
                                                     <p className="text-sm font-bold text-slate-700">캠페인 유형</p>
                                                     <div className="mt-0.5 flex items-center gap-1.5">
-                                                        <p className="text-[11px] text-slate-500 font-semibold truncate">{typeTooltipLabel}</p>
+                                                        <p className="text-2xs text-slate-500 font-semibold truncate">{typeTooltipLabel}</p>
                                                         <TooltipProvider delayDuration={250}>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <button
                                                                         type="button"
-                                                                        className="w-4 h-4 rounded-full border border-slate-300 text-slate-500 text-[10px] font-black inline-flex items-center justify-center hover:border-slate-400 hover:text-slate-700"
+                                                                        className="w-4 h-4 rounded-full border border-slate-300 text-slate-500 text-2xs font-bold inline-flex items-center justify-center hover:border-slate-400 hover:text-slate-700"
                                                                         aria-label="캠페인 유형 설명"
                                                                     >
                                                                         i
                                                                     </button>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
-                                                                    <p className="text-[11px] leading-relaxed">{typeHoverDescription}</p>
+                                                                    <p className="text-2xs leading-relaxed">{typeHoverDescription}</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </TooltipProvider>
@@ -1374,7 +1375,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-xs font-bold text-slate-900">{conditionTooltipLabel}</p>
-                                                <p className="text-[10px] text-slate-500 font-semibold mt-0.5">리뷰 필수</p>
+                                                <p className="text-2xs text-slate-500 font-semibold mt-0.5">리뷰 필수</p>
                                             </div>
                                         </div>
 
@@ -1399,14 +1400,14 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                         </button>
                                                                     </TooltipTrigger>
                                                                     <TooltipContent side="top" className="max-w-[280px] bg-slate-900 text-white border-slate-700">
-                                                                        <p className="text-[11px] leading-relaxed font-medium break-keep">
+                                                                        <p className="text-2xs leading-relaxed font-medium break-keep">
                                                                             {purchaseRewardDescription}
                                                                         </p>
                                                                     </TooltipContent>
                                                                 </Tooltip>
                                                             </TooltipProvider>
                                                         </div>
-                                                        <p className="mt-1 text-[12px] font-semibold leading-relaxed text-slate-600 break-keep">
+                                                        <p className="mt-1 text-xs font-semibold leading-relaxed text-slate-600 break-keep">
                                                             {purchaseRewardSummary}
                                                         </p>
                                                     </div>
@@ -1425,7 +1426,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 <p className="text-sm font-bold text-slate-900">
                                                     {isFastRecruitmentCampaign ? '상시 모집' : scheduleDates.endDate ? `${startDate} ~ ${endDateLabel}` : startDate}
                                                 </p>
-                                                <p className="text-[10px] text-rose-500 font-bold mt-0.5">
+                                                <p className="text-2xs text-rose-500 font-bold mt-0.5">
                                                     {isFastRecruitmentCampaign ? '수시 선정' : scheduleDates.endDate ? formatDDay(scheduleDates.endDate) : '일정 미정'}
                                                 </p>
                                             </div>
@@ -1441,10 +1442,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-sm font-bold text-slate-900">
-                                                        <span className="text-rose-500 font-extrabold">{appCount}</span>명 신청중
+                                                        <span className="text-rose-500 font-bold">{appCount}</span>명 신청중
                                                     </p>
-                                                    <p className="text-[10px] text-slate-400 font-bold mt-0.5">
-                                                        모집 정원: {isCampaignUnlimitedRecruitment(campaign) ? <span className="text-indigo-600 font-black">∞</span> : `${getCampaignRecruitTarget(campaign) ?? 0}명`}
+                                                    <p className="text-2xs text-slate-400 font-bold mt-0.5">
+                                                        모집 정원: {isCampaignUnlimitedRecruitment(campaign) ? <span className="text-indigo-600 font-bold">∞</span> : `${getCampaignRecruitTarget(campaign) ?? 0}명`}
                                                     </p>
                                                 </div>
                                             </div>
@@ -1463,7 +1464,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                     </div>
                                                     <div>
                                                         <h2 className="text-base font-bold text-slate-900">신청 정보</h2>
-                                                        <p className="text-[11px] text-slate-500 font-medium">옵션과 한마디를 입력해 주세요.</p>
+                                                        <p className="text-2xs text-slate-500 font-medium">옵션과 한마디를 입력해 주세요.</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1473,12 +1474,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                     <div className="space-y-4">
                                                     <div className="flex items-center justify-between py-1">
                                                         <div className="flex items-center gap-2">
-                                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                                                            <p className="text-2xs font-bold text-gray-400 uppercase tracking-widest pl-1">
                                                                 {optionConfig.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
                                                             </p>
                                                             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-lg border transition-all duration-300 ${selectedOptions.length === optionConfig.maxSelect ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-indigo-50 border-indigo-100 text-indigo-500'}`}>
                                                                 <span className={`w-1 h-1 rounded-full ${selectedOptions.length === optionConfig.maxSelect ? 'bg-emerald-500' : 'bg-indigo-500 animate-pulse'}`} />
-                                                                <span className="text-[9px] font-black leading-none translate-y-[0.5px]">
+                                                                <span className="text-2xs font-bold leading-none translate-y-[0.5px]">
                                                                     {selectedOptions.length} / {optionConfig.maxSelect} {optionConfig.mode === 'RANKED' ? '지망' : '개'}
                                                                 </span>
                                                             </div>
@@ -1486,7 +1487,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                         {selectedOptions.length > 0 && (
                                                             <button
                                                                 onClick={() => setIsOptionsExpanded(!isOptionsExpanded)}
-                                                                className="text-[10px] font-black text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-all"
+                                                                className="text-2xs font-bold text-rose-500 hover:text-rose-600 flex items-center gap-1 transition-all"
                                                             >
                                                                 {isOptionsExpanded ? '간략히 보기' : '옵션 변경하기'}
                                                                 <ChevronDown size={14} className={`transition-transform duration-300 ${isOptionsExpanded ? 'rotate-180' : ''}`} />
@@ -1503,7 +1504,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                             <div className="space-y-2">
                                                                 {selectedOptions.map((s, i) => (
                                                                     <div key={i} className="flex items-center gap-2.5">
-                                                                        <span className="shrink-0 w-5 h-5 bg-rose-500 text-white rounded-md flex items-center justify-center text-[9px] font-black shadow-sm">
+                                                                        <span className="shrink-0 w-5 h-5 bg-rose-500 text-white rounded-md flex items-center justify-center text-2xs font-bold shadow-sm">
                                                                             {optionConfig.mode === 'RANKED' ? i + 1 : '✓'}
                                                                         </span>
                                                                         <p
@@ -1516,7 +1517,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                 ))}
                                                             </div>
                                                             <div className="mt-2.5 pt-2.5 border-t border-rose-100/40 flex justify-center">
-                                                                <p className="text-[10px] text-rose-400 font-bold group-hover:text-rose-500">클릭하여 옵션 수정하기</p>
+                                                                <p className="text-2xs text-rose-400 font-bold group-hover:text-rose-500">클릭하여 옵션 수정하기</p>
                                                             </div>
                                                         </div>
                                                     )}
@@ -1569,7 +1570,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                                 <TooltipProvider delayDuration={300}>
                                                                                     <Tooltip>
                                                                                         <TooltipTrigger asChild>
-                                                                                            <p className={`block max-w-full truncate whitespace-nowrap text-[13px] font-bold leading-snug ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
+                                                                                            <p className={`block max-w-full truncate whitespace-nowrap text-body-sm font-bold leading-snug ${isSelected ? 'text-rose-600' : 'text-gray-700'} cursor-help`}>
                                                                                                 {label}
                                                                                             </p>
                                                                                         </TooltipTrigger>
@@ -1581,12 +1582,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                                 {typeof opt === 'object' && (opt.optionPrice || opt.recruitmentCount) && (
                                                                                     <div className="flex items-center gap-2">
                                                                                         {opt.optionPrice && opt.optionPrice !== '0' && (
-                                                                                            <span className="text-[9px] text-gray-400 font-bold">
+                                                                                            <span className="text-2xs text-gray-400 font-bold">
                                                                                                 {Number(opt.optionPrice).toLocaleString()}원 상당
                                                                                             </span>
                                                                                         )}
                                                                                         {opt.recruitmentCount && opt.recruitmentCount !== '0' && (
-                                                                                            <span className="text-[9px] text-blue-500 font-black px-1.5 py-0.5 bg-blue-50/50 rounded">
+                                                                                            <span className="text-2xs text-blue-500 font-bold px-1.5 py-0.5 bg-blue-50/50 rounded">
                                                                                                 {opt.recruitmentCount}명 모집
                                                                                             </span>
                                                                                         )}
@@ -1595,7 +1596,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                                             </div>
                                                                         </div>
                                                                         {isSelected && (config.mode === 'RANKED' ? (
-                                                                            <span className="shrink-0 w-6 h-6 bg-rose-500 text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-lg shadow-rose-200 ml-3">
+                                                                            <span className="shrink-0 w-6 h-6 bg-rose-500 text-white rounded-lg flex items-center justify-center text-2xs font-bold shadow-lg shadow-rose-200 ml-3">
                                                                                 {selectedIdx + 1}
                                                                             </span>
                                                                         ) : (
@@ -1614,7 +1615,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 )}
 
                                                 <div className={`flex flex-col gap-2 ${options.length > 0 ? 'pt-4 border-t border-slate-100' : ''}`}>
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">광고주에게 전하는 한마디</p>
+                                                    <p className="text-2xs font-bold text-gray-400 uppercase tracking-widest pl-1">광고주에게 전하는 한마디</p>
                                                     <input
                                                         type="text"
                                                         value={applicationMessage}
@@ -1629,12 +1630,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                     <button
                                                         onClick={handleApply}
                                                         disabled={isClosed || isApplying}
-                                                        className={`group relative flex-1 h-16 md:h-14 rounded-[20px] text-lg font-black flex items-center justify-center gap-3 transition-all duration-300 shadow-2xl overflow-hidden active:scale-[0.97] ${isClosed || isApplying
-                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                                                        className={cn(buttonVariants({ size: 'lg' }), 'group relative flex-1 overflow-hidden', isClosed || isApplying
+                                                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                             : !user
-                                                                ? 'bg-gray-800 text-white'
-                                                                : 'bg-gradient-to-r from-rose-500 via-rose-600 to-rose-500 bg-[length:200%_auto] hover:bg-right text-white shadow-rose-200'
-                                                            }`}
+                                                                ? 'bg-gray-800 text-white hover:bg-gray-900'
+                                                                : ''
+                                                            )}
                                                     >
                                                         {isApplying ? (
                                                             <span className="flex items-center gap-2">
@@ -1643,9 +1644,9 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                             </span>
                                                         ) : isClosed ? closureText : (
                                                             <>
-                                                                <span className="relative z-10 flex items-center gap-3 tracking-tight">
+                                                                <span className="relative z-10 flex items-center gap-2">
                                                                     {user ? '캠페인 신청하기' : '로그인 후 신청하기'}
-                                                                    {!isClosed && <ArrowRight size={22} className="group-hover:translate-x-1 transition-transform" />}
+                                                                    {!isClosed && <ArrowRight className="group-hover:translate-x-1 transition-transform" />}
                                                                 </span>
                                                                 {!isClosed && user && (
                                                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite] pointer-events-none"></div>
@@ -1681,7 +1682,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 }
                                             </div>
                                             <div className="absolute -top-1 -right-1 w-6 h-6 bg-rose-500 rounded-full flex items-center justify-center border-2 border-white animate-pulse">
-                                                <span className="text-[10px] text-white font-black">!</span>
+                                                <span className="text-2xs text-white font-bold">!</span>
                                             </div>
                                         </div>
 
@@ -1689,7 +1690,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                         <div className="space-y-2 text-center">
                                             {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? (
                                                 <>
-                                                    <h3 className="text-xl font-black text-rose-600">🎉 체험단 선정 완료!</h3>
+                                                    <h3 className="text-xl font-bold text-rose-600">🎉 체험단 선정 완료!</h3>
                                                     <p className="text-sm text-gray-500 leading-relaxed font-medium">
                                                         축하합니다! 체험단에 선정되셨습니다.<br />
                                                         미션 가이드를 확인하고 리뷰를 등록해 주세요.
@@ -1697,7 +1698,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                 </>
                                             ) : (
                                                 <>
-                                                    <h3 className="text-xl font-black text-gray-900">신청이 완료되었습니다!</h3>
+                                                    <h3 className="text-xl font-bold text-gray-900">신청이 완료되었습니다!</h3>
                                                     <p className="text-sm text-gray-500 leading-relaxed font-medium">
                                                         광고주님이 회원님의 채널을 검토 중입니다.<br />
                                                         선정 결과는 알림톡으로 보내드릴게요. ✨
@@ -1758,8 +1759,8 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                     <div className="container max-w-[1240px] px-6 mx-auto">
                         <div className="flex items-center justify-between mb-6 md:mb-8">
                             <div>
-                                <h2 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">추천 캠페인</h2>
-                                <p className="text-[10px] md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recommended for you</p>
+                                <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">추천 캠페인</h2>
+                                <p className="text-2xs md:text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Recommended for you</p>
                             </div>
                             <div className="flex gap-2">
                                 <Button
@@ -1841,17 +1842,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                 setIsApplySheetOpen(true);
                             }}
                             disabled={isClosed || isApplying}
-                            className={`flex-1 h-14 rounded-[24px] text-base font-black shadow-[0_8px_20px_-6px_rgba(244,63,94,0.4)] transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${isClosed || isApplying
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
+                            className={cn(buttonVariants({ size: 'bottom' }), 'flex-1', isClosed || isApplying
+                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                 : !user
-                                    ? 'bg-gray-900 text-white'
-                                    : 'bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-rose-200'
-                                }`}
+                                    ? 'bg-gray-900 text-white hover:bg-gray-900'
+                                    : ''
+                                )}
                         >
                             {isApplying ? '처리 중...' : isClosed ? closureText : user
                                 ? (selectedOptions.length > 0 ? '신청서 제출하기' : '옵션 선택 후 신청하기')
                                 : '로그인 후 신청하기'}
-                            {!isClosed && !isApplying && <ArrowRight size={20} />}
+                            {!isClosed && !isApplying && <ArrowRight />}
                         </button>
                         {!isClosed && (
                             <div className="shrink-0 flex items-center justify-center">
@@ -1900,7 +1901,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                             }}
                             className="w-14 h-14 bg-gray-100 text-gray-500 rounded-2xl flex items-center justify-center hover:bg-rose-50 hover:text-rose-500 transition-all"
                         >
-                            <span className="text-[10px] font-black leading-none text-center">신청<br />취소</span>
+                            <span className="text-2xs font-bold leading-none text-center">신청<br />취소</span>
                         </button>
                     </div>
                 )}
@@ -1924,7 +1925,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 <SheetContent side="bottom" className="h-[85vh] p-0 rounded-t-[32px] border-none bg-white shadow-2xl flex flex-col overflow-hidden">
                     <SheetHeader className="p-6 pb-2">
                         <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-4" />
-                        <SheetTitle className="text-xl font-black text-gray-900 text-left">
+                        <SheetTitle className="text-xl font-bold text-gray-900 text-left">
                             캠페인 신청하기
                         </SheetTitle>
                         <p className="text-xs text-gray-400 text-left">원하는 옵션과 메시지를 남겨주세요.</p>
@@ -1935,11 +1936,11 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                         {options.length > 0 && (
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
-                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">
+                                    <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
                                         {optionConfig.mode === 'RANKED' ? '지망 순위 선택' : '옵션 선택'}
                                     </h3>
                                     {optionConfig.mode !== 'SINGLE' && (
-                                        <p className="text-[10px] text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-full">
+                                        <p className="text-2xs text-rose-500 font-bold bg-rose-50 px-2 py-0.5 rounded-full">
                                             {selectedOptions.length} / {optionConfig.maxSelect || 1} 선택됨
                                         </p>
                                     )}
@@ -1985,12 +1986,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                         {typeof opt === 'object' && (opt.optionPrice !== '0' || opt.recruitmentCount !== '0') && (
                                                             <div className="flex items-center gap-2 mt-2">
                                                                 {opt.optionPrice && opt.optionPrice !== '0' && (
-                                                                    <span className="text-[10px] text-gray-400 font-bold">
+                                                                    <span className="text-2xs text-gray-400 font-bold">
                                                                         {Number(opt.optionPrice).toLocaleString()}원 상당
                                                                     </span>
                                                                 )}
                                                                 {opt.recruitmentCount && opt.recruitmentCount !== '0' && (
-                                                                    <span className="text-[10px] text-blue-500 font-black px-1.5 py-0.5 bg-blue-50/50 rounded-md">
+                                                                    <span className="text-2xs text-blue-500 font-bold px-1.5 py-0.5 bg-blue-50/50 rounded-md">
                                                                         모집 {opt.recruitmentCount}명
                                                                     </span>
                                                                 )}
@@ -1998,7 +1999,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                         )}
                                                     </div>
                                                     {isSelected && (config.mode === 'RANKED' ? (
-                                                        <span className="shrink-0 w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center text-xs font-black shadow-lg shadow-rose-200">
+                                                        <span className="shrink-0 w-8 h-8 bg-rose-500 text-white rounded-xl flex items-center justify-center text-xs font-bold shadow-lg shadow-rose-200">
                                                             {selectedIdx + 1}
                                                         </span>
                                                     ) : (
@@ -2018,7 +2019,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
 
                         {/* Message Input in Sheet */}
                         <div className="space-y-3">
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest pl-1">광고주에게 전하는 한마디</h3>
+                            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">광고주에게 전하는 한마디</h3>
                             <input
                                 type="text"
                                 value={applicationMessage}
@@ -2031,16 +2032,17 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
 
                     {/* Final Action Button In Sheet (Fixed at bottom of sheet) */}
                     <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-white via-white to-transparent">
-                        <button
+                        <Button
+                            size="bottom"
                             onClick={() => {
                                 handleApply();
                                 setIsApplySheetOpen(false);
                             }}
-                            className="w-full py-5 rounded-[24px] bg-gradient-to-r from-rose-500 to-rose-600 text-white text-base font-black flex items-center justify-center gap-2 shadow-2xl shadow-rose-200 active:scale-[0.96] transition-all"
+                            className="w-full"
                         >
                             캠페인 신청하기
-                            <ArrowRight size={20} />
-                        </button>
+                            <ArrowRight />
+                        </Button>
                     </div>
                 </SheetContent>
             </Sheet>
@@ -2050,7 +2052,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 <SheetContent side="bottom" className="h-[38vh] rounded-t-3xl p-0 overflow-hidden border-none bg-slate-50 max-w-[1240px] mx-auto">
                     <SheetHeader className="p-6 bg-white border-b border-slate-100 flex flex-row items-center justify-between">
                         <div className="text-left">
-                            <SheetTitle className="text-xl font-black text-slate-900">{selectedStore?.storeName}</SheetTitle>
+                            <SheetTitle className="text-xl font-bold text-slate-900">{selectedStore?.storeName}</SheetTitle>
                             <p className="text-xs text-slate-500 font-medium mt-1">{selectedStore?.address}</p>
                         </div>
                     </SheetHeader>
@@ -2082,7 +2084,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                             </button>
                         </div>
                         <div className="text-center space-y-1">
-                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                            <p className="text-2xs text-slate-400 font-medium leading-relaxed">
                                 ※ 네이버 보안 정책상 외부 앱 연결을 통해 상세 지도를 확인하실 수 있습니다.
                             </p>
                         </div>

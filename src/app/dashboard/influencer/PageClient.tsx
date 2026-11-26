@@ -140,7 +140,7 @@ export default function InfluencerDashboard({ initialViewer, initialApplications
                             <>
                         <Link
                             href="/campaigns"
-                            className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-black text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-lg sm:self-auto sm:rounded-2xl sm:px-8 sm:py-4 sm:text-base sm:shadow-lg sm:hover:-translate-y-1 sm:active:translate-y-0"
+                            className="inline-flex items-center justify-center gap-2 self-start rounded-full bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-dark hover:shadow-lg sm:self-auto sm:rounded-2xl sm:px-8 sm:py-4 sm:text-base sm:shadow-lg sm:hover:-translate-y-1 sm:active:translate-y-0"
                         >
                             <Megaphone size={16} className="sm:h-5 sm:w-5" /> 캠페인 찾아보기
                         </Link>

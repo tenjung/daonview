@@ -286,14 +286,14 @@ export default function PostDetailClient({ initialPost, initialComments, id }: P
                                             {initialPost.type === 'FREE' && (() => {
                                                 const kind = parseCommentKind(comment.content || '');
                                                 if (kind === 'AI_ANALYSIS') {
-                                                    return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100">AI 분석</span>;
+                                                    return <span className="text-2xs font-bold px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 border border-purple-100">AI 분석</span>;
                                                 }
                                                 if (kind === 'NETWORK') {
-                                                    return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">이웃·맞팔</span>;
+                                                    return <span className="text-2xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100">이웃·맞팔</span>;
                                                 }
-                                                return <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100">피드백</span>;
+                                                return <span className="text-2xs font-bold px-2 py-0.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100">피드백</span>;
                                             })()}
-                                            <span className="text-[10px] text-gray-400">
+                                            <span className="text-2xs text-gray-400">
                                                 {formatStableDate(comment.created_at)}
                                             </span>
                                         </div>

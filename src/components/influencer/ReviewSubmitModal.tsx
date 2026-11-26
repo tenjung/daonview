@@ -254,7 +254,7 @@ export default function ReviewSubmitModal({
                 className="top-[var(--review-dialog-center,50%)] max-h-[calc(var(--review-dialog-height,100vh)_-_1.5rem)] overflow-y-auto overscroll-y-contain transition-none sm:max-w-[500px] rounded-3xl p-0 border-none shadow-2xl"
             >
                 <DialogHeader className="p-6 bg-slate-900 text-white">
-                    <DialogTitle className="text-xl font-black flex items-center gap-2">
+                    <DialogTitle className="text-xl font-bold flex items-center gap-2">
                         <Camera className="text-rose-400" /> 리뷰 등록하기
                     </DialogTitle>
                     <p className="text-slate-400 text-sm font-medium mt-1">{campaignTitle}</p>
@@ -262,7 +262,7 @@ export default function ReviewSubmitModal({
 
                 <div className="p-6 space-y-6 bg-white">
                     <div className="space-y-2">
-                        <Label htmlFor="reviewUrl" className="text-sm font-black text-slate-700 flex items-center gap-1.5">
+                        <Label htmlFor="reviewUrl" className="text-sm font-bold text-slate-700 flex items-center gap-1.5">
                             <LinkIcon size={14} className="text-rose-500" />
                             {isNaverBlogReview ? '네이버 블로그 게시글 링크' : '리뷰 주소 (URL)'}
                             {isPurchaseExperience ? ' (선택)' : ''}
@@ -278,7 +278,7 @@ export default function ReviewSubmitModal({
 
                     {!isNaverBlogReview && (
                         <div className="space-y-2">
-                            <Label htmlFor="reviewContent" className="text-sm font-black text-slate-700">리뷰 한줄평 (선택)</Label>
+                            <Label htmlFor="reviewContent" className="text-sm font-bold text-slate-700">리뷰 한줄평 (선택)</Label>
                             <Textarea
                                 id="reviewContent"
                                 placeholder="제품에 대한 간단한 소감을 남겨주세요."
@@ -291,15 +291,15 @@ export default function ReviewSubmitModal({
 
                     {isPurchaseExperience ? (
                         <div className="space-y-3">
-                            <Label className="text-sm font-black text-slate-700">구매평 증빙 업로드 (필수)</Label>
+                            <Label className="text-sm font-bold text-slate-700">구매평 증빙 업로드 (필수)</Label>
                             <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-relaxed text-amber-800">
                                 구매금액이나 주문자 이름이 잘 보이지 않으면 리워드 검수에서 반려될 수 있습니다.
                             </p>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                    <p className="text-xs font-black text-slate-800">1) 구매금액 스샷</p>
-                                    <p className="flex-1 text-[11px] text-slate-500 leading-relaxed">
+                                    <p className="text-xs font-bold text-slate-800">1) 구매금액 스샷</p>
+                                    <p className="flex-1 text-2xs text-slate-500 leading-relaxed">
                                         실제 결제한 구매금액과 성함(주문자명)이 한 화면에서 명확하게 보이게 업로드해 주세요.
                                     </p>
                                     {purchaseAmountProofUrl ? (
@@ -321,14 +321,14 @@ export default function ReviewSubmitModal({
                                             className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:border-rose-400 hover:text-rose-500 transition-all bg-white"
                                         >
                                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-                                            <span className="text-[11px] font-bold mt-1">구매금액 스샷 업로드</span>
+                                            <span className="text-2xs font-bold mt-1">구매금액 스샷 업로드</span>
                                         </button>
                                     )}
                                 </div>
 
                                 <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                    <p className="text-xs font-black text-slate-800">2) 구매평 스샷</p>
-                                    <p className="flex-1 text-[11px] text-slate-500 leading-relaxed">
+                                    <p className="text-xs font-bold text-slate-800">2) 구매평 스샷</p>
+                                    <p className="flex-1 text-2xs text-slate-500 leading-relaxed">
                                         쇼핑몰에 작성한 구매평 내용이 잘 보이도록 캡처해 주세요.
                                     </p>
                                     {purchaseReviewProofUrl ? (
@@ -350,7 +350,7 @@ export default function ReviewSubmitModal({
                                             className="w-full h-24 rounded-lg border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500 hover:border-rose-400 hover:text-rose-500 transition-all bg-white"
                                         >
                                             {isUploading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-                                            <span className="text-[11px] font-bold mt-1">구매평 스샷 업로드</span>
+                                            <span className="text-2xs font-bold mt-1">구매평 스샷 업로드</span>
                                         </button>
                                     )}
                                 </div>
@@ -373,9 +373,9 @@ export default function ReviewSubmitModal({
                         </div>
                     ) : !isNaverBlogReview && (
                         <div className="space-y-3">
-                            <Label className="text-sm font-black text-slate-700 flex items-center justify-between">
+                            <Label className="text-sm font-bold text-slate-700 flex items-center justify-between">
                                 <span>리뷰 사진/영상 첨부 (최대 5개)</span>
-                                <span className="text-[11px] text-slate-400 font-bold uppercase tracking-wider">{mediaUrls.length} / 5</span>
+                                <span className="text-2xs text-slate-400 font-bold uppercase tracking-wider">{mediaUrls.length} / 5</span>
                             </Label>
 
                             <div className="grid grid-cols-5 gap-2">
@@ -399,7 +399,7 @@ export default function ReviewSubmitModal({
                                         className="aspect-square rounded-lg border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 hover:border-rose-400 hover:text-rose-400 transition-all bg-slate-50/50"
                                     >
                                         {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Upload size={20} />}
-                                        <span className="text-[10px] font-bold mt-1">추가</span>
+                                        <span className="text-2xs font-bold mt-1">추가</span>
                                     </button>
                                 )}
                             </div>
@@ -411,7 +411,7 @@ export default function ReviewSubmitModal({
                                 ref={fileInputRef}
                                 onChange={handleMediaUpload}
                             />
-                            <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                            <p className="text-2xs text-slate-400 font-medium leading-relaxed">
                                 ※ 증빙용 사진 및 영상을 업로드해 주세요. (관리자 확인용)
                             </p>
                         </div>
@@ -419,7 +419,7 @@ export default function ReviewSubmitModal({
 
                     {isPurchaseExperience && (
                         <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                            <Label className="text-sm font-black text-amber-900">리워드 정산 계좌 정보 (필수)</Label>
+                            <Label className="text-sm font-bold text-amber-900">리워드 정산 계좌 정보 (필수)</Label>
                             <p className="rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-xs font-bold leading-relaxed text-amber-800">
                                 구매금액과 구매평 증빙이 정상 확인되면 1~2영업일 내 아래 계좌로 페이백됩니다.
                             </p>
@@ -441,13 +441,13 @@ export default function ReviewSubmitModal({
                                 onChange={(e) => setAccountNumber(e.target.value)}
                                 className="h-11 rounded-xl bg-white border-amber-200"
                             />
-                            <p className="text-[11px] text-amber-800 font-medium">
+                            <p className="text-2xs text-amber-800 font-medium">
                                 입력한 계좌정보는 프로필 정산 정보로 저장됩니다.
                             </p>
                             <button
                                 type="button"
                                 onClick={() => router.push('/profile/edit?tab=payout')}
-                                className="text-[11px] font-bold text-amber-900 underline"
+                                className="text-2xs font-bold text-amber-900 underline"
                             >
                                 프로필에서 계좌정보 입력/수정하기
                             </button>

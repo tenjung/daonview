@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import CommunitySubPageLayout from '@/components/community/CommunitySubPageLayout';
 import { motion } from 'framer-motion';
 import { 
@@ -110,7 +112,7 @@ export default function GuidePage() {
                             >
                                 <div className="flex justify-between items-start mb-3">
                                     <div className="sm:hidden">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${step.color.replace('bg-', 'text-')} ${step.color.replace('500', '50')} border ${step.color.replace('bg-', 'border-').replace('500', '100')}`}>
+                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-2xs font-bold ${step.color.replace('bg-', 'text-')} ${step.color.replace('500', '50')} border ${step.color.replace('bg-', 'border-').replace('500', '100')}`}>
                                             STEP {step.num}
                                         </span>
                                     </div>
@@ -141,9 +143,9 @@ export default function GuidePage() {
                 <p className="text-slate-500 mb-8 text-sm md:text-base">다온뷰는 인플루언서님의 밝은 앞날을 항상 응원합니다.</p>
                 
                 <div className="flex flex-col sm:flex-row justify-center gap-3 relative z-10">
-                    <Link href="/community/faq" className="inline-flex items-center justify-center px-8 py-3.5 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 text-sm gap-2 group">
+                    <Link href="/community/faq" className={cn(buttonVariants({ size: 'lg' }), 'group px-8 bg-slate-900 hover:bg-slate-800')}>
                         자주 묻는 질문
-                        <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                        <ArrowRight className="transition-transform group-hover:translate-x-1" />
                     </Link>
                     <Link href="/contact" className="inline-flex items-center justify-center px-8 py-3.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm shadow-sm">
                         실시간 1:1 문의

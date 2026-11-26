@@ -623,7 +623,7 @@ export default function CampaignRegistrationContainer() {
                 {/* 헤더 및 스텝 내비게이션 */}
                 <header className="mb-10 pt-4">
                     <div className="text-center mb-10">
-                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
                             {isEdit ? '캠페인 정보 수정' : '새 캠페인 등록'}
                         </h1>
                     </div>

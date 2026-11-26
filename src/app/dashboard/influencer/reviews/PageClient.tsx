@@ -374,7 +374,7 @@ export default function InfluencerReviewsPage({ initialViewer, initialReviews }:
                                     }`}
                                 >
                                     {tab.label}
-                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                                    <span className={`rounded-full px-1.5 py-0.5 text-2xs leading-none ${
                                         activeTab === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
                                     }`}>
                                         {tab.count}

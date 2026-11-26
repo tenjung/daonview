@@ -56,7 +56,7 @@ export default function CampaignPlatformBadges({
       <Tooltip key={key}>
         <TooltipTrigger asChild>{node}</TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs bg-slate-900 text-white border-slate-700">
-          <div className="space-y-1 text-[11px] leading-relaxed">
+          <div className="space-y-1 text-2xs leading-relaxed">
             <p>캠페인 유형: {typeLabel}</p>
             <p>참여 조건: {conditionLabel}</p>
           </div>

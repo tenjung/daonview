@@ -60,7 +60,7 @@ export default function CommunityClient({ initialPosts, initialType }: Community
             <div className="container max-w-[1400px] mx-auto px-4">
                 {/* 페이지 헤더 */}
                 <div className="mb-8">
-                    <h1 className="text-3xl font-black text-gray-900 mb-2">커뮤니티</h1>
+                    <h1 className="text-3xl font-bold text-gray-900 mb-2">커뮤니티</h1>
                     <p className="text-gray-500">다양한 주제로 소통하고 정보를 공유하세요</p>
                 </div>
 

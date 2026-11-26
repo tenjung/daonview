@@ -650,7 +650,7 @@ function ProfileEditContent() {
                                         key={tab.id}
                                         type="button"
                                         onClick={() => handleTabChange(tab.id)}
-                                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2.5 text-[13px] font-bold transition-colors whitespace-nowrap ${
+                                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-2.5 text-body-sm font-bold transition-colors whitespace-nowrap ${
                                             active
                                                 ? 'border-gray-900 bg-gray-900 text-white'
                                                 : 'border-gray-200 bg-white text-gray-500'
@@ -776,12 +776,12 @@ function ProfileEditContent() {
                                                     </Label>
                                                     <div className="flex gap-2">
                                                         {providers.includes('kakao') && (
-                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-[#FEE500] text-[#3c1e1e] border border-[#FEE500] shadow-sm">
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-2xs font-bold bg-[#FEE500] text-[#3c1e1e] border border-[#FEE500] shadow-sm">
                                                                 카카오 연동됨
                                                             </span>
                                                         )}
                                                         {providers.includes('google') && (
-                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-gray-700 border border-gray-200 shadow-sm">
+                                                            <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-2xs font-bold bg-white text-gray-700 border border-gray-200 shadow-sm">
                                                                 Google 연동됨
                                                             </span>
                                                         )}
@@ -896,22 +896,22 @@ function ProfileEditContent() {
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between ml-1">
-                                                        <span className="text-[10px] font-black text-emerald-600 uppercase">Naver Blog</span>
+                                                        <span className="text-2xs font-bold text-emerald-600 uppercase">Naver Blog</span>
                                                         {socialSaveStatus.blog === 'saving' && (
-                                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="text-2xs font-bold text-slate-400 flex items-center gap-1">
                                                                 <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-emerald-500 rounded-full animate-spin"></span>
                                                                 저장 중...
                                                             </span>
                                                         )}
                                                         {socialSaveStatus.blog === 'saved' && (
-                                                            <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <span className="text-2xs font-bold text-emerald-600 flex items-center gap-1 animate-in fade-in zoom-in">
                                                                 <Check size={12} />
                                                                 저장됨
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center border-[2.5px] border-emerald-500/10 rounded-xl focus-within:border-emerald-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                                             {BLOG_PREFIX}
                                                         </div>
                                                         <Input
@@ -924,22 +924,22 @@ function ProfileEditContent() {
                                                 </div>
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between ml-1">
-                                                        <span className="text-[10px] font-black text-pink-600 uppercase">Instagram</span>
+                                                        <span className="text-2xs font-bold text-pink-600 uppercase">Instagram</span>
                                                         {socialSaveStatus.instagram === 'saving' && (
-                                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="text-2xs font-bold text-slate-400 flex items-center gap-1">
                                                                 <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-pink-500 rounded-full animate-spin"></span>
                                                                 저장 중...
                                                             </span>
                                                         )}
                                                         {socialSaveStatus.instagram === 'saved' && (
-                                                            <span className="text-[10px] font-bold text-pink-600 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <span className="text-2xs font-bold text-pink-600 flex items-center gap-1 animate-in fade-in zoom-in">
                                                                 <Check size={12} />
                                                                 저장됨
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center border-[2.5px] border-pink-500/10 rounded-xl focus-within:border-pink-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                                             {INSTA_PREFIX}
                                                         </div>
                                                         <Input
@@ -953,22 +953,22 @@ function ProfileEditContent() {
 
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between ml-1">
-                                                        <span className="text-[10px] font-black text-red-600 uppercase">YouTube</span>
+                                                        <span className="text-2xs font-bold text-red-600 uppercase">YouTube</span>
                                                         {socialSaveStatus.youtube === 'saving' && (
-                                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="text-2xs font-bold text-slate-400 flex items-center gap-1">
                                                                 <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-red-500 rounded-full animate-spin"></span>
                                                                 저장 중...
                                                             </span>
                                                         )}
                                                         {socialSaveStatus.youtube === 'saved' && (
-                                                            <span className="text-[10px] font-bold text-red-600 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <span className="text-2xs font-bold text-red-600 flex items-center gap-1 animate-in fade-in zoom-in">
                                                                 <Check size={12} />
                                                                 저장됨
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center border-[2.5px] border-red-500/10 rounded-xl focus-within:border-red-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                                             {YOUTUBE_PREFIX}
                                                         </div>
                                                         <Input
@@ -982,22 +982,22 @@ function ProfileEditContent() {
 
                                                 <div className="space-y-2">
                                                     <div className="flex items-center justify-between ml-1">
-                                                        <span className="text-[10px] font-black text-slate-900 uppercase">TikTok</span>
+                                                        <span className="text-2xs font-bold text-slate-900 uppercase">TikTok</span>
                                                         {socialSaveStatus.tiktok === 'saving' && (
-                                                            <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                                            <span className="text-2xs font-bold text-slate-400 flex items-center gap-1">
                                                                 <span className="inline-block w-3 h-3 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin"></span>
                                                                 저장 중...
                                                             </span>
                                                         )}
                                                         {socialSaveStatus.tiktok === 'saved' && (
-                                                            <span className="text-[10px] font-bold text-slate-900 flex items-center gap-1 animate-in fade-in zoom-in">
+                                                            <span className="text-2xs font-bold text-slate-900 flex items-center gap-1 animate-in fade-in zoom-in">
                                                                 <Check size={12} />
                                                                 저장됨
                                                             </span>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center border-[2.5px] border-slate-900/10 rounded-xl focus-within:border-slate-900/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                                        <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                                             {TIKTOK_PREFIX}
                                                         </div>
                                                         <Input
@@ -1016,7 +1016,8 @@ function ProfileEditContent() {
                                 <Button
                                     type="submit"
                                     disabled={saving}
-                                    className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                                    size="lg"
+                                    className="w-full"
                                 >
                                     {saving ? '저장 중...' : '기본 정보 업데이트하기'}
                                 </Button>
@@ -1126,13 +1127,13 @@ function ProfileEditContent() {
                                                     <ShieldCheck size={18} />
                                                 </div>
                                                 <div>
-                                                    <h3 className="text-[15px] font-black text-gray-900">본인 실명확인</h3>
-                                                    <p className="text-[10px] text-gray-500 font-medium leading-tight">정확한 정산 및 본인 확인을 위해 휴대폰 본인인증이 필요합니다.</p>
+                                                    <h3 className="text-sm font-bold text-gray-900">본인 실명확인</h3>
+                                                    <p className="text-2xs text-gray-500 font-medium leading-tight">정확한 정산 및 본인 확인을 위해 휴대폰 본인인증이 필요합니다.</p>
                                                 </div>
                                             </div>
                                             <Button 
                                                 variant="outline"
-                                                className="w-full md:w-auto px-4 md:px-6 h-9 md:h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-[13px] md:text-xs"
+                                                className="w-full md:w-auto px-4 md:px-6 h-9 md:h-10 rounded-xl border-blue-200 text-blue-600 font-bold hover:bg-blue-50 hover:text-blue-700 transition-all text-body-sm md:text-xs"
                                                 onClick={() => toast.info('본인인증 모듈 준비 중입니다.')}
                                             >
                                                 <ShieldCheck size={13} className="mr-1.5" />
@@ -1157,7 +1158,7 @@ function ProfileEditContent() {
                                                 <Button
                                                     onClick={() => setIsEditingPayout(true)}
                                                     variant="outline"
-                                                    className="h-8 md:h-10 rounded-xl border-slate-200 hover:bg-slate-50 gap-1.5 md:gap-2 px-3 md:px-4 text-[12px] md:text-sm font-bold"
+                                                    className="h-8 md:h-10 rounded-xl border-slate-200 hover:bg-slate-50 gap-1.5 md:gap-2 px-3 md:px-4 text-xs md:text-sm font-bold"
                                                 >
                                                     <Edit2 size={12} />
                                                     정보 수정
@@ -1174,16 +1175,16 @@ function ProfileEditContent() {
                                                         <div className="bg-slate-50 p-4 md:p-6 rounded-2xl space-y-4 border border-slate-100">
                                                             <div className="flex items-center justify-between border-b border-slate-200/60 pb-3 mb-1">
                                                                 <div className="space-y-1">
-                                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">수령인 성함</div>
+                                                                    <div className="text-2xs font-bold text-slate-400 uppercase tracking-widest">수령인 성함</div>
                                                                     <div className="text-sm font-bold text-slate-800">{formData.name || '미등록'}</div>
                                                                 </div>
                                                                 <div className="text-right space-y-1">
-                                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">연락처</div>
+                                                                    <div className="text-2xs font-bold text-slate-400 uppercase tracking-widest">연락처</div>
                                                                     <div className="text-sm font-medium text-slate-600">{formData.phone_number || '미등록'}</div>
                                                                 </div>
                                                             </div>
                                                             <div>
-                                                                <div className="text-xs font-black text-rose-500 bg-rose-50 inline-block px-2 py-0.5 rounded-md mb-2">
+                                                                <div className="text-xs font-bold text-rose-500 bg-rose-50 inline-block px-2 py-0.5 rounded-md mb-2">
                                                                     {formData.zip_code || '-'}
                                                                 </div>
                                                                 <div className="text-base font-bold text-slate-800 break-keep leading-snug">
@@ -1207,16 +1208,16 @@ function ProfileEditContent() {
                                                                 <CreditCard size={80} className={`${selectedBank?.text || 'text-white'}`} />
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <div className={`w-8 h-8 rounded-full ${selectedBank?.text ? 'bg-black/10' : 'bg-white/20'} flex items-center justify-center text-[10px] ${selectedBank?.text || 'text-white'} font-black`}>
+                                                                <div className={`w-8 h-8 rounded-full ${selectedBank?.text ? 'bg-black/10' : 'bg-white/20'} flex items-center justify-center text-2xs ${selectedBank?.text || 'text-white'} font-bold`}>
                                                                     {formData.bank_name?.substring(0, 2)}
                                                                 </div>
                                                                 <span className={`font-bold ${selectedBank?.text || 'text-white'}`}>{formData.bank_name}</span>
                                                             </div>
-                                                            <div className={`text-2xl font-black ${selectedBank?.text || 'text-white'} tracking-widest py-2`}>
+                                                            <div className={`text-2xl font-bold ${selectedBank?.text || 'text-white'} tracking-widest py-2`}>
                                                                 {maskAccountNumber(formData.account_number)}
                                                             </div>
                                                             <div className="flex justify-between items-end">
-                                                                <div className={`${selectedBank?.text ? 'text-black/40' : 'text-white/50'} text-[10px] uppercase font-bold tracking-widest`}>Account Holder</div>
+                                                                <div className={`${selectedBank?.text ? 'text-black/40' : 'text-white/50'} text-2xs uppercase font-bold tracking-widest`}>Account Holder</div>
                                                                 <div className={`font-bold ${selectedBank?.text || 'text-white'}`}>{formData.account_holder}</div>
                                                             </div>
                                                         </div>
@@ -1228,8 +1229,8 @@ function ProfileEditContent() {
                                                         <Settings className="w-3 h-3 text-amber-600" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-[11px] font-bold text-amber-800">보안 안내</p>
-                                                        <p className="text-[10px] text-amber-700/80 leading-relaxed mt-0.5">
+                                                        <p className="text-2xs font-bold text-amber-800">보안 안내</p>
+                                                        <p className="text-2xs text-amber-700/80 leading-relaxed mt-0.5">
                                                             중요한 금융 정보는 마스킹 처리되어 안전하게 보호됩니다. 수정이 필요하실 때만 수정 버튼을 눌러주세요.
                                                         </p>
                                                     </div>
@@ -1252,18 +1253,18 @@ function ProfileEditContent() {
                                                             type="button"
                                                             variant="ghost"
                                                             onClick={() => setIsEditingPayout(false)}
-                                                            className="h-8 px-2.5 text-[12px] text-slate-400 hover:text-white"
+                                                            className="h-8 px-2.5 text-xs text-slate-400 hover:text-white"
                                                         >
                                                             취소
                                                         </Button>
                                                     )}
                                                 </div>
-                                                <CardDescription className="text-[11px] md:text-sm text-slate-400">배송형 캠페인 참여를 위한 기본 배송지입니다.</CardDescription>
+                                                <CardDescription className="text-2xs md:text-sm text-slate-400">배송형 캠페인 참여를 위한 기본 배송지입니다.</CardDescription>
                                             </CardHeader>
                                             <CardContent className="p-4 md:p-8 space-y-6">
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 pb-6 border-b border-slate-100">
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="payout_name" className="text-[13px] md:text-sm font-bold text-slate-700">수령인 성함</Label>
+                                                        <Label htmlFor="payout_name" className="text-body-sm md:text-sm font-bold text-slate-700">수령인 성함</Label>
                                                         <Input
                                                             id="payout_name"
                                                             placeholder="수령인 실명 입력"
@@ -1273,7 +1274,7 @@ function ProfileEditContent() {
                                                         />
                                                     </div>
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="payout_phone" className="text-[13px] md:text-sm font-bold text-slate-700">수령인 연락처</Label>
+                                                        <Label htmlFor="payout_phone" className="text-body-sm md:text-sm font-bold text-slate-700">수령인 연락처</Label>
                                                         <Input
                                                             id="payout_phone"
                                                             type="tel"
@@ -1287,18 +1288,18 @@ function ProfileEditContent() {
                                                 </div>
 
                                                 <div className="grid gap-2 pt-2">
-                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700">우편번호</Label>
+                                                    <Label className="text-body-sm md:text-sm font-bold text-slate-700">우편번호</Label>
                                                     <div className="flex gap-2">
                                                         <Input
                                                             value={formData.zip_code}
                                                             readOnly
                                                             placeholder="우편번호"
-                                                            className="bg-slate-100 border-none h-11 md:h-12 rounded-xl w-28 md:w-32 text-[15px] md:text-base"
+                                                            className="bg-slate-100 border-none h-11 md:h-12 rounded-xl w-28 md:w-32 text-sm md:text-base"
                                                         />
                                                         <Button
                                                             type="button"
                                                             onClick={() => setShowAddressSearch(!showAddressSearch)}
-                                                            className="h-11 md:h-12 px-4 md:px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1.5 md:gap-2 text-[13px] md:text-sm font-bold"
+                                                            className="h-11 md:h-12 px-4 md:px-6 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1.5 md:gap-2 text-body-sm md:text-sm font-bold"
                                                         >
                                                             <Search size={15} />
                                                             주소 검색
@@ -1313,7 +1314,7 @@ function ProfileEditContent() {
                                                 )}
 
                                                 <div className="grid gap-2">
-                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700">기본 주소</Label>
+                                                    <Label className="text-body-sm md:text-sm font-bold text-slate-700">기본 주소</Label>
                                                     <Input
                                                         value={formData.address_base}
                                                         readOnly
@@ -1323,7 +1324,7 @@ function ProfileEditContent() {
                                                 </div>
 
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="address_detail" className="text-[13px] md:text-sm font-bold text-slate-700">상세 주소</Label>
+                                                    <Label htmlFor="address_detail" className="text-body-sm md:text-sm font-bold text-slate-700">상세 주소</Label>
                                                     <Input
                                                         id="address_detail"
                                                         value={formData.address_detail}
@@ -1341,11 +1342,11 @@ function ProfileEditContent() {
                                                     <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-rose-500" />
                                                     정산 계좌 정보 수정
                                                 </CardTitle>
-                                                <CardDescription className="text-[11px] md:text-sm text-slate-400">캠페인 보상금(용역비)이 지급되는 계좌입니다.</CardDescription>
+                                                <CardDescription className="text-2xs md:text-sm text-slate-400">캠페인 보상금(용역비)이 지급되는 계좌입니다.</CardDescription>
                                             </CardHeader>
                                             <CardContent className="p-4 md:p-8 space-y-6 md:space-y-8">
                                                 <div className="grid gap-4">
-                                                    <Label className="text-[13px] md:text-sm font-bold text-slate-700 flex items-center gap-2">
+                                                    <Label className="text-body-sm md:text-sm font-bold text-slate-700 flex items-center gap-2">
                                                         은행 선택
                                                     </Label>
                                                     <div className="grid grid-cols-3 sm:grid-cols-6 md:grid-cols-7 gap-2">
@@ -1364,10 +1365,10 @@ function ProfileEditContent() {
                                                                         <Check size={9} className="text-white" />
                                                                     </div>
                                                                 )}
-                                                                <div className={`w-6 h-6 ${bank.color} rounded-full flex items-center justify-center ${bank.text} text-[7px] font-black shadow-sm group-hover:scale-110 transition-transform`}>
+                                                                <div className={`w-6 h-6 ${bank.color} rounded-full flex items-center justify-center ${bank.text} text-2xs font-bold shadow-sm group-hover:scale-110 transition-transform`}>
                                                                     {bank.name.substring(0, 2)}
                                                                 </div>
-                                                                <div className="text-[9px] font-bold text-slate-700 leading-tight">{bank.name}</div>
+                                                                <div className="text-2xs font-bold text-slate-700 leading-tight">{bank.name}</div>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -1375,7 +1376,7 @@ function ProfileEditContent() {
 
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="account_holder" className="text-[13px] md:text-sm font-bold text-slate-700">예금주</Label>
+                                                        <Label htmlFor="account_holder" className="text-body-sm md:text-sm font-bold text-slate-700">예금주</Label>
                                                         <Input
                                                             id="account_holder"
                                                             value={formData.account_holder}
@@ -1385,14 +1386,14 @@ function ProfileEditContent() {
                                                         />
                                                         <div className="flex items-start gap-1.5 px-1">
                                                             <div className="mt-1 w-1 h-1 rounded-full bg-rose-500 shrink-0" />
-                                                            <p className="text-[10px] leading-relaxed text-rose-500 font-medium">
+                                                            <p className="text-2xs leading-relaxed text-rose-500 font-medium">
                                                                 예금주 성함이 계좌 정보와 일치하지 않을 경우, 리워드 정산이 반려되거나 지급이 지연될 수 있습니다.
                                                             </p>
                                                         </div>
                                                     </div>
 
                                                     <div className="grid gap-2">
-                                                        <Label htmlFor="account_number" className="text-[13px] md:text-sm font-bold text-slate-700">계좌번호</Label>
+                                                        <Label htmlFor="account_number" className="text-body-sm md:text-sm font-bold text-slate-700">계좌번호</Label>
                                                         <Input
                                                             id="account_number"
                                                             value={formData.account_number}
@@ -1400,7 +1401,7 @@ function ProfileEditContent() {
                                                             placeholder="- 없이 숫자만 입력"
                                                             className="bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-rose-500 h-12 rounded-xl"
                                                         />
-                                                        <p className="text-[11px] text-slate-400 ml-1">계좌번호는 리워드 정산을 위해서만 사용되며 안전하게 보호됩니다.</p>
+                                                        <p className="text-2xs text-slate-400 ml-1">계좌번호는 리워드 정산을 위해서만 사용되며 안전하게 보호됩니다.</p>
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -1409,7 +1410,8 @@ function ProfileEditContent() {
                                         <Button
                                             type="submit"
                                             disabled={saving}
-                                            className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-500 hover:bg-rose-600 transition-all rounded-2xl shadow-xl shadow-rose-500/20 active:scale-[0.98]"
+                                            size="lg"
+                                    className="w-full"
                                         >
                                             {saving ? '저장 중...' : '배송 및 정산 정보 저장하기'}
                                         </Button>
@@ -1442,7 +1444,7 @@ function ProfileEditContent() {
                                                             : 'border-slate-200 hover:bg-slate-50'
                                                         }`}
                                                 >
-                                                    <div className="text-sm font-black text-slate-900">크리에이터형</div>
+                                                    <div className="text-sm font-bold text-slate-900">크리에이터형</div>
                                                     <p className="mt-1 text-xs text-slate-500">SNS 채널 기반 캠페인에 참여합니다.</p>
                                                 </button>
                                                 <button
@@ -1454,7 +1456,7 @@ function ProfileEditContent() {
                                                             : 'border-slate-200 hover:bg-slate-50'
                                                         }`}
                                                 >
-                                                    <div className="text-sm font-black text-slate-900">리뷰어형 (구매평)</div>
+                                                    <div className="text-sm font-bold text-slate-900">리뷰어형 (구매평)</div>
                                                     <p className="mt-1 text-xs text-slate-500">SNS 채널 없이 구매평 중심으로 참여합니다.</p>
                                                 </button>
                                             </div>
@@ -1512,7 +1514,7 @@ function ProfileEditContent() {
                                                         }`}
                                                 >
                                                     <div className="text-xl md:text-2xl mb-1 group-hover:scale-110 transition-transform">{region.emoji}</div>
-                                                    <div className="text-[11px] font-bold">{region.name}</div>
+                                                    <div className="text-2xs font-bold">{region.name}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -1552,7 +1554,7 @@ function ProfileEditContent() {
                                                     )}
                                                     <div className="text-3xl md:text-4xl mb-2 group-hover:scale-110 transition-transform">{category.icon}</div>
                                                     <div className="text-sm font-bold text-slate-800 mb-1">{category.name}</div>
-                                                    <div className="text-[10px] text-slate-400 line-clamp-1">{category.desc}</div>
+                                                    <div className="text-2xs text-slate-400 line-clamp-1">{category.desc}</div>
                                                 </button>
                                             ))}
                                         </div>
@@ -1563,7 +1565,8 @@ function ProfileEditContent() {
                                 <Button
                                     onClick={handleInterestsSubmit}
                                     disabled={saving}
-                                    className="w-full py-6 md:py-8 text-base md:text-lg font-bold bg-rose-600 hover:bg-rose-700 transition-all rounded-2xl shadow-xl shadow-rose-600/20 active:scale-[0.98]"
+                                    size="lg"
+                                    className="w-full"
                                 >
                                     {saving ? '관심사 저장 중...' : '맞춤 캠페인 관심 정보 업데이트하기'}
                                 </Button>

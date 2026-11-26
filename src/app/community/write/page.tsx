@@ -416,7 +416,7 @@ function WritePageContent() {
                             isDirtyRef.current = true;
                         }}
                         placeholder="제목을 입력하세요"
-                        className="w-full text-3xl md:text-4xl font-black border-none p-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-200 transition-colors text-gray-900 mb-6"
+                        className="w-full text-3xl md:text-4xl font-bold border-none p-0 focus:outline-none focus:ring-0 bg-transparent placeholder-gray-200 transition-colors text-gray-900 mb-6"
                     />
                 </div>
 

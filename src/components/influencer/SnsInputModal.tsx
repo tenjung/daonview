@@ -117,10 +117,10 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <span className="text-[10px] font-black text-emerald-600 uppercase">Naver Blog</span>
+                                <span className="text-2xs font-bold text-emerald-600 uppercase">Naver Blog</span>
                             </div>
                             <div className="flex items-center border-[2.5px] border-emerald-500/10 rounded-xl focus-within:border-emerald-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                     {BLOG_PREFIX}
                                 </div>
                                 <Input
@@ -133,10 +133,10 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
                         </div>
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <span className="text-[10px] font-black text-pink-600 uppercase">Instagram</span>
+                                <span className="text-2xs font-bold text-pink-600 uppercase">Instagram</span>
                             </div>
                             <div className="flex items-center border-[2.5px] border-pink-500/10 rounded-xl focus-within:border-pink-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                     {INSTA_PREFIX}
                                 </div>
                                 <Input
@@ -150,10 +150,10 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <span className="text-[10px] font-black text-red-600 uppercase">YouTube</span>
+                                <span className="text-2xs font-bold text-red-600 uppercase">YouTube</span>
                             </div>
                             <div className="flex items-center border-[2.5px] border-red-500/10 rounded-xl focus-within:border-red-500/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                     {YOUTUBE_PREFIX}
                                 </div>
                                 <Input
@@ -167,10 +167,10 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between ml-1">
-                                <span className="text-[10px] font-black text-slate-900 uppercase">TikTok</span>
+                                <span className="text-2xs font-bold text-slate-900 uppercase">TikTok</span>
                             </div>
                             <div className="flex items-center border-[2.5px] border-slate-900/10 rounded-xl focus-within:border-slate-900/50 focus-within:bg-white transition-all overflow-hidden bg-slate-50/50">
-                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-[11px] font-bold border-r border-slate-200 shrink-0 text-slate-500">
+                                <div className="bg-slate-100 px-3 h-12 flex items-center justify-center text-2xs font-bold border-r border-slate-200 shrink-0 text-slate-500">
                                     {TIKTOK_PREFIX}
                                 </div>
                                 <Input
@@ -187,7 +187,7 @@ export default function SnsInputModal({ isOpen, onClose, user, profile, onSucces
                         <Button type="button" variant="outline" onClick={onClose} disabled={saving} className="h-12 w-24 rounded-xl font-bold">
                             취소
                         </Button>
-                        <Button type="submit" disabled={saving} className="h-12 px-8 rounded-xl font-bold bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200">
+                        <Button type="submit" disabled={saving} size="lg" className="px-8">
                             {saving ? '저장 중...' : '저장하기'}
                         </Button>
                     </div>

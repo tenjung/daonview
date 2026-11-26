@@ -184,7 +184,7 @@ export default function CampaignShare({
             </DialogTrigger>
             <DialogContent className="max-w-[420px] rounded-[32px] p-8 md:p-10 border-none shadow-2xl flex flex-col items-center overflow-hidden">
                 <DialogHeader className="mb-8 w-full">
-                    <DialogTitle className="text-xl font-black text-slate-900 text-center w-full">공유하기</DialogTitle>
+                    <DialogTitle className="text-xl font-bold text-slate-900 text-center w-full">공유하기</DialogTitle>
                 </DialogHeader>
 
                 <div className="grid grid-cols-3 gap-6 mb-10 w-full justify-items-center">
@@ -198,7 +198,7 @@ export default function CampaignShare({
                                 <path fillRule="evenodd" clipRule="evenodd" d="M12 3C6.477 3 2 6.358 2 10.5C2 13.213 3.784 15.619 6.559 16.969C6.425 17.437 5.986 18.969 5.867 19.395C5.748 19.822 6.189 20.065 6.536 19.832C8.653 18.423 11.237 16.712 11.954 16.223L12 16.22C12.33 16.233 12.663 16.24 13 16.24C18.523 16.24 23 12.882 23 8.74C23 4.602 18.523 3 12 3Z" fill="#391B1B" />
                             </svg>
                         </div>
-                        <span className="text-[13px] font-bold text-slate-600">카카오톡</span>
+                        <span className="text-body-sm font-bold text-slate-600">카카오톡</span>
                     </button>
 
                     {/* 네이버 블로그 */}
@@ -207,9 +207,9 @@ export default function CampaignShare({
                         className="flex flex-col items-center gap-3 group transition-all w-full"
                     >
                         <div className="w-16 h-16 rounded-2xl bg-[#03C75A] flex items-center justify-center shadow-lg shadow-green-100/50 group-hover:scale-105 active:scale-95 transition-transform">
-                            <span className="text-white font-black text-xl">N</span>
+                            <span className="text-white font-bold text-xl">N</span>
                         </div>
-                        <span className="text-[13px] font-bold text-slate-600">블로그</span>
+                        <span className="text-body-sm font-bold text-slate-600">블로그</span>
                     </button>
 
                     {/* 인스타그램 */}
@@ -220,12 +220,12 @@ export default function CampaignShare({
                         <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7] flex items-center justify-center shadow-lg shadow-purple-100/50 group-hover:scale-105 active:scale-95 transition-transform">
                             <InstagramIcon className="w-8 h-8 text-white" />
                         </div>
-                        <span className="text-[13px] font-bold text-slate-600">인스타그램</span>
+                        <span className="text-body-sm font-bold text-slate-600">인스타그램</span>
                     </button>
                 </div>
 
                 <div className="space-y-4 pt-8 border-t border-slate-100 w-full flex flex-col items-center">
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest text-center">링크 복사</p>
+                    <p className="text-2xs font-bold text-slate-400 uppercase tracking-widest text-center">링크 복사</p>
                     <div className="flex gap-3 w-full items-center justify-center">
                         <div className="flex-1 bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm text-slate-500 font-medium truncate text-center">
                             {shareUrl}
@@ -247,7 +247,8 @@ export default function CampaignShare({
                     <Button 
                         onClick={handleCopyBrief}
                         variant="secondary" 
-                        className="w-full h-14 rounded-2xl bg-indigo-50 text-indigo-600 font-black hover:bg-indigo-100 border-none flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95"
+                        size="lg"
+                        className="w-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
                     >
                         <Copy className="w-4 h-4" />
                         모집 안내글 복사

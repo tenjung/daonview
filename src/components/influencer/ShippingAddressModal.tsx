@@ -267,7 +267,8 @@ export default function ShippingAddressModal({
                         <Button
                             type="submit"
                             disabled={saving}
-                            className="h-12 rounded-xl bg-rose-500 text-sm font-semibold text-white hover:bg-rose-600 sm:min-w-56"
+                            size="lg"
+                            className="sm:min-w-56"
                         >
                             {saving ? (
                                 <>

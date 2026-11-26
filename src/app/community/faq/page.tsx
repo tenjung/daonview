@@ -78,7 +78,7 @@ export default function FAQPage() {
                             className="w-full text-left py-4 flex justify-between items-center group transition-all"
                         >
                             <div className="flex items-center gap-3">
-                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[10px] font-bold text-primary">Q</span>
+                                <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-2xs font-bold text-primary">Q</span>
                                 <span className={`text-sm md:text-base font-medium transition-colors ${openIndex === idx ? 'text-primary' : 'text-slate-700 group-hover:text-slate-900'}`}>
                                     {item.q}
                                 </span>
@@ -92,7 +92,7 @@ export default function FAQPage() {
                         <div
                             className={`overflow-hidden transition-all duration-300 ease-in-out ${openIndex === idx ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}
                         >
-                            <div className="pb-5 pl-9 pr-4 text-slate-500 text-xs md:text-[13.5px] leading-relaxed whitespace-pre-wrap">
+                            <div className="pb-5 pl-9 pr-4 text-slate-500 text-xs md:text-body-sm leading-relaxed whitespace-pre-wrap">
                                 {item.a}
                             </div>
                         </div>
@@ -102,8 +102,8 @@ export default function FAQPage() {
 
             <div className="mt-6 bg-slate-50/50 rounded-2xl p-6 text-center border border-slate-100 mb-10">
                 <h3 className="text-sm md:text-base font-bold text-slate-900 mb-1">원하는 답변을 찾지 못하셨나요?</h3>
-                <p className="text-slate-500 text-[11px] md:text-xs mb-4">1:1 문의를 남겨주시면 담당자가 빠르고 친절하게 답변해 드립니다.</p>
-                <a href="/contact" className="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-[11px] md:text-xs font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm gap-2">
+                <p className="text-slate-500 text-2xs md:text-xs mb-4">1:1 문의를 남겨주시면 담당자가 빠르고 친절하게 답변해 드립니다.</p>
+                <a href="/contact" className="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-slate-200 text-slate-700 text-2xs md:text-xs font-bold rounded-xl hover:bg-slate-50 transition-all shadow-sm gap-2">
                     1:1 문의하러 가기
                     <ChevronDown size={14} className="-rotate-90" />
                 </a>

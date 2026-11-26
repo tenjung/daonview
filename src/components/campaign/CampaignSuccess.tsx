@@ -77,7 +77,7 @@ export default function CampaignSuccess({
                     <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-6 animate-bounce-[duration:2s]">
                         <CheckCircle2 className="text-green-600" size={44} />
                     </div>
-                    <h1 className="text-3xl font-black text-gray-900 mb-3 tracking-tight">
+                    <h1 className="text-3xl font-bold text-gray-900 mb-3 tracking-tight">
                         {isTransfer
                             ? (isEdit ? '수정 접수 완료 (입금 대기)' : '접수 완료 (입금 대기)')
                             : (isEdit ? '캠페인 수정 완료!' : '캠페인 등록 완료!')}
@@ -111,9 +111,9 @@ export default function CampaignSuccess({
                                     <div className="flex items-center justify-between mb-8 pb-4 border-b border-amber-200/50 border-dashed">
                                         <div className="flex items-center gap-2">
                                             <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                                            <span className="text-sm font-black text-amber-900 tracking-wider">입금 확인증 (DRAFT)</span>
+                                            <span className="text-sm font-bold text-amber-900 tracking-wider">입금 확인증 (DRAFT)</span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-amber-500 bg-white px-2 py-0.5 rounded-full border border-amber-100 shadow-sm">
+                                        <span className="text-2xs font-bold text-amber-500 bg-white px-2 py-0.5 rounded-full border border-amber-100 shadow-sm">
                                             {new Date().toLocaleDateString()}
                                         </span>
                                     </div>
@@ -122,7 +122,7 @@ export default function CampaignSuccess({
                                     <div className="space-y-2 mb-8">
                                         <div className="flex justify-between items-start">
                                             <span className="text-xs font-bold text-amber-700/60 uppercase">Campaign</span>
-                                            <span className="text-sm font-black text-gray-900 text-right max-w-[200px] leading-tight">
+                                            <span className="text-sm font-bold text-gray-900 text-right max-w-[200px] leading-tight">
                                                 {campaignTitle}
                                             </span>
                                         </div>
@@ -135,7 +135,7 @@ export default function CampaignSuccess({
                                     {/* 중앙: 입금 금액 */}
                                     <div className="py-6 mb-8 text-center bg-white rounded-2xl border border-amber-100 shadow-sm">
                                         <p className="text-xs font-bold text-amber-600 mb-1">총 입금하실 금액</p>
-                                        <h2 className="text-3xl font-black text-gray-900 tracking-tighter">
+                                        <h2 className="text-3xl font-bold text-gray-900 tracking-tighter">
                                             {totalAmount.toLocaleString()}<span className="text-xl ml-0.5">원</span>
                                         </h2>
                                     </div>
@@ -144,14 +144,14 @@ export default function CampaignSuccess({
                                     <div className="space-y-4">
                                         <div className="flex flex-col gap-2">
                                             <div className="flex items-center gap-2">
-                                                <span className="px-2 py-1 bg-[#FEE500] text-[#3C1E1E] rounded font-black text-[10px] shadow-sm">카카오뱅크</span>
-                                                <span className="text-lg font-black text-gray-900 tracking-tight">3333-36-4120453</span>
+                                                <span className="px-2 py-1 bg-[#FEE500] text-[#3C1E1E] rounded font-bold text-2xs shadow-sm">카카오뱅크</span>
+                                                <span className="text-lg font-bold text-gray-900 tracking-tight">3333-36-4120453</span>
                                                 <button 
                                                     onClick={() => {
                                                         navigator.clipboard.writeText('3333-36-4120453');
                                                         alert('계좌번호가 복사되었습니다.');
                                                     }}
-                                                    className="ml-auto text-[10px] font-black text-amber-700 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded transition-colors"
+                                                    className="ml-auto text-2xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded transition-colors"
                                                 >
                                                     복사
                                                 </button>
@@ -164,7 +164,7 @@ export default function CampaignSuccess({
                                         </div>
 
                                         <div className="bg-amber-100/50 p-3 rounded-xl border border-amber-200/50">
-                                            <p className="text-[11px] text-amber-800 leading-relaxed font-medium">
+                                            <p className="text-2xs text-amber-800 leading-relaxed font-medium">
                                                 * 입금자명은 브랜드명 혹은 성함으로 부탁드립니다.<br/>
                                                 * 입금 확인 후 캠페인 검토가 시작됩니다.
                                             </p>
@@ -197,7 +197,7 @@ export default function CampaignSuccess({
                             </div>
                             <div className="flex justify-between items-center text-sm pt-4 border-t border-gray-200">
                                 <span className="text-gray-700 font-bold text-base">총 결제 금액</span>
-                                <span className="text-blue-600 font-black text-xl">
+                                <span className="text-blue-600 font-bold text-xl">
                                     {totalAmount.toLocaleString()}원
                                 </span>
                             </div>
@@ -206,7 +206,7 @@ export default function CampaignSuccess({
 
                     {/* 타임라인 섹션 */}
                     <div className="space-y-6">
-                        <h3 className="text-sm font-black text-gray-400 uppercase tracking-widest text-center">
+                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest text-center">
                             향후 진행 단계
                         </h3>
                         <div className="relative">

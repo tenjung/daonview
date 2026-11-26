@@ -245,7 +245,7 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                         <Truck size={12} />
                         <span>{app.tracking_company}</span>
                     </div>
-                    <div className="text-slate-400 font-mono text-[10px]">{app.tracking_number}</div>
+                    <div className="text-slate-400 font-mono text-2xs">{app.tracking_number}</div>
                 </div>
             ) : (
                 <span className="text-slate-300 text-xs">발송 대기</span>
@@ -416,7 +416,7 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                                     }`}
                                 >
                                     {tab.label}
-                                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${
+                                    <span className={`rounded-full px-1.5 py-0.5 text-2xs leading-none ${
                                         filter === tab.value ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
                                     }`}>
                                         {tab.count}
@@ -450,7 +450,7 @@ export default function MyCampaignsPage({ initialViewer, initialApplications = [
                                         `}
                                     >
                                         {tab.label}
-                                        <Badge className={`${tab.color} text-white border-none text-[10px] px-1.5 py-0`}>
+                                        <Badge className={`${tab.color} text-white border-none text-2xs px-1.5 py-0`}>
                                             {tab.count}
                                         </Badge>
                                     </TabsTrigger>

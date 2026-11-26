@@ -95,7 +95,7 @@ export default function ReviewsClient({ reviewsPromise }: ReviewsClientProps) {
                         <Sparkles className="w-4 h-4" />
                         인플루언서 베스트 리뷰
                     </div>
-                    <h1 className="text-4xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 tracking-tight">
                         생생한 체험 후기
                     </h1>
                     <p className="text-lg text-gray-500 max-w-2xl mx-auto">
@@ -291,7 +291,7 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
                                     </div>
                                 )}
                                 {review.is_featured && (
-                                    <div className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs font-black shadow-lg">
+                                    <div className="absolute top-4 left-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white px-4 py-1.5 rounded-full text-xs font-bold shadow-lg">
                                         ⭐ BEST
                                     </div>
                                 )}
@@ -301,7 +301,7 @@ function ShuffledReviewsGrid({ reviewsPromise, filter }: { reviewsPromise: Promi
                             </div>
                             <div className="p-6">
                                 <div className="flex items-center gap-3 mb-4">
-                                    <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-xl font-black shadow-md`}>
+                                    <div className={`w-10 h-10 rounded-full ${config.color} flex items-center justify-center text-white text-xl font-bold shadow-md`}>
                                         {config.icon}
                                     </div>
                                     <div className="flex-1 min-w-0">

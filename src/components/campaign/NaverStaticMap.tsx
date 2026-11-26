@@ -102,7 +102,7 @@ export default function NaverStaticMap({
 
             {/* Naver Map 표시 */}
             <div className="absolute bottom-4 left-4 pointer-events-none select-none">
-                <span className="text-[9px] font-black italic text-slate-300 uppercase tracking-tighter bg-white/80 px-2 py-1 rounded">
+                <span className="text-2xs font-bold italic text-slate-300 uppercase tracking-tighter bg-white/80 px-2 py-1 rounded">
                     Naver Map
                 </span>
             </div>

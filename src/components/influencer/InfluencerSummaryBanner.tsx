@@ -42,8 +42,8 @@ export function InfluencerSummaryBanner({
             } ${columns > 3 && index < items.length - (items.length % 2 === 0 ? 2 : 1) ? '' : ''}`}
           >
             <div className={`mx-auto mb-2 h-1.5 w-8 rounded-full ${toneClassMap[item.tone || 'neutral']}`} />
-            <p className="text-[12px] font-bold leading-tight text-gray-500">{item.label}</p>
-            <p className="mt-2 text-3xl font-black leading-none text-gray-950">{item.value}</p>
+            <p className="text-xs font-bold leading-tight text-gray-500">{item.label}</p>
+            <p className="mt-2 text-3xl font-bold leading-none text-gray-950">{item.value}</p>
           </div>
         ))}
       </div>
