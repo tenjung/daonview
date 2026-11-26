@@ -65,7 +65,7 @@ export default function AnalysisForm({ onAnalyze, isLoading, quota }: AnalysisFo
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
-          className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 mb-6 leading-[1.15]"
+          className="text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-gray-900 mb-6 leading-[1.15]"
         >
           내 포스팅, 상위 노출될 수 있을까?<br/>
           <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">

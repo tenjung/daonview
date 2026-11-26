@@ -23,6 +23,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitPartnerInquiry } from '@/app/actions/inquiry';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 28 },
@@ -140,7 +142,7 @@ export default function PartnerBusinessPageClient() {
             오픈마켓 경쟁에서 벗어나
           </motion.div>
 
-          <motion.h1 variants={fadeUp} className="max-w-5xl text-4xl font-black leading-tight tracking-tight md:text-6xl lg:text-7xl">
+          <motion.h1 variants={fadeUp} className="max-w-5xl text-4xl font-bold leading-tight tracking-tight md:text-6xl lg:text-7xl">
             브랜드 성장을
             <br />
             한 채널에 묶어두지 마세요.
@@ -155,7 +157,7 @@ export default function PartnerBusinessPageClient() {
             {heroChannels.map((channel) => (
               <div
                 key={channel.label}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white/90 backdrop-blur"
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-bold text-white/90 backdrop-blur"
               >
                 <channel.icon className="h-4 w-4 text-rose-200" />
                 {channel.label}
@@ -173,14 +175,14 @@ export default function PartnerBusinessPageClient() {
             <button
               type="button"
               onClick={scrollToForm}
-              className="inline-flex min-h-[56px] items-center justify-center gap-2 rounded-2xl bg-white px-8 py-4 text-lg font-black text-slate-950 shadow-2xl shadow-rose-950/30 transition hover:-translate-y-0.5 hover:bg-rose-50"
+              className={cn(buttonVariants({ size: 'lg' }), 'gap-2 bg-white px-8 text-slate-950 hover:bg-rose-50')}
             >
               입점 가능성 확인 <ArrowRight className="h-5 w-5" />
             </button>
             <button
               type="button"
               onClick={scrollToForm}
-              className="inline-flex min-h-[56px] items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-lg font-black text-white backdrop-blur transition hover:bg-white/15"
+              className={cn(buttonVariants({ size: 'lg' }), 'gap-2 border border-white/25 bg-white/10 px-8 text-white backdrop-blur hover:bg-white/15')}
             >
               무료 판로 진단
             </button>
@@ -191,8 +193,8 @@ export default function PartnerBusinessPageClient() {
       <section className="bg-white px-4 py-20 text-slate-950">
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 max-w-3xl">
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.3em] text-rose-500">Problem</p>
-            <h2 className="text-3xl font-black leading-tight md:text-5xl">문제는 광고가 아니라 구조입니다.</h2>
+            <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-rose-500">Problem</p>
+            <h2 className="text-3xl font-bold leading-tight md:text-5xl">문제는 광고가 아니라 구조입니다.</h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
             {[
@@ -201,7 +203,7 @@ export default function PartnerBusinessPageClient() {
               ['채널 확장 부재', '신뢰 콘텐츠 없이 판매 채널만 늘리면 입점 이후 전환이 약해집니다.'],
             ].map(([title, desc]) => (
               <div key={title} className="rounded-3xl border border-slate-200 bg-slate-50 p-8">
-                <h3 className="mb-4 text-2xl font-black">{title}</h3>
+                <h3 className="mb-4 text-2xl font-bold">{title}</h3>
                 <p className="text-base font-semibold leading-relaxed text-slate-600">{desc}</p>
               </div>
             ))}
@@ -212,8 +214,8 @@ export default function PartnerBusinessPageClient() {
       <section className="bg-slate-950 px-4 py-24">
         <div className="mx-auto max-w-6xl">
           <div className="mb-14 text-center">
-            <p className="mb-4 text-sm font-black uppercase tracking-[0.3em] text-rose-300">Daon Structure</p>
-            <h2 className="text-3xl font-black leading-tight md:text-5xl">
+            <p className="mb-4 text-sm font-bold uppercase tracking-[0.3em] text-rose-300">Daon Structure</p>
+            <h2 className="text-3xl font-bold leading-tight md:text-5xl">
               다온뷰 체험단으로 브랜드 신뢰를 만들고,
               <br />
               그 신뢰를 판로 확장으로 연결합니다.
@@ -225,12 +227,12 @@ export default function PartnerBusinessPageClient() {
                 <div className="mb-8 flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-500/15 text-rose-200">
                   <item.icon className="h-7 w-7" />
                 </div>
-                <h3 className="mb-4 text-2xl font-black">{item.title}</h3>
+                <h3 className="mb-4 text-2xl font-bold">{item.title}</h3>
                 <p className="text-base font-semibold leading-relaxed text-slate-400">{item.desc}</p>
               </div>
             ))}
           </div>
-          <div className="mt-10 rounded-[2rem] border border-rose-300/20 bg-gradient-to-r from-rose-500/10 via-fuchsia-500/10 to-indigo-500/10 p-6 text-center text-xl font-black text-rose-50 md:text-2xl">
+          <div className="mt-10 rounded-[2rem] border border-rose-300/20 bg-gradient-to-r from-rose-500/10 via-fuchsia-500/10 to-indigo-500/10 p-6 text-center text-xl font-bold text-rose-50 md:text-2xl">
             제품 → 체험단·기사 → 신뢰 → 유통 → 매출
           </div>
         </div>
@@ -240,7 +242,7 @@ export default function PartnerBusinessPageClient() {
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-5 lg:grid-cols-2">
             <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-8">
-              <h3 className="mb-6 text-2xl font-black text-slate-500">기존 광고 방식</h3>
+              <h3 className="mb-6 text-2xl font-bold text-slate-500">기존 광고 방식</h3>
               {['광고로 시작', '광고비 반복 투입', '지속성 낮음'].map((item) => (
                 <div key={item} className="mb-3 rounded-2xl bg-white px-5 py-4 font-bold text-slate-500">
                   {item}
@@ -248,9 +250,9 @@ export default function PartnerBusinessPageClient() {
               ))}
             </div>
             <div className="rounded-[2rem] border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-8">
-              <h3 className="mb-6 text-2xl font-black text-rose-600">다온 구조</h3>
+              <h3 className="mb-6 text-2xl font-bold text-rose-600">다온 구조</h3>
               {['체험단·기사 콘텐츠로 시작', '신뢰 기반 채널 확장', '지속성 높은 판로 구조'].map((item) => (
-                <div key={item} className="mb-3 rounded-2xl bg-white px-5 py-4 font-black text-slate-950 shadow-sm">
+                <div key={item} className="mb-3 rounded-2xl bg-white px-5 py-4 font-bold text-slate-950 shadow-sm">
                   {item}
                 </div>
               ))}
@@ -263,8 +265,8 @@ export default function PartnerBusinessPageClient() {
         <div className="mx-auto max-w-6xl">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
-              <p className="mb-4 text-sm font-black uppercase tracking-[0.3em] text-amber-200">Execution</p>
-              <h2 className="text-3xl font-black leading-tight md:text-5xl">기획전, 공동구매, 기사 송출, 데이터 기반 최적화까지 실행합니다.</h2>
+              <p className="mb-4 text-sm font-bold uppercase tracking-[0.3em] text-amber-200">Execution</p>
+              <h2 className="text-3xl font-bold leading-tight md:text-5xl">기획전, 공동구매, 기사 송출, 데이터 기반 최적화까지 실행합니다.</h2>
               <p className="mt-6 text-lg font-semibold leading-relaxed text-slate-400">
                 제품이 팔리는 구조는 한 번의 광고 집행이 아니라, 체험단 콘텐츠와 기사 송출을 유통 채널에 연결하는 운영력에서 나옵니다.
               </p>
@@ -273,7 +275,7 @@ export default function PartnerBusinessPageClient() {
               {executionItems.map((item) => (
                 <div key={item.title} className="rounded-[2rem] border border-white/10 bg-white/[0.05] p-6">
                   <item.icon className="mb-8 h-8 w-8 text-rose-300" />
-                  <h3 className="text-xl font-black">{item.title}</h3>
+                  <h3 className="text-xl font-bold">{item.title}</h3>
                 </div>
               ))}
             </div>
@@ -282,8 +284,8 @@ export default function PartnerBusinessPageClient() {
           <div className="mt-16 grid gap-3 md:grid-cols-5">
             {processSteps.map((step, index) => (
               <div key={step} className="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
-                <span className="text-sm font-black text-rose-300">0{index + 1}</span>
-                <p className="mt-4 text-lg font-black">{step}</p>
+                <span className="text-sm font-bold text-rose-300">0{index + 1}</span>
+                <p className="mt-4 text-lg font-bold">{step}</p>
               </div>
             ))}
           </div>
@@ -293,13 +295,13 @@ export default function PartnerBusinessPageClient() {
       <section id="partner-inquiry-form" className="bg-white px-4 py-24 text-slate-950 scroll-mt-24">
         <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
           <div>
-            <p className="mb-4 text-sm font-black uppercase tracking-[0.3em] text-rose-500">Contact</p>
-            <h2 className="text-3xl font-black leading-tight md:text-5xl">입점 가능성 확인하기</h2>
+            <p className="mb-4 text-sm font-bold uppercase tracking-[0.3em] text-rose-500">Contact</p>
+            <h2 className="text-3xl font-bold leading-tight md:text-5xl">입점 가능성 확인하기</h2>
             <p className="mt-6 text-lg font-semibold leading-relaxed text-slate-600">
               제품소개서를 업로드하면 체험단 실행 가능성과 적합한 판로를 함께 검토합니다.
             </p>
             <div className="mt-9 rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
-              <p className="mb-4 text-sm font-black text-slate-900">희망 채널 안내</p>
+              <p className="mb-4 text-sm font-bold text-slate-900">희망 채널 안내</p>
               <div className="space-y-3">
                 {channelGuideItems.map((item) => (
                   <div key={item.label} className="flex gap-3 rounded-2xl bg-white p-4">
@@ -307,7 +309,7 @@ export default function PartnerBusinessPageClient() {
                       <item.icon className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="text-sm font-black text-slate-950">{item.label}</p>
+                      <p className="text-sm font-bold text-slate-950">{item.label}</p>
                       <p className="mt-1 text-sm font-semibold leading-relaxed text-slate-600">{item.desc}</p>
                     </div>
                   </div>
@@ -318,8 +320,8 @@ export default function PartnerBusinessPageClient() {
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-black text-rose-700">전체 추천</p>
-                      <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-black text-white">추천</span>
+                      <p className="text-sm font-bold text-rose-700">전체 추천</p>
+                      <span className="rounded-full bg-rose-500 px-2 py-0.5 text-2xs font-bold text-white">추천</span>
                     </div>
                     <p className="mt-1 text-sm font-bold leading-relaxed text-rose-700">
                       제품 자료를 보고 우선순위 채널을 함께 제안드립니다.
@@ -333,33 +335,33 @@ export default function PartnerBusinessPageClient() {
           <form onSubmit={handleSubmit} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-200/60">
             <div>
               <div className="mb-3 flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-black text-rose-500">1</span>
-                <p className="text-base font-black text-slate-950">기본 정보</p>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-bold text-rose-500">1</span>
+                <p className="text-base font-bold text-slate-950">기본 정보</p>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-600">회사명</span>
+                  <span className="mb-1.5 block text-xs font-bold text-slate-600">회사명</span>
                   <div className="relative">
                     <Building2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input name="companyName" required placeholder="예: 다온컴퍼니" className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 font-semibold outline-none transition placeholder:font-medium placeholder:text-slate-300 focus:border-rose-400" />
                   </div>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-600">담당자명</span>
+                  <span className="mb-1.5 block text-xs font-bold text-slate-600">담당자명</span>
                   <div className="relative">
                     <UserCircle2 className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input name="managerName" required placeholder="예: 김다온" className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 font-semibold outline-none transition placeholder:font-medium placeholder:text-slate-300 focus:border-rose-400" />
                   </div>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-600">연락처</span>
+                  <span className="mb-1.5 block text-xs font-bold text-slate-600">연락처</span>
                   <div className="relative">
                     <Phone className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input name="phone" type="tel" required placeholder="예: 010-0000-0000" className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 font-semibold outline-none transition placeholder:font-medium placeholder:text-slate-300 focus:border-rose-400" />
                   </div>
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-xs font-black text-slate-600">이메일 <span className="text-slate-400">(선택)</span></span>
+                  <span className="mb-1.5 block text-xs font-bold text-slate-600">이메일 <span className="text-slate-400">(선택)</span></span>
                   <div className="relative">
                     <FileText className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                     <input name="email" type="email" placeholder="예: partner@daonview.com" className="h-11 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 font-semibold outline-none transition placeholder:font-medium placeholder:text-slate-300 focus:border-rose-400" />
@@ -370,8 +372,8 @@ export default function PartnerBusinessPageClient() {
 
             <div className="mt-4 border-t border-slate-100 pt-4">
               <div className="mb-3 flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-black text-rose-500">2</span>
-                <p className="text-base font-black text-slate-950">희망 채널 <span className="ml-2 text-xs font-bold text-slate-400">전체 추천 가능</span></p>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-bold text-rose-500">2</span>
+                <p className="text-base font-bold text-slate-950">희망 채널 <span className="ml-2 text-xs font-bold text-slate-400">전체 추천 가능</span></p>
               </div>
               <div className="grid gap-2 sm:grid-cols-3">
                 {channels.map((channel) => (
@@ -379,7 +381,7 @@ export default function PartnerBusinessPageClient() {
                     key={channel.value}
                     type="button"
                     onClick={() => toggleChannel(channel.value)}
-                    className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm font-black transition ${selectedChannels.includes(channel.value)
+                    className={`flex items-center gap-2 rounded-2xl border px-3 py-2 text-left text-sm font-bold transition ${selectedChannels.includes(channel.value)
                       ? 'border-rose-400 bg-rose-50 text-rose-600'
                       : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
                       }`}
@@ -393,17 +395,17 @@ export default function PartnerBusinessPageClient() {
 
             <div className="mt-4 border-t border-slate-100 pt-4">
               <div className="mb-3 flex items-center gap-3">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-black text-rose-500">3</span>
-                <p className="text-base font-black text-slate-950">제품 정보</p>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rose-50 text-xs font-bold text-rose-500">3</span>
+                <p className="text-base font-bold text-slate-950">제품 정보</p>
               </div>
               <label className="block">
-                <span className="mb-1.5 block text-xs font-black text-slate-600">제품 설명</span>
+                <span className="mb-1.5 block text-xs font-bold text-slate-600">제품 설명</span>
                 <textarea name="message" required rows={3} placeholder="예: 스킨케어 3종 / 자사몰 판매 중 / 폐쇄몰·공동구매 희망" className="w-full resize-none rounded-2xl border border-slate-200 bg-white p-2.5 font-semibold outline-none transition placeholder:font-medium placeholder:text-slate-300 focus:border-rose-400" />
               </label>
 
               <label className="mt-3 flex cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center transition hover:border-rose-300 hover:bg-rose-50/40">
                 <UploadCloud className="mb-2 h-8 w-8 text-rose-500" />
-                <span className="max-w-full truncate text-base font-black text-slate-900">{fileName || '제품소개서 업로드'}</span>
+                <span className="max-w-full truncate text-base font-bold text-slate-900">{fileName || '제품소개서 업로드'}</span>
                 <span className="mt-1 text-xs font-semibold text-slate-500">필수 · PDF/PPT/JPG/PNG · 최대 10MB</span>
                 <input
                   name="productFile"
@@ -419,7 +421,7 @@ export default function PartnerBusinessPageClient() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="mt-4 flex min-h-[52px] w-full items-center justify-center rounded-2xl bg-rose-500 px-8 py-3.5 text-lg font-black text-white shadow-xl shadow-rose-200 transition hover:bg-rose-600 disabled:bg-rose-300"
+              className={cn(buttonVariants({ size: 'lg' }), 'mt-4 w-full bg-rose-500 px-8 text-white hover:bg-rose-600 disabled:bg-rose-300')}
             >
               {isSubmitting ? '접수 중...' : '입점 가능성 확인하기'}
             </button>

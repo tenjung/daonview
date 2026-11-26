@@ -136,7 +136,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                     <span className="text-sm font-bold text-white group-hover:text-primary transition-colors">
                       {profile?.nickname || user.email?.split('@')[0]}님
                     </span>
-                    <span className="text-[10px] text-white/50 font-medium">{getRoleLabel()}</span>
+                    <span className="text-2xs text-white/50 font-medium">{getRoleLabel()}</span>
                   </div>
                   <Avatar
                     src={profile?.avatar_url}
@@ -169,7 +169,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                 {profile?.role === 'ADMIN' && (
                   <>
                     <DropdownMenuSeparator className="bg-slate-800" />
-                    <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-slate-500 py-1">System</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-2xs uppercase tracking-wider text-slate-500 py-1">System</DropdownMenuLabel>
                     <DropdownMenuItem asChild className="focus:bg-slate-800 focus:text-white cursor-pointer">
                       <Link href="/dashboard/admin/users" className="flex items-center gap-2 text-violet-400 focus:text-violet-300">
                         <ShieldCheck size={16} />
@@ -241,7 +241,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                   <div className="flex-1 min-w-0">
                     {profile && (
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-primary/20 text-primary">
+                        <span className="px-2 py-0.5 rounded text-2xs font-bold bg-primary/20 text-primary">
                           {getRoleLabel()}
                         </span>
                       </div>
@@ -249,7 +249,7 @@ export default function PartnerNavbar({ initialUser, initialProfile }: PartnerNa
                     <p className="text-sm font-bold text-white truncate">
                       {profile?.nickname || user.email?.split('@')[0]}님
                     </p>
-                    <p className="text-[10px] text-slate-400 truncate tracking-tight">{user.email}</p>
+                    <p className="text-2xs text-slate-400 truncate tracking-tight">{user.email}</p>
                   </div>
                 </>
              ) : (

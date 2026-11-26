@@ -10,7 +10,7 @@ export function PortfolioSection({ portfolio, colorScheme }: PortfolioSectionPro
   return (
     <section className="py-20 bg-gradient-to-b from-white to-gray-50">
       <div className="container px-4">
-        <h2 className="text-4xl md:text-5xl font-black text-center mb-16 tracking-tight">
+        <h2 className="text-4xl md:text-5xl font-bold text-center mb-16 tracking-tight">
           <span 
             className="bg-gradient-to-r bg-clip-text text-transparent"
             style={{

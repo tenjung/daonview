@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { TargetType, LandingPageInput } from '@/types/landingPage';
 import { User, Building2 } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface InputFormProps {
   onGenerate: (input: LandingPageInput) => void;
@@ -278,7 +280,7 @@ export function InputForm({ onGenerate, isGenerating }: InputFormProps) {
       <button
         type="submit"
         disabled={isGenerating}
-        className="w-full py-3 md:py-4 rounded-xl bg-primary text-white font-bold text-base md:text-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        className={cn(buttonVariants({ size: 'lg' }), 'w-full bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100')}
       >
         {isGenerating ? 'AI 생성 중...' : 'AI 랜딩페이지 생성하기'}
       </button>

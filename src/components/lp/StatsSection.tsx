@@ -44,7 +44,7 @@ export function StatsSection({ stats, colorScheme }: StatsSectionProps) {
 
                 {/* 숫자 */}
                 <div 
-                  className="text-5xl font-black mb-3 bg-gradient-to-r bg-clip-text text-transparent"
+                  className="text-5xl font-bold mb-3 bg-gradient-to-r bg-clip-text text-transparent"
                   style={{
                     backgroundImage: `linear-gradient(to right, ${colorScheme.primary}, ${colorScheme.secondary})`,
                   }}

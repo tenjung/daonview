@@ -163,7 +163,7 @@ export default function LandingBuilderPage() {
                 <ArrowLeft size={20} className="md:w-6 md:h-6" />
               </button>
               <div className="min-w-0 flex-1">
-                <h1 className="text-lg md:text-2xl font-black tracking-tight truncate">
+                <h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
                   <span className="bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                     AI 랜딩페이지 빌더
                   </span>
@@ -190,7 +190,7 @@ export default function LandingBuilderPage() {
           <div className="bg-white rounded-2xl shadow-lg p-4 md:p-8 border border-gray-200">
             <div className="mb-6 md:mb-8 text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
-                <span className="text-2xl font-black text-primary">1</span>
+                <span className="text-2xl font-bold text-primary">1</span>
               </div>
               <h2 className="text-xl md:text-2xl font-bold mb-2">정보 입력</h2>
               <p className="text-sm md:text-base text-text-secondary leading-relaxed">

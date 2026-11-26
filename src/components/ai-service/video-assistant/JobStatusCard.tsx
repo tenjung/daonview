@@ -40,10 +40,10 @@ export function JobStatusCard({ job, statusError }: { job: VideoJob | null; stat
     <div className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/50">현재 작업</p>
-          <h3 className="mt-2 text-xl font-black leading-tight text-text-main">{job.title || '제목 없는 쇼츠'}</h3>
+          <p className="text-2xs font-bold uppercase tracking-[0.24em] text-primary/50">현재 작업</p>
+          <h3 className="mt-2 text-xl font-bold leading-tight text-text-main">{job.title || '제목 없는 쇼츠'}</h3>
         </div>
-        <span className={`rounded-full px-3 py-1.5 text-xs font-black ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : job.status === 'FAILED' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>
+        <span className={`rounded-full px-3 py-1.5 text-xs font-bold ${job.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700' : job.status === 'FAILED' ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>
           {statusText}
         </span>
       </div>

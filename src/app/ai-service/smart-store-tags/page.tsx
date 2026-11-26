@@ -301,7 +301,7 @@ export default function SmartStoreTagsPage() {
                 <Tags className="h-6 w-6" />
               </div>
               <div>
-                <h1 className="text-3xl font-black tracking-tight text-slate-950 md:text-4xl">스마트스토어 태그 분석기</h1>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-950 md:text-4xl">스마트스토어 태그 분석기</h1>
                 <p className="mt-2 text-sm font-medium text-slate-600 md:text-base">
                   네이버 쇼핑 상위 40개 상품을 기준으로 태그 후보, 카테고리 적합도, 조합 확장 가능성을 분석합니다.
                 </p>
@@ -352,7 +352,7 @@ export default function SmartStoreTagsPage() {
                               : 'border-white bg-white text-slate-700 hover:border-slate-200'
                           }`}
                         >
-                          <div className="truncate text-sm font-black">{category.categoryPath}</div>
+                          <div className="truncate text-sm font-bold">{category.categoryPath}</div>
                           <div className="mt-1 text-xs font-bold text-slate-500">
                             상위 40개 매칭 {category.matchedItemCount}개 · 신뢰도 {category.confidence}%
                           </div>
@@ -378,7 +378,7 @@ export default function SmartStoreTagsPage() {
                     <Search className="h-4 w-4" />
                   </div>
                   <div>
-                    <div className="text-sm font-black text-slate-900">태그 후보 자동 추출</div>
+                    <div className="text-sm font-bold text-slate-900">태그 후보 자동 추출</div>
                     <p className="mt-1 text-xs font-medium leading-5 text-slate-600">
                       먼저 검색어에 맞는 카테고리를 추천하고, 선택한 카테고리 기준으로 네이버 쇼핑 상위 40개 상품의 후보 태그를 분석합니다.
                     </p>
@@ -408,7 +408,7 @@ export default function SmartStoreTagsPage() {
 
             {priorityTags.length > 0 && (
               <div className="rounded-2xl border border-violet-100 bg-white p-5 shadow-sm">
-                <h2 className="mb-3 text-base font-black text-slate-950">우선 검토 태그</h2>
+                <h2 className="mb-3 text-base font-bold text-slate-950">우선 검토 태그</h2>
                 <div className="flex flex-wrap gap-2">
                   {priorityTags.map((tag) => (
                     <Badge key={tag.tag} className="border-violet-200 bg-violet-50 px-3 py-1 text-violet-700 hover:bg-violet-50">
@@ -423,7 +423,7 @@ export default function SmartStoreTagsPage() {
           <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-col gap-3 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-base font-black text-slate-950">분석 결과</h2>
+                <h2 className="text-base font-bold text-slate-950">분석 결과</h2>
                 <p className="mt-1 text-sm text-slate-500">후보 태그를 엑셀형 테이블로 비교합니다. 조합 키워드는 다운로드 파일에 전체 저장됩니다.</p>
               </div>
               <Button
@@ -458,7 +458,7 @@ export default function SmartStoreTagsPage() {
                         <TableRow key={tag.tag} className="h-12">
                           <TableCell className="align-middle text-center text-xs font-bold text-slate-500">{index + 1}</TableCell>
                           <TableCell className="align-middle">
-                            <div className="max-w-[280px] truncate font-black text-slate-950">{tag.tag}</div>
+                            <div className="max-w-[280px] truncate font-bold text-slate-950">{tag.tag}</div>
                             <div className="text-xs font-bold text-slate-400">{tag.wordCount}단어</div>
                           </TableCell>
                           <TableCell className="align-middle text-center">
@@ -466,7 +466,7 @@ export default function SmartStoreTagsPage() {
                               {GRADE_LABELS[tag.grade]}
                             </Badge>
                           </TableCell>
-                          <TableCell className="align-middle text-center font-black text-slate-950">{tag.selectionScore}</TableCell>
+                          <TableCell className="align-middle text-center font-bold text-slate-950">{tag.selectionScore}</TableCell>
                           <TableCell className="align-middle text-center font-bold text-slate-700">{tag.frequencyScore}</TableCell>
                           <TableCell className="align-middle text-center font-bold text-slate-700">{tag.sourceScore}</TableCell>
                           <TableCell className="align-middle text-center font-bold text-slate-700">{tag.categoryScore}</TableCell>
@@ -508,7 +508,7 @@ function AccessPanel({
       <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-600">
         <Lock className="h-6 w-6" />
       </div>
-      <h1 className="text-2xl font-black text-slate-950">{title}</h1>
+      <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
       <p className="mt-3 text-sm font-medium leading-6 text-slate-600">{description}</p>
       <Button asChild className="mt-6">
         <Link href={actionHref}>{actionLabel}</Link>
@@ -532,7 +532,7 @@ function MetricCard({
         <Icon className="h-5 w-5" />
       </div>
       <p className="text-xs font-bold text-slate-500">{label}</p>
-      <p className="mt-1 text-xl font-black text-slate-950">{value}</p>
+      <p className="mt-1 text-xl font-bold text-slate-950">{value}</p>
     </div>
   );
 }

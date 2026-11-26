@@ -19,7 +19,7 @@ export function ContactSection({ contact, colorScheme, googleFormUrl }: ContactS
     <section className="py-20 bg-white">
       <div className="container px-4">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
             <span 
               className="bg-gradient-to-r bg-clip-text text-transparent"
               style={{
@@ -80,7 +80,7 @@ export function ContactSection({ contact, colorScheme, googleFormUrl }: ContactS
                 href={googleFormUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-full px-8 py-4 text-base font-black text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="inline-flex items-center justify-center rounded-full px-8 py-4 text-base font-bold text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                 style={{ backgroundColor: colorScheme.primary }}
               >
                 구글폼 이동

@@ -30,7 +30,7 @@ export function HeroSection({ hero, colorScheme, googleFormUrl }: HeroSectionPro
       </div>
 
       <div className="container relative z-10 text-center px-4">
-        <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <span 
             className="bg-gradient-to-r bg-clip-text text-transparent"
             style={{

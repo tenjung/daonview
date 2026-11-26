@@ -1,6 +1,8 @@
 "use client";
 
 import { CheckCircle2, AlertCircle, Copy, RefreshCw, Image as ImageIcon, Sparkles } from "lucide-react";
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ResultViewProps {
     stage: number;
@@ -34,13 +36,13 @@ export default function ResultView({
 
                     <div className="flex flex-col md:flex-row items-center justify-between gap-10 relative z-10">
                         <div className="text-center md:text-left space-y-2">
-                            <h3 className="text-3xl font-black text-text-main">SEO 최적화 검사 결과</h3>
+                            <h3 className="text-3xl font-bold text-text-main">SEO 최적화 검사 결과</h3>
                             <p className="text-text-secondary font-medium">네이버 검색 엔진 노출 확률을 분석했습니다.</p>
                         </div>
                         <div className="flex items-center gap-10">
                             <div className="text-center">
-                                <div className="text-6xl font-black text-primary mb-2">{seoReport.totalScore}</div>
-                                <div className="text-xs font-black text-gray-400 uppercase tracking-widest">Total SEO Score</div>
+                                <div className="text-6xl font-bold text-primary mb-2">{seoReport.totalScore}</div>
+                                <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total SEO Score</div>
                             </div>
                             <div className="h-20 w-[1px] bg-gray-100 hidden md:block" />
                             <div className="space-y-3">
@@ -48,9 +50,9 @@ export default function ResultView({
                                 <div className="group relative flex items-center justify-end gap-2 text-xs font-bold text-green-600 cursor-help">
                                     <span>{seoReport.wellDone.length}개 항목 최적화 완료</span>
                                     <CheckCircle2 size={16} />
-                                    <div className="absolute right-0 bottom-full mb-3 hidden group-hover:block w-72 p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] text-[11px] leading-relaxed animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="absolute right-0 bottom-full mb-3 hidden group-hover:block w-72 p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] text-2xs leading-relaxed animate-in fade-in slide-in-from-bottom-2">
                                         <div className="space-y-2.5">
-                                            <p className="font-black text-green-600 uppercase tracking-widest border-b border-gray-100 pb-2 mb-2 flex items-center gap-2">
+                                            <p className="font-bold text-green-600 uppercase tracking-widest border-b border-gray-100 pb-2 mb-2 flex items-center gap-2">
                                                 <CheckCircle2 size={12} /> 최적화 성공 리스트
                                             </p>
                                             {seoReport.wellDone.map((item, idx) => (
@@ -67,9 +69,9 @@ export default function ResultView({
                                 <div className="group relative flex items-center justify-end gap-2 text-xs font-bold text-orange-500 cursor-help">
                                     <span>{seoReport.issues.length}개 개선 제안</span>
                                     <AlertCircle size={16} />
-                                    <div className="absolute right-0 bottom-full mb-3 hidden group-hover:block w-72 p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] text-[11px] leading-relaxed animate-in fade-in slide-in-from-bottom-2">
+                                    <div className="absolute right-0 bottom-full mb-3 hidden group-hover:block w-72 p-5 bg-white border border-gray-100 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] z-[100] text-2xs leading-relaxed animate-in fade-in slide-in-from-bottom-2">
                                         <div className="space-y-2.5">
-                                            <p className="font-black text-orange-500 uppercase tracking-widest border-b border-gray-100 pb-2 mb-2 flex items-center gap-2">
+                                            <p className="font-bold text-orange-500 uppercase tracking-widest border-b border-gray-100 pb-2 mb-2 flex items-center gap-2">
                                                 <AlertCircle size={12} /> 개선이 필요한 항목
                                             </p>
                                             {seoReport.issues.map((item, idx) => (
@@ -96,7 +98,7 @@ export default function ResultView({
                             <div className="w-3 h-3 rounded-full bg-amber-400" />
                             <div className="w-3 h-3 rounded-full bg-emerald-400" />
                         </div>
-                        <span className="text-sm font-black text-gray-400 uppercase tracking-widest ml-4">Blog Post Preview</span>
+                        <span className="text-sm font-bold text-gray-400 uppercase tracking-widest ml-4">Blog Post Preview</span>
                     </div>
                     <div className="flex gap-3">
                         <button
@@ -115,11 +117,11 @@ export default function ResultView({
                                     handleGenerate();
                                 }
                             }}
-                            className="px-5 py-2.5 bg-white border-2 border-primary/20 text-primary hover:bg-primary/5 rounded-[1.25rem] font-black text-sm flex items-center gap-2 transition-all shadow-sm"
+                            className="px-5 py-2.5 bg-white border-2 border-primary/20 text-primary hover:bg-primary/5 rounded-[1.25rem] font-bold text-sm flex items-center gap-2 transition-all shadow-sm"
                         >
                             <RefreshCw size={18} /> 원고 재생성
                         </button>
-                        <button onClick={copyToClipboard} className="px-8 py-3.5 bg-primary text-white rounded-[1.25rem] font-black text-sm flex items-center gap-2 shadow-xl shadow-primary/20 hover:scale-105 transition-all">
+                        <button onClick={copyToClipboard} className={cn(buttonVariants({ size: 'lg' }), 'px-8 bg-primary text-white gap-2')}>
                             <Copy size={18} /> 원고 전체 복사
                         </button>
                     </div>
@@ -127,7 +129,7 @@ export default function ResultView({
 
                 <div className="p-12 md:p-20">
                     <div className="mb-16 pb-16 border-b-2 border-gray-50 text-center">
-                        <p className="text-xs font-black text-indigo-500 uppercase tracking-[0.3em] mb-6">Meta Description</p>
+                        <p className="text-xs font-bold text-indigo-500 uppercase tracking-[0.3em] mb-6">Meta Description</p>
                         <p className="text-xl font-bold text-text-secondary leading-relaxed italic max-w-2xl mx-auto">"{metaDescription}"</p>
                     </div>
 
@@ -135,8 +137,8 @@ export default function ResultView({
                         {(() => {
                             let photoIndex = 0;
                             return generatedContent.split('\n').map((line, i) => {
-                                if (line.startsWith('# ')) return <h1 key={i} className="text-4xl md:text-5xl font-black mb-12 text-gray-900 leading-tight">{line.replace('# ', '')}</h1>;
-                                if (line.startsWith('## ')) return <h2 key={i} className="text-2xl font-black mt-16 mb-8 text-primary flex items-center gap-4"><div className="w-2 h-8 bg-primary rounded-full" /> {line.replace('## ', '')}</h2>;
+                                if (line.startsWith('# ')) return <h1 key={i} className="text-4xl md:text-5xl font-bold mb-12 text-gray-900 leading-tight">{line.replace('# ', '')}</h1>;
+                                if (line.startsWith('## ')) return <h2 key={i} className="text-2xl font-bold mt-16 mb-8 text-primary flex items-center gap-4"><div className="w-2 h-8 bg-primary rounded-full" /> {line.replace('## ', '')}</h2>;
 
                                 if (line.includes('[사진')) {
                                     // [사진N: 설명] 또는 [사진: 설명] 형태 추출
@@ -162,7 +164,7 @@ export default function ResultView({
                                             </div>
                                             <div className="flex flex-col items-center gap-1 opacity-60">
                                                 <p className="text-sm font-medium text-gray-500 italic">{photoLabel}</p>
-                                                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Image Placement {currentPhotoIndex + 1}</p>
+                                                <p className="text-2xs font-bold text-gray-300 uppercase tracking-widest">Image Placement {currentPhotoIndex + 1}</p>
                                             </div>
                                         </div>
                                     ) : (
@@ -170,7 +172,7 @@ export default function ResultView({
                                             <ImageIcon size={40} className="group-hover:scale-110 transition-transform" />
                                             <div className="text-center">
                                                 <p className="text-base font-bold text-gray-500">{photoLabel}</p>
-                                                <p className="text-[11px] font-medium text-gray-400 mt-1">이 위치에 삽입될 사진을 업로드해 주세요.</p>
+                                                <p className="text-2xs font-medium text-gray-400 mt-1">이 위치에 삽입될 사진을 업로드해 주세요.</p>
                                             </div>
                                         </div>
                                     );
@@ -183,7 +185,7 @@ export default function ResultView({
                                     const parts = text.split(/(\*\*.*?\*\*)/g);
                                     return parts.map((part, index) => {
                                         if (part.startsWith('**') && part.endsWith('**')) {
-                                            return <strong key={index} className="font-black text-gray-900">{part.slice(2, -2)}</strong>;
+                                            return <strong key={index} className="font-bold text-gray-900">{part.slice(2, -2)}</strong>;
                                         }
                                         return part;
                                     });

@@ -57,7 +57,7 @@ export function MediaUploader({ files, onChange, accept, label, helperText, maxF
               <X size={14} />
             </button>
             <div className="p-2">
-              <p className="truncate text-[11px] font-bold text-slate-600">{file.name}</p>
+              <p className="truncate text-2xs font-bold text-slate-600">{file.name}</p>
             </div>
           </div>
         ))}
@@ -75,7 +75,7 @@ export function MediaUploader({ files, onChange, accept, label, helperText, maxF
         )}
       </div>
       <input ref={inputRef} type="file" accept={accept} multiple className="hidden" onChange={handleAdd} />
-      <p className="text-[11px] leading-relaxed text-text-secondary">{helperText}</p>
+      <p className="text-2xs leading-relaxed text-text-secondary">{helperText}</p>
     </div>
   );
 }

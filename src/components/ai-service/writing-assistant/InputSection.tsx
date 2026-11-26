@@ -81,9 +81,9 @@ export default function InputSection({
     return (
         <section className={`bg-white border rounded-[2.5rem] p-10 shadow-sm transition-all duration-500 ${stage > 1 ? 'opacity-60 pointer-events-none' : 'border-primary/20 shadow-primary/5'}`}>
             <div className="flex items-center gap-4 mb-10">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-lg transition-all ${stage >= 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-gray-100 text-gray-400'}`}>01</div>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-bold text-2xl shadow-lg transition-all ${stage >= 0 ? 'bg-primary text-white shadow-primary/20' : 'bg-gray-100 text-gray-400'}`}>01</div>
                 <div>
-                    <h2 className="text-2xl font-black text-text-main">포스팅 작성 설정</h2>
+                    <h2 className="text-2xl font-bold text-text-main">포스팅 작성 설정</h2>
                     <p className="text-sm text-text-secondary">어떤 주제로 글을 쓰실지 알려주세요.</p>
                 </div>
             </div>
@@ -132,7 +132,7 @@ export default function InputSection({
                             <button
                                 onClick={handleVerifyPlace}
                                 disabled={!storeName || isVerifying}
-                                className="mt-1 text-[11px] font-bold text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
+                                className="mt-1 text-2xs font-bold text-primary flex items-center gap-1 hover:underline disabled:opacity-50"
                             >
                                 <MapPin size={12} /> 네이버 플레이스 정보 불러오기 {isVerifying && "..."}
                             </button>
@@ -164,7 +164,7 @@ export default function InputSection({
                                 </div>
                                 <h3 className="text-lg font-bold text-indigo-900">네이버 플레이스 연동 정보</h3>
                             </div>
-                            <div className="px-3 py-1 bg-white border border-indigo-100 rounded-full text-[10px] font-black text-indigo-500 flex items-center gap-1.5">
+                            <div className="px-3 py-1 bg-white border border-indigo-100 rounded-full text-2xs font-bold text-indigo-500 flex items-center gap-1.5">
                                 <div className="w-1 h-1 rounded-full bg-indigo-500 animate-pulse" /> LIVE
                             </div>
                         </div>
@@ -173,15 +173,15 @@ export default function InputSection({
                             {/* 검색 결과 리스트 표시 */}
                             {!verifiedInfo && placeList.length > 1 && (
                                 <div className="bg-white p-5 rounded-2xl border border-indigo-50 space-y-3 max-h-[250px] overflow-y-auto">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">검색된 매장 목록 (선택해 주세요)</span>
+                                    <span className="text-2xs font-bold text-gray-400 uppercase tracking-wider block mb-1">검색된 매장 목록 (선택해 주세요)</span>
                                     {placeList.map((place, idx) => (
                                         <button
                                             key={idx}
                                             onClick={() => handleSelectPlace(place)}
                                             className="w-full text-left p-3 rounded-xl border border-gray-100 hover:border-primary hover:bg-primary/5 transition-all group"
                                         >
-                                            <p className="text-sm font-black text-gray-700 group-hover:text-primary">{place.name}</p>
-                                            <p className="text-[11px] text-gray-400 mt-0.5">{place.address}</p>
+                                            <p className="text-sm font-bold text-gray-700 group-hover:text-primary">{place.name}</p>
+                                            <p className="text-2xs text-gray-400 mt-0.5">{place.address}</p>
                                         </button>
                                     ))}
                                 </div>
@@ -191,11 +191,11 @@ export default function InputSection({
                             {verifiedInfo && (
                                 <div className="bg-white p-5 rounded-2xl border border-indigo-50 space-y-4">
                                     <div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">검색된 매장명</span>
-                                        <p className="text-base font-black text-indigo-600">{verifiedInfo.name || "정보 없음"}</p>
+                                        <span className="text-2xs font-bold text-gray-400 uppercase tracking-wider block mb-1">검색된 매장명</span>
+                                        <p className="text-base font-bold text-indigo-600">{verifiedInfo.name || "정보 없음"}</p>
                                     </div>
                                     <div>
-                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">매장 주소</span>
+                                        <span className="text-2xs font-bold text-gray-400 uppercase tracking-wider block mb-1">매장 주소</span>
                                         <p className="text-sm font-bold text-gray-700 leading-relaxed">{verifiedInfo.address || "주소를 찾을 수 없음"}</p>
                                     </div>
                                 </div>
@@ -205,7 +205,7 @@ export default function InputSection({
                                 <div className={`py-4 px-5 rounded-2xl flex items-center justify-between border ${verifiedInfo?.isVerified ? 'bg-green-50 border-green-100 text-green-700' : 'bg-rose-50 border-rose-100 text-rose-700'}`}>
                                     <div className="flex items-center gap-2">
                                         {verifiedInfo?.isVerified ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
-                                        <span className="text-sm font-black">{verifiedInfo?.isVerified ? '데이터 검증 성공' : (placeList.length > 1 ? '매장을 선택해주세요' : '연동 데이터 없음')}</span>
+                                        <span className="text-sm font-bold">{verifiedInfo?.isVerified ? '데이터 검증 성공' : (placeList.length > 1 ? '매장을 선택해주세요' : '연동 데이터 없음')}</span>
                                     </div>
                                     <button onClick={handleVerifyPlace} className="p-2 hover:bg-white rounded-lg transition-colors">
                                         <RefreshCw size={14} className={isVerifying ? "animate-spin" : ""} />
@@ -213,7 +213,7 @@ export default function InputSection({
                                 </div>
                                 <div className="p-4 bg-white/50 rounded-2xl border border-indigo-50 flex gap-2">
                                     <AlertCircle size={14} className="text-indigo-300 shrink-0 mt-0.5" />
-                                    <p className="text-[10px] text-indigo-400 leading-relaxed">정보가 올바르지 않으면 매장명을 다시 확인해 주세요.</p>
+                                    <p className="text-2xs text-indigo-400 leading-relaxed">정보가 올바르지 않으면 매장명을 다시 확인해 주세요.</p>
                                 </div>
                             </div>
                         </div>
@@ -225,7 +225,7 @@ export default function InputSection({
                     <div className="flex flex-col h-full">
                         <label className="text-sm font-bold text-gray-700 flex items-center justify-between mb-4 h-5">
                             업체 가이드 (선택)
-                            <span className="text-[10px] text-primary bg-primary/5 px-2 py-0.5 rounded-full font-bold">비전 AI 분석</span>
+                            <span className="text-2xs text-primary bg-primary/5 px-2 py-0.5 rounded-full font-bold">비전 AI 분석</span>
                         </label>
                         <textarea
                             className="w-full px-4 py-3.5 rounded-2xl border border-gray-200 focus:border-primary min-h-[150px] flex-1 outline-none text-sm resize-none"
@@ -267,7 +267,7 @@ export default function InputSection({
                 </div>
 
                 <div className="flex justify-center pt-2">
-                    <p className="text-[11px] text-gray-400 font-medium bg-gray-50/50 px-4 py-1.5 rounded-full border border-gray-100/50">
+                    <p className="text-2xs text-gray-400 font-medium bg-gray-50/50 px-4 py-1.5 rounded-full border border-gray-100/50">
                         * 드래그하여 순서를 변경하거나, 클릭하여 삭제할 수 있습니다.
                     </p>
                 </div>
@@ -276,14 +276,14 @@ export default function InputSection({
                     <div className="flex flex-col items-center gap-3">
                         <button
                             onClick={onAnalyzeClick}
-                            className="w-full py-7 bg-primary text-white rounded-[2rem] font-black text-xl hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 group"
+                            className="w-full py-7 bg-primary text-white rounded-[2rem] font-bold text-xl hover:bg-primary/90 transition-all transform hover:-translate-y-1 shadow-2xl shadow-primary/30 flex items-center justify-center gap-3 group"
                         >
                             <Wand2 size={24} className="group-hover:rotate-12 transition-transform" />
                             AI 분석 및 리포트 생성하기
                             <Sparkles size={20} className="animate-pulse" />
                         </button>
                         {quota && (
-                            <span className={`text-[12px] font-bold px-3 py-1 rounded-md border ${
+                            <span className={`text-xs font-bold px-3 py-1 rounded-md border ${
                                 quota.unlimited
                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                 : quota.count >= quota.limit

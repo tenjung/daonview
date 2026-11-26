@@ -96,7 +96,7 @@ export default function AIServicePageClient() {
             </span>
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
+          <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tighter">
             <span className="inline-block bg-gradient-to-r from-text-main via-primary to-[#d946ef] bg-[length:200%_auto] animate-gradient bg-clip-text text-transparent pb-2">
               AI 인텔리전스 센터
             </span>
@@ -133,11 +133,11 @@ export default function AIServicePageClient() {
 
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 mb-2">
-                    <h2 className="text-lg md:text-2xl leading-tight font-black text-text-main tracking-tight">
+                    <h2 className="text-lg md:text-2xl leading-tight font-bold text-text-main tracking-tight">
                       {service.title}
                     </h2>
                     {service.isComingSoon && (
-                      <span className="w-fit text-[11px] font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                      <span className="w-fit text-2xs font-bold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
                         (개발중)
                       </span>
                     )}

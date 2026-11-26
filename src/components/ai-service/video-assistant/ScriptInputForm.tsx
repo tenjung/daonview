@@ -9,6 +9,8 @@ import { PexelsAssetPicker } from '@/components/ai-service/video-assistant/Pexel
 import { VIDEO_VOICE_OPTIONS } from '@/lib/video/constants';
 import type { AIQuota } from '@/types/aiQuota';
 import type { PexelsSelectedAsset, VideoInputMode, VideoVoiceKey } from '@/types/video-assistant';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface ScriptInputFormProps {
   quota: AIQuota | null;
@@ -68,14 +70,14 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
     <div className="rounded-[2.2rem] border border-slate-200 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] md:p-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/55">쇼츠 스튜디오</p>
-          <h3 className="mt-2 text-3xl font-black leading-tight text-text-main">대본과 소스를 넣고 바로 다음 버전을 만드세요</h3>
+          <p className="text-2xs font-bold uppercase tracking-[0.24em] text-primary/55">쇼츠 스튜디오</p>
+          <h3 className="mt-2 text-3xl font-bold leading-tight text-text-main">대본과 소스를 넣고 바로 다음 버전을 만드세요</h3>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-text-secondary">
             장황한 설정은 빼고, 결과가 잘 나오는 핵심만 남겼습니다. 대본만 넣거나 미디어를 함께 올리면 세로 쇼츠 제작을 바로 시작합니다.
           </p>
         </div>
         {quota && (
-          <span className={`inline-flex rounded-full px-4 py-2 text-xs font-black ${quota.unlimited ? 'bg-emerald-50 text-emerald-700' : isLimitReached ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>
+          <span className={`inline-flex rounded-full px-4 py-2 text-xs font-bold ${quota.unlimited ? 'bg-emerald-50 text-emerald-700' : isLimitReached ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'}`}>
             {quota.unlimited ? '관리자 무제한 이용' : `금일 잔여 ${Math.max(0, quota.limit - quota.count)} / ${quota.limit}`}
           </span>
         )}
@@ -93,7 +95,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
           />
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 px-4 py-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">작동 방식</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">작동 방식</p>
             <p className="mt-2 text-sm font-semibold leading-relaxed text-text-secondary">업로드한 순서를 기준으로 영상이 자동 구성됩니다. 영상 파편이 먼저 들어가고, 부족한 길이는 사진과 기본 배경으로 자연스럽게 이어집니다.</p>
           </div>
         </div>
@@ -110,7 +112,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
             />
           </div>
           <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">음성 선택</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">음성 선택</p>
             <div className="mt-3 space-y-2">
               {VIDEO_VOICE_OPTIONS.map((option) => (
                 <button
@@ -120,7 +122,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
                   className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-bold transition-all ${voice === option.key ? 'border-primary bg-primary/5 text-primary' : 'border-slate-200 bg-white text-text-main hover:border-primary/30'}`}
                 >
                   <span>{option.label}</span>
-                  <span className="text-[11px] font-black text-slate-400">{voice === option.key ? '선택됨' : '선택'}</span>
+                  <span className="text-2xs font-bold text-slate-400">{voice === option.key ? '선택됨' : '선택'}</span>
                 </button>
               ))}
             </div>
@@ -129,8 +131,8 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
         </div>
 
         <div className="rounded-[1.7rem] border border-slate-200 bg-[linear-gradient(180deg,#fff_0%,#fcfcfd_100%)] p-5">
-          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-primary/55">대본 작성 공식</p>
-          <h4 className="mt-2 text-lg font-black text-text-main">어떤 주제든 이 구조로 쓰면 됩니다</h4>
+          <p className="text-2xs font-bold uppercase tracking-[0.22em] text-primary/55">대본 작성 공식</p>
+          <h4 className="mt-2 text-lg font-bold text-text-main">어떤 주제든 이 구조로 쓰면 됩니다</h4>
           <p className="mt-1 text-sm leading-relaxed text-text-secondary">긴 샘플 대본보다, 바로 적용 가능한 작성 규칙만 남겼습니다. 업종이 달라도 구조는 거의 같습니다.</p>
 
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -140,7 +142,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
               '문제 → 해결 순서로 전개',
               '마지막엔 행동 유도 한 줄',
             ].map((tip) => (
-              <div key={tip} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-4 text-sm font-black text-text-main shadow-sm">
+              <div key={tip} className="rounded-[1.2rem] border border-slate-200 bg-white px-4 py-4 text-sm font-bold text-text-main shadow-sm">
                 {tip}
               </div>
             ))}
@@ -157,13 +159,13 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
           <TabsList className="grid h-14 w-full grid-cols-2 rounded-[1.4rem] bg-slate-100 p-1">
             <TabsTrigger
               value="MEDIA_AND_SCRIPT"
-              className="h-full w-full rounded-[1rem] border border-transparent text-base font-black text-slate-500 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-text-main data-[state=active]:shadow-sm"
+              className="h-full w-full rounded-[1rem] border border-transparent text-base font-bold text-slate-500 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-text-main data-[state=active]:shadow-sm"
             >
               미디어+대본
             </TabsTrigger>
             <TabsTrigger
               value="SCRIPT_ONLY"
-              className="h-full w-full rounded-[1rem] border border-transparent text-base font-black text-slate-500 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-text-main data-[state=active]:shadow-sm"
+              className="h-full w-full rounded-[1rem] border border-transparent text-base font-bold text-slate-500 data-[state=active]:border-slate-200 data-[state=active]:bg-white data-[state=active]:text-text-main data-[state=active]:shadow-sm"
             >
               대본 맞춤 이미지영상 자동 제작
             </TabsTrigger>
@@ -206,7 +208,7 @@ export function ScriptInputForm({ quota, isSubmitting, onDirtyChange, onSubmit }
           type="button"
           onClick={submit}
           disabled={isSubmitting || isLimitReached}
-          className="inline-flex w-full items-center justify-center rounded-[1.6rem] bg-primary px-5 py-4 text-base font-black text-white shadow-[0_16px_36px_rgba(235,2,112,0.22)] transition-all hover:-translate-y-0.5 hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className={cn(buttonVariants({ size: 'lg' }), 'w-full bg-primary px-5 text-white hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300')}
         >
           {isSubmitting ? <Loader2 size={18} className="mr-2 animate-spin" /> : <Sparkles size={18} className="mr-2" />}
           쇼츠 자동 생성 요청

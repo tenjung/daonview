@@ -81,11 +81,11 @@ export function PexelsAssetPicker({
       <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Pexels 배경 추천</p>
-            <h4 className="mt-2 text-lg font-black text-text-main">{title}</h4>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Pexels 배경 추천</p>
+            <h4 className="mt-2 text-lg font-bold text-text-main">{title}</h4>
             <p className="mt-1 text-sm font-semibold leading-relaxed text-text-secondary">{description}</p>
           </div>
-          <div className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-500">
+          <div className="rounded-full bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-500">
             현재 배경 소스 {totalBackgroundCount}개
           </div>
         </div>
@@ -107,7 +107,7 @@ export function PexelsAssetPicker({
             type="button"
             onClick={() => void searchPexels(true)}
             disabled={isSearching}
-            className="inline-flex min-w-[172px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-sm font-black text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
+            className="inline-flex min-w-[172px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-6 py-4 text-sm font-bold text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
           >
             {isSearching ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Search size={16} className="mr-2" />}
             추천 불러오기
@@ -121,7 +121,7 @@ export function PexelsAssetPicker({
                 key={asset.id}
                 type="button"
                 onClick={() => toggleAsset(asset)}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-black text-primary"
+                className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-bold text-primary"
               >
                 {asset.kind === 'VIDEO' ? <VideoIcon size={14} /> : <ImageIcon size={14} />}
                 {asset.title}
@@ -136,7 +136,7 @@ export function PexelsAssetPicker({
         <DialogContent className="max-w-5xl rounded-[2rem] border-none bg-white p-0 shadow-[0_30px_100px_rgba(15,23,42,0.22)]">
           <div className="p-6 md:p-7">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black text-text-main">Pexels 배경 추천</DialogTitle>
+              <DialogTitle className="text-2xl font-bold text-text-main">Pexels 배경 추천</DialogTitle>
               <DialogDescription className="text-sm font-semibold leading-relaxed text-text-secondary">
                 원하는 사진·영상을 선택하고 닫으면 현재 작업의 배경 소스로 바로 반영됩니다. 썸네일은 작게 압축해서 한 번에 비교할 수 있게 구성했습니다.
               </DialogDescription>
@@ -159,7 +159,7 @@ export function PexelsAssetPicker({
                 type="button"
                 onClick={() => void searchPexels(false)}
                 disabled={isSearching}
-                className="inline-flex min-w-[160px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-black text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
+                className="inline-flex min-w-[160px] items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm font-bold text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 {isSearching ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Search size={16} className="mr-2" />}
                 다시 검색
@@ -180,18 +180,18 @@ export function PexelsAssetPicker({
                       >
                         <div className="relative aspect-[9/12] w-full overflow-hidden bg-slate-100">
                           <img src={asset.previewUrl} alt={asset.title} className="h-full w-full object-cover" />
-                          <div className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-black text-white">
+                          <div className="absolute left-2 top-2 rounded-full bg-black/65 px-2 py-1 text-2xs font-bold text-white">
                             {asset.kind === 'VIDEO' ? '영상' : '이미지'}
                           </div>
                           {isSelected && (
-                            <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-1 text-[10px] font-black text-white">
+                            <div className="absolute right-2 top-2 rounded-full bg-primary px-2 py-1 text-2xs font-bold text-white">
                               선택됨
                             </div>
                           )}
                         </div>
                         <div className="p-3">
-                          <p className="line-clamp-2 text-sm font-black text-text-main">{asset.title}</p>
-                          <p className="mt-1.5 text-[11px] font-semibold text-text-secondary">
+                          <p className="line-clamp-2 text-sm font-bold text-text-main">{asset.title}</p>
+                          <p className="mt-1.5 text-2xs font-semibold text-text-secondary">
                             {asset.durationSec ? `${asset.durationSec}초 · ` : ''}{asset.width || '-'} x {asset.height || '-'}
                           </p>
                         </div>
@@ -214,14 +214,14 @@ export function PexelsAssetPicker({
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-black text-text-main transition-colors hover:border-primary hover:text-primary"
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-text-main transition-colors hover:border-primary hover:text-primary"
                 >
                   닫기
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-black text-white transition-colors hover:bg-primary/90"
+                  className="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90"
                 >
                   선택하고 닫기
                 </button>

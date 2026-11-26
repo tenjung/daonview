@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitPartnerInquiry } from '@/app/actions/inquiry';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 30 },
@@ -87,7 +89,7 @@ export default function PartnerLandingPageClient() {
               <motion.div variants={fadeUp} className="inline-block px-4 py-2 rounded-full bg-rose-100 text-rose-700 font-bold text-sm mb-6 shadow-sm border border-rose-200">
                 앰플 · 스킨케어 특화
               </motion.div>
-              <motion.h1 variants={fadeUp} className="text-[2.5rem] md:text-5xl lg:text-5xl xl:text-6xl font-serif font-black text-slate-900 leading-[1.2] mb-6 tracking-tight break-keep">
+              <motion.h1 variants={fadeUp} className="text-[2.5rem] md:text-5xl lg:text-5xl xl:text-6xl font-serif font-bold text-slate-900 leading-[1.2] mb-6 tracking-tight break-keep">
                 <span className="inline-block">숏폼으로 <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-violet-600">고객을 만드는</span></span><br />
                 <span className="inline-block">화장품 체험단</span>
               </motion.h1>
@@ -109,14 +111,14 @@ export default function PartnerLandingPageClient() {
                 <a
                   href="#consulting-form"
                   onClick={scrollToForm}
-                  className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-xl font-bold text-lg shadow-xl hover:shadow-2xl transition-all hover:-translate-y-1 min-h-[44px] flex items-center justify-center gap-2"
+                  className={cn(buttonVariants({ size: 'lg' }), 'w-full sm:w-auto px-8 text-white gap-2 bg-slate-900 hover:bg-slate-800')}
                 >
                   <Briefcase className="w-5 h-5" /> 무료 체험단 문의
                 </a>
                 <a
                   href="#consulting-form"
                   onClick={scrollToForm}
-                  className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200 rounded-xl font-bold text-lg transition-all min-h-[44px] flex items-center justify-center"
+                  className={cn(buttonVariants({ size: 'lg' }), 'w-full sm:w-auto px-8 bg-white hover:bg-slate-50 text-slate-800 border-2 border-slate-200')}
                 >
                   테스트 캠페인 신청
                 </a>
@@ -192,11 +194,11 @@ export default function PartnerLandingPageClient() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full py-4 bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:bg-rose-300 text-white rounded-xl font-bold text-lg shadow-lg shadow-rose-500/30 transition-all flex items-center justify-center min-h-[44px]"
+                    className={cn(buttonVariants({ size: 'lg' }), 'w-full bg-rose-500 hover:bg-rose-600 active:bg-rose-700 disabled:bg-rose-300 text-white')}
                   >
                     {isSubmitting ? '신청 중...' : '체험단 문의하기'}
                   </button>
-                  <p className="text-center text-[11px] text-slate-400 mt-4 leading-relaxed">
+                  <p className="text-center text-2xs text-slate-400 mt-4 leading-relaxed">
                     신청 시 개인정보처리방침에 동의한 것으로 간주합니다.
                   </p>
                 </form>
@@ -217,7 +219,7 @@ export default function PartnerLandingPageClient() {
             variants={staggerContainer}
             className="text-center mb-16"
           >
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black mb-6 text-slate-50 tracking-tight break-keep">
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-bold mb-6 text-slate-50 tracking-tight break-keep">
               블로그 체험단만으로 충분하신가요?
             </motion.h2>
           </motion.div>
@@ -260,7 +262,7 @@ export default function PartnerLandingPageClient() {
             <motion.div variants={fadeUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white text-rose-600 font-bold text-sm mb-6 shadow-sm">
               <Sparkles className="w-4 h-4" /> The Solution
             </motion.div>
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 mb-16 leading-tight break-keep">
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-bold text-slate-900 mb-16 leading-tight break-keep">
               다온뷰는 <br className="md:hidden" /><span className="text-rose-500">숏폼 성과에 집중한</span> <span className="inline-block">화장품 체험단입니다</span>
             </motion.h2>
 
@@ -297,7 +299,7 @@ export default function PartnerLandingPageClient() {
             variants={staggerContainer}
             className="text-center mb-16"
           >
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-black text-slate-900 mb-4 break-keep">
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-4xl font-serif font-bold text-slate-900 mb-4 break-keep">
               이렇게 체험단이 운영됩니다
             </motion.h2>
           </motion.div>
@@ -322,7 +324,7 @@ export default function PartnerLandingPageClient() {
                 >
                   <div className="w-32 h-32 rounded-full bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col items-center justify-center mb-6 border-[6px] border-slate-50 relative z-10 group hover:border-rose-100 transition-colors">
                     <span className="text-xs font-bold text-rose-400 mb-1 tracking-widest">STEP</span>
-                    <span className="text-4xl font-black text-slate-900">{item.step}</span>
+                    <span className="text-4xl font-bold text-slate-900">{item.step}</span>
                   </div>
                   <h3 className="text-xl font-bold text-slate-900 mb-2">{item.title}</h3>
                   <p className="text-slate-600 font-medium px-4">{item.desc}</p>
@@ -344,7 +346,7 @@ export default function PartnerLandingPageClient() {
             className="mb-16 md:flex md:items-end justify-between"
           >
             <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
-              <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-white leading-tight break-keep">
+              <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-bold text-white leading-tight break-keep">
                 화장품 숏폼은 <br className="hidden md:block" />구조가 <span className="text-violet-400">다릅니다</span>
               </motion.h2>
             </div>
@@ -398,7 +400,7 @@ export default function PartnerLandingPageClient() {
             variants={staggerContainer}
             className="text-center mb-16"
           >
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 break-keep">
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-bold text-slate-900 break-keep">
               광고주가 얻는 <span className="text-rose-500 bg-rose-50 px-2 rounded-lg">결과</span>
             </motion.h2>
           </motion.div>
@@ -440,7 +442,7 @@ export default function PartnerLandingPageClient() {
             variants={staggerContainer}
             className="text-center mb-16"
           >
-            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-black text-slate-900 tracking-tight break-keep">
+            <motion.h2 variants={fadeUp} className="text-3xl md:text-5xl font-serif font-bold text-slate-900 tracking-tight break-keep">
               왜 다온뷰인가
             </motion.h2>
           </motion.div>
@@ -478,9 +480,9 @@ export default function PartnerLandingPageClient() {
                 className={`flex-1 rounded-3xl p-1 bg-gradient-to-b ${item.bg} border border-slate-200 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300`}
               >
                 <div className="bg-white/90 backdrop-blur-md rounded-[22px] p-8 lg:p-10 h-full flex flex-col items-center justify-center text-center">
-                  <span className={`inline-block px-3 py-1 bg-slate-50 border border-slate-100 rounded-full font-bold mb-5 tracking-widest text-[13px] ${item.textColor}`}>{item.top}</span>
-                  <h3 className="text-[22px] lg:text-[24px] font-extrabold text-slate-900 mb-4 whitespace-pre-line break-keep leading-snug">{item.title}</h3>
-                  <p className="text-slate-600 font-medium whitespace-pre-line break-keep leading-relaxed text-[15px]">{item.desc}</p>
+                  <span className={`inline-block px-3 py-1 bg-slate-50 border border-slate-100 rounded-full font-bold mb-5 tracking-widest text-body-sm ${item.textColor}`}>{item.top}</span>
+                  <h3 className="text-2xl lg:text-2xl font-bold text-slate-900 mb-4 whitespace-pre-line break-keep leading-snug">{item.title}</h3>
+                  <p className="text-slate-600 font-medium whitespace-pre-line break-keep leading-relaxed text-sm">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -543,7 +545,7 @@ export default function PartnerLandingPageClient() {
                     </div>
                   ))}
                   {item.target && (
-                    <div className="mt-4 w-full text-[13px] bg-white border border-slate-200 py-2.5 rounded-xl text-slate-600 font-bold shadow-sm">
+                    <div className="mt-4 w-full text-body-sm bg-white border border-slate-200 py-2.5 rounded-xl text-slate-600 font-bold shadow-sm">
                       추천 대상: <span className={item.best ? 'text-rose-600' : 'text-slate-800'}>{item.target}</span>
                     </div>
                   )}
@@ -552,11 +554,11 @@ export default function PartnerLandingPageClient() {
                 <a
                   href="#consulting-form"
                   onClick={scrollToForm}
-                  className={`mt-auto w-full py-4 rounded-xl font-bold text-base transition-colors flex items-center justify-center min-h-[44px] ${
+                  className={cn(buttonVariants({ size: 'lg' }), 'mt-auto w-full',
                     item.best
-                      ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white shadow-md'
+                      ? 'bg-rose-500 hover:bg-rose-600 active:bg-rose-700 text-white'
                       : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
+                  )}
                 >
                   {item.btn}
                 </a>
@@ -579,14 +581,14 @@ export default function PartnerLandingPageClient() {
             viewport={{ once: true, margin: "-100px" }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-3xl md:text-5xl lg:text-5xl font-serif font-black text-white mb-10 leading-normal tracking-tight">
+            <h2 className="text-3xl md:text-5xl lg:text-5xl font-serif font-bold text-white mb-10 leading-normal tracking-tight">
               지금 숏폼 체험단으로 <br className="hidden md:block" />브랜드를 노출하세요
             </h2>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="#consulting-form"
                 onClick={scrollToForm}
-                className="w-full sm:w-auto px-10 py-5 bg-gradient-to-r from-rose-500 to-rose-400 hover:from-rose-400 hover:to-rose-300 text-white rounded-2xl font-bold text-xl shadow-[0_10px_30px_-5px_rgba(244,63,94,0.4)] hover:shadow-[0_15px_40px_-5px_rgba(244,63,94,0.6)] transition-all hover:-translate-y-1 min-h-[44px] flex items-center justify-center"
+                className={cn(buttonVariants({ size: 'lg' }), 'w-full sm:w-auto px-10 text-white')}
               >
                 무료 상담 신청
               </a>

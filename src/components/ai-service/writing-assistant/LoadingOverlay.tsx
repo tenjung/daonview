@@ -42,7 +42,7 @@ export default function LoadingOverlay({ isLoading, loadingMsg }: LoadingOverlay
                 </div>
 
                 <div className="space-y-5 relative z-10">
-                    <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-text-main to-indigo-900 tracking-tight">AI가 열심히 분석 중입니다</h3>
+                    <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-text-main to-indigo-900 tracking-tight">AI가 열심히 분석 중입니다</h3>
                     <div className="flex flex-col items-center gap-3">
                         <p className="text-text-secondary font-semibold text-sm leading-relaxed whitespace-pre-line">{loadingMsg}</p>
 

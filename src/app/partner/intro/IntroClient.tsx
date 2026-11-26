@@ -36,7 +36,7 @@ import {
     Eye,
     Send
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,6 +52,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from '@/lib/supabase/client';
+import { cn } from '@/lib/utils';
 
 export default function IntroClient() {
     const [formData, setFormData] = useState({
@@ -133,14 +134,14 @@ export default function IntroClient() {
                         <motion.div variants={fadeIn} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
                             <Link
                                 href="#contact-form"
-                                className="inline-flex items-center justify-center bg-white text-primary hover:bg-pink-50 hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] px-10 py-5 text-xl font-black group transition-all rounded-full h-16"
+                                className={cn(buttonVariants({ size: 'lg' }), 'bg-white text-primary hover:bg-pink-50 px-10 group')}
                             >
                                 무료 맞춤형 컨설팅 신청
                                 <ArrowRight className="w-6 h-6 ml-2 group-hover:translate-x-1 transition-transform" />
                             </Link>
                             <Link
                                 href="/campaigns"
-                                className="inline-flex items-center justify-center border-2 border-white/40 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-10 py-5 text-xl font-bold transition-all rounded-full h-16"
+                                className={cn(buttonVariants({ size: 'lg' }), 'border-2 border-white/40 bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 px-10')}
                             >
                                 진행 사례 보기
                             </Link>
@@ -162,7 +163,7 @@ export default function IntroClient() {
                         className="text-center mb-20"
                     >
                         <span className="text-primary font-bold text-lg mb-4 block">WHY DAONVIEW?</span>
-                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                        <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
                             아직도 돈만 쓰는 마케팅을 하고 계신가요?
                         </h2>
                     </motion.div>
@@ -224,7 +225,7 @@ export default function IntroClient() {
                                 <Sparkles className="w-4 h-4" />
                                 1석 2조 리뷰 자동화 시스템
                             </div>
-                            <h2 className="text-4xl lg:text-6xl font-black mb-10 leading-[1.2] text-white">
+                            <h2 className="text-4xl lg:text-6xl font-bold mb-10 leading-[1.2] text-white">
                                 리뷰와 SNS의<br />
                                 <span className="text-primary-light">강력한 시너지</span>
                             </h2>
@@ -272,13 +273,13 @@ export default function IntroClient() {
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="h-32 bg-pink-50 rounded-3xl flex flex-col items-center justify-center border border-pink-100">
                                                 <Eye className="w-8 h-8 text-primary mb-2 opacity-80" />
-                                                <span className="text-2xl font-black text-primary">2,500+</span>
-                                                <span className="text-[10px] text-slate-500 font-bold uppercase">Daily Reach</span>
+                                                <span className="text-2xl font-bold text-primary">2,500+</span>
+                                                <span className="text-2xs text-slate-500 font-bold uppercase">Daily Reach</span>
                                             </div>
                                             <div className="h-32 bg-blue-50 rounded-3xl flex flex-col items-center justify-center border border-blue-100">
                                                 <TrendingUp className="w-8 h-8 text-blue-600 mb-2 opacity-80" />
-                                                <span className="text-2xl font-black text-blue-600">350%</span>
-                                                <span className="text-[10px] text-slate-500 font-bold uppercase">ROI Growth</span>
+                                                <span className="text-2xl font-bold text-blue-600">350%</span>
+                                                <span className="text-2xs text-slate-500 font-bold uppercase">ROI Growth</span>
                                             </div>
                                         </div>
                                         <div className="h-4 w-1/2 bg-slate-100 rounded-full"></div>
@@ -309,7 +310,7 @@ export default function IntroClient() {
                         variants={fadeIn}
                         className="text-center mb-16"
                     >
-                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                        <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
                             전문성이 만드는 한 끗 차이
                         </h2>
                         <p className="text-lg text-slate-500 max-w-2xl mx-auto">
@@ -367,7 +368,7 @@ export default function IntroClient() {
                         variants={fadeIn}
                         className="text-center mb-20"
                     >
-                        <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-6 tracking-tight">
+                        <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-6 tracking-tight">
                             상담부터 런칭까지 단 24시간
                         </h2>
                         <p className="text-lg text-slate-500">
@@ -395,7 +396,7 @@ export default function IntroClient() {
                                     transition={{ delay: i * 0.1 }}
                                     className="flex flex-col items-center text-center group"
                                 >
-                                    <div className="w-14 h-14 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-6 font-black text-slate-400 group-hover:border-primary group-hover:text-primary transition-all shadow-sm">
+                                    <div className="w-14 h-14 bg-white border-2 border-slate-200 rounded-full flex items-center justify-center mb-6 font-bold text-slate-400 group-hover:border-primary group-hover:text-primary transition-all shadow-sm">
                                         {item.step}
                                     </div>
                                     <h4 className="text-lg font-bold text-slate-900 mb-3">{item.title}</h4>
@@ -417,7 +418,7 @@ export default function IntroClient() {
                             viewport={{ once: true }}
                             variants={fadeIn}
                         >
-                            <h2 className="text-4xl lg:text-5xl font-black text-slate-900 mb-8 leading-tight tracking-tight">
+                            <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 mb-8 leading-tight tracking-tight">
                                 수치로 증명하는<br />다온뷰의 압도적 클래스
                             </h2>
                             <p className="text-xl text-slate-500 mb-12 leading-relaxed text-left">
@@ -432,7 +433,7 @@ export default function IntroClient() {
                                     { label: "평균 만족도", value: "98%", suffix: "매우 만족" }
                                 ].map((stat, i) => (
                                     <div key={i} className="border-l-4 border-primary pl-6 py-2">
-                                        <div className="text-3xl font-black text-slate-900 mb-1">{stat.value}</div>
+                                        <div className="text-3xl font-bold text-slate-900 mb-1">{stat.value}</div>
                                         <div className="text-sm text-slate-400 font-bold uppercase">{stat.label}</div>
                                         <div className="text-xs text-primary mt-1 font-medium">{stat.suffix}</div>
                                     </div>
@@ -451,7 +452,7 @@ export default function IntroClient() {
                             <div className="relative text-center">
                                 <Rocket className="w-32 h-32 text-primary mb-10 mx-auto opacity-80" />
                                 <div className="text-2xl font-bold text-slate-700 italic">"성장의 임계점을 넘기 위해 필요한 것은"</div>
-                                <div className="text-4xl font-black text-primary mt-4">확신과 전략입니다.</div>
+                                <div className="text-4xl font-bold text-primary mt-4">확신과 전략입니다.</div>
                             </div>
                         </motion.div>
                     </div>
@@ -472,9 +473,9 @@ export default function IntroClient() {
                             variants={slideInLeft}
                             className="text-white text-left"
                         >
-                            <h2 className="text-4xl lg:text-6xl font-black mb-8 leading-tight tracking-tighter">
+                            <h2 className="text-4xl lg:text-6xl font-bold mb-8 leading-tight tracking-tighter">
                                 DAONVIEW<br />
-                                <span className="text-primary-light font-black italic">광고주세요?</span>
+                                <span className="text-primary-light font-bold italic">광고주세요?</span>
                             </h2>
                             <p className="text-xl lg:text-2xl text-slate-300 leading-relaxed mb-10">
                                 전문 마케터가 브랜드 진단부터<br />
@@ -565,7 +566,7 @@ export default function IntroClient() {
                                         </SheetTrigger>
                                         <SheetContent side="right" className="top-[70px] h-[calc(100vh-70px)] w-[400px] sm:w-[540px] border-t border-slate-100 shadow-2xl">
                                             <SheetHeader className="pb-6 border-b border-slate-50">
-                                                <SheetTitle className="text-2xl font-black text-primary">개인정보 처리방침</SheetTitle>
+                                                <SheetTitle className="text-2xl font-bold text-primary">개인정보 처리방침</SheetTitle>
                                                 <SheetDescription className="text-slate-500 font-medium">
                                                     다온뷰 상담 신청을 위한 개인정보 수집 및 이용 안내
                                                 </SheetDescription>
@@ -600,7 +601,7 @@ export default function IntroClient() {
                                 </div>
 
                                 <Button 
-                                    className="w-full h-16 bg-primary hover:bg-primary-dark text-white rounded-xl text-xl font-black shadow-xl shadow-primary/20 group transition-all"
+                                    size="lg" className="w-full bg-primary hover:bg-primary-dark text-white group"
                                     disabled={isSubmitting}
                                 >
                                     {isSubmitting ? "전송 중..." : (

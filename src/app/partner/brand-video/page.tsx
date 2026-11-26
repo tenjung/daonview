@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import React from 'react';
 import { PlayCircle, Video, MonitorPlay, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: '브랜드 영상제작',
@@ -31,7 +33,7 @@ export default function BrandVideoPage() {
             <Sparkles className="w-4 h-4 text-violet-400" />
             <span>프리미엄 브랜드 영상 프로덕션</span>
           </div>
-          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
+          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
              브랜드의 가치를<br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-primary">시각화</span>하다
           </h1>
           <p className="text-lg md:text-2xl text-slate-300 mb-12 max-w-3xl mx-auto font-medium">
@@ -39,10 +41,10 @@ export default function BrandVideoPage() {
             당신의 브랜드 스토리를 가장 매력적인 영상으로 담아냅니다.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/partner" className="px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-primary-dark transition-all shadow-[0_0_30px_rgba(255,56,92,0.3)]">
+            <Link href="/partner" className={cn(buttonVariants({ size: 'lg' }), 'px-8 bg-primary text-white hover:bg-primary-dark')}>
               프로젝트 문의하기
             </Link>
-            <button className="px-8 py-4 bg-white/10 text-white border border-white/20 rounded-xl font-bold text-lg hover:bg-white/20 transition-all backdrop-blur flex items-center gap-2">
+            <button className={cn(buttonVariants({ size: 'lg' }), 'px-8 bg-white/10 text-white border border-white/20 hover:bg-white/20 backdrop-blur gap-2')}>
                쇼릴 영상 보기 <PlayCircle className="w-5 h-5" />
             </button>
           </div>
@@ -91,7 +93,7 @@ export default function BrandVideoPage() {
          <div className="container">
             <div className="flex items-end justify-between mb-12">
                 <div>
-                   <h2 className="text-4xl font-black mb-4">Featured Work</h2>
+                   <h2 className="text-4xl font-bold mb-4">Featured Work</h2>
                    <p className="text-slate-400">다온뷰 프로덕션의 손끝에서 탄생한 성공적인 프로젝트들</p>
                 </div>
             </div>

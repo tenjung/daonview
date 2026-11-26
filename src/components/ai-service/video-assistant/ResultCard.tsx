@@ -79,8 +79,8 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
   if (isResultPurged) {
     return (
       <div className="rounded-[2.2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_65px_rgba(15,23,42,0.08)] md:p-6">
-        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-slate-500">보관 만료</p>
-        <h3 className="mt-2 text-2xl font-black leading-tight text-text-main">보관 시간이 만료되어 결과 파일이 삭제되었습니다</h3>
+        <p className="text-2xs font-bold uppercase tracking-[0.24em] text-slate-500">보관 만료</p>
+        <h3 className="mt-2 text-2xl font-bold leading-tight text-text-main">보관 시간이 만료되어 결과 파일이 삭제되었습니다</h3>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
           결과 영상과 관련 이미지·오디오·자막 파일은 첫 재생 후 3시간 동안만 보관됩니다. 작업 기록은 사용량 확인을 위해 최소 정보만 남아 있습니다.
         </p>
@@ -165,8 +165,8 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
     <div className="rounded-[2.2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_65px_rgba(15,23,42,0.08)] md:p-6">
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1.1fr)_340px] xl:items-start">
         <div className="order-2 xl:order-1">
-          <p className="text-[11px] font-black uppercase tracking-[0.24em] text-emerald-600">완성된 결과</p>
-          <h3 className="mt-2 text-3xl font-black leading-tight text-text-main">방금 만든 쇼츠를 바로 확인하세요</h3>
+          <p className="text-2xs font-bold uppercase tracking-[0.24em] text-emerald-600">완성된 결과</p>
+          <h3 className="mt-2 text-3xl font-bold leading-tight text-text-main">방금 만든 쇼츠를 바로 확인하세요</h3>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-text-secondary">
             미리보기 아래 자막 초안을 바로 수정할 수 있습니다. 오타를 잡은 뒤 저장하거나, 수정본 기준으로 영상을 다시 렌더링하면 됩니다.
           </p>
@@ -180,11 +180,11 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
           <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">자막 수정</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">자막 수정</p>
                 <p className="mt-1 text-sm font-semibold text-text-secondary">왼쪽 시간은 고정되고, 오른쪽 자막만 수정할 수 있습니다.</p>
               </div>
               {job.subtitle_final && (
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">수정본 저장됨</span>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">수정본 저장됨</span>
               )}
             </div>
             <div className="mt-4 max-h-[34rem] space-y-2 overflow-y-auto rounded-[1.2rem] border border-slate-200 bg-white p-3">
@@ -193,7 +193,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                   key={`${block.index}-${block.timeRange}`}
                   className="grid gap-2 rounded-[0.9rem] border border-slate-200 bg-slate-50 p-2 md:grid-cols-[190px_minmax(0,1fr)] md:items-center"
                 >
-                  <div className="rounded-[0.8rem] border border-slate-200 bg-white px-3 py-2 text-xs font-black text-slate-500">
+                  <div className="rounded-[0.8rem] border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-500">
                     구간 {block.index} · {formatTimeRangeToSeconds(block.timeRange)}
                   </div>
                   <textarea
@@ -215,7 +215,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                 type="button"
                 onClick={saveSubtitle}
                 disabled={isSaving || isRerendering || !subtitleChanged}
-                className="inline-flex items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm font-black text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
+                className="inline-flex items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-text-main transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:text-slate-400"
               >
                 {isSaving ? <Loader2 size={16} className="mr-2 animate-spin" /> : <Save size={16} className="mr-2" />}
                 자막 수정 저장
@@ -224,7 +224,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                 type="button"
                 onClick={rerenderVideo}
                 disabled={isSaving || isRerendering}
-                className="inline-flex items-center justify-center rounded-[1rem] bg-primary px-4 py-3 text-sm font-black text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="inline-flex items-center justify-center rounded-[1rem] bg-primary px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 {isRerendering ? <Loader2 size={16} className="mr-2 animate-spin" /> : <RotateCcw size={16} className="mr-2" />}
                 수정본으로 다시 렌더링
@@ -235,7 +235,7 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
           {sortedChapters.length > 0 && (
             <div className="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-4">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">자동 생성 챕터</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">자동 생성 챕터</p>
                 <p className="mt-1 text-sm font-semibold text-text-secondary">대본을 분석해 만든 장면 이미지와 프롬프트입니다.</p>
               </div>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
@@ -250,9 +250,9 @@ export function ResultCard({ job, onJobUpdated, onDirtyChange }: ResultCardProps
                       </div>
                     )}
                     <div className="space-y-2 p-4">
-                      <p className="text-sm font-black text-text-main">{chapter.chapter_title || `챕터 ${chapter.chapter_index}`}</p>
+                      <p className="text-sm font-bold text-text-main">{chapter.chapter_title || `챕터 ${chapter.chapter_index}`}</p>
                       <p className="text-xs font-semibold leading-relaxed text-text-secondary">{chapter.narration}</p>
-                      <p className="text-[11px] font-medium leading-relaxed text-slate-500">{chapter.image_prompt}</p>
+                      <p className="text-2xs font-medium leading-relaxed text-slate-500">{chapter.image_prompt}</p>
                     </div>
                   </div>
                 ))}

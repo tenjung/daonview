@@ -270,8 +270,8 @@ export default function VideoAssistantPage() {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary/60">AI Intelligence</p>
-              <h1 className="text-xl font-black text-text-main md:text-2xl">영상 제작 도우미</h1>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary/60">AI Intelligence</p>
+              <h1 className="text-xl font-bold text-text-main md:text-2xl">영상 제작 도우미</h1>
             </div>
           </div>
           <div className="hidden items-center gap-2 rounded-full border border-primary/15 bg-primary/5 px-4 py-2 md:inline-flex">
@@ -288,7 +288,7 @@ export default function VideoAssistantPage() {
               <Film size={16} />
               {heroLabel}
             </div>
-            <h2 className="mt-6 text-4xl font-black tracking-tight text-text-main md:text-5xl">{heroTitle}</h2>
+            <h2 className="mt-6 text-4xl font-bold tracking-tight text-text-main md:text-5xl">{heroTitle}</h2>
             <p className="mt-5 text-base leading-relaxed text-text-secondary md:text-lg">
               {heroDescription}
             </p>
@@ -333,13 +333,13 @@ export default function VideoAssistantPage() {
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${
                       isActive ? 'bg-primary text-white' : isDone ? 'bg-emerald-500 text-white' : 'bg-white text-slate-400 border border-slate-200'
                     }`}>
                       {item.step}
                     </div>
                     <div>
-                      <p className={`text-sm font-black ${isActive ? 'text-primary' : isDone ? 'text-emerald-700' : 'text-text-main'}`}>{item.title}</p>
+                      <p className={`text-sm font-bold ${isActive ? 'text-primary' : isDone ? 'text-emerald-700' : 'text-text-main'}`}>{item.title}</p>
                       <p className="mt-1 text-xs font-medium text-text-secondary">{item.desc}</p>
                     </div>
                   </div>
@@ -380,8 +380,8 @@ export default function VideoAssistantPage() {
                 </div>
                 <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
                   <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary/55">운영 메모</p>
-                    <h3 className="mt-2 text-xl font-black text-text-main">{selectedService === 'SHORTS_AUTO' ? '제작 방식' : '자막 추출 방식'}</h3>
+                    <p className="text-2xs font-bold uppercase tracking-[0.24em] text-primary/55">운영 메모</p>
+                    <h3 className="mt-2 text-xl font-bold text-text-main">{selectedService === 'SHORTS_AUTO' ? '제작 방식' : '자막 추출 방식'}</h3>
                     <p className="mt-3 text-sm leading-relaxed text-text-secondary">
                       {selectedService === 'SHORTS_AUTO'
                         ? '지금 버전은 장면을 의미 기반으로 정밀 매칭하는 편집기가 아닙니다. 업로드한 순서대로 자동 구성하고, 결과를 빠르게 테스트하는 데 초점을 둡니다.'
@@ -413,7 +413,7 @@ export default function VideoAssistantPage() {
       >
         <DialogContent className="max-w-md rounded-2xl border border-slate-200 bg-white">
           <DialogHeader>
-            <DialogTitle className="text-xl font-black text-text-main">작성 중인 내용이 사라질 수 있습니다</DialogTitle>
+            <DialogTitle className="text-xl font-bold text-text-main">작성 중인 내용이 사라질 수 있습니다</DialogTitle>
             <DialogDescription className="text-sm font-medium leading-relaxed text-text-secondary">
               지금 나가면 입력 중인 대본, 오디오, 자막 수정 내용이 저장되지 않습니다. 정말 나가려면 확인을 누르세요.
             </DialogDescription>

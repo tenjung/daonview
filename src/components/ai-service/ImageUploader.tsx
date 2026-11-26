@@ -78,7 +78,7 @@ function SortableImage({
       >
         <X size={14} />
       </button>
-      <div className="absolute bottom-1 left-1 bg-black/40 text-[10px] text-white px-1.5 py-0.5 rounded-md backdrop-blur-sm font-bold z-10">
+      <div className="absolute bottom-1 left-1 bg-black/40 text-2xs text-white px-1.5 py-0.5 rounded-md backdrop-blur-sm font-bold z-10">
         {index + 1}
       </div>
       <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
@@ -171,7 +171,7 @@ export default function ImageUploader({
               <div className="bg-gray-50 p-2 rounded-xl group-hover:bg-primary/10 transition-colors">
                 <Plus size={20} />
               </div>
-              <span className="text-[10px] font-bold mt-2">추가하기</span>
+              <span className="text-2xs font-bold mt-2">추가하기</span>
             </button>
           )}
         </div>
@@ -187,7 +187,7 @@ export default function ImageUploader({
       />
 
       {showHelpText && (
-        <p className="text-[11px] text-gray-400">
+        <p className="text-2xs text-gray-400">
           * 드래그하여 순서를 변경하거나, 클릭하여 삭제할 수 있습니다.
         </p>
       )}
