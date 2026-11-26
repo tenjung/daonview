@@ -371,7 +371,7 @@ export default function ApplicationsTableClient({
         return fallback ? [fallback] : [productFallback || '기본 옵션'];
     };
 
-    const fetchLinkCandidates = async (optionLabel: string) => {
+    const fetchLinkCandidates = async (optionLabel: string): Promise<Array<{ id: number }>> => {
         setIsCandidateLoading(true);
         try {
             const response = await fetch('/api/applications/link-candidates', {
@@ -386,13 +386,16 @@ export default function ApplicationsTableClient({
             const payload = await response.json().catch(() => null);
             if (!response.ok || !payload?.success) {
                 setLinkCandidates([]);
-                return;
+                return [];
             }
 
-            setLinkCandidates(payload.candidates || []);
+            const candidates = payload.candidates || [];
+            setLinkCandidates(candidates);
+            return candidates;
         } catch (error) {
             console.error('Fetch link candidates error:', error);
             setLinkCandidates([]);
+            return [];
         } finally {
             setIsCandidateLoading(false);
         }
@@ -417,7 +420,12 @@ export default function ApplicationsTableClient({
         setManualPurchaseLinkUrl('');
         setIsSelectionModalOpen(true);
         if (productUrlIndividual && mode === 'REASSIGN') {
-            await fetchLinkCandidates(defaultOption);
+            const candidates = await fetchLinkCandidates(defaultOption);
+            // 현재 배정 링크를 기본 선택해 그대로 실행해도 기존 링크가 바뀌지 않게 한다.
+            const currentLinkId = app.assigned_purchase_link_id;
+            if (currentLinkId && candidates.some((candidate) => candidate.id === currentLinkId)) {
+                setManualLinkId(String(currentLinkId));
+            }
         } else {
             setLinkCandidates([]);
         }
@@ -1052,6 +1060,17 @@ export default function ApplicationsTableClient({
                         <p className="text-sm text-gray-500 mb-4">
                             {selectionTarget.user?.nickname || '인플루언서'}님의 신청 옵션을 확인하세요.
                         </p>
+                        {selectionMode === 'REASSIGN' && selectionTarget.assigned_purchase_link_url && (
+                            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs">
+                                <p className="font-semibold text-gray-700">
+                                    현재 배정 링크{selectionTarget.assigned_purchase_link_id ? ` #${selectionTarget.assigned_purchase_link_id}` : ''}
+                                    {selectionTarget.assigned_option_label ? ` · ${selectionTarget.assigned_option_label}` : ''}
+                                </p>
+                                <a href={selectionTarget.assigned_purchase_link_url} target="_blank" rel="noopener noreferrer" className="mt-0.5 block break-all text-blue-600 underline">
+                                    {selectionTarget.assigned_purchase_link_url}
+                                </a>
+                            </div>
+                        )}
 
                         <div className="space-y-4">
                             {!usesOptionLinkFields && <div>
