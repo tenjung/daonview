@@ -186,11 +186,11 @@ export default function AdvertiserVerificationPage() {
                     </p>
                     <div className="grid grid-cols-2 gap-4 mt-6 max-w-sm mx-auto">
                         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
-                            <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Company</div>
+                            <div className="text-2xs text-gray-400 font-bold uppercase mb-1">Company</div>
                             <div className="text-sm font-bold text-gray-900 truncate">{profile?.company_name}</div>
                         </div>
                         <div className="bg-white p-4 rounded-2xl border border-emerald-100 shadow-sm">
-                            <div className="text-[10px] text-gray-400 font-bold uppercase mb-1">Biz ID</div>
+                            <div className="text-2xs text-gray-400 font-bold uppercase mb-1">Biz ID</div>
                             <div className="text-sm font-bold text-gray-900">{profile?.biz_number}</div>
                         </div>
                     </div>
@@ -210,7 +210,7 @@ export default function AdvertiserVerificationPage() {
                         정보를 수정하여 다시 제출해 주세요.
                     </p>
                     <div className="bg-white p-5 rounded-2xl border border-rose-200 text-left mt-4 shadow-sm">
-                        <div className="text-[10px] text-rose-400 font-black uppercase mb-1 tracking-widest pl-1">반려 사유</div>
+                        <div className="text-2xs text-rose-400 font-bold uppercase mb-1 tracking-widest pl-1">반려 사유</div>
                         <p className="text-sm text-rose-600 font-medium whitespace-pre-line leading-relaxed italic">
                             {profile?.biz_rejection_reason || '사유가 기재되지 않았습니다.'}
                         </p>
@@ -252,8 +252,8 @@ export default function AdvertiserVerificationPage() {
                                                 <ShieldCheck size={20} />
                                             </div>
                                             <div>
-                                                <h3 className="text-sm font-black text-gray-900">대표자 본인인증</h3>
-                                                <p className="text-[11px] text-gray-500 font-medium leading-tight">사업자 인증 전, 대표자님의 본인 확인이 선행되어야 합니다.</p>
+                                                <h3 className="text-sm font-bold text-gray-900">대표자 본인인증</h3>
+                                                <p className="text-2xs text-gray-500 font-medium leading-tight">사업자 인증 전, 대표자님의 본인 확인이 선행되어야 합니다.</p>
                                             </div>
                                         </div>
                                         <Button 
@@ -357,7 +357,7 @@ export default function AdvertiserVerificationPage() {
                                                         </div>
                                                         <div className="text-center">
                                                             <p className="font-bold text-gray-700 text-base">클릭하여 파일 업로드</p>
-                                                            <p className="text-[11px] text-gray-400 mt-1 font-medium">JPG, PNG, PDF (최대 10MB)</p>
+                                                            <p className="text-2xs text-gray-400 mt-1 font-medium">JPG, PNG, PDF (최대 10MB)</p>
                                                         </div>
                                                     </>
                                                 )}
@@ -368,7 +368,7 @@ export default function AdvertiserVerificationPage() {
                                     <div className="pt-2 pointer-events-none opacity-50 select-none">
                                         <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex gap-3">
                                             <ShieldCheck size={16} className="text-gray-400 shrink-0 mt-0.5" />
-                                            <div className="text-[10px] text-gray-500 leading-relaxed font-medium">
+                                            <div className="text-2xs text-gray-500 leading-relaxed font-medium">
                                                 <p className="font-bold text-gray-700 mb-0.5">개인정보 수집 및 이용 안내</p>
                                                 입력하신 사업자 정보는 비즈니스 신원 확인을 위한 목적으로만 사용되며, <br />
                                                 승인 완료 후 안전하게 보호됩니다. 허위 정보 기재 시 이용이 제한될 수 있습니다.
@@ -379,7 +379,7 @@ export default function AdvertiserVerificationPage() {
                                     <Button
                                         type="submit"
                                         disabled={loading}
-                                        className="w-full h-12 rounded-xl bg-primary text-white text-base font-black shadow-lg shadow-rose-200 hover:shadow-xl transition-all transform active:scale-95 disabled:opacity-50 mt-2"
+                                        size="lg" className="w-full mt-2"
                                     >
                                         {loading ? (
                                             <div className="flex items-center gap-2 text-sm">

@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect, Suspense } from 'react';
@@ -84,7 +86,7 @@ function PricingContent() {
                             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-gray-100">
                                 <CreditCard className="h-9 w-9 text-gray-300" />
                             </div>
-                            <h2 className="mb-3 text-2xl font-black text-gray-900">사업자 인증이 필요합니다</h2>
+                            <h2 className="mb-3 text-2xl font-bold text-gray-900">사업자 인증이 필요합니다</h2>
                             <p className="mb-8 max-w-sm text-sm leading-relaxed text-gray-500">
                                 이용요금 안내는 <strong className="text-gray-700">사업자 인증이 완료된 광고주</strong>에게만 제공됩니다.
                                 <br />
@@ -92,7 +94,7 @@ function PricingContent() {
                             </p>
                             <Link
                                 href="/dashboard/advertiser/verification"
-                                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-7 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90"
+                                className={cn(buttonVariants({ size: 'lg' }), 'gap-2 bg-primary px-7 text-white hover:bg-primary/90')}
                             >
                                 사업자 인증 하러 가기
                                 <ArrowRight size={16} />
@@ -109,7 +111,7 @@ function PricingContent() {
                                 actions={
                                 <Link
                                     href="/dashboard/advertiser/billing"
-                                    className="ml-[52px] inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-black text-gray-700 shadow-sm transition-all hover:bg-gray-50 md:ml-0"
+                                    className="ml-[52px] inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-50 md:ml-0"
                                 >
                                     결제관리 대시보드
                                     <ArrowRight size={14} />
@@ -121,7 +123,7 @@ function PricingContent() {
                                 <button
                                     type="button"
                                     onClick={() => setPaymentMode('ONE_TIME')}
-                                    className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                    className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
                                         paymentMode === 'ONE_TIME' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
@@ -130,12 +132,12 @@ function PricingContent() {
                                 <button
                                     type="button"
                                     onClick={() => setPaymentMode('SUBSCRIPTION')}
-                                    className={`relative flex-1 rounded-xl px-4 py-2.5 text-sm font-black transition-all ${
+                                    className={`relative flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition-all ${
                                         paymentMode === 'SUBSCRIPTION' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'
                                     }`}
                                 >
                                     구독형 결제
-                                    <span className="absolute -top-2.5 -right-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white shadow-sm shadow-primary/30">
+                                    <span className="absolute -top-2.5 -right-1 rounded-full bg-primary px-2 py-0.5 text-2xs font-bold text-white shadow-sm shadow-primary/30">
                                         인기
                                     </span>
                                 </button>
@@ -149,14 +151,14 @@ function PricingContent() {
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50">
                                                     <ShoppingBag className="h-4 w-4 text-blue-500" />
                                                 </div>
-                                                <h2 className="text-xl font-black text-gray-900">배송체험단</h2>
+                                                <h2 className="text-xl font-bold text-gray-900">배송체험단</h2>
                                             </div>
                                             <p className="text-sm leading-relaxed text-gray-500">부담 없는 비용으로, 꼭 필요한 채널의 리뷰부터 빠르게 채우세요.</p>
                                         </div>
                                         <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
                                             <div className="flex items-end gap-1">
-                                                <span className="text-4xl font-black text-gray-900">5,000</span>
-                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="text-4xl font-bold text-gray-900">5,000</span>
+                                                <span className="text-xl font-bold text-gray-900">원</span>
                                                 <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
                                             </div>
                                         </div>
@@ -198,15 +200,15 @@ function PricingContent() {
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-50">
                                                     <Zap className="h-4 w-4 text-primary" />
                                                 </div>
-                                                <h2 className="text-xl font-black text-gray-900">1석 2조 체험단</h2>
+                                                <h2 className="text-xl font-bold text-gray-900">1석 2조 체험단</h2>
                                             </div>
                                             <p className="text-sm leading-relaxed text-gray-500">쇼핑몰 + SNS 리뷰를 한 번에, 할인된 가격으로 해결하세요.</p>
                                         </div>
                                         <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
-                                            <span className="mb-1 inline-block rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-black text-gray-600">10% 할인</span>
+                                            <span className="mb-1 inline-block rounded-lg bg-gray-100 px-2 py-0.5 text-xs font-bold text-gray-600">10% 할인</span>
                                             <div className="flex items-end gap-1">
-                                                <span className="text-4xl font-black text-gray-900">9,000</span>
-                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="text-4xl font-bold text-gray-900">9,000</span>
+                                                <span className="text-xl font-bold text-gray-900">원</span>
                                                 <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
                                             </div>
                                         </div>
@@ -242,14 +244,14 @@ function PricingContent() {
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50">
                                                     <Newspaper className="h-4 w-4 text-emerald-600" />
                                                 </div>
-                                                <h2 className="text-xl font-black text-gray-900">방문체험단</h2>
+                                                <h2 className="text-xl font-bold text-gray-900">방문체험단</h2>
                                             </div>
                                             <p className="text-sm leading-relaxed text-gray-500">매장 방문 기반 후기로 오프라인 유입과 지역 키워드 노출을 동시에 확보하세요.</p>
                                         </div>
                                         <div className="mb-8 min-h-[118px] border-y border-gray-100 py-6">
                                             <div className="flex items-end gap-1">
-                                                <span className="text-4xl font-black text-gray-900">10,000</span>
-                                                <span className="text-xl font-black text-gray-900">원</span>
+                                                <span className="text-4xl font-bold text-gray-900">10,000</span>
+                                                <span className="text-xl font-bold text-gray-900">원</span>
                                                 <span className="mb-0.5 ml-1 text-sm font-medium text-gray-400">/ 건당</span>
                                             </div>
                                         </div>
@@ -295,20 +297,20 @@ function PricingContent() {
                                                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-50">
                                                     <Infinity className="h-4 w-4 text-purple-600" />
                                                 </div>
-                                                <h2 className="text-xl font-black text-gray-900">무제한 월 이용권</h2>
+                                                <h2 className="text-xl font-bold text-gray-900">무제한 월 이용권</h2>
                                             </div>
                                             <p className="text-sm leading-relaxed text-gray-500">리뷰가 많이 필요한 광고주라면, 다온뷰의 모든 체험단을 제한 없이 이용해 보세요.</p>
                                         </div>
                                         
                                         <div className="mb-8 relative rounded-2xl border-2 border-primary bg-primary/5 p-5 text-left transition-all">
-                                            <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-black text-white">BEST</span>
-                                            <p className="mb-1 text-xs font-black text-gray-500">{monthlyPlan.period}</p>
-                                            <p className="text-3xl font-black text-primary">
+                                            <span className="absolute -right-2 -top-2 rounded-full bg-primary px-2 py-0.5 text-2xs font-bold text-white">BEST</span>
+                                            <p className="mb-1 text-xs font-bold text-gray-500">{monthlyPlan.period}</p>
+                                            <p className="text-3xl font-bold text-primary">
                                                 {monthlyPlan.pricePerMonth.toLocaleString()}
                                                 <span className="ml-1 text-base font-bold text-gray-400">원/월</span>
                                             </p>
                                             <p className="mt-1 text-xs text-gray-500">총 {monthlyPlan.total.toLocaleString()}원</p>
-                                            <span className="mt-2 inline-block rounded-md bg-gray-200 px-2 py-0.5 text-xs font-black text-gray-600">
+                                            <span className="mt-2 inline-block rounded-md bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-600">
                                                 매월 자동 결제
                                             </span>
                                         </div>
@@ -330,7 +332,7 @@ function PricingContent() {
                             )}
 
                             <div className="mb-12">
-                                <h2 className="mb-6 text-xl font-black text-gray-900">자주 묻는 질문</h2>
+                                <h2 className="mb-6 text-xl font-bold text-gray-900">자주 묻는 질문</h2>
                                 <div className="flex flex-col gap-3">
                                     {FAQS.map((faq, i) => (
                                         <div key={i} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -350,15 +352,15 @@ function PricingContent() {
                             <div className="mb-10">
                                 <div className="mb-5 flex items-center gap-2">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-50"><RotateCcw className="h-4 w-4 text-amber-600" /></div>
-                                    <h2 className="text-xl font-black text-gray-900">환불 규정</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">환불 규정</h2>
                                 </div>
                                 <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                                        <div className="mb-3 flex items-center gap-2"><ShoppingBag className="h-4 w-4 shrink-0 text-blue-500" /><p className="text-sm font-black text-gray-800">단일 체험단 &amp; 1석 2조 체험단</p></div>
+                                        <div className="mb-3 flex items-center gap-2"><ShoppingBag className="h-4 w-4 shrink-0 text-blue-500" /><p className="text-sm font-bold text-gray-800">단일 체험단 &amp; 1석 2조 체험단</p></div>
                                         <div className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600">마음에 드는 인플루언서가 없어 선정을 안 하시거나, 모집 인원이 미달된 수량에 대해 <strong className="text-gray-900">100% 환불</strong>이 가능합니다.</p></div>
                                     </div>
                                     <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
-                                        <div className="mb-3 flex items-center gap-2"><Infinity className="h-4 w-4 shrink-0 text-purple-500" /><p className="text-sm font-black text-gray-800">무제한 월 이용권</p></div>
+                                        <div className="mb-3 flex items-center gap-2"><Infinity className="h-4 w-4 shrink-0 text-purple-500" /><p className="text-sm font-bold text-gray-800">무제한 월 이용권</p></div>
                                         <ul className="flex flex-col gap-2.5">
                                             <li className="flex items-start gap-2"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" /><p className="text-sm leading-relaxed text-gray-600"><strong className="text-gray-900">결제 후 7일 이내 + 미사용</strong> 상태면 전액 환불됩니다.</p></li>
                                             <li className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" /><p className="text-sm leading-relaxed text-gray-600">결제 후 유료 기능(캠페인 등록, 모집/선정 등) 사용 시작 후에는 당월 환불이 불가합니다.</p></li>
@@ -371,7 +373,7 @@ function PricingContent() {
                             <div className="mb-12">
                                 <div className="mb-5 flex items-center gap-2">
                                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-purple-50"><CalendarClock className="h-4 w-4 text-purple-600" /></div>
-                                    <h2 className="text-xl font-black text-gray-900">무제한 월 이용권 적용 규정</h2>
+                                    <h2 className="text-xl font-bold text-gray-900">무제한 월 이용권 적용 규정</h2>
                                 </div>
                                 <div className="divide-y divide-gray-50 rounded-2xl border border-gray-100 bg-white shadow-sm">
                                     <div className="flex items-start gap-4 px-6 py-4"><CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-purple-400" /><p className="text-sm leading-relaxed text-gray-600">무제한 월 이용권의 적용 기간은 <strong className="text-gray-900">결제가 확인된 날짜</strong>부터 시작됩니다. 결제가 늦어지는 경우 적용 시작일이 변경될 수 있습니다.</p></div>
@@ -382,9 +384,9 @@ function PricingContent() {
                             </div>
 
                             <div className="rounded-3xl border border-primary/10 bg-gradient-to-br from-primary/5 via-rose-50 to-orange-50 p-10 text-center">
-                                <p className="mb-2 text-2xl font-black text-gray-900">더 궁금한 점이 있으신가요?</p>
+                                <p className="mb-2 text-2xl font-bold text-gray-900">더 궁금한 점이 있으신가요?</p>
                                 <p className="mb-6 text-sm text-gray-500">담당자가 직접 안내드립니다. 부담 없이 문의해 주세요.</p>
-                                <Link href="/contact" className="inline-flex items-center gap-2 rounded-2xl bg-primary px-8 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90">
+                                <Link href="/contact" className={cn(buttonVariants({ size: 'lg' }), 'gap-2 bg-primary px-8 text-white hover:bg-primary/90')}>
                                     <MessageSquare size={16} />
                                     1:1 문의하기
                                 </Link>

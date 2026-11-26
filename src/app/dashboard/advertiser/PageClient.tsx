@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -177,8 +179,8 @@ export default function AdvertiserDashboard({ initialViewer, initialCampaigns = 
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <h3 className="font-black text-2xl tracking-tight">비즈니스 인증이 필요합니다</h3>
-                                        <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${profile?.biz_verification_status === 'PENDING' ? 'bg-amber-500 text-white' :
+                                        <h3 className="font-bold text-2xl tracking-tight">비즈니스 인증이 필요합니다</h3>
+                                        <div className={`px-3 py-1 rounded-full text-2xs font-bold uppercase tracking-widest ${profile?.biz_verification_status === 'PENDING' ? 'bg-amber-500 text-white' :
                                             profile?.biz_verification_status === 'REJECTED' ? 'bg-rose-500 text-white' : 'bg-white/20 text-white'
                                             }`}>
                                             {profile?.biz_verification_status === 'PENDING' ? '심사 대기 중' :
@@ -191,7 +193,7 @@ export default function AdvertiserDashboard({ initialViewer, initialCampaigns = 
                                     </p>
                                     <Link
                                         href="/dashboard/advertiser/verification"
-                                        className="inline-flex items-center gap-3 bg-primary text-white px-8 py-3.5 rounded-2xl font-black hover:shadow-[0_0_30px_rgba(244,63,94,0.4)] transition-all text-sm group/btn"
+                                        className={cn(buttonVariants({ size: 'lg' }), 'gap-3 bg-primary text-white px-8 group/btn')}
                                     >
                                         {profile?.biz_verification_status === 'PENDING' ? '인증 진행 현황 보기' : '지금 인증 요청하기'}
                                         <ArrowRight size={20} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -282,7 +284,7 @@ export default function AdvertiserDashboard({ initialViewer, initialCampaigns = 
                             </p>
                             <Link
                                 href="/dashboard/campaign/new"
-                                className="inline-flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1"
+                                className={cn(buttonVariants({ size: 'lg' }), 'gap-3 bg-primary text-white px-8')}
                             >
                                 <Plus size={24} /> 첫 캠페인 등록하기
                             </Link>

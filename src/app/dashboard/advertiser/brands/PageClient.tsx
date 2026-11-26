@@ -216,7 +216,7 @@ export default function BrandManagementPage() {
                         actions={
                             <>
                         <Button
-                            className="bg-primary hover:bg-primary-dark text-white rounded-xl py-6 px-8 text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105"
+                            size="lg" className="bg-primary hover:bg-primary-dark text-white px-8"
                             onClick={() => { resetForm(); setIsAddModalOpen(true); }}
                         >
                             <Plus className="mr-2" /> 새 브랜드 등록
@@ -273,7 +273,7 @@ export default function BrandManagementPage() {
                                                 {brand.logo_url ? (
                                                     <img src={brand.logo_url} alt="" className="w-full h-full object-cover rounded-2xl" />
                                                 ) : (
-                                                    <span className="font-black text-gray-300">{brand.name.substring(0, 1)}</span>
+                                                    <span className="font-bold text-gray-300">{brand.name.substring(0, 1)}</span>
                                                 )}
                                             </div>
                                             <DropdownMenu>
@@ -379,7 +379,7 @@ export default function BrandManagementPage() {
                     >
                         <DialogContent className="sm:max-w-[500px] rounded-3xl">
                             <DialogHeader>
-                                <DialogTitle className="text-2xl font-black">
+                                <DialogTitle className="text-2xl font-bold">
                                     {isAddModalOpen ? '새 브랜드 등록' : '브랜드 정보 수정'}
                                 </DialogTitle>
                             </DialogHeader>
@@ -419,13 +419,13 @@ export default function BrandManagementPage() {
                             <DialogFooter className="gap-2">
                                 <Button
                                     variant="ghost"
-                                    className="rounded-xl py-6 flex-1 font-bold"
+                                    size="lg" className="flex-1"
                                     onClick={() => { setIsAddModalOpen(false); setIsEditModalOpen(false); }}
                                 >
                                     취소
                                 </Button>
                                 <Button
-                                    className="bg-primary hover:bg-primary-dark text-white rounded-xl py-6 flex-1 font-bold"
+                                    size="lg" className="bg-primary hover:bg-primary-dark text-white flex-1"
                                     onClick={isAddModalOpen ? handleAddBrand : handleEditBrand}
                                     disabled={isProcessing}
                                 >

@@ -514,7 +514,7 @@ export default function AdvertiserApplicantsPage() {
                                             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                                                 <div className="space-y-2">
                                                     <div className="flex flex-wrap items-center gap-2">
-                                                        <h2 className="text-2xl font-black text-gray-900">{campaign.title}</h2>
+                                                        <h2 className="text-2xl font-bold text-gray-900">{campaign.title}</h2>
                                                         <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-600">
                                                             신청 {items.length}명
                                                         </span>
@@ -587,7 +587,7 @@ export default function AdvertiserApplicantsPage() {
                                                                 </div>
                                                                 <div className="min-w-0 space-y-2">
                                                                     <div>
-                                                                        <div className="text-lg font-black text-gray-900">{app.user.nickname}</div>
+                                                                        <div className="text-lg font-bold text-gray-900">{app.user.nickname}</div>
                                                                         <div className="text-xs text-gray-400">
                                                                             신청일 {new Date(app.created_at).toLocaleDateString()}
                                                                         </div>
@@ -664,13 +664,13 @@ export default function AdvertiserApplicantsPage() {
                                                                         <div className="flex flex-wrap gap-2">
                                                                             <button
                                                                                 onClick={() => handleExtensionAction(app.id, 'APPROVED')}
-                                                                                className="rounded-md bg-orange-500 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-orange-600"
+                                                                                className="rounded-md bg-orange-500 px-2.5 py-1 text-2xs font-bold text-white hover:bg-orange-600"
                                                                             >
                                                                                 승인(+7일)
                                                                             </button>
                                                                             <button
                                                                                 onClick={() => handleExtensionAction(app.id, 'REJECTED')}
-                                                                                className="rounded-md bg-gray-400 px-2.5 py-1 text-[11px] font-bold text-white hover:bg-gray-500"
+                                                                                className="rounded-md bg-gray-400 px-2.5 py-1 text-2xs font-bold text-white hover:bg-gray-500"
                                                                             >
                                                                                 거절
                                                                             </button>

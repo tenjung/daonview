@@ -1,5 +1,7 @@
 'use client';
 
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import DashboardPageHeader from '@/components/dashboard/DashboardPageHeader';
 import DashboardPageLayout from '@/components/dashboard/DashboardPageLayout';
 import { useCallback, useEffect, useState } from 'react';
@@ -201,7 +203,7 @@ export default function AdvertiserLandingPagesPage() {
 
                                     <div className="space-y-3">
                                         <div>
-                                            <label className="block text-[11px] font-bold text-gray-500 mb-1.5">구글폼 URL</label>
+                                            <label className="block text-2xs font-bold text-gray-500 mb-1.5">구글폼 URL</label>
                                             <input
                                                 type="url"
                                                 value={formUrlById[String(page.id)] || ''}
@@ -263,7 +265,7 @@ export default function AdvertiserLandingPagesPage() {
                             </p>
                             <Link
                                 href="/ai-service/landing-builder"
-                                className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-2xl font-black shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1"
+                                className={cn(buttonVariants({ size: 'lg' }), 'gap-2 bg-primary text-white px-8')}
                             >
                                 <Sparkles size={24} />
                                 첫 랜딩페이지 만들기

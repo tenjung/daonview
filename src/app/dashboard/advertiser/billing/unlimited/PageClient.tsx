@@ -11,6 +11,8 @@ import { useAuthStore } from '@/store/authStore';
 import { usePortonePayment } from '@/hooks/usePortonePayment';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
     ArrowLeft,
     Infinity,
@@ -133,20 +135,20 @@ function UnlimitedPaymentContent() {
 
                             {/* 선택된 이용권 + 혜택 통합 카드 */}
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-                                <h2 className="text-base font-black text-gray-900 mb-4 flex items-center gap-2">
+                                <h2 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
                                     <Clock size={16} className="text-purple-500" />
                                     선택된 이용권
                                 </h2>
 
                                 <div className="relative rounded-2xl border-2 border-purple-500 bg-purple-50 p-5 text-left">
                                     <div className="flex justify-between items-start mb-3">
-                                        <p className="text-sm font-black text-purple-700">무제한 월 이용권</p>
-                                        <span className="inline-block px-2.5 py-1 bg-white rounded-md text-[10px] font-black text-purple-600 shadow-sm border border-purple-100">
+                                        <p className="text-sm font-bold text-purple-700">무제한 월 이용권</p>
+                                        <span className="inline-block px-2.5 py-1 bg-white rounded-md text-2xs font-bold text-purple-600 shadow-sm border border-purple-100">
                                             매월 자동 결제
                                         </span>
                                     </div>
                                     <div className="flex items-baseline gap-1 mb-1">
-                                        <p className="text-3xl font-black text-gray-900">
+                                        <p className="text-3xl font-bold text-gray-900">
                                             {selectedPlan.pricePerMonth.toLocaleString()}
                                         </p>
                                         <span className="text-sm font-bold text-gray-500">원/월</span>
@@ -160,7 +162,7 @@ function UnlimitedPaymentContent() {
                                 <div className="mt-4 pt-4 border-t border-gray-100">
                                     <div className="flex items-center gap-2 mb-3">
                                         <Zap size={14} className="text-amber-500" />
-                                        <p className="text-xs font-black text-gray-700 uppercase tracking-wide">이용권 포함 혜택</p>
+                                        <p className="text-xs font-bold text-gray-700 uppercase tracking-wide">이용권 포함 혜택</p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-2">
                                         {FEATURES.map((f, i) => (
@@ -176,11 +178,11 @@ function UnlimitedPaymentContent() {
                             {/* 결제 수단 - 카드 전용 */}
                             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
                                 <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-base font-black text-gray-900 flex items-center gap-2">
+                                    <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                                         <CreditCard size={16} className="text-gray-500" />
                                         결제 수단
                                     </h2>
-                                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-medium">
+                                    <div className="flex items-center gap-1.5 text-2xs text-gray-400 font-medium">
                                         <Lock size={11} className="text-green-500" />
                                         <span>데이터 암호화 처리</span>
                                     </div>
@@ -196,12 +198,12 @@ function UnlimitedPaymentContent() {
                                             <CreditCard size={22} strokeWidth={2.5} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">신용카드 / 체크카드</span>
-                                            <span className="text-[13px] text-gray-500 font-medium">VISA, MasterCard, 국내 전 카드사</span>
+                                            <span className="font-bold text-sm text-gray-900 leading-none mb-1">신용카드 / 체크카드</span>
+                                            <span className="text-body-sm text-gray-500 font-medium">VISA, MasterCard, 국내 전 카드사</span>
                                         </div>
                                     </div>
                                 </div>
-                                <p className="text-[11px] text-gray-400 mt-3 px-1">
+                                <p className="text-2xs text-gray-400 mt-3 px-1">
                                     정기결제(자동 갱신)는 카드 결제만 지원됩니다. 등록된 카드로 매월 자동 결제됩니다.
                                 </p>
                             </div>
@@ -211,7 +213,7 @@ function UnlimitedPaymentContent() {
                         <div className="lg:col-span-2">
                             <div className="sticky top-8">
                                 <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-                                    <h2 className="text-base font-black text-gray-900 mb-5">결제 요약</h2>
+                                    <h2 className="text-base font-bold text-gray-900 mb-5">결제 요약</h2>
 
                                     {/* 약관 동의 */}
                                     <div className="mb-5 rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -249,15 +251,15 @@ function UnlimitedPaymentContent() {
                                                 <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
                                                     <Infinity size={12} className="text-purple-600" />
                                                 </div>
-                                                <span className="text-sm font-black text-purple-700">무제한 월 이용권</span>
+                                                <span className="text-sm font-bold text-purple-700">무제한 월 이용권</span>
                                             </div>
-                                            <span className="text-[10px] font-bold text-purple-600 bg-purple-100/50 px-2 py-1 rounded-md">매월 결제</span>
+                                            <span className="text-2xs font-bold text-purple-600 bg-purple-100/50 px-2 py-1 rounded-md">매월 결제</span>
                                         </div>
                                         <div>
-                                            <p className="text-2xl font-black text-gray-900">
+                                            <p className="text-2xl font-bold text-gray-900">
                                                 {selectedPlan.total.toLocaleString()}<span className="text-sm font-bold text-gray-500 ml-0.5">원</span>
                                             </p>
-                                            <p className="text-[11px] text-gray-400 mt-0.5">VAT 별도 금액</p>
+                                            <p className="text-2xs text-gray-400 mt-0.5">VAT 별도 금액</p>
                                         </div>
                                     </div>
 
@@ -276,17 +278,17 @@ function UnlimitedPaymentContent() {
                                     {/* 최종 금액 */}
                                     <div className="flex justify-between items-center border-t border-gray-100 pt-4 mb-2">
                                         <div>
-                                            <span className="font-black text-gray-900">최종 결제금액</span>
-                                            <p className="text-[10px] text-gray-400 font-medium mt-0.5">부가세(VAT) 포함</p>
+                                            <span className="font-bold text-gray-900">최종 결제금액</span>
+                                            <p className="text-2xs text-gray-400 font-medium mt-0.5">부가세(VAT) 포함</p>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-3xl font-black text-primary">
+                                            <span className="text-3xl font-bold text-primary">
                                                 {totalWithVat.toLocaleString()}
                                             </span>
-                                            <span className="text-base font-black text-primary ml-0.5">원</span>
+                                            <span className="text-base font-bold text-primary ml-0.5">원</span>
                                         </div>
                                     </div>
-                                    <p className="text-[11px] text-gray-400 text-right mb-6">
+                                    <p className="text-2xs text-gray-400 text-right mb-6">
                                         매월 자동 결제 · 언제든지 해지 가능
                                     </p>
 
@@ -294,11 +296,11 @@ function UnlimitedPaymentContent() {
                                     <button
                                         onClick={handlePayment}
                                         disabled={isProcessing}
-                                        className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
+                                        className={cn(buttonVariants({ size: 'lg' }), 'w-full',
                                             isProcessing
                                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                                : 'bg-gray-900 text-white hover:bg-black shadow-lg active:scale-[0.99]'
-                                        }`}
+                                                : 'bg-gray-900 text-white hover:bg-black'
+                                        )}
                                     >
                                         {isProcessing ? (
                                             <>
@@ -315,17 +317,17 @@ function UnlimitedPaymentContent() {
 
                                     {/* 신뢰 배지 */}
                                     <div className="mt-4 flex items-center justify-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-100">
-                                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+                                        <div className="flex items-center gap-1.5 text-2xs text-gray-500 font-medium">
                                             <Lock size={11} className="text-green-500" />
                                             SSL 보안
                                         </div>
                                         <div className="w-px h-3 bg-gray-200" />
-                                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+                                        <div className="flex items-center gap-1.5 text-2xs text-gray-500 font-medium">
                                             <Shield size={11} className="text-blue-500" />
                                             개인정보 암호화
                                         </div>
                                         <div className="w-px h-3 bg-gray-200" />
-                                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500 font-medium">
+                                        <div className="flex items-center gap-1.5 text-2xs text-gray-500 font-medium">
                                             <CheckCircle2 size={11} className="text-purple-500" />
                                             안전 결제
                                         </div>
