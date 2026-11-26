@@ -17,6 +17,20 @@ IMAP 활성화와 메일함 비밀번호는 필요하지 않다. Resend 발송�
   하나의 DB 트랜잭션이다. DB 장애에는 500, 인증서 다운로드 장애에는 503을 반환해 재시도시킨다.
 - 전체 메일 본문을 저장하지 않는다. 수신 주소·시각·제목·메시지 ID·SMTP 상태·오류 응답만 저장한다.
 
+## SES 계정 차단 목록 자동 반영 (AWS 콘솔 설정 불필요)
+
+SNS 연결 전에도 반송을 자동으로 잡기 위한 경로. 기존 SES 발송 키로 계정 차단 목록을 읽는다.
+
+- 크론 `/api/cron/sync-email-suppression`: 매일 18:00 KST(`0 9 * * *` UTC, Hobby 플랜은 해당 시간대 안에서 실행). `CRON_SECRET` 필요.
+- 최근 3일 동안 차단 목록에 오르거나 갱신된 주소를 `GetSuppressedDestination`으로 읽어 `SES_SUPPRESSION` 기록으로 저장(`record_email_feedback`).
+  - 차단 목록에는 영구 반송·스팸 신고만 오른다. 반송은 `PERMANENT`/`SUPPRESSED`로 저장되어 회원 상태가 `BOUNCED`가 된다.
+  - 같은 메시지 ID의 반송 기록(수동 `MAILBOX_IMPORT` 포함)이 이미 있으면 건너뛴다. 처리·해제한 보류가 다시 열리지 않는다.
+  - 선정 메일 반송이면 기존 트리거가 `selection_email_holds` 보류를 만든다.
+- 새 보류가 생기면 `ADMIN_INQUIRY_EMAIL`(제휴 문의 알림과 같은 수신자)로 알림 메일 1통. 메일 실패는 보류 저장에 영향 없음.
+- 한계: 메일함 용량 초과 같은 일시 반송은 차단 목록에 오르지 않으므로 수동 등록이 필요하다.
+- 차단 목록에 오른 주소는 SES가 이후 발송을 버린다. 선정 안내는 보류 칸의 카톡 발송을 사용한다.
+- 테스트: `node --test scripts/test-ses-suppression.mjs`
+
 ## 운영 적용 순서 (승인 후)
 
 1. `supabase/migrations/20261118093904_email_feedback.sql`을 적용한다.

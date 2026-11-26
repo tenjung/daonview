@@ -625,6 +625,63 @@ export const sendAdminPartnerInquiryEmail = async (params: AdminPartnerInquiryEm
   return sendAdminEmail(ADMIN_PARTNER_INQUIRY_EMAIL, subject, html);
 };
 
+export interface AdminEmailHoldNoticeItem {
+  applicationId: number;
+  campaignId: number;
+  campaignTitle: string;
+  influencerName: string;
+  occurredAt: string;
+}
+
+/** 반송 자동 확인(크론)으로 새 선정 메일 보류가 생겼을 때 관리자에게 1통 알린다. 수신자 주소는 본문에 넣지 않는다. */
+export const sendAdminEmailHoldNotice = async (items: AdminEmailHoldNoticeItem[]) => {
+  const formatter = new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+  const subject = `[다온뷰] 선정 메일 반송 ${items.length}건을 보류로 전환했습니다`;
+  const rowsHtml = items.map((item) => `
+      <tr>
+        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #0f172a; font-size: 14px; font-weight: 700;">${escapeHtml(item.influencerName)}</td>
+        <td style="padding: 12px 14px; border-bottom: 1px solid #e2e8f0; color: #334155; font-size: 14px;">
+          <a href="https://daonview.com/dashboard/admin/campaigns/${item.campaignId}" style="color: #e11d48; text-decoration: none;">${escapeHtml(item.campaignTitle)}</a>
+          <div style="margin-top: 4px; color: #94a3b8; font-size: 12px;">신청 #${item.applicationId} · 반송 ${escapeHtml(formatter.format(new Date(item.occurredAt)))}</div>
+        </td>
+      </tr>
+    `).join('');
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+      </head>
+      <body style="margin:0; padding:0; background:#f8fafc;">
+        <div style="font-family: Pretendard, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 640px; margin: 0 auto; padding: 32px 20px; color: #334155;">
+          <div style="border-radius: 24px; background: #ffffff; border: 1px solid #e2e8f0; overflow: hidden;">
+            <div style="padding: 28px; background: linear-gradient(135deg, #fff1f5 0%, #eef2ff 100%);">
+              <div style="font-size: 13px; font-weight: 900; color: #e11d48; letter-spacing: 0.18em;">EMAIL BOUNCE</div>
+              <h1 style="margin: 10px 0 0; font-size: 22px; line-height: 1.4; color: #0f172a;">선정 메일 반송 ${items.length}건을 보류로 전환했습니다.</h1>
+              <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: #475569;">이 주소로는 메일을 다시 보내도 전달되지 않습니다. 캠페인 신청자 표의 보류 칸에서 카톡으로 안내해 주세요.</p>
+            </div>
+            <div style="padding: 28px;">
+              <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0;">
+                <thead>
+                  <tr>
+                    <th style="width: 120px; padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px; text-align: left;">인플루언서</th>
+                    <th style="padding: 12px 14px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 13px; text-align: left;">캠페인</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return sendAdminEmail(ADMIN_PARTNER_INQUIRY_EMAIL, subject, html);
+};
+
 /**
  * AWS SES를 사용한 이메일 전송 함수
  * 수신 거부 상태를 확인하고 이메일을 발송합니다.
