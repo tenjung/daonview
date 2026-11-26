@@ -236,7 +236,9 @@ export async function POST(request: Request) {
         );
       }
 
-      assignedRow = (Array.isArray(rpcRows) ? rpcRows[0] : rpcRows) as AssignedApplicationRow | null;
+      // RPC는 신청 ID를 application_id로 반환한다. 선정 메일 추적(begin_selection_email_delivery)에 id가 필요하다.
+      const rpcRow = (Array.isArray(rpcRows) ? rpcRows[0] : rpcRows) as (Omit<AssignedApplicationRow, 'id'> & { application_id: number }) | null;
+      assignedRow = rpcRow ? { ...rpcRow, id: rpcRow.application_id } : null;
     } else {
       if (optionCandidates.length && !allowedOptionKeys.has(normalizeOptionKey(resolvedOptionLabel))) {
         return NextResponse.json({ error: '신청자가 선택한 옵션 범위 밖의 값입니다.' }, { status: 400 });

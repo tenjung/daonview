@@ -262,7 +262,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const notificationResult = await notifySelectedApplication(campaign, application.user_id, assignedRow);
+    // RPC는 신청 ID를 application_id로 반환한다. 선정 메일 추적에 id가 필요하다.
+    const notificationResult = await notifySelectedApplication(campaign, application.user_id, { ...assignedRow, id: assignedRow.application_id });
 
     return NextResponse.json({
       cacheWarning: invalidatePublicCampaigns([campaignId]),
