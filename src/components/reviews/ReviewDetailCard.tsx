@@ -12,13 +12,6 @@ import { StatusBadge } from '@/components/dashboard/StatusBadge';
 import { cn } from '@/lib/utils';
 import type { ManagedReview, ReviewEmailNotification } from '@/types/reviewManagement';
 
-export const maskAccountNumber = (value: string | null) => {
-  if (!value) return '미등록';
-  const compact = value.replace(/\s/g, '');
-  if (compact.length <= 4) return '*'.repeat(compact.length);
-  return `${compact.slice(0, 3)}${'*'.repeat(Math.max(4, compact.length - 6))}${compact.slice(-3)}`;
-};
-
 const STATUS_CHANGE_MESSAGES: Record<string, string> = {
   APPROVED: '리뷰를 승인했습니다.',
   REJECTED: '리뷰를 거절했습니다.',
@@ -34,7 +27,6 @@ interface ReviewDetailCardProps {
 }
 
 export function ReviewDetailCard({ review, onStatusChanged, bare = false }: ReviewDetailCardProps) {
-  const [isAccountRevealed, setIsAccountRevealed] = useState(false);
   const [changingStatus, setChangingStatus] = useState<string | null>(null);
   const hasReviewUrl = /^https?:\/\//i.test(review.post_url);
 
@@ -118,12 +110,9 @@ export function ReviewDetailCard({ review, onStatusChanged, bare = false }: Revi
               <dl className="grid grid-cols-[64px_1fr] gap-x-3 gap-y-2 text-sm">
                 <dt className="text-amber-700">은행</dt><dd className="font-semibold text-gray-900">{review.bank_name || '미등록'}</dd>
                 <dt className="text-amber-700">예금주</dt><dd className="font-semibold text-gray-900">{review.account_holder || '미등록'}</dd>
-                <dt className="text-amber-700">계좌번호</dt><dd className="break-all font-mono font-semibold text-gray-900">{isAccountRevealed ? review.account_number || '미등록' : maskAccountNumber(review.account_number)}</dd>
+                <dt className="text-amber-700">계좌번호</dt><dd className="break-all font-mono font-semibold text-gray-900">{review.account_number || '미등록'}</dd>
               </dl>
               <div className="mt-4 flex gap-2">
-                <Button type="button" size="sm" variant="outline" onClick={() => setIsAccountRevealed((current) => !current)} className="border-amber-300 bg-white text-amber-900">
-                  {isAccountRevealed ? <EyeOff className="mr-1 h-4 w-4" /> : <Eye className="mr-1 h-4 w-4" />}{isAccountRevealed ? '숨기기' : '전체 보기'}
-                </Button>
                 <Button type="button" size="sm" variant="outline" onClick={copyAccount} disabled={!review.account_number} className="border-amber-300 bg-white text-amber-900"><Copy className="mr-1 h-4 w-4" />복사</Button>
               </div>
             </div>
