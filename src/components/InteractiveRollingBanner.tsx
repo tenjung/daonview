@@ -179,19 +179,19 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
                                                 <div className="flex justify-between items-start">
                                                     <div className="flex gap-2">
                                                         {item.badge && (
-                                                            <Badge className={`px-3 py-1 rounded-full text-[12px] font-medium tracking-widest text-white shadow-lg border-none ${item.badge === 'NEW' ? 'bg-blue-600' :
+                                                            <Badge className={`px-3 py-1 rounded-full text-xs font-medium tracking-widest text-white shadow-lg border-none ${item.badge === 'NEW' ? 'bg-blue-600' :
                                                                 item.badge === 'HOT' ? 'bg-red-600' : 'bg-rose-500'
                                                                 }`}>
                                                                 {item.badge}
                                                             </Badge>
                                                         )}
                                                         {item.isBest && (
-                                                            <Badge className="px-3 py-1 rounded-full text-[12px] font-medium tracking-widest text-white shadow-lg border-none bg-amber-500">
+                                                            <Badge className="px-3 py-1 rounded-full text-xs font-medium tracking-widest text-white shadow-lg border-none bg-amber-500">
                                                                 BEST
                                                             </Badge>
                                                         )}
                                                         {item.extra_badge && (
-                                                            <Badge className={`px-3 py-1 rounded-full text-[12px] font-medium tracking-widest text-white shadow-lg border-none ${item.extra_badge === '방문' ? 'bg-indigo-600' :
+                                                            <Badge className={`px-3 py-1 rounded-full text-xs font-medium tracking-widest text-white shadow-lg border-none ${item.extra_badge === '방문' ? 'bg-indigo-600' :
                                                                 item.extra_badge === '배송' ? 'bg-emerald-600' : 'bg-slate-500'
                                                                 }`}>
                                                                 {item.extra_badge}
@@ -221,7 +221,7 @@ export default function InteractiveRollingBanner({ initialItems = [] }: BannerPr
 
                                             {/* Subtle Watermark */}
                                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.04] pointer-events-none select-none">
-                                                <h1 className="text-[8rem] font-black text-white rotate-[-10deg] whitespace-nowrap">DAON</h1>
+                                                <h1 className="text-[8rem] font-bold text-white rotate-[-10deg] whitespace-nowrap">DAON</h1>
                                             </div>
                                         </CardContent>
                                     </Card>

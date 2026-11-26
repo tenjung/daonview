@@ -409,7 +409,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                                 <td className="px-4 py-4">
                                                     <div className="flex flex-col gap-1">
                                                         <div className="font-medium text-gray-900">{advertiserName}</div>
-                                                        {isAdmin && <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-bold w-fit">ADMIN</span>}
+                                                        {isAdmin && <span className="text-2xs px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-bold w-fit">ADMIN</span>}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4">
@@ -423,13 +423,13 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                                             </div>
                                                         </div>
                                                         <span className="text-sm font-bold text-red-600 whitespace-nowrap">
-                                                            {analysis.applicantCount} / {analysis.targetCount >= 999 ? <span className="text-indigo-600 font-black text-base">∞</span> : `${analysis.targetCount}명`}
+                                                            {analysis.applicantCount} / {analysis.targetCount >= 999 ? <span className="text-indigo-600 font-bold text-base">∞</span> : `${analysis.targetCount}명`}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-4 text-sm">
                                                     {analysis.isAutoExtend ? (
-                                                        <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
+                                                        <span className="text-2xs font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                                     ) : (
                                                         <div className="font-bold text-red-600">D-{analysis.daysLeft}</div>
                                                     )}
@@ -447,7 +447,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                                                 </button>
                                                             </DropdownMenuTrigger>
                                                             <DropdownMenuContent align="end" className="z-[80] min-w-[170px]">
-                                                                <DropdownMenuLabel className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
+                                                                <DropdownMenuLabel className="px-2 py-1 text-2xs text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
                                                                 {[3, 7, 14].map((days) => (
                                                                     <DropdownMenuItem
                                                                         key={days}
@@ -497,10 +497,10 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                         <div>
                                             <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{campaign.title}</h3>
                                             <div className="text-sm text-gray-500">
-                                                신청 현황: {analysis.targetCount > 0 ? `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)` : <span className="text-sky-600 font-extrabold">{analysis.applicantCount}명</span>} |
+                                                신청 현황: {analysis.targetCount > 0 ? `${analysis.applicantCount}/${analysis.targetCount}명 (${Math.round(analysis.applicationRate)}%)` : <span className="text-sky-600 font-bold">{analysis.applicantCount}명</span>} |
                                                 <span className="ml-2 font-bold text-yellow-600">
                                                     {analysis.isAutoExtend ? (
-                                                        <span className="text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
+                                                        <span className="text-2xs font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                                     ) : `D-${analysis.daysLeft}`}
                                                 </span>
                                             </div>
@@ -517,7 +517,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                                     </button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end" className="z-[80] min-w-[190px]">
-                                                    <DropdownMenuLabel className="px-2 py-1 text-[11px] text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
+                                                    <DropdownMenuLabel className="px-2 py-1 text-2xs text-gray-500 font-semibold">빠른 연장</DropdownMenuLabel>
                                                     {[3, 7, 14].map((days) => (
                                                         <DropdownMenuItem
                                                             key={days}
@@ -618,7 +618,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                 >
                                     <div className="flex items-start justify-between gap-2 mb-1.5">
                                         <div className="flex flex-wrap items-center gap-1 min-w-0">
-                                            <span className="text-[11px] font-bold text-gray-400 mr-0.5">#{campaign.id}</span>
+                                            <span className="text-2xs font-bold text-gray-400 mr-0.5">#{campaign.id}</span>
                                             <TypeBadge type={campaign.type ?? undefined} />
                                             <CampaignPlatformBadges
                                                 type={campaign.type}
@@ -627,7 +627,7 @@ export default function AdminDashboardClient({ initialCampaigns, stats }: AdminD
                                             />
                                         </div>
                                         {analysis.isAutoExtend && (
-                                            <span className="shrink-0 text-[11px] font-black text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
+                                            <span className="shrink-0 text-2xs font-bold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">자동연장</span>
                                         )}
                                     </div>
                                     <h3 className="font-bold text-gray-900 text-sm leading-snug line-clamp-2 min-h-[2.5rem]">{campaign.title}</h3>

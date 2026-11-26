@@ -30,7 +30,7 @@ export default function DashboardPageHeader({
     >
       <div className="min-w-0">
         {eyebrow && <div className="mb-2">{eyebrow}</div>}
-        <h1 className="text-xl sm:text-2xl font-black text-gray-900 flex items-center gap-2 sm:gap-3 tracking-tight">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3 tracking-tight">
           {Icon && <Icon className="w-6 h-6 sm:w-7 sm:h-7 text-primary shrink-0" />}
           <span className="min-w-0 break-keep">{title}</span>
         </h1>

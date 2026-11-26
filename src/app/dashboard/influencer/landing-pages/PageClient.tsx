@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { Sparkles, ExternalLink, Plus, Save, Copy, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function InfluencerLandingPagesPage() {
     const { user, profile, isLoading: authLoading } = useAuthStore();
@@ -263,7 +265,7 @@ export default function InfluencerLandingPagesPage() {
                             </p>
                             <Link
                                 href="/ai-service/landing-builder"
-                                className="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1"
+                                className={cn(buttonVariants({ size: 'lg' }), 'px-8')}
                             >
                                 <Sparkles size={24} />
                                 첫 랜딩페이지 만들기

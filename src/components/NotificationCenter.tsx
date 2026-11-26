@@ -161,7 +161,7 @@ export default function NotificationCenter() {
           {unreadCount > 0 && (
             <span className="absolute top-[1.5px] right-[1.5px] flex h-[14px] w-[14px]">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-[14px] w-[14px] bg-rose-500 text-[8px] font-bold text-white items-center justify-center">
+              <span className="relative inline-flex rounded-full h-[14px] w-[14px] bg-rose-500 text-2xs font-bold text-white items-center justify-center">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             </span>
@@ -172,11 +172,11 @@ export default function NotificationCenter() {
         <div className="bg-white">
           {/* Header */}
           <div className="p-5 pb-3 flex items-center justify-between">
-            <h3 className="text-lg font-black text-slate-900">알림</h3>
+            <h3 className="text-lg font-bold text-slate-900">알림</h3>
             {unreadCount > 0 && (
               <button 
                 onClick={handleMarkAllAsRead}
-                className="text-[11px] font-bold text-slate-400 hover:text-rose-500 transition-colors"
+                className="text-2xs font-bold text-slate-400 hover:text-rose-500 transition-colors"
               >
                 모두 읽음 처리
               </button>
@@ -189,7 +189,7 @@ export default function NotificationCenter() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`pb-3 text-[13px] font-black transition-all relative ${
+                className={`pb-3 text-body-sm font-bold transition-all relative ${
                   resolvedActiveTab === tab.key ? 'text-rose-500' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -227,14 +227,14 @@ export default function NotificationCenter() {
                       </div>
                       <div className="flex-1 space-y-1.5 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <p className={`text-[13px] leading-snug break-all ${
+                          <p className={`text-body-sm leading-snug break-all ${
                             isNew ? 'font-bold text-slate-900' : isSeenCampaign ? 'text-slate-400 font-medium' : 'text-slate-600 font-medium'
                           }`}>
                             {notification.title}
                           </p>
                           <div className="flex items-center gap-1 shrink-0">
-                            {isUrgent && <Badge className="bg-red-100 text-red-600 border-red-200 hover:bg-red-100 text-[9px] px-1.5 py-0">긴급</Badge>}
-                            {isNew && <Badge className="bg-rose-100 text-rose-600 border-rose-200 hover:bg-rose-100 text-[9px] px-1.5 py-0">신규</Badge>}
+                            {isUrgent && <Badge className="bg-red-100 text-red-600 border-red-200 hover:bg-red-100 text-2xs px-1.5 py-0">긴급</Badge>}
+                            {isNew && <Badge className="bg-rose-100 text-rose-600 border-rose-200 hover:bg-rose-100 text-2xs px-1.5 py-0">신규</Badge>}
                             {!notification.is_read && !isNew && (
                               <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shadow-sm shadow-rose-200" />
                             )}
@@ -244,13 +244,13 @@ export default function NotificationCenter() {
                           {notification.content}
                         </p>
                         <div className="flex items-center justify-between pt-1">
-                          <p className={`text-[10px] font-bold uppercase tracking-wider ${isSeenCampaign ? 'text-slate-300' : 'text-slate-400'}`}>
+                          <p className={`text-2xs font-bold uppercase tracking-wider ${isSeenCampaign ? 'text-slate-300' : 'text-slate-400'}`}>
                             {formatTimeAgo(notification.created_at)}
                           </p>
                           {notification.link && (
                             <Link 
                               href={notification.link}
-                              className="text-[11px] font-black text-rose-500 flex items-center gap-0.5 hover:scale-105 transition-transform origin-right"
+                              className="text-2xs font-bold text-rose-500 flex items-center gap-0.5 hover:scale-105 transition-transform origin-right"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 void handleRead(notification);
@@ -272,7 +272,7 @@ export default function NotificationCenter() {
                 <div className="w-20 h-20 rounded-[2.5rem] bg-slate-50 flex items-center justify-center mb-6 rotate-12 group-hover:rotate-0 transition-transform">
                   <Bell className="w-10 h-10 text-slate-200" />
                 </div>
-                <p className="text-base font-black text-slate-900">알림이 비어있어요</p>
+                <p className="text-base font-bold text-slate-900">알림이 비어있어요</p>
                 <p className="text-xs text-slate-400 mt-2 font-medium leading-relaxed">
                   다온뷰에서 전해드리는<br />중요한 소식들을 여기서 확인하세요!
                 </p>
@@ -283,7 +283,7 @@ export default function NotificationCenter() {
           <div className="p-4 bg-slate-50/50 border-t border-slate-100">
             <Link 
               href="/dashboard/notifications" 
-              className="w-full h-11 flex items-center justify-center rounded-2xl bg-white border border-slate-100 text-[13px] font-black text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
+              className="w-full h-11 flex items-center justify-center rounded-2xl bg-white border border-slate-100 text-body-sm font-bold text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm"
             >
               전체 알림 보기
             </Link>

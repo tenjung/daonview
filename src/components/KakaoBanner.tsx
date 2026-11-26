@@ -18,10 +18,10 @@ export default function KakaoBanner() {
                         viewport={{ once: true }}
                         className="flex flex-col items-center lg:items-start shrink-0"
                     >
-                        <span className="text-[10px] font-black text-[#3A1D1D]/40 uppercase tracking-[0.2em] mb-1">Brand Identity</span>
+                        <span className="text-2xs font-bold text-[#3A1D1D]/40 uppercase tracking-[0.2em] mb-1">Brand Identity</span>
                         <div className="flex flex-col leading-none">
-                            <span className="text-2xl lg:text-3xl font-black text-[#3A1D1D]">GROW WITH</span>
-                            <span className="text-3xl lg:text-5xl font-black brand-text-gradient">DAONVIEW</span>
+                            <span className="text-2xl lg:text-3xl font-bold text-[#3A1D1D]">GROW WITH</span>
+                            <span className="text-3xl lg:text-5xl font-bold brand-text-gradient">DAONVIEW</span>
                         </div>
                     </motion.div>
 
@@ -34,10 +34,10 @@ export default function KakaoBanner() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
-                        className="text-[14px] md:text-lg lg:text-xl font-bold text-[#3A1D1D] leading-[1.7] text-center lg:text-left whitespace-nowrap lg:whitespace-normal"
+                        className="text-sm md:text-lg lg:text-xl font-bold text-[#3A1D1D] leading-[1.7] text-center lg:text-left whitespace-nowrap lg:whitespace-normal"
                     >
-                        광고주가 먼저 찾는 <span className="text-rose-600 font-black italic">인플루언서</span> 되는 법, 카톡 친구추가로<br />
-                        <span className="text-[#3A1D1D] font-black underline underline-offset-4 decoration-rose-500/30">실시간 캠페인 제안</span>과<br />
+                        광고주가 먼저 찾는 <span className="text-rose-600 font-bold italic">인플루언서</span> 되는 법, 카톡 친구추가로<br />
+                        <span className="text-[#3A1D1D] font-bold underline underline-offset-4 decoration-rose-500/30">실시간 캠페인 제안</span>과<br />
                         성장 리포트를 받아보세요.
                     </motion.p>
                 </div>
@@ -56,7 +56,7 @@ export default function KakaoBanner() {
                         rel="noopener noreferrer"
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="inline-flex items-center gap-3 bg-[#3A1D1D] text-white px-8 py-4 rounded-full font-black text-base shadow-2xl shadow-[#3A1D1D]/30 transition-all hover:bg-black whitespace-nowrap"
+                        className="inline-flex items-center gap-3 bg-[#3A1D1D] text-white px-8 py-4 rounded-full font-bold text-base shadow-2xl shadow-[#3A1D1D]/30 transition-all hover:bg-black whitespace-nowrap"
                     >
                         <MessageCircle className="w-5 h-5 fill-current text-[#FEE500]" />
                         다온뷰 채널 추가
@@ -102,20 +102,20 @@ export default function KakaoBanner() {
                         <div className="w-full h-full bg-[#BACEE0] flex flex-col pt-2 px-2 overflow-hidden">
                             {/* Profile Header */}
                             <div className="bg-white/90 backdrop-blur-sm rounded-lg lg:rounded-xl p-1.5 lg:p-2 mb-2 lg:mb-3 shadow-sm border border-black/5 flex items-center gap-1.5 lg:gap-2">
-                                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-rose-500 rounded-md lg:rounded-lg flex items-center justify-center font-black text-white text-[8px] lg:text-[10px] shrink-0 shadow-sm shadow-rose-500/30">DV</div>
+                                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-rose-500 rounded-md lg:rounded-lg flex items-center justify-center font-bold text-white text-2xs lg:text-2xs shrink-0 shadow-sm shadow-rose-500/30">DV</div>
                                 <div className="flex flex-col">
-                                    <span className="text-[8px] lg:text-[9px] font-black text-[#3A1D1D] leading-none mb-0.5">다온뷰</span>
+                                    <span className="text-2xs lg:text-2xs font-bold text-[#3A1D1D] leading-none mb-0.5">다온뷰</span>
                                     <div className="flex items-center gap-1">
                                         <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-blue-400 rounded-full flex items-center justify-center shrink-0">
                                             <div className="w-0.5 h-0.5 border-b border-r border-white rotate-45 mb-[0.1px] ml-[0.1px]"></div>
                                         </div>
-                                        <span className="text-[5px] lg:text-[6px] text-gray-400 font-bold">구독중</span>
+                                        <span className="text-2xs lg:text-2xs text-gray-400 font-bold">구독중</span>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Chat Bubbles */}
-                            <div className="space-y-1.5 lg:space-y-2 text-[6.5px] lg:text-[7px]">
+                            <div className="space-y-1.5 lg:space-y-2 text-[6.5px] lg:text-2xs">
                                 <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -145,7 +145,7 @@ export default function KakaoBanner() {
                                     className="bg-white/80 rounded-lg p-1.5 lg:p-2 border border-rose-500/10 overflow-hidden"
                                 >
                                     <div className="w-full h-8 lg:h-12 bg-rose-50 rounded mb-1 animate-pulse flex items-center justify-center">
-                                        <span className="text-[5px] lg:text-[6px] text-rose-300 font-bold uppercase">Premium List</span>
+                                        <span className="text-2xs lg:text-2xs text-rose-300 font-bold uppercase">Premium List</span>
                                     </div>
                                     <div className="h-0.5 lg:h-1 w-1/2 bg-gray-200 rounded shrink-0"></div>
                                 </motion.div>
@@ -160,7 +160,7 @@ export default function KakaoBanner() {
                         className="absolute top-[20%] right-[10%] lg:right-10 z-20 w-10 h-10 lg:w-12 lg:h-12 bg-[#FEE500] rounded-xl lg:rounded-2xl border-2 border-[#3A1D1D] shadow-xl flex items-center justify-center transform lg:translate-x-4"
                     >
                         <MessageCircle className="w-6 h-6 lg:w-7 lg:h-7 text-[#3A1D1D] fill-current" />
-                        <div className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-[8px] lg:text-[9px] font-black px-1 lg:px-1.5 py-0.5 rounded-full border-2 border-[#FEE500]">N</div>
+                        <div className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white text-2xs lg:text-2xs font-bold px-1 lg:px-1.5 py-0.5 rounded-full border-2 border-[#FEE500]">N</div>
                     </motion.div>
                 </div>
 

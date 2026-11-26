@@ -1,5 +1,11 @@
 import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+
+// tailwind.config.ts에 추가한 디자인 토큰(글자 2xs·body-sm·cta, 모서리 btn)을 알려 줘야
+// 색 클래스(text-white 등)와 합칠 때 글자 크기가 지워지지 않는다(docs/rules/design.md 3.8).
+const twMerge = extendTailwindMerge({
+    extend: { theme: { text: ['2xs', 'body-sm', 'cta'], radius: ['btn'] } },
+})
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))

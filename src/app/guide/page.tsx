@@ -54,7 +54,7 @@ export default function GuidePage() {
         <div className="bg-white pb-20">
             {/* Header */}
             <div className="bg-rose-50 py-16 text-center border-b border-rose-100">
-                <h1 className="text-4xl font-extrabold text-text-main mb-4">다온뷰 이용 가이드</h1>
+                <h1 className="text-4xl font-bold text-text-main mb-4">다온뷰 이용 가이드</h1>
                 <p className="text-text-secondary">누구나 쉽게 시작하는 인플루언서 라이프, 다온뷰와 함께하세요.</p>
             </div>
 

@@ -177,6 +177,7 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 | 보조 | 13px | `text-body-sm` | 400 |
 | 캡션 | 12px | `text-xs` | 500 |
 | 최소 | 11px | `text-2xs` | 500 |
+- 버튼 전용 15px는 `text-cta`(공통 `Button` lg·bottom 안에서만).
 - `text-[숫자px]` 임의 크기와 11px 미만 글자 금지(2단계에서 기존 사용처 정리).
 
 **버튼은 공통 `Button`(`src/components/ui/button.tsx`)의 크기만 사용**

@@ -30,6 +30,7 @@ const config: Config = {
             fontSize: {
                 '2xs': ['0.6875rem', { lineHeight: '1rem' }],        // 11px 최소
                 'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],  // 13px 보조
+                'cta': ['0.9375rem', { lineHeight: '1.25rem' }],      // 15px 주요 버튼(Button lg·bottom 전용)
             },
             colors: {
                 border: "hsl(var(--border))",

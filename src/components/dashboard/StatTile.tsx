@@ -38,7 +38,7 @@ export function StatTile({ label, value, tone, highlight, href, onClick, disable
   const content = (
     <>
       <span className={`absolute left-0 top-0 h-1 w-full sm:h-full sm:w-1 ${style.bar}`} />
-      <span className="text-[11px] sm:text-xs font-medium text-gray-500 whitespace-nowrap">{label}</span>
+      <span className="text-2xs sm:text-xs font-medium text-gray-500 whitespace-nowrap">{label}</span>
       <span className="text-lg sm:text-xl font-bold text-gray-900 leading-tight">{value.toLocaleString()}</span>
     </>
   )

@@ -23,8 +23,8 @@ const buttonVariants = cva(
       size: {
         sm: "h-8 px-3 text-body-sm font-medium",          // 32px: 표 안 동작
         default: "h-10 px-4",                              // 40px: 일반
-        lg: "h-11 px-6 text-[15px]",                       // 44px: 화면의 주요 동작 1개
-        bottom: "h-12 px-6 text-[15px] font-bold",         // 48px: 모바일 하단 고정 버튼만
+        lg: "h-11 px-6 text-cta",                      // 44px: 화면의 주요 동작 1개
+        bottom: "h-12 px-6 text-cta font-bold",        // 48px: 모바일 하단 고정 버튼만
         icon: "h-10 w-10",
       },
     },

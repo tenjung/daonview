@@ -7,7 +7,7 @@ export default function PrivacyPage() {
             <div className="container py-16">
                 {/* Header */}
                 <div className="mb-12">
-                    <h1 className="text-4xl font-black text-text-main mb-4">개인정보처리방침</h1>
+                    <h1 className="text-4xl font-bold text-text-main mb-4">개인정보처리방침</h1>
                     <p className="text-text-secondary">DAONVIEW는 회원님의 개인정보를 소중히 다룹니다.</p>
                 </div>
 

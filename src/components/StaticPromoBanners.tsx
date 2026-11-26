@@ -74,10 +74,10 @@ export default function StaticPromoBanners() {
 
                             {/* Content Section */}
                             <div className="flex-1 min-w-0 relative z-10 text-center md:text-left">
-                                <p className={`text-[8px] md:text-[10px] font-bold ${banner.accentColor} mb-0 md:mb-0.5 uppercase tracking-wider opacity-80 line-clamp-1`}>
+                                <p className={`text-2xs md:text-2xs font-bold ${banner.accentColor} mb-0 md:mb-0.5 uppercase tracking-wider opacity-80 line-clamp-1`}>
                                     {banner.title}
                                 </p>
-                                <h3 className={`text-[10px] sm:text-xs md:text-lg font-bold ${banner.textColor} truncate leading-tight mb-0 md:mb-0.5`}>
+                                <h3 className={`text-2xs sm:text-xs md:text-lg font-bold ${banner.textColor} truncate leading-tight mb-0 md:mb-0.5`}>
                                     {banner.subtitle}
                                 </h3>
                                 <p className={`hidden md:block ${banner.descColor} text-xs font-medium truncate`}>

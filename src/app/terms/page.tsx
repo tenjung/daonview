@@ -7,7 +7,7 @@ export default function TermsPage() {
             <div className="container py-16">
                 {/* Header */}
                 <div className="mb-12">
-                    <h1 className="text-4xl font-black text-text-main mb-4">운영정책</h1>
+                    <h1 className="text-4xl font-bold text-text-main mb-4">운영정책</h1>
                     <p className="text-text-secondary">DAONVIEW 서비스 이용약관 및 운영정책입니다.</p>
                 </div>
 

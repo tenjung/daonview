@@ -22,7 +22,7 @@ export default function ContactSidebar() {
   return (
     <aside className="w-full md:w-64 shrink-0">
       <div className="rounded-2xl border border-border bg-white p-4 shadow-sm">
-        <h2 className="px-2 pb-3 text-sm font-black text-slate-900">고객센터</h2>
+        <h2 className="px-2 pb-3 text-sm font-bold text-slate-900">고객센터</h2>
         <nav className="space-y-1">
           {CONTACT_LINKS.map((item: SidebarLink) => {
             const Icon = getContactIcon(item.icon);

@@ -51,7 +51,7 @@ export default function CampaignSection({
             <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold mb-3 tracking-wider ${badgeClassName}`}>
               {badge}
             </span>
-            <h2 className="text-xl md:text-3xl font-black text-text-main flex items-center gap-2">
+            <h2 className="text-xl md:text-3xl font-bold text-text-main flex items-center gap-2">
               {title} <span>{titleEmoji}</span>
             </h2>
           </div>

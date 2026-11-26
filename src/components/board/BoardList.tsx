@@ -60,7 +60,7 @@ export default function BoardList({
                     {/* Header */}
                     {!isStandalone && (
                         <div className="flex justify-between items-center mb-6 sm:mb-8 border-b border-gray-100 pb-4 sm:pb-6 px-4 sm:px-0">
-                            <h2 className="text-xl sm:text-2xl font-black flex items-center gap-2">
+                            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                                 {title} {icon && <span className="text-primary">{icon}</span>}
                             </h2>
                             <Link
@@ -111,7 +111,7 @@ export default function BoardList({
                                                          )
                                                      ) : (
                                                          <div className="w-full h-full flex flex-col items-center justify-center text-gray-200 gap-1">
-                                                             <div className="text-[10px] font-bold">DAONVIEW</div>
+                                                             <div className="text-2xs font-bold">DAONVIEW</div>
                                                          </div>
                                                      )}
                                                  </div>
@@ -121,7 +121,7 @@ export default function BoardList({
                                                  <div className="flex-1 min-w-0">
                                                      <div className="flex items-center gap-2 mb-0.5 overflow-hidden">
                                                          {!hideBadge && (
-                                                             <div className={`px-1.5 py-0.5 text-[9px] md:text-[10px] rounded-md md:rounded-lg font-bold flex-shrink-0 ${
+                                                             <div className={`px-1.5 py-0.5 text-2xs md:text-2xs rounded-md md:rounded-lg font-bold flex-shrink-0 ${
                                                                  (item.type?.toUpperCase() === 'EVENT' || item.type === '이벤트')
                                                                      ? 'bg-orange-100 text-orange-600'
                                                                      : (item.type?.toUpperCase() === 'NOTICE' || item.type === '공지' || item.type === '업데이트')
@@ -142,7 +142,7 @@ export default function BoardList({
                                                              </div>
                                                          )}
                                                          {!showThumbnails && (
-                                                             <div className="text-[15px] md:text-[17px] font-medium md:font-semibold text-text-main group-hover:text-primary transition-colors truncate">
+                                                             <div className="text-sm md:text-base font-medium md:font-semibold text-text-main group-hover:text-primary transition-colors truncate">
                                                                  {item.title}
                                                              </div>
                                                          )}
@@ -150,11 +150,11 @@ export default function BoardList({
 
                                                      {showThumbnails && (
                                                          <>
-                                                             <div className="text-[15px] md:text-lg font-medium md:font-semibold text-text-main group-hover:text-primary transition-colors truncate mb-1">
+                                                             <div className="text-sm md:text-lg font-medium md:font-semibold text-text-main group-hover:text-primary transition-colors truncate mb-1">
                                                                  {item.title}
                                                              </div>
                                                              <div
-                                                                 className="text-[11px] md:text-sm text-slate-400 md:text-slate-500 line-clamp-1 md:line-clamp-2 leading-relaxed"
+                                                                 className="text-2xs md:text-sm text-slate-400 md:text-slate-500 line-clamp-1 md:line-clamp-2 leading-relaxed"
                                                                  dangerouslySetInnerHTML={{
                                                                      __html: item.content?.replace(/<[^>]*>?/gm, '').substring(0, 150) + '...'
                                                                  }}
@@ -164,7 +164,7 @@ export default function BoardList({
                                                  </div>
 
                                                  {/* 메타 정보 (작성자, 날짜, 조회수) */}
-                                                 <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 text-[11px] md:text-[13px] text-slate-300 md:text-slate-400 whitespace-nowrap">
+                                                 <div className="flex items-center justify-between md:justify-end gap-3 md:gap-4 text-2xs md:text-body-sm text-slate-300 md:text-slate-400 whitespace-nowrap">
                                                      <div className="flex items-center gap-2 md:gap-3">
                                                          <span className="inline text-slate-300">{formatDate(item.created_at)}</span>
                                                          <span className="w-px h-2 bg-slate-100 md:hidden" />
@@ -174,7 +174,7 @@ export default function BoardList({
                                                              </span>
                                                          )}
                                                          <span className="w-px h-2 bg-slate-100 md:hidden" />
-                                                         <span className="text-[10px] md:text-xs">👁️ {item.view_count || 0}</span>
+                                                         <span className="text-2xs md:text-xs">👁️ {item.view_count || 0}</span>
                                                      </div>
                                                      <ChevronRight className={`hidden md:block w-4 h-4 text-slate-200 group-hover:text-primary transition-colors ${showThumbnails ? 'hidden sm:block' : ''}`} />
                                                  </div>

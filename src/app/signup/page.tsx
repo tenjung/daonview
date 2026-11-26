@@ -589,7 +589,7 @@ function SignupForm() {
                                 onChange={(e) => handleToggleAll(e.target.checked)}
                                 className="w-6 h-6 rounded-md border-slate-300 text-rose-500 focus:ring-rose-500 cursor-pointer accent-rose-500"
                             />
-                            <label htmlFor="agree-all" className="text-base font-black text-slate-800 cursor-pointer">
+                            <label htmlFor="agree-all" className="text-base font-bold text-slate-800 cursor-pointer">
                                 전체 동의하기
                             </label>
                         </div>
@@ -611,7 +611,7 @@ function SignupForm() {
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
-                                        <button type="button" className="text-[10px] text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
+                                        <button type="button" className="text-2xs text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
                                     </SheetTrigger>
                                     <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 border-l border-border bg-white outline-none">
                                         <div className="h-full flex flex-col">
@@ -642,7 +642,7 @@ function SignupForm() {
                                 </div>
                                 <Sheet>
                                     <SheetTrigger asChild>
-                                        <button type="button" className="text-[10px] text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
+                                        <button type="button" className="text-2xs text-slate-400 underline hover:text-slate-600 ml-4">보기</button>
                                     </SheetTrigger>
                                     <SheetContent side="right" className="w-full sm:max-w-[540px] p-0 border-l border-border bg-white outline-none">
                                         <div className="h-full flex flex-col">
@@ -670,7 +670,7 @@ function SignupForm() {
                                         <label htmlFor="agree-marketing" className="text-sm font-bold text-slate-600 cursor-pointer">
                                             <span className="text-slate-400 mr-1">[선택]</span> 마케팅 목적의 개인정보 수집 및 이용 동의
                                         </label>
-                                        <p className="text-[11px] leading-relaxed text-slate-400">
+                                        <p className="text-2xs leading-relaxed text-slate-400">
                                             캠페인 선정 결과, 가이드 전달 및 신규 캠페인 소식을 이메일로 받아보시겠습니까? 거절하시더라도 서비스 이용은 가능하나, 선정 알림 등 필수 정보 수신이 제한될 수 있습니다.
                                         </p>
                                     </div>

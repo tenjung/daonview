@@ -67,7 +67,7 @@ function DevRoleSwitcherInner() {
     <div className="fixed left-3 bottom-16 z-[90] text-xs">
       {open && (
         <div className="mb-2 w-40 rounded-lg border border-gray-200 bg-white p-1 shadow-xl">
-          <p className="px-2 py-1 text-[10px] font-bold text-gray-400">테스트 계정으로 전환</p>
+          <p className="px-2 py-1 text-2xs font-bold text-gray-400">테스트 계정으로 전환</p>
           {ROLE_OPTIONS.map((option) => (
             <button
               key={option.value}

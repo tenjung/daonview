@@ -13,10 +13,10 @@ const CampaignSkeleton = ({ variant = 'default', density = 'default' }: Campaign
                 {variant === 'favorite' ? (
                     <div className="flex flex-col items-center gap-2">
                         <Heart size={48} className="opacity-20 fill-current" />
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-30 px-3 py-1 bg-white rounded-full">Empty Slot</span>
+                        <span className="text-2xs font-bold uppercase tracking-widest opacity-30 px-3 py-1 bg-white rounded-full">Empty Slot</span>
                     </div>
                 ) : (
-                    <span className="text-4xl opacity-20 font-black text-center">Coming Soon</span>
+                    <span className="text-4xl opacity-20 font-bold text-center">Coming Soon</span>
                 )}
             </div>
         </div>

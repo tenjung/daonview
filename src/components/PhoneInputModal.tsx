@@ -50,7 +50,7 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
           </button>
           <div className="text-center">
             <div className="text-3xl mb-2 sm:text-5xl sm:mb-3">📱</div>
-            <h2 className="text-xl font-black text-gray-900 mb-1.5 sm:text-2xl sm:mb-2">
+            <h2 className="text-xl font-bold text-gray-900 mb-1.5 sm:text-2xl sm:mb-2">
               전화번호가 필요해요
             </h2>
             <p className="text-xs text-gray-600 sm:text-sm">
@@ -94,19 +94,19 @@ export default function PhoneInputModal({ userId, onComplete, onClose }: PhoneIn
               <div className="space-y-1.5 sm:space-y-2">
                 <div className="flex items-start gap-2">
                   <span className="text-sm">✨</span>
-                  <p className="text-[11px] text-gray-600 sm:text-xs">
+                  <p className="text-2xs text-gray-600 sm:text-xs">
                     캠페인 선정 시 카카오톡으로 즉시 알림
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-sm">⚡</span>
-                  <p className="text-[11px] text-gray-600 sm:text-xs">
+                  <p className="text-2xs text-gray-600 sm:text-xs">
                     중요한 공지사항 실시간 수신
                   </p>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-sm">🔒</span>
-                  <p className="text-[11px] text-gray-600 sm:text-xs">
+                  <p className="text-2xs text-gray-600 sm:text-xs">
                     개인정보는 안전하게 보호됩니다
                   </p>
                 </div>

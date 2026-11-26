@@ -24,7 +24,7 @@ export default function UnsubscribeSuccessPage() {
           </div>
         </div>
 
-        <h1 className="text-2xl font-extrabold text-slate-900 mb-2">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">
           수신 거부가 완료되었습니다
         </h1>
         <p className="text-slate-500 mb-8 leading-relaxed">

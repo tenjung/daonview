@@ -151,7 +151,7 @@ export function SelectionMessagePreviewModal({ open, onOpenChange, applicationId
                                             {kakao.error && !kakao.text ? (
                                                 <p className="p-4 text-sm text-red-600">{kakao.error}</p>
                                             ) : (
-                                                <p className="whitespace-pre-wrap break-words p-4 text-[13px] leading-relaxed text-gray-900">{kakao.text}</p>
+                                                <p className="whitespace-pre-wrap break-words p-4 text-body-sm leading-relaxed text-gray-900">{kakao.text}</p>
                                             )}
                                             {kakao.buttonName && (
                                                 <div className="border-t p-3">
@@ -161,7 +161,7 @@ export function SelectionMessagePreviewModal({ open, onOpenChange, applicationId
                                                 </div>
                                             )}
                                         </div>
-                                        {!kakao.templateExact && kakao.text && <p className="mt-2 text-center text-[11px] text-gray-700">승인 템플릿 원문을 못 불러와 변수 내용만 표시합니다.</p>}
+                                        {!kakao.templateExact && kakao.text && <p className="mt-2 text-center text-2xs text-gray-700">승인 템플릿 원문을 못 불러와 변수 내용만 표시합니다.</p>}
                                     </div>
                                     <PreviewSidePanel preview={preview} channel="KAKAO" />
                                 </div>

@@ -96,7 +96,7 @@ export default function FeaturesCarousel() {
 
                                     {/* 뱃지 - 디자인 포인트로 좌측 상단 이동 */}
                                     {feature.badge && (
-                                        <div className={`absolute top-0 left-10 bg-gradient-to-b ${feature.gradient.replace('/20', '')} text-white text-[9px] px-3 py-1.5 rounded-b-xl font-black tracking-widest shadow-sm z-20`}>
+                                        <div className={`absolute top-0 left-10 bg-gradient-to-b ${feature.gradient.replace('/20', '')} text-white text-2xs px-3 py-1.5 rounded-b-xl font-bold tracking-widest shadow-sm z-20`}>
                                             {feature.badge}
                                         </div>
                                     )}
@@ -105,16 +105,16 @@ export default function FeaturesCarousel() {
                                     <div className={`relative z-10 flex flex-col h-full`}>
                                         {/* 타이틀 세트 - 타이포그래피 강화 */}
                                         <div className="space-y-2 mb-4 mt-2">
-                                            <p className={`text-[9px] font-black uppercase tracking-[0.3em] text-slate-400 group-hover:text-slate-600 transition-colors`}>
+                                            <p className={`text-2xs font-bold uppercase tracking-[0.3em] text-slate-400 group-hover:text-slate-600 transition-colors`}>
                                                 {feature.subtitle}
                                             </p>
-                                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 leading-tight tracking-tighter group-hover:text-black transition-colors break-keep">
+                                            <h3 className="text-xl sm:text-2xl font-bold text-slate-800 leading-tight tracking-tighter group-hover:text-black transition-colors break-keep">
                                                 {feature.title}
                                             </h3>
                                         </div>
 
                                         {/* 설명 - 가독성 향상 */}
-                                        <p className="text-[13px] sm:text-[14px] text-slate-500 leading-relaxed break-keep font-medium opacity-80 group-hover:opacity-100 transition-opacity mt-2 max-w-[90%] lg:max-w-[85%]">
+                                        <p className="text-body-sm sm:text-sm text-slate-500 leading-relaxed break-keep font-medium opacity-80 group-hover:opacity-100 transition-opacity mt-2 max-w-[90%] lg:max-w-[85%]">
                                             {feature.description}
                                         </p>
                                     </div>

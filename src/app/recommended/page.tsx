@@ -175,10 +175,10 @@ export default function RecommendedCampaigns() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="text-center md:text-left">
             <div className="flex flex-col md:flex-row md:items-end gap-3 mb-2">
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
                 {profile?.nickname || '회원'}님을 위한 맞춤 캠페인
               </h1>
-              <Badge variant="secondary" className="bg-amber-500 text-white hover:bg-amber-600 px-3 py-1 rounded-full text-xs font-black self-start md:mb-1 border-none shadow-sm shadow-amber-200">
+              <Badge variant="secondary" className="bg-amber-500 text-white hover:bg-amber-600 px-3 py-1 rounded-full text-xs font-bold self-start md:mb-1 border-none shadow-sm shadow-amber-200">
                 {campaigns.length}
               </Badge>
             </div>
@@ -205,17 +205,17 @@ export default function RecommendedCampaigns() {
                 <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-500 flex items-center justify-center transition-colors group-hover:bg-indigo-500 group-hover:text-white">
                   <Smartphone size={20} />
                 </div>
-                <h3 className="text-sm font-black text-slate-800 tracking-tight whitespace-nowrap">나의 활동 플랫폼</h3>
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight whitespace-nowrap">나의 활동 플랫폼</h3>
               </div>
               <div className="flex flex-wrap gap-1.5 justify-end">
                 {profile?.preferred_platforms && profile.preferred_platforms.length > 0 ? (
                   profile.preferred_platforms.map((platform: string, idx: number) => (
-                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-indigo-50/30 text-indigo-700 border-indigo-100 font-bold text-[11px] hover:bg-indigo-100 transition-colors">
+                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-indigo-50/30 text-indigo-700 border-indigo-100 font-bold text-2xs hover:bg-indigo-100 transition-colors">
                       {DISPLAY_NAME_MAP[normalizePlatform(platform)] || normalizePlatform(platform)}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-[11px] text-slate-300">설정 없음</span>
+                  <span className="text-2xs text-slate-300">설정 없음</span>
                 )}
               </div>
             </div>
@@ -228,17 +228,17 @@ export default function RecommendedCampaigns() {
                 <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center transition-colors group-hover:bg-rose-500 group-hover:text-white">
                   <Target size={20} />
                 </div>
-                <h3 className="text-sm font-black text-slate-800 tracking-tight whitespace-nowrap">나의 관심 카테고리</h3>
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight whitespace-nowrap">나의 관심 카테고리</h3>
               </div>
               <div className="flex flex-wrap gap-1.5 justify-end">
                 {profile?.interests && profile.interests.length > 0 ? (
                   profile.interests.map((interest: string, idx: number) => (
-                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-rose-50/30 text-rose-700 border-rose-100 font-bold text-[11px] hover:bg-rose-100 transition-colors">
+                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-rose-50/30 text-rose-700 border-rose-100 font-bold text-2xs hover:bg-rose-100 transition-colors">
                       #{interest}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-[11px] text-slate-300">설정 없음</span>
+                  <span className="text-2xs text-slate-300">설정 없음</span>
                 )}
               </div>
             </div>
@@ -251,17 +251,17 @@ export default function RecommendedCampaigns() {
                 <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center transition-colors group-hover:bg-emerald-500 group-hover:text-white">
                   <MapPin size={20} />
                 </div>
-                <h3 className="text-sm font-black text-slate-800 tracking-tight whitespace-nowrap">나의 관심 지역</h3>
+                <h3 className="text-sm font-bold text-slate-800 tracking-tight whitespace-nowrap">나의 관심 지역</h3>
               </div>
               <div className="flex flex-wrap gap-1.5 justify-end">
                 {profile?.preferred_regions && profile.preferred_regions.length > 0 ? (
                   profile.preferred_regions.map((region: string, idx: number) => (
-                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-emerald-50/30 text-emerald-700 border-emerald-100 font-bold text-[11px] hover:bg-emerald-100 transition-colors">
+                    <Badge key={idx} variant="outline" className="px-2.5 py-1 bg-emerald-50/30 text-emerald-700 border-emerald-100 font-bold text-2xs hover:bg-emerald-100 transition-colors">
                       {REGION_MAP[region] || region}
                     </Badge>
                   ))
                 ) : (
-                  <span className="text-[11px] text-slate-300">설정 없음</span>
+                  <span className="text-2xs text-slate-300">설정 없음</span>
                 )}
               </div>
             </div>
@@ -313,8 +313,8 @@ export default function RecommendedCampaigns() {
                       <Icon size={10} className="fill-current" />
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className="text-[10px] font-bold opacity-80 tracking-tight text-slate-500">선정 확률</span>
-                      <span className="text-sm font-black tracking-tighter">{score}%</span>
+                      <span className="text-2xs font-bold opacity-80 tracking-tight text-slate-500">선정 확률</span>
+                      <span className="text-sm font-bold tracking-tighter">{score}%</span>
                     </div>
                   </div>
                 </div>

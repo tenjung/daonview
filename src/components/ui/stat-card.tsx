@@ -36,7 +36,7 @@ export function StatCard({ title, value, description, icon, color, href, trend }
             <div className="flex items-center justify-between">
               {description && <p className="text-xs text-gray-400 font-medium">{description}</p>}
               {trend && (
-                <div className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${trend.isPositive ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-500'}`}>
+                <div className={`text-2xs font-bold px-2 py-0.5 rounded-full ${trend.isPositive ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-500'}`}>
                   {trend.value}
                 </div>
               )}

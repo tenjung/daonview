@@ -147,7 +147,7 @@ export default function GuidePage() {
                         자주 묻는 질문
                         <ArrowRight className="transition-transform group-hover:translate-x-1" />
                     </Link>
-                    <Link href="/contact" className="inline-flex items-center justify-center px-8 py-3.5 bg-white border border-slate-200 text-slate-700 font-bold rounded-2xl hover:bg-slate-50 transition-all text-sm shadow-sm">
+                    <Link href="/contact" className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'px-8 text-slate-700')}>
                         실시간 1:1 문의
                     </Link>
                 </div>

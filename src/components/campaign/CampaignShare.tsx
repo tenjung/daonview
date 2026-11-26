@@ -166,7 +166,7 @@ export default function CampaignShare({
                     <Button 
                         variant="outline" 
                         size="icon" 
-                        className="w-14 h-14 rounded-[20px] bg-white border-2 border-slate-100 hover:border-rose-200 text-slate-400 hover:text-rose-500 transition-all shadow-lg active:scale-95 flex items-center justify-center"
+                        className="h-12 w-12 md:h-11 md:w-11 bg-white border-slate-200 hover:border-rose-200 text-slate-400 hover:text-rose-500 flex items-center justify-center"
                         title="공유하기"
                     >
                         <Share2 className="w-6 h-6" />

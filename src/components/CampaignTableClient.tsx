@@ -157,18 +157,18 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                     {cam.profiles ? (
                                         <div className="flex flex-col gap-1">
                                             {cam.profiles.role === 'ADMIN' ? (
-                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-2xs font-bold bg-slate-100 text-slate-600 border border-slate-200 whitespace-nowrap">
                                                     관리자
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
+                                                <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-2xs font-bold bg-blue-50 text-blue-600 border border-blue-100 whitespace-nowrap">
                                                     광고주
                                                 </span>
                                             )}
                                             <div className="text-xs font-semibold text-gray-700 whitespace-nowrap">
                                                 {cam.profiles.nickname || cam.profiles.company_name || '이름 없음'}
                                             </div>
-                                            <div className="text-[10px] text-gray-400 truncate max-w-[150px]">{cam.profiles.email}</div>
+                                            <div className="text-2xs text-gray-400 truncate max-w-[150px]">{cam.profiles.email}</div>
                                         </div>
                                     ) : (
                                         <span className="text-xs text-gray-400 italic">정보 없음</span>
@@ -185,7 +185,7 @@ export default function CampaignTableClient({ initialCampaigns, type }: Campaign
                                         <span className="text-gray-300">/</span>
                                         <span className="text-sm text-gray-600">{getCampaignRecruitTarget(cam) ?? 0}명</span>
                                     </div>
-                                    <div className="text-[10px] text-gray-400 mt-1">
+                                    <div className="text-2xs text-gray-400 mt-1">
                                         {scheduleDates.endDate ? `~ ${new Date(scheduleDates.endDate).toLocaleDateString()} 마감` : '일정 미정'}
                                     </div>
                                 </td>

@@ -2,7 +2,7 @@ export default function BrandZonePage() {
     return (
         <div className="container py-16">
             <div className="text-center mb-16">
-                <h1 className="text-4xl font-extrabold text-text-main mb-4">브랜드 존</h1>
+                <h1 className="text-4xl font-bold text-text-main mb-4">브랜드 존</h1>
                 <p className="text-text-secondary text-lg">다온뷰와 함께하는 프리미엄 제휴 브랜드를 소개합니다.</p>
             </div>
 

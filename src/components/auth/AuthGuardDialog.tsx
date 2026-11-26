@@ -27,7 +27,7 @@ export function AuthGuardDialog({ isOpen, onClose }: AuthGuardDialogProps) {
           <div className="mx-auto bg-primary/10 w-20 h-20 rounded-2xl flex items-center justify-center animate-bounce-slow">
             <Lock className="text-primary" size={40} />
           </div>
-          <DialogTitle className="text-2xl font-black text-text-main tracking-tight">
+          <DialogTitle className="text-2xl font-bold text-text-main tracking-tight">
             로그인이 필요한 서비스입니다
           </DialogTitle>
           <DialogDescription className="text-text-secondary text-base leading-relaxed">
@@ -38,14 +38,14 @@ export function AuthGuardDialog({ isOpen, onClose }: AuthGuardDialogProps) {
 
         <div className="flex flex-col gap-3 pt-6">
           <Link href="/login" className="w-full">
-            <Button className="w-full h-14 text-lg font-bold rounded-2xl gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all">
-              <LogIn size={20} />
+            <Button size="lg" className="w-full">
+              <LogIn />
               로그인하기
             </Button>
           </Link>
           <Link href="/signup" className="w-full">
-            <Button variant="outline" className="w-full h-14 text-lg font-bold rounded-2xl gap-2 border-2 hover:bg-primary/5 hover:scale-[1.02] active:scale-95 transition-all">
-              <UserPlus size={20} />
+            <Button variant="outline" size="lg" className="w-full hover:bg-primary/5">
+              <UserPlus />
               회원가입하고 무료 체험하기
             </Button>
           </Link>

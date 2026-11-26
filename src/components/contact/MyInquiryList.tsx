@@ -33,7 +33,7 @@ export default async function MyInquiryList({ basePath = '/contact' }: MyInquiry
   return (
     <div className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
       <div className="mb-5 flex items-center justify-between">
-        <h1 className="text-2xl font-black text-text-main">나의 문의 확인</h1>
+        <h1 className="text-2xl font-bold text-text-main">나의 문의 확인</h1>
         <Link href={basePath} className="text-sm font-bold text-primary hover:underline">
           새 문의 작성
         </Link>

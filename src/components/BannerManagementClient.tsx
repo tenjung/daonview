@@ -306,7 +306,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">신규 캠페인 노출 개수</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">신규 캠페인 노출 개수</label>
                         <div className="flex items-center gap-4">
                             <input
                                 type="range" min="0" max="10"
@@ -314,13 +314,13 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 value={config.new_count}
                                 onChange={e => setConfig({ ...config, new_count: parseInt(e.target.value) })}
                             />
-                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-black text-primary">
+                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-bold text-primary">
                                 {config.new_count}
                             </span>
                         </div>
                     </div>
                     <div className="space-y-2">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">인기 캠페인 노출 개수</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">인기 캠페인 노출 개수</label>
                         <div className="flex items-center gap-4">
                             <input
                                 type="range" min="0" max="10"
@@ -328,13 +328,13 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 value={config.hot_count}
                                 onChange={e => setConfig({ ...config, hot_count: parseInt(e.target.value) })}
                             />
-                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-black text-orange-600">
+                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-bold text-orange-600">
                                 {config.hot_count}
                             </span>
                         </div>
                     </div>
                     <div className="space-y-2 col-span-1 md:col-span-2 pt-4 border-t border-gray-50">
-                        <label className="text-xs font-black text-gray-400 uppercase tracking-widest">자동 롤링 간격 (초)</label>
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">자동 롤링 간격 (초)</label>
                         <div className="flex items-center gap-4">
                             <input
                                 type="range" min="1" max="10" step="1"
@@ -342,11 +342,11 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 value={config.rolling_interval || 3}
                                 onChange={e => setConfig({ ...config, rolling_interval: parseInt(e.target.value) })}
                             />
-                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-black text-indigo-600">
+                            <span className="w-12 h-10 flex items-center justify-center bg-gray-50 border border-gray-100 rounded-xl font-bold text-indigo-600">
                                 {config.rolling_interval || 3}s
                             </span>
                         </div>
-                        <p className="text-[10px] text-gray-400 mt-1">* 배너가 다음 장으로 자동으로 넘어가는 시간 간격입니다. (권장: 3~5초)</p>
+                        <p className="text-2xs text-gray-400 mt-1">* 배너가 다음 장으로 자동으로 넘어가는 시간 간격입니다. (권장: 3~5초)</p>
                     </div>
                 </div>
             </div>
@@ -398,7 +398,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 </div>
                                 메인 슬라이드 제목 노출: {newBanner.show_content ? 'ON' : 'OFF'}
                             </button>
-                            <p className="text-[10px] text-gray-400 leading-relaxed font-medium">
+                            <p className="text-2xs text-gray-400 leading-relaxed font-medium">
                                 * 제목 노출 안함(OFF)으로 설정하면 메인 페이지 슬라이드에서 글자 없이 이미지만 꽉 차게 나옵니다.
                             </p>
                         </div>
@@ -413,13 +413,13 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                     <>
                                         <img src={newBanner.image_url} alt="Preview" className="w-full h-full object-cover" />
                                         <div className="absolute inset-x-0 bottom-0 bg-black/60 backdrop-blur-sm py-1.5 px-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <p className="text-[10px] text-white font-bold truncate">{newBanner.image_url.split('/').pop()}</p>
+                                            <p className="text-2xs text-white font-bold truncate">{newBanner.image_url.split('/').pop()}</p>
                                         </div>
                                     </>
                                 ) : (
                                     <div className="flex flex-col items-center gap-2 text-gray-300">
                                         <ImageIcon size={32} />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">이미지를 등록해주세요</span>
+                                        <span className="text-2xs font-bold uppercase tracking-widest text-gray-400">이미지를 등록해주세요</span>
                                     </div>
                                 )}
                             </div>
@@ -499,13 +499,13 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                 </div>
                                 <div className="w-40 h-24 bg-gray-100 rounded-2xl overflow-hidden shrink-0 border border-gray-50 relative">
                                     <img src={banner.image_url} alt="" className="w-full h-full object-cover" />
-                                    {!banner.is_active && <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] flex items-center justify-center text-white text-[10px] font-black">INACTIVE</div>}
+                                    {!banner.is_active && <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] flex items-center justify-center text-white text-2xs font-bold">INACTIVE</div>}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     {editingId === banner.id ? (
                                         <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">배너 제목</label>
+                                                <label className="text-2xs font-bold text-gray-400 uppercase tracking-tight">배너 제목</label>
                                                 <input 
                                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:border-primary focus:bg-white outline-none transition-all" 
                                                     value={editForm.title} 
@@ -514,7 +514,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight flex items-center gap-1">
+                                                <label className="text-2xs font-bold text-gray-400 uppercase tracking-tight flex items-center gap-1">
                                                     <LinkIcon size={10} /> 링크 URL
                                                 </label>
                                                 <input 
@@ -525,7 +525,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                                 />
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">배너 설명</label>
+                                                <label className="text-2xs font-bold text-gray-400 uppercase tracking-tight">배너 설명</label>
                                                 <input 
                                                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:border-primary focus:bg-white outline-none transition-all" 
                                                     value={editForm.subtitle || ''} 
@@ -536,7 +536,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                             <div className="flex items-end">
                                                 <button
                                                     onClick={() => setEditForm({ ...editForm, show_content: !editForm.show_content })}
-                                                    className={`w-full h-[38px] flex items-center justify-center gap-2 px-3 rounded-xl text-[10px] font-bold transition-all border shadow-sm ${editForm.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
+                                                    className={`w-full h-[38px] flex items-center justify-center gap-2 px-3 rounded-xl text-2xs font-bold transition-all border shadow-sm ${editForm.show_content ? 'bg-primary/5 text-primary border-primary/20' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
                                                 >
                                                     <div className={`w-3 h-3 rounded-full flex items-center justify-center ${editForm.show_content ? 'bg-primary text-white' : 'bg-gray-300 text-white'}`}>
                                                         {editForm.show_content ? <Check size={8} /> : <X size={8} />}
@@ -547,9 +547,9 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                         </div>
                                     ) : (
                                         <>
-                                            <h3 className="font-black text-gray-900 truncate text-sm flex items-center gap-2">
+                                            <h3 className="font-bold text-gray-900 truncate text-sm flex items-center gap-2">
                                                 {banner.title}
-                                                {banner.show_content === false && <span className="text-[8px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded uppercase leading-none">Title Hidden</span>}
+                                                {banner.show_content === false && <span className="text-2xs bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded uppercase leading-none">Title Hidden</span>}
                                             </h3>
                                             <p className="text-xs text-gray-500 truncate">{banner.subtitle}</p>
                                         </>
@@ -563,7 +563,7 @@ export default function BannerManagementClient({ initialBanners, initialConfig }
                                         </>
                                     ) : (
                                         <>
-                                            <button onClick={() => toggleActive(banner.id, banner.is_active)} className={`px-3 py-1.5 rounded-lg text-[10px] font-black ${banner.is_active ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
+                                            <button onClick={() => toggleActive(banner.id, banner.is_active)} className={`px-3 py-1.5 rounded-lg text-2xs font-bold ${banner.is_active ? 'bg-primary text-white' : 'bg-gray-100 text-gray-400'}`}>
                                                 {banner.is_active ? 'SHOWN' : 'HIDDEN'}
                                             </button>
                                             <button onClick={() => startEditing(banner)} className="p-2 text-gray-400 hover:text-primary"><Pencil size={18} /></button>

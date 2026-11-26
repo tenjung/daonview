@@ -35,12 +35,12 @@ export function StatsCards({ stats }: StatsCardsProps) {
                         <CardContent className="p-3 pt-1 sm:p-6 sm:pt-0">
                             <div className="text-xl sm:text-2xl font-bold">{stat.value}</div>
                             {stat.description && (
-                                <div className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
+                                <div className="text-2xs sm:text-xs text-muted-foreground mt-0.5 sm:mt-1">
                                     {stat.description}
                                 </div>
                             )}
                             {stat.trend && (
-                                <p className={`text-[10px] sm:text-xs mt-0.5 sm:mt-1 font-bold ${stat.trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+                                <p className={`text-2xs sm:text-xs mt-0.5 sm:mt-1 font-bold ${stat.trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
                                     {stat.trend.isPositive ? '↑' : '↓'} {Math.abs(stat.trend.value)}%
                                 </p>
                             )}

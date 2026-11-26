@@ -50,20 +50,20 @@ export default function PostDetailLayout({
                 {/* Header Section */}
                 <div className="px-5 py-5 md:px-7 md:py-6 pb-0">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className={`px-2 py-0.5 text-[9px] rounded font-bold border ${typeColor || 'bg-gray-50 text-gray-400 border-gray-100'
+                        <span className={`px-2 py-0.5 text-2xs rounded font-bold border ${typeColor || 'bg-gray-50 text-gray-400 border-gray-100'
                             } uppercase tracking-tight`}>
                             {typeLabel}
                         </span>
                         {isPinned && (
-                            <span className="px-2 py-0.5 bg-rose-50 text-rose-500 border border-rose-100 rounded text-[9px] font-bold">📌 고정</span>
+                            <span className="px-2 py-0.5 bg-rose-50 text-rose-500 border border-rose-100 rounded text-2xs font-bold">📌 고정</span>
                         )}
                     </div>
 
-                    <h1 className="text-lg md:text-xl font-black text-gray-900 mb-3 leading-snug">
+                    <h1 className="text-lg md:text-xl font-bold text-gray-900 mb-3 leading-snug">
                         {title}
                     </h1>
 
-                    <div className="flex items-center gap-4 text-[11px] text-gray-400 pb-5 border-b border-gray-50">
+                    <div className="flex items-center gap-4 text-2xs text-gray-400 pb-5 border-b border-gray-50">
                         <div className="flex items-center gap-1.5 font-medium">
                             <User size={12} />
                             <span>{author}</span>

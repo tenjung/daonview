@@ -271,7 +271,7 @@ export default function DashboardSidebar({
                 <div className={cn('mb-10 pt-8', isCollapsed ? 'px-2' : 'pl-6 pr-2')}>
                     {!isCollapsed ? (
                         <>
-                            <div className="mb-1 text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                            <div className="mb-1 text-2xs font-bold uppercase tracking-[0.2em] text-primary/40">
                                 {userType}
                             </div>
                             <div className="flex items-center gap-2 text-xl font-bold text-slate-900">
@@ -328,12 +328,12 @@ export default function DashboardSidebar({
                                                     <>
                                                         <span>{link.label}</span>
                                                         {link.tag ? (
-                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-black italic tracking-tighter text-white shadow-sm">
+                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-2xs font-bold italic tracking-tighter text-white shadow-sm">
                                                                 {link.tag}
                                                             </span>
                                                         ) : null}
                                                         {badgeCount > 0 ? (
-                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-white">
+                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-2xs font-bold leading-none text-white">
                                                                 {badgeCount > 99 ? '99+' : badgeCount}
                                                             </span>
                                                         ) : null}
@@ -370,12 +370,12 @@ export default function DashboardSidebar({
                                                     <>
                                                         <span>{link.label}</span>
                                                         {link.tag ? (
-                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-[9px] font-black italic tracking-tighter text-white shadow-sm">
+                                                            <span className="rounded-md bg-primary px-1.5 py-0.5 text-2xs font-bold italic tracking-tighter text-white shadow-sm">
                                                                 {link.tag}
                                                             </span>
                                                         ) : null}
                                                         {badgeCount > 0 ? (
-                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-[10px] font-black leading-none text-white">
+                                                            <span className="min-w-[18px] rounded-full bg-amber-500 px-1.5 py-0.5 text-center text-2xs font-bold leading-none text-white">
                                                                 {badgeCount > 99 ? '99+' : badgeCount}
                                                             </span>
                                                         ) : null}

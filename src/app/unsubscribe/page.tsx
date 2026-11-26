@@ -33,7 +33,7 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
 
         {isValid && !error ? (
           <>
-            <h1 className="text-2xl font-extrabold text-slate-900 mb-2">이메일 수신을 거부할까요?</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">이메일 수신을 거부할까요?</h1>
             <p className="text-slate-500 mb-8 leading-relaxed break-keep">
               {maskEmail(email)} 주소로 다온뷰 소식을 더 이상 보내지 않습니다.
             </p>
@@ -53,7 +53,7 @@ export default async function UnsubscribePage({ searchParams }: PageProps) {
           </>
         ) : (
           <>
-            <h1 className="text-2xl font-extrabold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold text-slate-900 mb-2">
               {error === 'failed' ? '처리하지 못했습니다' : '유효하지 않은 링크입니다'}
             </h1>
             <p className="text-slate-500 mb-8 leading-relaxed break-keep">

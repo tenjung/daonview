@@ -40,7 +40,7 @@ const BrandIcons = {
 
 export default function SocialIconBadges({ snsUrl, size = 'md' }: SocialIconBadgesProps) {
     if (!snsUrl) {
-        return <span className="text-[11px] font-bold text-gray-300 tracking-tight">SNS 미등록</span>;
+        return <span className="text-2xs font-bold text-gray-300 tracking-tight">SNS 미등록</span>;
     }
 
     const platforms = detectSocialPlatforms(snsUrl);

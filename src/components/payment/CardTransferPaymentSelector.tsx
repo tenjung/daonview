@@ -62,8 +62,8 @@ export default function CardTransferPaymentSelector({
                         <CreditCard size={22} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">{cardLabel}</span>
-                        <span className="text-[13px] text-gray-500 font-medium">{cardDescription}</span>
+                        <span className="font-bold text-sm text-gray-900 leading-none mb-1">{cardLabel}</span>
+                        <span className="text-body-sm text-gray-500 font-medium">{cardDescription}</span>
                     </div>
                 </div>
             </button>
@@ -81,8 +81,8 @@ export default function CardTransferPaymentSelector({
                         <Building2 size={22} strokeWidth={2.5} />
                     </div>
                     <div className="flex flex-col">
-                        <span className="font-bold text-[15px] text-gray-900 leading-none mb-1">{transferLabel}</span>
-                        <span className="text-[13px] text-gray-500 font-medium">{transferDescription}</span>
+                        <span className="font-bold text-sm text-gray-900 leading-none mb-1">{transferLabel}</span>
+                        <span className="text-body-sm text-gray-500 font-medium">{transferDescription}</span>
                     </div>
                 </div>
             </button>
