@@ -115,6 +115,7 @@ export default async function CampaignApplicationsPage({ params }: PageProps) {
             <ApplicationsTableClient
                 initialApplications={applications}
                 initialEmailHolds={emailHolds.holds}
+                initialKakaoDeliveries={emailHolds.kakaoDeliveries}
                 initialReviews={campaignReviews}
                 canResolveEmailHolds={emailHolds.canResolve}
                 campaignId={campaign.id}

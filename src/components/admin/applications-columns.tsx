@@ -1,7 +1,7 @@
 "use client"
 
 import { ColumnDef } from "@tanstack/react-table"
-import { ArrowUpDown, Check, Star, X } from "lucide-react"
+import { ArrowUpDown, Check, MessageCircle, Star, X } from "lucide-react"
 import { Application } from "@/types/database"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -20,11 +20,21 @@ import { canSendSelectionKakao, getApplicationManagementStatus, isSelectedApplic
 import { SatisfactionLevel } from "@/types/review"
 import type { ManagedReview } from "@/types/reviewManagement"
 import { StatusBadge } from "@/components/dashboard/StatusBadge"
+import type { ApplicationKakaoDelivery } from '@/lib/selectionPreview'
+import type { SelectionPreviewTab } from '@/components/dashboard/SelectionMessagePreviewModal'
+
+// 표 안 시각(보류·카톡): 서버·브라우저가 같은 문자열을 만들도록 시간대·24시간제를 고정(하이드레이션 불일치 방지).
+const TABLE_AT_FORMAT = new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false })
 
 interface ColumnContext {
     emailHolds?: Map<number, SelectionEmailHold>
     onResolveEmailHold?: (hold: SelectionEmailHold) => void
     onSendSelectionKakao?: (hold: SelectionEmailHold) => void
+    /** 신청별 최신 선정 안내 알림톡 상태 */
+    kakaoDeliveries?: Map<number, ApplicationKakaoDelivery>
+    /** 선정 안내 미리보기 모달(메일 재발송·카톡 발송 공용). canSendKakao는 관리자만 */
+    onOpenSelectionPreview?: (app: Application, tab: SelectionPreviewTab) => void
+    canSendKakao?: boolean
     onApprove: (app: Application) => void
     onReject: (id: number, name: string) => void
     onCancel: (id: number, name: string) => void
@@ -392,18 +402,28 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
             meta: { columnLabel: "상태" },
             cell: ({ row }) => {
                 const hold = context.emailHolds?.get(row.original.id);
-                if (getApplicationManagementStatus(row.original.status, hold) !== 'HELD' || !hold) return <ApplicationStatusBadge status={row.getValue("status")} />;
+                if (getApplicationManagementStatus(row.original.status, hold) !== 'HELD' || !hold) {
+                    const kakao = context.kakaoDeliveries?.get(row.original.id);
+                    if (!kakao) return <ApplicationStatusBadge status={row.getValue("status")} />;
+                    return <div className="flex flex-col items-start gap-1 text-xs">
+                        <ApplicationStatusBadge status={row.getValue("status")} />
+                        <button type="button" disabled={!context.onOpenSelectionPreview} onClick={() => context.onOpenSelectionPreview?.(row.original, 'KAKAO')}
+                            className={`text-left ${kakao.status === 'SENT' ? 'text-green-700' : kakao.status === 'FAILED' ? 'text-red-600' : 'text-amber-700'} ${context.onOpenSelectionPreview ? 'hover:underline' : ''}`}>
+                            {SELECTION_KAKAO_STATUS_LABELS[kakao.status]} · <time dateTime={kakao.at}>{TABLE_AT_FORMAT.format(new Date(kakao.at))}</time>
+                        </button>
+                    </div>;
+                }
                 return <div className="flex min-w-[170px] max-w-[240px] flex-col gap-1 text-xs">
                     <span className="w-fit rounded bg-amber-100 px-2 py-1 font-semibold text-amber-900">보류됨 · 메일 반송</span>
                     <span>{SELECTION_EMAIL_HOLD_REASONS[hold.reason]}</span>
                     <span className="break-all text-gray-600">{hold.recipient}</span>
-                    <time dateTime={hold.occurredAt} className="text-gray-500">{new Date(hold.occurredAt).toLocaleString('ko-KR')}</time>
+                    <time dateTime={hold.occurredAt} className="text-gray-500">{TABLE_AT_FORMAT.format(new Date(hold.occurredAt))}</time>
                     {(context.onSendSelectionKakao || context.onResolveEmailHold) && <div className="mt-1 flex flex-wrap gap-1">
                         {context.onSendSelectionKakao && canSendSelectionKakao(hold) && <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={() => context.onSendSelectionKakao?.(hold)}>{hold.kakao ? '카톡 재발송' : '카톡 발송'}</Button>}
                         {context.onResolveEmailHold && <Button variant="outline" size="sm" className="h-7 w-fit text-xs" onClick={() => context.onResolveEmailHold?.(hold)}>보류 해제</Button>}
                     </div>}
                     {hold.kakao && <span className={hold.kakao.status === 'SENT' ? 'text-green-700' : hold.kakao.status === 'FAILED' ? 'text-red-600' : 'text-amber-700'}>
-                        {SELECTION_KAKAO_STATUS_LABELS[hold.kakao.status]} · <time dateTime={hold.kakao.at}>{new Date(hold.kakao.at).toLocaleString('ko-KR')}</time>
+                        {SELECTION_KAKAO_STATUS_LABELS[hold.kakao.status]} · <time dateTime={hold.kakao.at}>{TABLE_AT_FORMAT.format(new Date(hold.kakao.at))}</time>
                     </span>}
                 </div>;
             },
@@ -498,7 +518,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 <Button
                                     size="sm"
                                     variant="outline"
-                                    onClick={() => context.onResendNotification?.(app)}
+                                    onClick={() => context.onOpenSelectionPreview ? context.onOpenSelectionPreview(app, 'EMAIL') : context.onResendNotification?.(app)}
                                     className="border-blue-500 text-blue-600 hover:bg-blue-50 whitespace-nowrap h-7 px-2 text-[11px]"
                                 >
                                     재발송
@@ -521,6 +541,19 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 >
                                     <X size={12} className="mr-1" /> 취소
                                 </Button>
+                                {context.canSendKakao && context.onOpenSelectionPreview && (
+                                    <AdminListActionMenu
+                                        label="기타 동작"
+                                        buttonText="⋯"
+                                        widthClass="w-44"
+                                        items={[{
+                                            key: "selection-kakao",
+                                            label: "카톡 선정 안내",
+                                            icon: <MessageCircle size={14} />,
+                                            onSelect: () => context.onOpenSelectionPreview?.(app, 'KAKAO'),
+                                        }]}
+                                    />
+                                )}
                             </div>
                         ) : (
                             isReviewed ? (

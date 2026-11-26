@@ -3,6 +3,8 @@ import { notifySelectedApplication, type SelectionApplication, type SelectionCam
 import { isAdminRole, normalizeRoleValue } from '@/lib/campaignPermissions';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { buildSelectionEmail, getSelectionEmailBlockReason } from '@/lib/selectionPreviewServer';
+import { loadSelectionMessageContext, SelectionKakaoError } from '@/lib/selectionKakaoServer';
 
 interface ResendApplication extends SelectionApplication {
   user_id: string;
@@ -47,6 +49,25 @@ export async function POST(request: Request) {
     }
     if (!['SELECTED', 'APPROVED'].includes(String(application.status || '').toUpperCase())) {
       return NextResponse.json({ error: '선정 또는 승인된 신청만 재발송할 수 있습니다.' }, { status: 409 });
+    }
+
+    const { data: recipient, error: recipientError } = await admin.from('profiles').select('email').eq('id', application.user_id).maybeSingle();
+    if (recipientError) throw recipientError;
+    // SES 차단 목록·수신 차단 주소는 보내도 전달되지 않으므로 재발송하지 않는다.
+    const blockReason = await getSelectionEmailBlockReason(recipient?.email ?? null);
+    if (blockReason) return NextResponse.json({ error: `${blockReason} 카톡으로 안내해 주세요.` }, { status: 409 });
+    // 미리보기에서 보낸 경우: 본 내용과 지금 보낼 내용이 같은지 확인.
+    const previewHash = typeof body?.previewHash === 'string' ? body.previewHash : null;
+    if (previewHash) {
+      try {
+        const context = await loadSelectionMessageContext(application.id, campaign.id);
+        if (buildSelectionEmail(context).hash !== previewHash) {
+          return NextResponse.json({ error: '미리보기 이후 내용이 바뀌었습니다. 다시 미리보기를 확인해 주세요.' }, { status: 409 });
+        }
+      } catch (error) {
+        if (error instanceof SelectionKakaoError) return NextResponse.json({ error: error.message }, { status: error.status });
+        throw error;
+      }
     }
 
     const notification = await notifySelectedApplication(campaign, application.user_id, application);

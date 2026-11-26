@@ -91,6 +91,7 @@ export default async function AdvertiserCampaignApplicationsPage({ params }: Pag
             recruitCount={getCampaignRecruitTarget(campaign) || 0}
             initialApplications={applications}
             initialEmailHolds={emailHolds.holds}
+            initialKakaoDeliveries={emailHolds.kakaoDeliveries}
             initialReviews={campaignReviews}
             canResolveEmailHolds={emailHolds.canResolve}
         />

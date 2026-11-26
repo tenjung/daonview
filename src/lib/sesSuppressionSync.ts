@@ -34,6 +34,24 @@ function createSESv2Client() {
 }
 
 /**
+ * 이 주소가 SES 계정 차단 목록에 있는지. 있으면 SES가 발송을 조용히 버리므로 메일 재발송을 막는다.
+ * 조회 자체가 실패하면 UNKNOWN(발송은 막지 않음).
+ */
+export async function getSesSuppressionStatus(
+  email: string, ses: Pick<SESv2Client, 'send'> = createSESv2Client(),
+): Promise<'SUPPRESSED' | 'CLEAR' | 'UNKNOWN'> {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) return 'UNKNOWN';
+  try {
+    const { SuppressedDestination } = await ses.send(new GetSuppressedDestinationCommand({ EmailAddress: email }));
+    return SuppressedDestination ? 'SUPPRESSED' : 'CLEAR';
+  } catch (error) {
+    if ((error as { name?: string } | null)?.name === 'NotFoundException') return 'CLEAR';
+    console.error('SES suppression lookup failed');
+    return 'UNKNOWN';
+  }
+}
+
+/**
  * SES 계정 차단 목록의 최근 변경분을 email_feedback_events(SES_SUPPRESSION)로 옮긴다.
  * 이미 같은 메시지 ID의 반송 기록(수동 등록 포함)이 있으면 건너뛰어, 처리·해제한 보류를 다시 열지 않는다.
  * 선정 메일 반송이면 DB 트리거가 selection_email_holds 보류를 만든다.

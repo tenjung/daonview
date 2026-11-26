@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/email';
-import { buildSelectionContent } from '@/lib/selectionContent';
+import { buildSelectionContent, type SelectionContent } from '@/lib/selectionContent';
 import { trackSelectionEmail } from '@/lib/selectionEmailDelivery';
 
 export interface SelectionCampaignOptions {
@@ -36,6 +36,44 @@ export function getSelectionCampaignOptions(raw: unknown): SelectionCampaignOpti
   return (Array.isArray(raw) ? raw[0] : raw) as SelectionCampaignOptions | null;
 }
 
+/** 선정 메일 발송·미리보기가 같은 값을 쓰도록 공통 콘텐츠를 발송 파라미터로 바꾼다. */
+export function toSelectionNotificationParams(
+  campaign: SelectionCampaign, userId: string, applicationId: number, content: SelectionContent,
+): SendSelectionNotificationParams {
+  return {
+    applicationId,
+    userId,
+    campaignId: campaign.id,
+    campaignTitle: campaign.title,
+    providedItems: content.providedItems,
+    deadlineDate: content.deadlineDate,
+    assignedOptionLabel: content.assignedOptionLabel,
+    assignedPurchaseLink: content.assignedPurchaseLink,
+    assignedPurchases: content.assignedPurchases,
+    commonPurchaseLink: content.commonPurchaseLink,
+    campaignUrl: content.campaignUrl,
+    purchaseNotes: content.purchaseNotes,
+    guideSummary: content.guideSummary,
+  };
+}
+
+/** sendEmail('CAMPAIGN_SELECTED')에 넘기는 값. 미리보기 HTML도 이 값으로 만든다. */
+export function toSelectionEmailParams(params: SendSelectionNotificationParams, recipientName: string) {
+  return {
+    nickname: recipientName,
+    campaignTitle: params.campaignTitle,
+    providedItems: params.providedItems,
+    deadlineDate: params.deadlineDate,
+    assignedOptionLabel: params.assignedOptionLabel || undefined,
+    assignedPurchaseLink: params.assignedPurchaseLink || undefined,
+    campaignUrl: params.campaignUrl,
+    purchaseNotes: params.purchaseNotes,
+    guideSummary: params.guideSummary,
+    assignedPurchases: params.assignedPurchases,
+    commonPurchaseLink: params.commonPurchaseLink,
+  };
+}
+
 export async function notifySelectedApplication(
   campaign: SelectionCampaign,
   userId: string,
@@ -46,28 +84,14 @@ export async function notifySelectedApplication(
   const content = built.content;
 
   try {
-    return await sendSelectionNotification({
-      applicationId: application.id,
-      userId,
-      campaignId: campaign.id,
-      campaignTitle: campaign.title,
-      providedItems: content.providedItems,
-      deadlineDate: content.deadlineDate,
-      assignedOptionLabel: content.assignedOptionLabel,
-      assignedPurchaseLink: content.assignedPurchaseLink,
-      assignedPurchases: content.assignedPurchases,
-      commonPurchaseLink: content.commonPurchaseLink,
-      campaignUrl: content.campaignUrl,
-      purchaseNotes: content.purchaseNotes,
-      guideSummary: content.guideSummary,
-    });
+    return await sendSelectionNotification(toSelectionNotificationParams(campaign, userId, application.id, content));
   } catch (error) {
     console.error('Selection notification failed:', { campaignId: campaign.id, error });
     return { success: false, errors: ['선정 알림 발송에 실패했습니다.'] };
   }
 }
 
-interface SendSelectionNotificationParams {
+export interface SendSelectionNotificationParams {
   applicationId: number;
   userId: string;
   campaignId: number;
@@ -108,26 +132,12 @@ export async function sendSelectionNotification(
   }
 
   const recipientName = userProfile.nickname || userProfile.name || '인플루언서';
-  const assignedOptionLabel = params.assignedOptionLabel || undefined;
-  const assignedPurchaseLink = params.assignedPurchaseLink || undefined;
 
   // 카카오 알림톡은 자동 발송하지 않는다. 메일 반송 보류 건만 관리자가 수동 발송(selectionKakaoServer).
   if (userProfile.email) {
     try {
       const emailResult = await trackSelectionEmail(params.applicationId, userProfile.email,
-        () => sendEmail(userProfile.email!, 'CAMPAIGN_SELECTED', {
-        nickname: recipientName,
-        campaignTitle: params.campaignTitle,
-        providedItems: params.providedItems,
-        deadlineDate: params.deadlineDate,
-        assignedOptionLabel,
-        assignedPurchaseLink,
-        campaignUrl: params.campaignUrl,
-        purchaseNotes: params.purchaseNotes,
-        guideSummary: params.guideSummary,
-        assignedPurchases: params.assignedPurchases,
-        commonPurchaseLink: params.commonPurchaseLink,
-      }));
+        () => sendEmail(userProfile.email!, 'CAMPAIGN_SELECTED', toSelectionEmailParams(params, recipientName)));
 
       if (!emailResult.success) {
         errors.push(`이메일 실패: ${emailResult.message || 'unknown error'}`);

@@ -30,6 +30,7 @@
 | `DashboardPageHeader` | 페이지 제목 영역(아이콘·한국어 제목·설명·오른쪽 액션) | 페이지 `<h1>` 직접 작성 금지 |
 | `StatTile`, `StatTileGroup` | 통계 숫자 타일 | 통계 카드 새로 만들지 않기 |
 | `StatusBadge` | 상태 배지(의미별 색 + 점) | `domain` + `status`만 넘긴다. 라벨·색은 `constants/status.ts` |
+| `SelectionMessagePreviewModal` | 선정 안내 미리보기(메일·카톡 탭, 발송 전 점검·링크·카톡 이력) 후 최종 발송 | 메일 재발송·카톡 발송은 반드시 이 모달을 거친다. 내용은 서버 `selectionPreviewServer`가 실제 발송과 같은 함수로 만들고, 지문(hash)이 같을 때만 발송. 카톡 탭은 관리자만 |
 
 ### 3-2. 캠페인 공통 (`src/components/campaign/`)
 | 컴포넌트 | 용도 |
@@ -43,6 +44,13 @@
 | `CampaignDataTable` + 역할별 래퍼 | 관리자·광고주 캠페인 목록/운영 | 역할별 분리 구현 금지 |
 | `ApplicationsTableClient` | 캠페인 신청자 표(관리자·광고주 공용) | 신청자 관련 기능은 여기 한 곳에 |
 | `StatusBadgeCell` | 표 안의 상태 셀 | 내부적으로 `StatusBadge` 사용 |
+
+### 3-3-1. 메일 (`src/lib/email.ts`)
+| 요소 | 용도 | 사용 규칙 |
+|---|---|---|
+| `EMAIL_STYLE`, `EMAIL_BUTTON_COLORS` | 메일 글자·여백·버튼 색 기준(시안 A 컴팩트형: 본문 14px, 제목 18px, 버튼 높이 약 42px, 여백 16px) | 메일 크기·색은 여기서만 바꾼다 |
+| `wrapEmailLayout` | 모든 코드 메일의 공통 틀(머리·분홍 띠 제목·본문·하단 카톡 문의/수신거부) | 새 메일은 이 틀로 만든다. DB 조각 템플릿도 이 틀로 감싼다 |
+| `emailButtons`, `emailInfoTable`, `buildSelectionDetailsHtml` | 버튼 1~2개 한 줄, 라벨/값 정보 표, 선정·진행 안내 상세 표 | 메일마다 버튼·표를 따로 만들지 않는다 |
 
 ### 3-4. 상수 (단일 출처)
 | 파일 | 내용 |

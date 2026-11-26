@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { SelectionEmailHold } from '@/lib/selectionEmailHold';
+import type { ApplicationKakaoDelivery } from '@/lib/selectionPreview';
 
 interface CampaignApplicationsClientProps {
     campaignId: string;
@@ -23,6 +24,7 @@ interface CampaignApplicationsClientProps {
     recruitCount: number;
     initialApplications: Application[];
     initialEmailHolds: SelectionEmailHold[];
+    initialKakaoDeliveries: ApplicationKakaoDelivery[];
     canResolveEmailHolds: boolean;
     initialReviews: ManagedReview[];
 }
@@ -38,6 +40,7 @@ export default function CampaignApplicationsClient({
     recruitCount,
     initialApplications,
     initialEmailHolds,
+    initialKakaoDeliveries,
     canResolveEmailHolds,
     initialReviews,
 }: CampaignApplicationsClientProps) {
@@ -68,6 +71,7 @@ export default function CampaignApplicationsClient({
                     <ApplicationsTableClient
                         initialApplications={initialApplications}
                         initialEmailHolds={initialEmailHolds}
+                        initialKakaoDeliveries={initialKakaoDeliveries}
                         initialReviews={initialReviews}
                         canResolveEmailHolds={canResolveEmailHolds}
                         campaignId={campaignId}

@@ -1,8 +1,9 @@
 import 'server-only';
+import { createHash } from 'node:crypto';
 import { SolapiMessageService } from 'solapi';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { formatPhoneNumber, isValidPhoneNumber } from '@/lib/alimtalk';
-import { buildSelectionContent, type SelectionContent, type SelectionContentApplication } from '@/lib/selectionContent';
+import { buildSelectionContent, type SelectionContent, type SelectionContentApplication, type SelectionContentCampaign } from '@/lib/selectionContent';
 import { isSelectedApplication } from '@/lib/selectionEmailHold';
 
 export class SelectionKakaoError extends Error {
@@ -79,46 +80,140 @@ export function buildSelectionKakaoVariables(input: {
   };
 }
 
-/**
- * 메일 반송 보류 건에 선정 안내 알림톡을 1회 발송한다(관리자 수동).
- * 기록을 먼저 남기고(PREPARED) 발송하므로 동시 클릭은 유니크 인덱스로 차단된다.
- */
-export async function sendSelectionKakaoForHold(params: {
-  applicationId: number; campaignId: number; holdId: string; actorId: string;
-}) {
+
+function getSolapiConfig() {
   const apiKey = process.env.SOLAPI_API_KEY;
   const apiSecret = process.env.SOLAPI_API_SECRET;
   const from = process.env.SOLAPI_SENDER_PHONE;
   const pfId = process.env.SOLAPI_KAKAO_CHANNEL_ID;
   const templateId = process.env.SOLAPI_TEMPLATE_INFLUENCER_SELECTED;
   if (!apiKey || !apiSecret || !from || !pfId || !templateId) throw new SelectionKakaoError(503, '알림톡 설정이 완료되지 않았습니다.');
+  return { apiKey, apiSecret, from, pfId, templateId };
+}
 
+export interface SelectionKakaoTemplate { content: string; buttonName: string | null; buttonLink: string | null }
+let templateCache: { id: string; at: number; value: SelectionKakaoTemplate } | null = null;
+const TEMPLATE_CACHE_MS = 10 * 60 * 1000;
+
+/** 솔라피에 승인된 템플릿 원문(고정 문구·버튼). 미리보기를 실제 수신 화면과 같게 만든다. 실패하면 null. */
+export async function getSelectionKakaoTemplate(): Promise<SelectionKakaoTemplate | null> {
+  const { apiKey, apiSecret, templateId } = getSolapiConfig();
+  if (templateCache && templateCache.id === templateId && Date.now() - templateCache.at < TEMPLATE_CACHE_MS) return templateCache.value;
+  try {
+    const template = await new SolapiMessageService(apiKey, apiSecret).getKakaoAlimtalkTemplate(templateId);
+    const button = (template.buttons || [])[0] as { buttonName?: string; linkMo?: string } | undefined;
+    const value = { content: String(template.content || ''), buttonName: button?.buttonName || null, buttonLink: button?.linkMo || null };
+    if (!value.content) return null;
+    templateCache = { id: templateId, at: Date.now(), value };
+    return value;
+  } catch {
+    console.error('Selection kakao template lookup failed');
+    return null;
+  }
+}
+
+export function fillTemplate(text: string, variables: Record<string, string>) {
+  return text.replace(/#\{([^}]+)\}/g, (match, key: string) => (key in variables ? variables[key] : match));
+}
+
+/** 템플릿 원문이 있으면 실제 수신 문구, 없으면 변수만 이어 붙인 기록용 문구. */
+export function renderSelectionKakaoText(template: SelectionKakaoTemplate | null, variables: Record<string, string>) {
+  if (template) return fillTemplate(template.content, variables);
+  return ['제공내역', '진행가이드', '주의사항'].map((key) => `■ ${key}\n${variables[key]}`).join('\n\n');
+}
+
+/** 관리자가 본 미리보기와 실제 발송 내용이 같은지 확인하는 지문. 번호·템플릿·변수가 하나라도 바뀌면 달라진다. */
+export function selectionKakaoHash(input: { templateId: string; phone: string; variables: Record<string, string> }) {
+  const variables = Object.keys(input.variables).sort().map((key) => [key, input.variables[key]]);
+  return createHash('sha256').update(JSON.stringify([input.templateId, input.phone, variables])).digest('hex');
+}
+
+type ContextApplication = { id: number; status: string; campaign_id: number; user_id: string } & SelectionContentApplication;
+export type SelectionMessageCampaign = SelectionContentCampaign & { title: string; created_by?: string | null };
+export interface SelectionMessageContext {
+  application: ContextApplication;
+  campaign: SelectionMessageCampaign;
+  profile: { phone_number: string | null; name: string | null; nickname: string | null; email: string | null };
+  recipientName: string;
+  phone: string;
+  content: SelectionContent;
+}
+
+/** 선정 메일·알림톡 미리보기와 발송이 같은 값을 쓰도록 신청·캠페인·수신자를 한 번에 읽는다. */
+export async function loadSelectionMessageContext(applicationId: number, campaignId: number): Promise<SelectionMessageContext> {
   const admin = createAdminClient();
-  const { data: hold, error: holdError } = await admin.from('selection_email_holds')
-    .select('id,resolved_at,application:applications!inner(id,status,campaign_id,user_id,assigned_option_label,assigned_purchase_link_url,assigned_purchase_links)')
-    .eq('id', params.holdId).eq('application_id', params.applicationId).maybeSingle();
-  if (holdError) throw new Error('Hold lookup failed');
-  const application = hold?.application as unknown as ({ status: string; campaign_id: number; user_id: string } & SelectionContentApplication) | undefined;
-  if (!hold || !application || application.campaign_id !== params.campaignId) throw new SelectionKakaoError(404, '보류 내역을 찾을 수 없습니다.');
-  if (hold.resolved_at || !isSelectedApplication(application.status)) throw new SelectionKakaoError(409, '이미 해제됐거나 선정 상태가 아닌 신청입니다. 새로고침 후 확인해 주세요.');
-
+  const { data: application, error } = await admin.from('applications')
+    .select('id,status,campaign_id,user_id,assigned_option_label,assigned_purchase_link_url,assigned_purchase_links')
+    .eq('id', applicationId).maybeSingle();
+  if (error) throw new Error('Application lookup failed');
+  if (!application || application.campaign_id !== campaignId) throw new SelectionKakaoError(404, '신청서를 찾을 수 없습니다.');
+  if (!isSelectedApplication(application.status)) throw new SelectionKakaoError(409, '선정 상태가 아닌 신청입니다. 새로고침 후 확인해 주세요.');
   const [{ data: profile, error: profileError }, { data: campaign, error: campaignError }] = await Promise.all([
-    admin.from('profiles').select('phone_number,name,nickname').eq('id', application.user_id).maybeSingle(),
-    admin.from('campaigns').select('id,title,end_date,experience_details,product_name,campaign_options').eq('id', params.campaignId).maybeSingle(),
+    admin.from('profiles').select('phone_number,name,nickname,email').eq('id', application.user_id).maybeSingle(),
+    admin.from('campaigns').select('id,title,created_by,end_date,experience_details,product_name,campaign_options').eq('id', campaignId).maybeSingle(),
   ]);
   if (profileError || campaignError || !campaign) throw new Error('Recipient lookup failed');
-  const phone = formatPhoneNumber(profile?.phone_number || '');
-  if (!isValidPhoneNumber(phone)) throw new SelectionKakaoError(422, '수신자 휴대폰 번호가 없거나 올바르지 않습니다.');
   const built = buildSelectionContent(campaign, application);
   if (!built.ok) throw new SelectionKakaoError(422, built.error);
-  // 기록을 남기기 전에 변수를 만들어 글자 수 초과 등은 발송 시도 없이 거부한다.
-  const variables = buildSelectionKakaoVariables({
+  const phone = formatPhoneNumber(profile?.phone_number || '');
+  return {
+    application, campaign, content: built.content,
+    profile: { phone_number: profile?.phone_number ?? null, name: profile?.name ?? null, nickname: profile?.nickname ?? null, email: profile?.email ?? null },
     recipientName: profile?.nickname || profile?.name || '인플루언서',
-    campaignId: campaign.id, campaignTitle: campaign.title, content: built.content,
-  });
+    phone: isValidPhoneNumber(phone) ? phone : '',
+  };
+}
 
+export function buildContextKakaoVariables(context: SelectionMessageContext) {
+  return buildSelectionKakaoVariables({
+    recipientName: context.recipientName, campaignId: context.campaign.id, campaignTitle: context.campaign.title, content: context.content,
+  });
+}
+
+/**
+ * 선정 안내 알림톡 발송(관리자 수동). 미리보기 지문(expectedHash)과 같을 때만 보낸다.
+ * - RECIPIENT: 기록(PREPARED)을 먼저 남기고 발송. 신청 1건당 활성 발송 1건(유니크 인덱스), 접수 거부만 재시도.
+ *   메일 반송 보류가 열려 있으면 그 보류에 연결한다.
+ * - SELF: 같은 내용을 관리자 본인 번호로 테스트 발송. 발송 기록을 남기지 않는다.
+ */
+export async function sendSelectionKakao(params: {
+  applicationId: number; campaignId: number; actorId: string; expectedHash: string; target: 'RECIPIENT' | 'SELF';
+}) {
+  const { apiKey, apiSecret, from, pfId, templateId } = getSolapiConfig();
+  const admin = createAdminClient();
+  const context = await loadSelectionMessageContext(params.applicationId, params.campaignId);
+  if (!context.phone) throw new SelectionKakaoError(422, '수신자 휴대폰 번호가 없거나 올바르지 않습니다.');
+  // 기록을 남기기 전에 변수를 만들어 글자 수 초과 등은 발송 시도 없이 거부한다.
+  const variables = buildContextKakaoVariables(context);
+  if (selectionKakaoHash({ templateId, phone: context.phone, variables }) !== params.expectedHash) {
+    throw new SelectionKakaoError(409, '미리보기 이후 내용이 바뀌었습니다. 다시 미리보기를 확인해 주세요.');
+  }
+  const service = new SolapiMessageService(apiKey, apiSecret);
+  const kakaoOptions = { pfId, templateId, disableSms: true, variables };
+
+  if (params.target === 'SELF') {
+    const { data: actor, error: actorError } = await admin.from('profiles').select('phone_number').eq('id', params.actorId).maybeSingle();
+    if (actorError) throw new Error('Actor lookup failed');
+    const selfPhone = formatPhoneNumber(actor?.phone_number || '');
+    if (!isValidPhoneNumber(selfPhone)) throw new SelectionKakaoError(422, '내 프로필에 휴대폰 번호가 없어 테스트 발송을 할 수 없습니다.');
+    try {
+      await service.sendOne({ to: selfPhone, from, kakaoOptions });
+    } catch (error) {
+      console.error('Selection kakao self test failed', { message: String(error) });
+      throw new SelectionKakaoError(502, '테스트 발송에 실패했습니다. 번호·템플릿을 확인해 주세요.');
+    }
+    return { status: 'TEST_SENT' as const, sentAt: new Date().toISOString() };
+  }
+
+  const template = await getSelectionKakaoTemplate();
+  const { data: hold, error: holdError } = await admin.from('selection_email_holds')
+    .select('id').eq('application_id', params.applicationId).is('resolved_at', null).maybeSingle();
+  if (holdError) throw new Error('Hold lookup failed');
   const { data: delivery, error: beginError } = await admin.from('selection_kakao_deliveries')
-    .insert({ application_id: params.applicationId, hold_id: params.holdId, recipient_phone: phone, sent_by: params.actorId })
+    .insert({
+      application_id: params.applicationId, hold_id: hold?.id ?? null, recipient_phone: context.phone, sent_by: params.actorId,
+      message_text: renderSelectionKakaoText(template, variables).slice(0, 1100), content_hash: params.expectedHash,
+    })
     .select('id').single();
   if (beginError?.code === '23505') throw new SelectionKakaoError(409, '이미 발송했거나 발송 중인 건입니다.');
   if (beginError || !delivery) throw new Error('Delivery tracking failed');
@@ -130,13 +225,7 @@ export async function sendSelectionKakaoForHold(params: {
 
   let messageId: string;
   try {
-    const response = await new SolapiMessageService(apiKey, apiSecret).sendOne({
-      to: phone, from,
-      kakaoOptions: {
-        pfId, templateId, disableSms: true,
-        variables,
-      },
-    });
+    const response = await service.sendOne({ to: context.phone, from, kakaoOptions });
     messageId = response.messageId;
   } catch (error) {
     const message = String(error);

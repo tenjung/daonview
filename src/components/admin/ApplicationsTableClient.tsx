@@ -26,10 +26,13 @@ import { APPLICATION_STATUS_LABELS } from '@/constants/status';
 import type { ManagedReview } from '@/types/reviewManagement';
 import { ReviewDetailCard } from '@/components/reviews/ReviewDetailCard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { SelectionMessagePreviewModal, type SelectionPreviewTab } from '@/components/dashboard/SelectionMessagePreviewModal';
+import type { ApplicationKakaoDelivery } from '@/lib/selectionPreview';
 
 interface ApplicationsTableClientProps {
     initialApplications: Application[];
     initialEmailHolds: SelectionEmailHold[];
+    initialKakaoDeliveries?: ApplicationKakaoDelivery[];
     canResolveEmailHolds: boolean;
     campaignId: string;
     campaignTitle: string;
@@ -42,12 +45,6 @@ interface ApplicationsTableClientProps {
     initialReviews?: ManagedReview[];
 }
 
-function maskPhone(phone?: string | null) {
-    const digits = String(phone || '').replace(/[^0-9]/g, '');
-    if (!/^01[0-9]{8,9}$/.test(digits)) return '번호 없음 (발송 불가)';
-    return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`;
-}
-
 type FilterType = 'all' | 'pending' | 'approved' | 'held' | 'completed' | 'rejected' | 'cancelled';
 
 import ReputationDetailModal from './ReputationDetailModal';
@@ -55,6 +52,7 @@ import ReputationDetailModal from './ReputationDetailModal';
 export default function ApplicationsTableClient({
     initialApplications,
     initialEmailHolds,
+    initialKakaoDeliveries = [],
     canResolveEmailHolds,
     campaignId,
     campaignTitle,
@@ -83,12 +81,16 @@ export default function ApplicationsTableClient({
     const [isResolvingHold, setIsResolvingHold] = useState(false);
     const holdsByApplication = useMemo(() => new Map(emailHolds.map(hold => [hold.applicationId, hold])), [emailHolds]);
     useEffect(() => { setEmailHolds(initialEmailHolds); }, [initialEmailHolds]);
+    const [kakaoDeliveries, setKakaoDeliveries] = useState(initialKakaoDeliveries);
+    useEffect(() => { setKakaoDeliveries(initialKakaoDeliveries); }, [initialKakaoDeliveries]);
+    const kakaoByApplication = useMemo(() => new Map(kakaoDeliveries.map(item => [item.applicationId, item])), [kakaoDeliveries]);
     const refreshEmailHolds = useCallback(async () => {
         try {
             const response = await fetch(`/api/campaigns/${campaignId}/email-holds`, { cache: 'no-store' });
             if (!response.ok) throw new Error('보류 내역을 새로고침하지 못했습니다.');
             const result = await response.json();
             setEmailHolds(result.holds);
+            if (Array.isArray(result.kakaoDeliveries)) setKakaoDeliveries(result.kakaoDeliveries);
         } catch {
             toast.error('보류 내역을 새로고침하지 못했습니다. 화면을 다시 열어 확인해 주세요.');
         }
@@ -118,28 +120,8 @@ export default function ApplicationsTableClient({
             await refreshEmailHolds();
         }
     };
-    const [kakaoTarget, setKakaoTarget] = useState<SelectionEmailHold | null>(null);
-    const [isSendingKakao, setIsSendingKakao] = useState(false);
-    const kakaoTargetApplication = kakaoTarget ? applications.find(app => app.id === kakaoTarget.applicationId) : undefined;
-    const handleSendKakao = async () => {
-        if (!kakaoTarget || isSendingKakao) return;
-        setIsSendingKakao(true);
-        try {
-            const response = await fetch(`/api/applications/${kakaoTarget.applicationId}/selection-kakao`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ campaignId: Number(campaignId), holdId: kakaoTarget.id }),
-            });
-            const result = await response.json().catch(() => ({}));
-            if (!response.ok) throw new Error(result.error || '알림톡 발송에 실패했습니다.');
-            setKakaoTarget(null);
-            toast.success('선정 안내 알림톡을 발송했습니다. 확인 후 보류를 해제해 주세요.');
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : '알림톡 발송에 실패했습니다.');
-        } finally {
-            setIsSendingKakao(false);
-            await refreshEmailHolds();
-        }
-    };
+    // 선정 안내 미리보기(메일 재발송·카톡 발송 공용 모달)
+    const [previewTarget, setPreviewTarget] = useState<{ applicationId: number; tab: SelectionPreviewTab } | null>(null);
     const [selectedApplications, setSelectedApplications] = useState<Application[]>([]);
     const [reviewModal, setReviewModal] = useState<{
         isOpen: boolean;
@@ -833,7 +815,10 @@ export default function ApplicationsTableClient({
     const columns = useMemo(() => createApplicationColumns({
         emailHolds: holdsByApplication,
         onResolveEmailHold: canResolveEmailHolds ? (hold) => { setHoldTarget(hold); setHoldResolutionReason(hold.kakao?.status === 'SENT' ? '카카오 알림톡으로 선정 안내' : ''); } : undefined,
-        onSendSelectionKakao: canResolveEmailHolds ? (hold) => setKakaoTarget(hold) : undefined,
+        onSendSelectionKakao: canResolveEmailHolds ? (hold) => setPreviewTarget({ applicationId: hold.applicationId, tab: 'KAKAO' }) : undefined,
+        kakaoDeliveries: kakaoByApplication,
+        onOpenSelectionPreview: (app, tab) => setPreviewTarget({ applicationId: app.id, tab: canResolveEmailHolds ? tab : 'EMAIL' }),
+        canSendKakao: canResolveEmailHolds,
         onApprove: handleApprove,
         onReject: handleReject,
         onCancel: handleCancel,
@@ -849,7 +834,7 @@ export default function ApplicationsTableClient({
         productUrlIndividual,
         reviewsByUser,
         onOpenReviewDetail: setReviewDetail,
-    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual, holdsByApplication, canResolveEmailHolds, reviewsByUser]);
+    }), [influencerStats, reviewedInfluencerIds, applications, campaignType, productUrlIndividual, holdsByApplication, canResolveEmailHolds, reviewsByUser, kakaoByApplication]);
 
     // 필터별 개수
     const filterCounts = useMemo(() => ({
@@ -946,21 +931,14 @@ export default function ApplicationsTableClient({
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={Boolean(kakaoTarget)} onOpenChange={(open) => { if (!open && !isSendingKakao) setKakaoTarget(null); }}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>선정 안내 알림톡 발송</DialogTitle>
-                        <DialogDescription>메일이 반송된 선정자에게 승인된 선정 안내 템플릿으로 1회 발송합니다. 실패 시 문자로 대체 발송되지 않습니다.</DialogDescription>
-                    </DialogHeader>
-                    <dl className="grid grid-cols-[72px_1fr] gap-y-1 text-sm">
-                        <dt className="text-gray-500">수신자</dt>
-                        <dd>{kakaoTargetApplication?.user?.nickname || kakaoTargetApplication?.user?.name || '인플루언서'}</dd>
-                        <dt className="text-gray-500">휴대폰</dt>
-                        <dd>{maskPhone(kakaoTargetApplication?.user?.phone_number)}</dd>
-                    </dl>
-                    <Button onClick={() => void handleSendKakao()} disabled={isSendingKakao}>{isSendingKakao ? '발송 중…' : '알림톡 발송'}</Button>
-                </DialogContent>
-            </Dialog>
+            <SelectionMessagePreviewModal
+                open={Boolean(previewTarget)}
+                onOpenChange={(open) => { if (!open) setPreviewTarget(null); }}
+                applicationId={previewTarget?.applicationId ?? null}
+                campaignId={Number(campaignId)}
+                initialTab={previewTarget?.tab ?? 'EMAIL'}
+                onSent={() => { void refreshEmailHolds(); }}
+            />
 
             {/* 확인 다이얼로그 */}
             <ConfirmDialog
