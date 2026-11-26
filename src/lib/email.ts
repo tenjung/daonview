@@ -96,8 +96,8 @@ const isSafeHttpUrl = (value?: string) => {
 const buildSelectionDetailsHtml = (params: EmailParams, labelWidth = '26%') => {
   const row = (label: string, value: string, background = '#ffffff') => `
     <tr style="background:${background};">
-      <td width="${labelWidth}" valign="top" style="padding:12px 4px 12px 12px;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:13px;font-weight:700;line-height:1.5;word-break:keep-all;">${label}</td>
-      <td valign="top" style="padding:12px 12px 12px 8px;border-bottom:1px solid #f1f5f9;font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${value}</td>
+      <td width="${labelWidth}" valign="top" style="padding:12px 4px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;font-weight:700;line-height:1.5;word-break:keep-all;">${label}</td>
+      <td valign="top" style="padding:12px 4px 12px 8px;border-bottom:1px solid #e2e8f0;font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${value}</td>
     </tr>`;
   const parts = [row('제공내역', escapeHtml(params.providedItems || '캠페인 상세 페이지 참조'))];
   const assignedPurchases = (params.assignedPurchases || [])
@@ -141,15 +141,15 @@ const buildSelectionDetailsHtml = (params: EmailParams, labelWidth = '26%') => {
   });
   parts.push(row('핵심 가이드', `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-size:14px;line-height:1.5;overflow-wrap:anywhere;">${guideRows.join('')}</table>`));
   parts.push(row('체험 마감기한', escapeHtml(params.deadlineDate || '캠페인 상세 페이지 참조'), '#fff7ed'));
-  return `<div style="margin:20px 0;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed;border-collapse:collapse;">${parts.join('')}</table></div>`;
+  return `<div style="margin:20px 0;border-top:2px solid #0f172a;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="table-layout:fixed;border-collapse:collapse;">${parts.join('')}</table></div>`;
 };
 
 /**
  * DB에서 이메일 템플릿 로드 및 변수 치환
  */
 export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParams) => {
-  // 승인 메일은 캠페인별 페이백 안내를 포함하는 코드 템플릿으로 관리한다.
-  if (type === 'REVIEW_APPROVED' || type === 'CAMPAIGN_PROGRESS_REMINDER') return getEmailTemplate(type, params);
+  // 승인·진행 안내·선정 메일은 코드 템플릿 하나로만 관리한다(DB 템플릿과 이중 관리 방지).
+  if (type === 'REVIEW_APPROVED' || type === 'CAMPAIGN_PROGRESS_REMINDER' || type === 'CAMPAIGN_SELECTED') return getEmailTemplate(type, params);
   try {
     const supabase = createAdminClient();
     
@@ -163,15 +163,6 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
     if (error || !template) {
       console.error('Template not found in DB, using fallback:', error);
       return getEmailTemplate(type, params); // Fallback to hardcoded template
-    }
-
-    if (type === 'CAMPAIGN_SELECTED') {
-      const requiredVariables = ['{{selectionDetailsHtml}}', '{{campaignUrl}}'];
-      const missingRequiredVariable = requiredVariables.some((variable) => !template.html_content.includes(variable));
-      if (missingRequiredVariable) {
-        console.warn('CAMPAIGN_SELECTED template is outdated, using fallback template.');
-        return getEmailTemplate(type, params);
-      }
     }
 
     // 변수 치환 ({{variable}} 형식)
@@ -191,13 +182,12 @@ export const getEmailTemplateFromDB = async (type: EmailType, params: EmailParam
       deadlineDate: params.deadlineDate,
       link: params.link,
       email: params.email,
-      selectionDetailsHtml: type === 'CAMPAIGN_SELECTED' ? buildSelectionDetailsHtml(params) : undefined,
     };
     Object.entries(templateParams).forEach(([key, value]) => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       const safeValue = escapeHtml(String(value || ''));
       subject = subject.replace(regex, () => safeValue);
-      htmlContent = htmlContent.replace(regex, () => key === 'selectionDetailsHtml' ? String(value || '') : safeValue);
+      htmlContent = htmlContent.replace(regex, () => safeValue);
     });
 
     // 관리 화면에서 저장한 템플릿이 완전한 HTML 문서라면 그대로 사용
@@ -341,21 +331,48 @@ export const getEmailTemplate = (type: EmailType, params: EmailParams) => {
       const campaignTitle = escapeHtml(params.campaignTitle || '캠페인');
       subject = `🎉 [다온뷰] 축하합니다! '${params.campaignTitle || '캠페인'}' 캠페인에 선정되셨습니다.`;
       const campaignUrl = isSafeHttpUrl(params.campaignUrl) ? escapeHtml(params.campaignUrl || '') : 'https://daonview.com/dashboard/influencer/campaigns';
-      content = `
-        <div style="${heroStyle}">
-          <div style="${headerStyle}">캠페인 선정 축하드립니다!</div>
-          <div style="font-size: 14px; color: #475569;">아래 핵심 정보 확인 후 리뷰를 준비해 주세요.</div>
-        </div>
-        <p>안녕하세요, ${nickname}님.</p>
-        <p>신청하신 <b>[${campaignTitle}]</b> 캠페인에 최종 선정되셨습니다.</p>
-        ${buildSelectionDetailsHtml(params)}
-        <p>구매 전 확정 옵션과 구매 링크를 다시 확인해 주세요.</p>
-        <div style="text-align: center;">
-          <a href="${campaignUrl}" style="${buttonStyle}">캠페인 가이드 보기</a>
-          <a href="https://daonview.com/dashboard/influencer/campaigns" style="${buttonStyle}">리뷰 등록하기</a>
-        </div>
+      const fullButton = (href: string, label: string, background: string) => `
+        <a href="${href}" target="_blank" rel="noopener noreferrer" style="display:block;margin-top:10px;padding:15px 12px;background:${background};color:#ffffff;text-align:center;text-decoration:none;border-radius:12px;font-size:15px;font-weight:700;">${label}</a>`;
+      // 시안 A: 바깥 카드·테두리 박스 없이 가로 전체를 쓰는 플랫 레이아웃.
+      const selectionHtml = `
+        <!DOCTYPE html>
+        <html lang="ko">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+          </head>
+          <body style="margin:0;padding:0;background:#ffffff;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+              <tr><td align="center">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;border-collapse:collapse;font-family:Pretendard,'Apple SD Gothic Neo','Noto Sans KR',sans-serif;color:#334155;line-height:1.6;">
+                  <tr><td style="padding:24px 16px 16px;text-align:center;">
+                    <img src="https://daonview.com/daonview_logo.png" alt="다온뷰" height="32" style="height:32px;vertical-align:middle;">
+                    <span style="font-size:20px;font-weight:800;color:#0f172a;vertical-align:middle;margin-left:6px;">다온뷰</span>
+                  </td></tr>
+                  <tr><td style="padding:24px 16px;background:#fff1f5;text-align:center;word-break:keep-all;">
+                    <div style="font-size:22px;font-weight:800;color:#0f172a;line-height:1.35;">캠페인 선정을 축하드립니다!</div>
+                    <div style="margin-top:6px;font-size:14px;color:#475569;">구매 전 옵션과 링크를 확인해 주세요.</div>
+                  </td></tr>
+                  <tr><td style="padding:20px 16px 0;font-size:15px;word-break:keep-all;overflow-wrap:anywhere;">
+                    <p style="margin:0 0 8px;">안녕하세요, <b>${nickname}</b>님.</p>
+                    <p style="margin:0;">신청하신 <b>[${campaignTitle}]</b> 캠페인에 최종 선정되셨습니다.</p>
+                    ${buildSelectionDetailsHtml(params)}
+                    ${fullButton('https://daonview.com/dashboard/influencer/campaigns', '리뷰 등록하기', '#f43f5e')}
+                    ${fullButton(campaignUrl, '캠페인 가이드 보기', '#0f172a')}
+                  </td></tr>
+                  <tr><td style="padding:32px 16px 28px;text-align:center;font-size:12px;color:#94a3b8;">
+                    <a href="https://pf.kakao.com/_xbxhDgn/chat" style="display:inline-block;padding:10px 18px;background:#FEE500;color:#111827;text-decoration:none;border-radius:8px;font-weight:700;font-size:13px;">💬 카카오톡 문의하기</a>
+                    <p style="margin:16px 0 0;">© 2026 다온뷰(Daonview). All rights reserved.</p>
+                    <p style="margin:4px 0 0;">본 메일은 발신전용으로 회신이 되지 않습니다.</p>
+                    <p style="margin:4px 0 0;">수신을 원하지 않으시면 <a href="${buildUnsubscribeUrl(params.email)}" style="color:#94a3b8;text-decoration:underline;">수신거부</a>를 눌러 주세요.</p>
+                  </td></tr>
+                </table>
+              </td></tr>
+            </table>
+          </body>
+        </html>
       `;
-      break;
+      return { subject, html: selectionHtml };
     }
 
     case 'REVIEW_APPROVED': {
