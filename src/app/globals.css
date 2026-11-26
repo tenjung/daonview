@@ -1,5 +1,3 @@
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -38,7 +36,8 @@ body {
   color: hsl(var(--foreground));
   background: #ffffff;
   /* Soft pink-white background */
-  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  /* 글꼴은 tailwind.config.ts fontFamily.sans 한 곳에서만 정의 */
+  font-family: theme('fontFamily.sans');
 }
 
 @layer components {

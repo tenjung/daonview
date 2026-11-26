@@ -16,9 +16,20 @@ const config: Config = {
             },
         },
         extend: {
+            // 디자인 기준(docs/rules/design.md 3절): 글꼴 Pretendard 하나, 굵기 400·500·600·700, 글자 7단계.
             fontFamily: {
-                sans: ['Pretendard', 'var(--font-geist-sans)', 'sans-serif'],
+                sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
                 serif: ['var(--font-noto-serif-kr)', 'serif'],
+            },
+            // 800·900은 쓰지 않는다. 기존 font-extrabold·font-black은 700으로 통일.
+            fontWeight: {
+                extrabold: '700',
+                black: '700',
+            },
+            // 기본 단계(xs 12·sm 14·base 16·lg 18·xl 20·2xl 24) 사이 빈 단계만 추가.
+            fontSize: {
+                '2xs': ['0.6875rem', { lineHeight: '1rem' }],        // 11px 최소
+                'body-sm': ['0.8125rem', { lineHeight: '1.25rem' }],  // 13px 보조
             },
             colors: {
                 border: "hsl(var(--border))",
@@ -75,6 +86,7 @@ const config: Config = {
                 }
             },
             borderRadius: {
+                btn: '8px', // 버튼 모서리(docs/rules/design.md 3절)
                 lg: "var(--radius)",
                 md: "calc(var(--radius) - 2px)",
                 sm: "calc(var(--radius) - 4px)",

@@ -1,18 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Noto_Serif_KR } from "next/font/google";
+import { Noto_Serif_KR } from "next/font/google";
 import { Toaster } from 'sonner';
 import DevRoleSwitcher from '@/components/dev/DevRoleSwitcher';
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 const notoSerifKr = Noto_Serif_KR({
   weight: ['400', '700', '900'],
@@ -190,6 +180,12 @@ export default async function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* 사이트 글꼴은 Pretendard 하나(docs/rules/design.md 3절). 화면에 쓰인 글자 조각·굵기만 받는 dynamic-subset 버전 */}
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css"
+        />
         {/* JSON-LD 구조화 데이터: Google Sitelinks & 사이트 인식 */}
         <script
           type="application/ld+json"
@@ -197,7 +193,7 @@ export default async function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${notoSerifKr.variable} flex flex-col min-h-screen`}
+        className={`${notoSerifKr.variable} font-sans flex flex-col min-h-screen`}
         suppressHydrationWarning
       >
         {/* 서버에서 읽은 실제 세션을 Zustand store에 즉시 주입 */}

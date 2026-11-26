@@ -1709,13 +1709,10 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                         {/* Actions */}
                                         <div className="w-full space-y-3 pt-4">
                                             {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') && (
-                                                <button
-                                                    onClick={() => setIsReviewModalOpen(true)}
-                                                    className="w-full py-4 rounded-2xl bg-rose-500 text-white text-base font-black hover:bg-rose-600 transition-all shadow-xl shadow-rose-100 flex items-center justify-center gap-2"
-                                                >
-                                                    <Camera size={20} />
+                                                <Button size="lg" onClick={() => setIsReviewModalOpen(true)} className="w-full">
+                                                    <Camera />
                                                     리뷰 제출하기
-                                                </button>
+                                                </Button>
                                             )}
 
                                             <div className="flex gap-3">
@@ -1730,7 +1727,7 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                                                             setShowCancelDialog(true);
                                                         }
                                                     }}
-                                                    className="flex-1 py-4 rounded-2xl bg-gray-50 text-gray-400 text-sm font-bold hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-[0.98] border border-transparent hover:border-rose-100"
+                                                    className="flex-1 h-10 rounded-btn bg-gray-50 text-gray-500 text-sm font-medium hover:bg-rose-50 hover:text-rose-500 transition-colors"
                                                 >
                                                     신청 취소하기
                                                 </button>
@@ -1873,15 +1870,12 @@ export default function CampaignDetailClient({ campaign: initialCampaign, id, pu
                 ) : (
                     <div className="flex items-center justify-between gap-3">
                         {(applicationStatus === 'SELECTED' || applicationStatus === 'APPROVED') ? (
-                            <button
-                                onClick={() => setIsReviewModalOpen(true)}
-                                className="px-5 py-3.5 bg-rose-500 text-white rounded-2xl font-black text-sm flex-1 text-center shadow-lg shadow-rose-100 flex items-center justify-center gap-2"
-                            >
-                                <Camera size={16} />
+                            <Button size="bottom" onClick={() => setIsReviewModalOpen(true)} className="flex-1">
+                                <Camera />
                                 리뷰 제출하기
-                            </button>
+                            </Button>
                         ) : (
-                            <div className="px-5 py-3.5 bg-emerald-50 text-emerald-700 rounded-2xl font-bold text-sm flex-1 text-center">
+                            <div className="h-12 px-5 flex items-center justify-center rounded-btn bg-emerald-50 text-emerald-700 font-semibold text-sm flex-1 text-center">
                                 신청 완료 · 검토중
                             </div>
                         )}

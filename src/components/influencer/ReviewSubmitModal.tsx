@@ -455,20 +455,22 @@ export default function ReviewSubmitModal({
                     )}
                 </div>
 
-                <DialogFooter className="p-6 bg-slate-50 flex items-center gap-3">
+                <DialogFooter className="p-4 sm:p-6 bg-slate-50 flex flex-row items-center gap-2">
                     <Button
                         variant="ghost"
+                        size="lg"
                         onClick={onClose}
-                        className="flex-1 h-12 rounded-xl font-bold text-slate-500 hover:bg-slate-100"
+                        className="flex-1 text-slate-500 hover:bg-slate-100"
                     >
                         취소
                     </Button>
                     <Button
                         onClick={handleSubmit}
                         disabled={isSubmitting || (!isPurchaseExperience && !reviewUrl.trim())}
-                        className="flex-[2] h-12 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-black shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                        size="lg"
+                        className="flex-[2]"
                     >
-                        {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : null}
+                        {isSubmitting ? <Loader2 className="animate-spin" /> : null}
                         리뷰 등록 완료
                     </Button>
                 </DialogFooter>

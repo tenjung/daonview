@@ -92,12 +92,12 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 폰트는 가독성, 위계, 밀도(특히 모바일) 관점에서 통일된 규칙을 적용합니다.  
 핵심 원칙은 **크기보다 위계**, **강조보다 일관성**입니다.
 
-### 3.1 기본 폰트 패밀리 (Current Source of Truth)
-- **기본 UI/본문 폰트:** `Pretendard`
-  - 현재 전역 기준: `src/app/globals.css`의 `body { font-family: 'Pretendard', ... }`
-- **모노 폰트:** `Geist Mono`
-  - 코드/ID/트래킹번호/숫자 정렬이 중요한 영역에 사용
-- 참고: `src/app/layout.tsx`에서 `Geist` 변수도 로드되지만, 기본 본문은 Pretendard 기준으로 운영한다.
+### 3.1 글꼴 (확정 2026-11-26)
+- **글꼴은 `Pretendard` 하나만** 쓴다(사이트·관리자·메일). 다른 글꼴을 새로 불러오지 않는다.
+- 정의는 `tailwind.config.ts`의 `fontFamily.sans` 한 곳. `globals.css` body와 `<body className="font-sans">`가 이를 따른다.
+- 불러오기: `src/app/layout.tsx`에서 Pretendard **dynamic-subset** CSS 한 번(화면에 쓰인 글자 조각·굵기만 받음). CSS `@import` 금지.
+- 표 숫자 정렬은 별도 글꼴(mono) 대신 `tabular-nums`를 쓴다(3단계에서 기존 `font-mono` 정리).
+- 예외(정리 예정): 제휴 랜딩 제목의 `font-serif`(Noto Serif KR)는 3단계에서 Pretendard로 바꾼다.
 
 ### 3.2 텍스트 역할별 Weight 규칙
 - **Page Title / Section Title:** `font-bold` (기본 700)
@@ -107,7 +107,7 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 - **Badge / Label / Meta:** `font-semibold` (필요 시 `text-xs` 조합)
 - **금지 규칙:** `font-black` 남용 금지 (브랜드 로고/히어로 타이틀 등 특수 영역만 예외)
 
-### 3.3 크기 스케일 기본 가이드
+### 3.3 크기 스케일 기본 가이드 (3.8 확정 기준이 우선)
 - **본문:** `text-sm` ~ `text-base`
 - **보조 텍스트/메타:** `text-xs` ~ `text-sm`
 - **섹션 제목:** `text-lg` ~ `text-2xl`
@@ -153,3 +153,38 @@ Edge-to-Edge 컨테이너 내부더라도 검색 인풋박스, 페이지네이�
 3. **안내 문구 길이 제한**
    - 도움말과 안내 박스 문구는 먼저 한 문장으로 축약하고 `break-keep`을 적용한다.
    - 좁은 화면에서 불가피하게 두 줄이 되더라도 조사나 어미가 글자 단위로 분리되지 않게 한다.
+
+
+### 3.8 확정 기준: 굵기·글자 크기·버튼 (2026-11-26, 3.2·3.3보다 우선)
+널리 쓰는 기준(Apple 최소 터치 44pt·최소 글자 11pt, Material 버튼 40dp·버튼 글자 14/500, 토스 본문 15·보조 13·캡션 11, shadcn 버튼 36)을 참고해 정했다.
+
+**굵기 4가지만 사용**
+| 굵기 | 클래스 | 쓰는 곳 |
+|---|---|---|
+| 400 | `font-normal` | 본문, 설명 |
+| 500 | `font-medium` | 라벨, 캡션, 표 안 글 |
+| 600 | `font-semibold` | 버튼, 카드 제목, 강조 |
+| 700 | `font-bold` | 페이지·섹션 제목, 큰 숫자 |
+- 800·900 금지. `tailwind.config.ts`에서 `font-extrabold`·`font-black`을 700으로 매핑해 두었다(새 코드에는 `font-bold`를 쓴다). 예외: 로고 글자(`.brand-text-base`).
+
+**글자 크기 7단계만 사용**
+| 단계 | 크기 | 클래스 | 굵기 |
+|---|---|---|---|
+| 페이지 제목 | 20 / 24px | `text-xl sm:text-2xl` | 700 |
+| 섹션·모달 제목 | 18px | `text-lg` | 700 |
+| 카드 제목 | 16px | `text-base` | 600 |
+| 본문 | 14px | `text-sm` | 400 |
+| 보조 | 13px | `text-body-sm` | 400 |
+| 캡션 | 12px | `text-xs` | 500 |
+| 최소 | 11px | `text-2xs` | 500 |
+- `text-[숫자px]` 임의 크기와 11px 미만 글자 금지(2단계에서 기존 사용처 정리).
+
+**버튼은 공통 `Button`(`src/components/ui/button.tsx`)의 크기만 사용**
+| size | 높이 | 글자 | 쓰는 곳 |
+|---|---|---|---|
+| `sm` | 32px | 13px 500 | 표 안 동작 |
+| `default` | 40px | 14px 600 | 일반 버튼, 모달 보조 버튼 |
+| `lg` | 44px | 15px 600 | 화면의 주요 동작 1개(등록 완료·제출 등) |
+| `bottom` | 48px | 15px 700 | 모바일 화면 맨 아래 고정 버튼만 |
+- 모서리 8px(`rounded-btn`) 통일. 버튼에 색 그림자(`shadow-rose-*` 등) 금지.
+- 화면에서 `h-*`·`py-*`·`text-*`·`font-black`으로 버튼 높이·글자를 덮어쓰지 않는다(너비·배치 클래스만 허용).

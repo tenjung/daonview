@@ -61,11 +61,23 @@ export async function POST(request: Request) {
 
   const admin = createAdminClient();
 
+  // 메일 발송 없이 일회용 로그인 토큰을 만든다(아직 로그인하지 않음). 결과의 계정 ID로 프로필을 확인한다.
+  // profiles.email(메일 받는 주소)은 테스트 메일 수신용으로 바뀔 수 있으므로 로그인 계정 ID 기준으로 본다.
+  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
+    type: 'magiclink',
+    email,
+  });
+  const tokenHash = linkData?.properties?.hashed_token;
+  const userId = linkData?.user?.id;
+  if (linkError || !tokenHash || !userId) {
+    return NextResponse.json({ error: '로그인 토큰을 만들지 못했습니다.' }, { status: 500 });
+  }
+
   // 실제 회원으로 로그인되는 일이 없도록 테스트 계정 표시와 역할을 다시 확인한다.
   const { data: profile, error: profileError } = await admin
     .from('profiles')
     .select('id, role, is_test_account')
-    .eq('email', email)
+    .eq('id', userId)
     .maybeSingle();
 
   if (profileError) {
@@ -76,16 +88,6 @@ export async function POST(request: Request) {
       { error: '테스트 계정이 없거나 설정이 맞지 않습니다. scripts/create-agent-test-accounts.mjs를 실행하세요.' },
       { status: 409 }
     );
-  }
-
-  // 메일 발송 없이 일회용 로그인 토큰을 만들고, 서버에서 바로 검증해 세션 쿠키를 설정한다.
-  const { data: linkData, error: linkError } = await admin.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-  });
-  const tokenHash = linkData?.properties?.hashed_token;
-  if (linkError || !tokenHash) {
-    return NextResponse.json({ error: '로그인 토큰을 만들지 못했습니다.' }, { status: 500 });
   }
 
   const supabase = await createClient();

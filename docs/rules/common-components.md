@@ -45,6 +45,12 @@
 | `ApplicationsTableClient` | 캠페인 신청자 표(관리자·광고주 공용) | 신청자 관련 기능은 여기 한 곳에 |
 | `StatusBadgeCell` | 표 안의 상태 셀 | 내부적으로 `StatusBadge` 사용 |
 
+### 3-3-0. 디자인 기준 부품
+| 요소 | 용도 | 사용 규칙 |
+|---|---|---|
+| `Button` (`src/components/ui/button.tsx`) | 모든 버튼. size `sm`32·`default`40·`lg`44·`bottom`48, 모서리 8px | 화면에서 높이·글자 덮어쓰기 금지. 기준은 `docs/rules/design.md` 3.8 |
+| `tailwind.config.ts` 글꼴·굵기·크기 토큰 | Pretendard 단일 글꼴, 굵기 400~700, `text-2xs`(11)·`text-body-sm`(13) | 임의 px 크기·800/900 굵기 금지 |
+
 ### 3-3-1. 메일 (`src/lib/email.ts`)
 | 요소 | 용도 | 사용 규칙 |
 |---|---|---|
