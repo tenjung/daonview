@@ -201,17 +201,17 @@ export function createCampaignColumns(context: CampaignColumnContext): ColumnDef
             return (
                 <div className="flex flex-col gap-1.5 py-1">
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[10px] font-semibold leading-none shrink-0">시작</span>
-                        <span className="text-[11px] font-bold text-slate-700">
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-2xs font-semibold leading-none shrink-0">시작</span>
+                        <span className="text-2xs font-bold text-slate-700">
                             {startDate ? new Date(startDate).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').replace(/\.$/, '') : '-'}
                         </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 text-[10px] font-semibold leading-none shrink-0">마감</span>
+                        <span className="inline-flex items-center justify-center px-1.5 py-0.5 rounded bg-rose-50 text-rose-500 text-2xs font-semibold leading-none shrink-0">마감</span>
                         {isAutoExtend ? (
-                            <span className="text-[11px] font-semibold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">빠른모집 자동연장</span>
+                            <span className="text-2xs font-semibold text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded-full border border-sky-100">빠른모집 자동연장</span>
                         ) : (
-                            <span className="text-[11px] font-bold text-slate-700">
+                            <span className="text-2xs font-bold text-slate-700">
                                 {campaign.end_date ? new Date(campaign.end_date).toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\s/g, '').replace(/\.$/, '') : '-'}
                             </span>
                         )}

@@ -218,7 +218,7 @@ export default function ReviewUpdateClient() {
                 <Button
                     onClick={updateAllReviews}
                     disabled={isUpdating}
-                    className="w-full h-14 bg-rose-500 hover:bg-rose-600 text-white font-bold text-lg mb-6"
+                    size="lg" className="w-full bg-rose-500 hover:bg-rose-600 text-white mb-6"
                 >
                     {isUpdating ? (
                         <>

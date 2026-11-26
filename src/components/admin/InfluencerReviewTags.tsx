@@ -81,7 +81,7 @@ export default function InfluencerReviewTags({ tags, compact = false }: Influenc
             {tagsByType.map((tag, index) => (
                 <span
                     key={index}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border ${getTagStyle(tag.type)}`}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-2xs font-medium border ${getTagStyle(tag.type)}`}
                 >
                     {getIcon(tag.type)}
                     {tag.label}

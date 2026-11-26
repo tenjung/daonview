@@ -9,6 +9,8 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { ChevronLeft } from 'lucide-react';
 import { getInquiryCategoryLabel, isInquiryAnswered } from '@/constants/inquiry';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface InquiryDetail {
     id: string;
@@ -123,7 +125,7 @@ export default function InquiryDetailClient() {
                         {format(new Date(inquiry.created_at), 'yyyy.MM.dd HH:mm')}
                     </span>
                 </div>
-                <h1 className="text-2xl font-black text-slate-900">{inquiry.title}</h1>
+                <h1 className="text-2xl font-bold text-slate-900">{inquiry.title}</h1>
             </div>
 
             {/* 문의 내용 */}
@@ -149,7 +151,7 @@ export default function InquiryDetailClient() {
             {/* 답변 입력 Form */}
             <div className="bg-slate-50 rounded-xl border border-slate-200 p-8">
                 <h3 className="font-bold text-slate-900 mb-4 flex items-center gap-2 text-lg">
-                    <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-black">A</span>
+                    <span className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center text-sm font-bold">A</span>
                     관리자 답변
                     {isInquiryAnswered(inquiry.status) && (
                         <span className="text-xs font-normal text-slate-400 ml-auto">
@@ -167,7 +169,7 @@ export default function InquiryDetailClient() {
                     <button
                         onClick={handleAnswerSubmit}
                         disabled={isSubmitting}
-                        className="btn btn-primary px-8 py-3 font-bold text-base shadow-lg shadow-primary/20"
+                        className={cn(buttonVariants({ size: 'lg' }), 'px-8')}
                     >
                         {isSubmitting ? '처리 중...' : (isInquiryAnswered(inquiry.status) ? '답변 수정하기' : '답변 등록하기')}
                     </button>

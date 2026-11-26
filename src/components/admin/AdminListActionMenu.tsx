@@ -68,7 +68,7 @@ export default function AdminListActionMenu({
                         <div key={item.key}>
                             {item.separatorBefore ? <DropdownMenuSeparator /> : null}
                             {item.groupLabel ? (
-                                <DropdownMenuLabel className="text-[10px] text-gray-400 uppercase">
+                                <DropdownMenuLabel className="text-2xs text-gray-400 uppercase">
                                     {item.groupLabel}
                                 </DropdownMenuLabel>
                             ) : null}

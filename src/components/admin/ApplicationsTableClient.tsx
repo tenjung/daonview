@@ -311,7 +311,7 @@ export default function ApplicationsTableClient({
                     <div className="flex items-center gap-1">
                         <span>모집 인원:</span>
                         {recruitCount >= 999 ? (
-                            <span className="text-indigo-600 font-black">∞</span>
+                            <span className="text-indigo-600 font-bold">∞</span>
                         ) : (
                             <span>{recruitCount}명</span>
                         )}
@@ -1011,14 +1011,14 @@ export default function ApplicationsTableClient({
                             <div className="flex gap-2 pt-4">
                                 <Button
                                     type="submit"
-                                    className="flex-1 bg-primary h-12 font-bold rounded-xl shadow-lg shadow-rose-100"
+                                    size="lg" className="flex-1"
                                 >
                                     저장 및 알림톡 발송
                                 </Button>
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    className="flex-1 h-12 font-bold rounded-xl border-gray-200"
+                                    size="lg" className="flex-1 border-gray-200"
                                     onClick={() => setTrackingModal(prev => ({ ...prev, isOpen: false }))}
                                 >
                                     취소

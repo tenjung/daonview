@@ -24,7 +24,7 @@ interface UserColumnContext {
 
 // 등급 Badge
 function RoleBadge({ role }: { role: string }) {
-    const baseClass = "px-1.5 py-0 rounded text-[10px] font-black border whitespace-nowrap uppercase cursor-default";
+    const baseClass = "px-1.5 py-0 rounded text-2xs font-bold border whitespace-nowrap uppercase cursor-default";
     switch (role?.toUpperCase()) {
         case 'ADMIN':
             return <span className={`${baseClass} bg-violet-100 text-violet-700 border-violet-200`}>관리자</span>;
@@ -50,7 +50,7 @@ function UserInfoCell({ user }: { user: Profile }) {
                 <span className="font-bold text-gray-900 truncate">
                     {user.nickname || '닉네임 없음'}
                     {user.is_test_account && (
-                        <span className="ml-1.5 align-middle text-[10px] font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">테스트</span>
+                        <span className="ml-1.5 align-middle text-2xs font-bold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">테스트</span>
                     )}
                 </span>
                 <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -112,7 +112,7 @@ export function createUserColumns(context: UserColumnContext): ColumnDef<Profile
                                     </div>
                                 </TooltipTrigger>
                                 {isAdvertiser && user.company_name && (
-                                    <TooltipContent side="bottom" className="flex items-center gap-1.5 font-bold py-1 px-2 text-[11px]">
+                                    <TooltipContent side="bottom" className="flex items-center gap-1.5 font-bold py-1 px-2 text-2xs">
                                         <Building2 size={12} className="text-blue-500" />
                                         <span>{user.company_name}</span>
                                     </TooltipContent>

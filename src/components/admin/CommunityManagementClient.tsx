@@ -209,8 +209,8 @@ export default function CommunityManagementClient({ initialPosts, initialStats }
                             </div>
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-black text-gray-900">{card.value}</div>
-                            <p className="text-[10px] text-gray-400 mt-1 font-medium italic">Current Statistics</p>
+                            <div className="text-2xl font-bold text-gray-900">{card.value}</div>
+                            <p className="text-2xs text-gray-400 mt-1 font-medium italic">Current Statistics</p>
                         </CardContent>
                     </Card>
                 ))}

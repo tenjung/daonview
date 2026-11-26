@@ -133,8 +133,8 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                     }
                                 
                                     return (
-                                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-slate-50 to-gray-50 text-slate-600 px-2 py-0.5 rounded text-[10px] font-bold border border-slate-200 shadow-sm" title={`블로그 영향력 지수 (최저 1 ~ 최고 5)`}>
-                                            지수: <span className="tracking-widest text-[#FFB800] text-[11px] drop-shadow-sm">
+                                        <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-slate-50 to-gray-50 text-slate-600 px-2 py-0.5 rounded text-2xs font-bold border border-slate-200 shadow-sm" title={`블로그 영향력 지수 (최저 1 ~ 최고 5)`}>
+                                            지수: <span className="tracking-widest text-[#FFB800] text-2xs drop-shadow-sm">
                                                 {"★".repeat(stars || 1)}
                                             </span>
                                         </span>
@@ -194,7 +194,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 <div className="max-w-[220px] flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 cursor-help">
                                     <span className="flex-1 truncate">{options[0]}</span>
                                     {options.length > 1 && (
-                                        <span className="shrink-0 text-[10px] bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full font-black leading-none">
+                                        <span className="shrink-0 text-2xs bg-blue-200 text-blue-700 px-1.5 py-0.5 rounded-full font-bold leading-none">
                                             +{options.length - 1}
                                         </span>
                                     )}
@@ -202,7 +202,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                             </TooltipTrigger>
                             <TooltipContent className="p-0 overflow-hidden border-2 border-blue-100 shadow-2xl rounded-2xl w-[320px]">
                                 <div className="bg-blue-600 px-3 py-2">
-                                    <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center gap-1.5">
+                                    <span className="text-2xs font-bold text-white uppercase tracking-widest flex items-center gap-1.5">
                                         <div className="w-1 h-1 rounded-full bg-white animate-pulse" />
                                         Selected Options
                                     </span>
@@ -210,14 +210,14 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                 <div className="p-4 space-y-3 bg-white">
                                     {options.map((opt, i) => (
                                         <div key={i} className="flex gap-3 items-start group">
-                                            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-[11px] font-black border border-blue-100 border-dashed group-hover:bg-blue-600 group-hover:text-white group-hover:border-transparent transition-all">
+                                            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-2xs font-bold border border-blue-100 border-dashed group-hover:bg-blue-600 group-hover:text-white group-hover:border-transparent transition-all">
                                                 {i + 1}
                                             </div>
                                             <div className="flex-1">
-                                                <div className="text-[10px] font-bold text-blue-400 mb-0.5">
+                                                <div className="text-2xs font-bold text-blue-400 mb-0.5">
                                                     {i + 1}순위 희망
                                                 </div>
-                                                <div className="text-[12px] font-semibold text-slate-700 leading-snug">
+                                                <div className="text-xs font-semibold text-slate-700 leading-snug">
                                                     {opt.replace(/^[1-9]지망:\s*/, '')}
                                                 </div>
                                             </div>
@@ -279,7 +279,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                         {app.tracking_company && app.tracking_number ? (
                             <div className="text-sm">
                                 <div className="font-medium text-blue-600">{app.tracking_company}</div>
-                                <div className="text-gray-500 font-mono text-[10px]">{app.tracking_number}</div>
+                                <div className="text-gray-500 font-mono text-2xs">{app.tracking_number}</div>
                             </div>
                         ) : (
                             <span className="text-xs text-gray-400 italic">미등록</span>
@@ -287,7 +287,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                         {isSelected && (
                             <button 
                                 onClick={() => context.onUpdateTracking?.(app.id, app.tracking_company || '', app.tracking_number || '')}
-                                className="text-[10px] text-primary hover:underline w-fit"
+                                className="text-2xs text-primary hover:underline w-fit"
                             >
                                 {app.tracking_number ? '수정' : '입력'}
                             </button>
@@ -312,25 +312,25 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                         <DateCell date={app.review_deadline} />
                         {app.extension_status === 'PENDING' && (
                             <div className="bg-orange-50 p-1.5 rounded border border-orange-100 mt-1">
-                                <div className="text-[9px] text-orange-600 font-bold mb-1">연장 요청됨</div>
-                                <div className="text-[9px] text-gray-500 line-clamp-2 italic">"{app.extension_reason}"</div>
+                                <div className="text-2xs text-orange-600 font-bold mb-1">연장 요청됨</div>
+                                <div className="text-2xs text-gray-500 line-clamp-2 italic">"{app.extension_reason}"</div>
                                 <div className="flex gap-1 mt-1">
                                     <button 
                                         onClick={() => context.onHandleExtension?.(app.id, 'APPROVED')}
-                                        className="text-[8px] bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold"
+                                        className="text-2xs bg-orange-500 text-white px-1.5 py-0.5 rounded font-bold"
                                     >
                                         승인
                                     </button>
                                     <button 
                                         onClick={() => context.onHandleExtension?.(app.id, 'REJECTED')}
-                                        className="text-[8px] bg-gray-400 text-white px-1.5 py-0.5 rounded font-bold"
+                                        className="text-2xs bg-gray-400 text-white px-1.5 py-0.5 rounded font-bold"
                                     >
                                         거절
                                     </button>
                                 </div>
                             </div>
                         )}
-                        {app.extension_status === 'APPROVED' && <span className="text-[9px] text-green-600 font-bold">연장됨 (+7일)</span>}
+                        {app.extension_status === 'APPROVED' && <span className="text-2xs text-green-600 font-bold">연장됨 (+7일)</span>}
                     </div>
                 );
             },
@@ -364,17 +364,17 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                             className="flex items-center gap-1 hover:bg-gray-100 px-2 py-1 rounded-full transition-all border border-transparent hover:border-gray-200 group"
                         >
                             <div className="flex items-center -space-x-1">
-                                {satisfiedCount > 0 && <span className="text-[14px]">😊</span>}
-                                {normalCount > 0 && <span className="text-[14px]">😐</span>}
-                                {dissatisfiedCount > 0 && <span className="text-[14px]">😡</span>}
-                                {satisfaction.length === 0 && <span className="text-[10px] font-bold text-gray-300">없음</span>}
+                                {satisfiedCount > 0 && <span className="text-sm">😊</span>}
+                                {normalCount > 0 && <span className="text-sm">😐</span>}
+                                {dissatisfiedCount > 0 && <span className="text-sm">😡</span>}
+                                {satisfaction.length === 0 && <span className="text-2xs font-bold text-gray-300">없음</span>}
                             </div>
                             
                             {hasIssue && (
                                 <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shrink-0" title="특이사항(취소/지연) 있음" />
                             )}
 
-                            <span className="text-[9px] font-black text-gray-400 group-hover:text-primary transition-colors hidden group-hover:inline ml-1 whitespace-nowrap">
+                            <span className="text-2xs font-bold text-gray-400 group-hover:text-primary transition-colors hidden group-hover:inline ml-1 whitespace-nowrap">
                                 상세
                             </span>
                         </button>
@@ -502,7 +502,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                         ) : isSelected ? (
                             <div className="flex gap-1 items-center justify-center">
                                 {isReviewed ? (
-                                    <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
+                                    <div className="bg-gray-100 text-gray-500 text-2xs font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
                                         <div className="w-1 h-1 rounded-full bg-gray-400" />
                                         평가완료
                                     </div>
@@ -510,7 +510,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                     <Button
                                         size="sm"
                                         onClick={() => context.onOpenReview(app.user_id, user?.nickname || '인플루언서')}
-                                        className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap h-7 px-2 shadow-sm text-[11px]"
+                                        className="bg-yellow-500 hover:bg-yellow-600 whitespace-nowrap h-7 px-2 shadow-sm text-2xs"
                                     >
                                         <Star size={12} className="mr-1 fill-white" /> 평가
                                     </Button>
@@ -519,7 +519,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                     size="sm"
                                     variant="outline"
                                     onClick={() => context.onOpenSelectionPreview ? context.onOpenSelectionPreview(app, 'EMAIL') : context.onResendNotification?.(app)}
-                                    className="border-blue-500 text-blue-600 hover:bg-blue-50 whitespace-nowrap h-7 px-2 text-[11px]"
+                                    className="border-blue-500 text-blue-600 hover:bg-blue-50 whitespace-nowrap h-7 px-2 text-2xs"
                                 >
                                     재발송
                                 </Button>
@@ -528,7 +528,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                         size="sm"
                                         variant="outline"
                                         onClick={() => context.onReassignLink?.(app)}
-                                        className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap h-7 px-2 text-[11px]"
+                                        className="border-indigo-500 text-indigo-600 hover:bg-indigo-50 whitespace-nowrap h-7 px-2 text-2xs"
                                     >
                                         링크
                                     </Button>
@@ -537,7 +537,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                                     size="sm"
                                     variant="outline"
                                     onClick={() => context.onCancel(app.id, user?.nickname || '인플루언서')}
-                                    className="border-orange-500 text-orange-600 hover:bg-orange-50 whitespace-nowrap h-7 px-2 text-[11px]"
+                                    className="border-orange-500 text-orange-600 hover:bg-orange-50 whitespace-nowrap h-7 px-2 text-2xs"
                                 >
                                     <X size={12} className="mr-1" /> 취소
                                 </Button>
@@ -557,7 +557,7 @@ export function createApplicationColumns(context: ColumnContext): ColumnDef<Appl
                             </div>
                         ) : (
                             isReviewed ? (
-                                <div className="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
+                                <div className="bg-gray-100 text-gray-500 text-2xs font-bold px-2 py-1 rounded-md border border-gray-200 flex items-center gap-1 whitespace-nowrap">
                                     <div className="w-1 h-1 rounded-full bg-gray-400" />
                                     평가완료
                                 </div>

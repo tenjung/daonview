@@ -140,7 +140,7 @@ export default function ReputationDetailModal({
                     <div>
                         <div className="flex items-center gap-3">
                             <Star className="text-amber-400 w-6 h-6 fill-amber-400" />
-                            <h2 className="text-xl font-black text-gray-900 tracking-tight">인플루언서 평판</h2>
+                            <h2 className="text-xl font-bold text-gray-900 tracking-tight">인플루언서 평판</h2>
                         </div>
                         <p className="text-xs text-gray-400 mt-1 font-bold">{influencerName}님에 대한 평판 정보를 확인하세요</p>
                     </div>
@@ -165,7 +165,7 @@ export default function ReputationDetailModal({
                             <section>
                                 <div className="flex items-center gap-2 mb-4">
                                     <Star size={18} className="text-amber-500 fill-amber-500" />
-                                    <h3 className="text-lg font-black text-gray-900">전반적인 만족도</h3>
+                                    <h3 className="text-lg font-bold text-gray-900">전반적인 만족도</h3>
                                 </div>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
@@ -178,8 +178,8 @@ export default function ReputationDetailModal({
                                             <div key={item.level} className={`rounded-3xl border-2 py-3 flex flex-col items-center gap-1.5 transition-all ${item.count > 0 ? config.border + ' ' + config.color : 'border-gray-50 bg-gray-50 text-gray-300 opacity-50'}`}>
                                                 <span className="text-2xl">{config.emoji}</span>
                                                 <div className="text-center">
-                                                    <p className="text-xs font-black">{config.label}</p>
-                                                    <p className="text-[10px] font-bold mt-0.5">{item.count}건</p>
+                                                    <p className="text-xs font-bold">{config.label}</p>
+                                                    <p className="text-2xs font-bold mt-0.5">{item.count}건</p>
                                                 </div>
                                             </div>
                                         );
@@ -191,7 +191,7 @@ export default function ReputationDetailModal({
                             <section>
                                 <div className="flex items-center gap-2 mb-4">
                                     <MessageSquare size={18} className="text-primary" />
-                                    <h3 className="text-lg font-black text-gray-900">상세 평가 피드백</h3>
+                                    <h3 className="text-lg font-bold text-gray-900">상세 평가 피드백</h3>
                                 </div>
                                 {reviews.length === 0 ? (
                                     <div className="bg-gray-50/50 rounded-3xl p-8 border border-dashed border-gray-200 text-center text-gray-400 font-bold text-sm">
@@ -207,16 +207,16 @@ export default function ReputationDetailModal({
                                                         <div className="flex items-center gap-2">
                                                             <div className="text-xl">{getSatisfactionEmoji(review.satisfaction || '').emoji}</div>
                                                             <div>
-                                                                <p className="text-xs font-black text-gray-900 leading-tight">{review.campaign?.title}</p>
-                                                                <p className="text-[10px] text-gray-400 font-bold mt-0.5">{new Date(review.created_at).toLocaleDateString()}</p>
+                                                                <p className="text-xs font-bold text-gray-900 leading-tight">{review.campaign?.title}</p>
+                                                                <p className="text-2xs text-gray-400 font-bold mt-0.5">{new Date(review.created_at).toLocaleDateString()}</p>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     <div className="flex flex-wrap gap-1.5">
-                                                        {positive.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black border border-emerald-100">● {tag}</span>)}
-                                                        {warning.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black border border-amber-100">● {tag}</span>)}
-                                                        {problem.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-rose-50 text-rose-600 rounded-full text-[10px] font-black border border-rose-100">● {tag}</span>)}
+                                                        {positive.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-2xs font-bold border border-emerald-100">● {tag}</span>)}
+                                                        {warning.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-amber-50 text-amber-600 rounded-full text-2xs font-bold border border-amber-100">● {tag}</span>)}
+                                                        {problem.map(tag => <span key={tag} className="px-2.5 py-0.5 bg-rose-50 text-rose-600 rounded-full text-2xs font-bold border border-rose-100">● {tag}</span>)}
                                                     </div>
                                                     
                                                     {review.comment && (
@@ -239,8 +239,8 @@ export default function ReputationDetailModal({
                                 >
                                     <div className="flex items-center gap-2">
                                         <History size={18} className="text-rose-500" />
-                                        <h3 className="text-lg font-black text-gray-900">선정 후 취소 이력</h3>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-500 rounded-full">{cancellations.length}건</span>
+                                        <h3 className="text-lg font-bold text-gray-900">선정 후 취소 이력</h3>
+                                        <span className="text-2xs font-bold px-2 py-0.5 bg-rose-50 text-rose-500 rounded-full">{cancellations.length}건</span>
                                     </div>
                                     {isCancelHistoryOpen ? <ChevronUp className="text-gray-400" size={20} /> : <ChevronDown className="text-gray-400" size={20} />}
                                 </button>
@@ -256,11 +256,11 @@ export default function ReputationDetailModal({
                                                 {cancellations.map((cancel) => (
                                                     <div key={cancel.id} className="bg-rose-50/40 rounded-3xl p-5 border border-rose-100/50">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <p className="text-sm font-black text-gray-800">{cancel.campaign_title}</p>
-                                                            <span className="text-[10px] font-bold text-rose-400">{new Date(cancel.cancelled_at).toLocaleDateString()}</span>
+                                                            <p className="text-sm font-bold text-gray-800">{cancel.campaign_title}</p>
+                                                            <span className="text-2xs font-bold text-rose-400">{new Date(cancel.cancelled_at).toLocaleDateString()}</span>
                                                         </div>
                                                         <p className="text-xs text-rose-600 font-bold">
-                                                            <span className="text-[10px] uppercase text-rose-300 mr-2">사유:</span>
+                                                            <span className="text-2xs uppercase text-rose-300 mr-2">사유:</span>
                                                             {cancel.cancellation_reason}
                                                         </p>
                                                     </div>
@@ -278,7 +278,7 @@ export default function ReputationDetailModal({
                 <div className="p-6 bg-gray-50/50 border-t border-gray-50 flex justify-end gap-3">
                     <button
                         onClick={onClose}
-                        className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-black text-gray-600 hover:bg-gray-50 transition-all"
+                        className="px-6 py-3 bg-white border border-gray-200 rounded-2xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all"
                     >
                         닫기
                     </button>

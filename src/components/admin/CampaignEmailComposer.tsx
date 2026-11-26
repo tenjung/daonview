@@ -126,7 +126,7 @@ function CampaignSelectCard({
             )}
             <span className="text-xs font-semibold text-gray-400">#{campaign.id}</span>
           </div>
-          <div className="line-clamp-2 text-sm font-black leading-snug text-gray-900">
+          <div className="line-clamp-2 text-sm font-bold leading-snug text-gray-900">
             {campaign.title}
           </div>
           <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-gray-500">
@@ -154,7 +154,7 @@ function CampaignGroup({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-black text-gray-900">{title}</h3>
+        <h3 className="text-sm font-bold text-gray-900">{title}</h3>
         <span className="text-xs font-bold text-gray-400">{campaigns.length}개</span>
       </div>
       <div className="max-h-[360px] space-y-3 overflow-y-auto pr-1">
@@ -189,7 +189,7 @@ function SelectedCampaignOrderList({
   return (
     <div className="rounded-lg border border-gray-200 bg-white p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h3 className="text-sm font-black text-gray-900">선택한 캠페인 순서</h3>
+        <h3 className="text-sm font-bold text-gray-900">선택한 캠페인 순서</h3>
         <span className="text-xs font-bold text-gray-400">{campaigns.length}개</span>
       </div>
 
@@ -204,22 +204,22 @@ function SelectedCampaignOrderList({
               key={campaign.id}
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3"
             >
-              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-black text-primary">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white text-xs font-bold text-primary">
                 {index + 1}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="rounded-lg bg-white text-[10px]">
+                  <Badge variant="outline" className="rounded-lg bg-white text-2xs">
                     {campaign.type === 'VISIT' ? '지역/방문' : '배송체험'}
                   </Badge>
                   {campaign.type === 'DELIVERY' && (
-                    <Badge className="rounded-lg bg-rose-600 text-[10px] text-white hover:bg-rose-600">
+                    <Badge className="rounded-lg bg-rose-600 text-2xs text-white hover:bg-rose-600">
                       {campaign.deliveryPlatformLabel}
                     </Badge>
                   )}
-                  <span className="text-[10px] font-bold text-gray-400">#{campaign.id}</span>
+                  <span className="text-2xs font-bold text-gray-400">#{campaign.id}</span>
                 </div>
-                <div className="truncate text-xs font-black text-gray-900">{campaign.title}</div>
+                <div className="truncate text-xs font-bold text-gray-900">{campaign.title}</div>
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <Button
@@ -416,7 +416,7 @@ export default function CampaignEmailComposer({ campaigns }: CampaignEmailCompos
               <Mail className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-gray-900">진행 캠페인 메일 본문 생성</h2>
+              <h2 className="text-xl font-bold text-gray-900">진행 캠페인 메일 본문 생성</h2>
               <p className="mt-1 text-sm text-gray-500">선택한 캠페인만 이메일 본문에 들어갑니다.</p>
             </div>
           </div>
@@ -446,7 +446,7 @@ export default function CampaignEmailComposer({ campaigns }: CampaignEmailCompos
               <button
                 type="button"
                 onClick={() => setActiveTab('VISIT')}
-                className={`h-10 rounded-lg text-sm font-black transition ${
+                className={`h-10 rounded-lg text-sm font-bold transition ${
                   activeTab === 'VISIT'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
@@ -457,7 +457,7 @@ export default function CampaignEmailComposer({ campaigns }: CampaignEmailCompos
               <button
                 type="button"
                 onClick={() => setActiveTab('DELIVERY')}
-                className={`h-10 rounded-lg text-sm font-black transition ${
+                className={`h-10 rounded-lg text-sm font-bold transition ${
                   activeTab === 'DELIVERY'
                     ? 'bg-primary text-white shadow-sm'
                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'
@@ -567,7 +567,7 @@ export default function CampaignEmailComposer({ campaigns }: CampaignEmailCompos
         <div className="min-w-0 space-y-4">
           <div className="rounded-lg border border-gray-200 bg-gray-50 p-5">
             <div className="mb-4">
-              <div className="text-sm font-black text-gray-900">이메일 액션</div>
+              <div className="text-sm font-bold text-gray-900">이메일 액션</div>
               <div className="mt-1 break-keep text-xs leading-relaxed text-gray-500">
                 선택한 {selectedCampaigns.length}개 캠페인이 지정한 순서대로 본문에 반영됩니다.
               </div>
@@ -604,7 +604,7 @@ export default function CampaignEmailComposer({ campaigns }: CampaignEmailCompos
 
           <div className="rounded-lg border border-gray-200 bg-white p-4">
             <div className="text-xs font-bold text-gray-500">이메일 제목</div>
-            <div className="mt-2 break-keep text-sm font-black leading-relaxed text-gray-900">
+            <div className="mt-2 break-keep text-sm font-bold leading-relaxed text-gray-900">
               {CAMPAIGN_PROMOTION_EMAIL_SUBJECT}
             </div>
           </div>

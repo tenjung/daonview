@@ -182,8 +182,8 @@ function StatCard({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-xs font-semibold text-slate-500 sm:text-sm">{title}</p>
-            <p className="mt-1.5 text-2xl font-black tracking-tight text-slate-900 sm:mt-2 sm:text-3xl">{value}</p>
-            <p className="mt-1 text-[11px] text-slate-500 sm:text-xs">{description}</p>
+            <p className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900 sm:mt-2 sm:text-3xl">{value}</p>
+            <p className="mt-1 text-2xs text-slate-500 sm:text-xs">{description}</p>
           </div>
           <div className="rounded-2xl bg-rose-50 p-2.5 text-rose-500 sm:p-3">{icon}</div>
         </div>
@@ -219,12 +219,12 @@ function QuickActionCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-black">{title}</div>
+          <div className="text-sm font-bold">{title}</div>
           <div className="mt-1 text-xs opacity-80">{description}</div>
         </div>
         <div className="shrink-0 rounded-2xl bg-white/80 px-3 py-2 text-right shadow-sm">
-          <div className="text-xl font-black leading-none">{count}</div>
-          <div className="mt-1 text-[10px] font-semibold uppercase tracking-wide opacity-70">건</div>
+          <div className="text-xl font-bold leading-none">{count}</div>
+          <div className="mt-1 text-2xs font-semibold uppercase tracking-wide opacity-70">건</div>
         </div>
       </div>
       <div className="mt-3 flex items-center gap-1 text-xs font-bold">
@@ -353,10 +353,10 @@ export default async function AdminProgressDashboardPage() {
         <div className="rounded-[28px] bg-gradient-to-r from-slate-950 via-slate-900 to-rose-900 px-4 py-5 text-white shadow-lg sm:px-8 sm:py-7">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="min-w-0">
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold text-rose-100 sm:text-xs">
+              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-2xs font-bold text-rose-100 sm:text-xs">
                 <Sparkles className="h-3.5 w-3.5" /> 진행기능 정리대시보드
               </div>
-              <h1 className="text-xl font-black tracking-tight sm:text-3xl">캠페인 진행 흐름을 한 번에 보는 관리자 보드</h1>
+              <h1 className="text-xl font-bold tracking-tight sm:text-3xl">캠페인 진행 흐름을 한 번에 보는 관리자 보드</h1>
               <p className="mt-2 max-w-3xl text-sm text-slate-200 sm:text-base">
                 캠페인 승인, 신청자 선발, 리뷰 제출/승인, 연장 요청까지 운영팀이 바로 처리해야 할 지점을 한 화면에 모았습니다.
               </p>
@@ -374,8 +374,8 @@ export default async function AdminProgressDashboardPage() {
           <div className="mt-4 grid grid-cols-4 gap-2 sm:hidden">
             {mobileSnapshot.map((item) => (
               <div key={item.label} className="rounded-2xl bg-white/10 px-3 py-3 text-center backdrop-blur-sm">
-                <div className="text-[10px] font-semibold text-slate-200">{item.label}</div>
-                <div className={`mt-1 text-lg font-black ${item.tone}`}>{item.value}</div>
+                <div className="text-2xs font-semibold text-slate-200">{item.label}</div>
+                <div className={`mt-1 text-lg font-bold ${item.tone}`}>{item.value}</div>
               </div>
             ))}
           </div>
@@ -390,7 +390,7 @@ export default async function AdminProgressDashboardPage() {
 
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base font-black text-slate-900 sm:text-lg">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-slate-900 sm:text-lg">
               <AlertTriangle className="h-5 w-5 text-rose-500" /> 지금 바로 처리할 액션
             </CardTitle>
             <CardDescription>모바일에서 먼저 눌러야 하는 운영 큐를 앞에 뺐습니다.</CardDescription>
@@ -406,20 +406,20 @@ export default async function AdminProgressDashboardPage() {
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-[11px] font-bold text-slate-500">오늘의 총 액션</div>
-                <div className="mt-1 text-2xl font-black text-slate-900">{totalUrgentCount}</div>
+                <div className="text-2xs font-bold text-slate-500">오늘의 총 액션</div>
+                <div className="mt-1 text-2xl font-bold text-slate-900">{totalUrgentCount}</div>
               </div>
               <div className="rounded-2xl bg-red-50 px-4 py-3">
-                <div className="text-[11px] font-bold text-red-600">긴급 캠페인</div>
-                <div className="mt-1 text-2xl font-black text-red-700">{criticalCampaigns.length}</div>
+                <div className="text-2xs font-bold text-red-600">긴급 캠페인</div>
+                <div className="mt-1 text-2xl font-bold text-red-700">{criticalCampaigns.length}</div>
               </div>
               <div className="rounded-2xl bg-amber-50 px-4 py-3">
-                <div className="text-[11px] font-bold text-amber-600">주의 캠페인</div>
-                <div className="mt-1 text-2xl font-black text-amber-700">{warningCampaigns.length}</div>
+                <div className="text-2xs font-bold text-amber-600">주의 캠페인</div>
+                <div className="mt-1 text-2xl font-bold text-amber-700">{warningCampaigns.length}</div>
               </div>
               <div className="rounded-2xl bg-emerald-50 px-4 py-3">
-                <div className="text-[11px] font-bold text-emerald-600">최근 7일 리뷰</div>
-                <div className="mt-1 text-2xl font-black text-emerald-700">{weeklyReviewsRes.count || 0}</div>
+                <div className="text-2xs font-bold text-emerald-600">최근 7일 리뷰</div>
+                <div className="mt-1 text-2xl font-bold text-emerald-700">{weeklyReviewsRes.count || 0}</div>
               </div>
             </div>
           </CardContent>
@@ -428,7 +428,7 @@ export default async function AdminProgressDashboardPage() {
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <Card className="border-0 shadow-sm">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-lg font-black text-slate-900">
+              <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                 <BarChart3 className="h-5 w-5 text-rose-500" /> 진행 우선순위 캠페인
               </CardTitle>
               <CardDescription>모집률, 마감, 리뷰 일정 기준으로 모바일에서도 바로 판단할 수 있게 정리했습니다.</CardDescription>
@@ -450,33 +450,33 @@ export default async function AdminProgressDashboardPage() {
                             {campaign.type && <TypeBadge type={campaign.type} />}
                             {campaign.platform && <PlatformBadge platform={campaign.platform} />}
                           </div>
-                          <div className="line-clamp-2 text-base font-black leading-snug text-slate-900">{campaign.title}</div>
+                          <div className="line-clamp-2 text-base font-bold leading-snug text-slate-900">{campaign.title}</div>
                           <div className="mt-2 text-xs font-medium text-slate-600">{health.message}</div>
                         </div>
                         <div className={`shrink-0 rounded-2xl border px-3 py-2 text-right ${toneClassName(health.tone)}`}>
-                          <div className="text-[11px] font-bold">{health.tone === 'critical' ? '긴급 체크' : health.tone === 'warning' ? '주의 필요' : '안정'}</div>
-                          <div className="mt-1 text-sm font-black">{health.progressRate !== null ? `${health.progressRate}% 모집` : '자동연장 운영'}</div>
+                          <div className="text-2xs font-bold">{health.tone === 'critical' ? '긴급 체크' : health.tone === 'warning' ? '주의 필요' : '안정'}</div>
+                          <div className="mt-1 text-sm font-bold">{health.progressRate !== null ? `${health.progressRate}% 모집` : '자동연장 운영'}</div>
                         </div>
                       </div>
 
                       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
-                          <div className="text-[10px] font-bold text-slate-500">모집 현황</div>
-                          <div className="mt-1 text-sm font-black text-slate-900">{health.applicants} / {health.target}</div>
+                          <div className="text-2xs font-bold text-slate-500">모집 현황</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{health.applicants} / {health.target}</div>
                         </div>
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
-                          <div className="text-[10px] font-bold text-slate-500">모집 마감</div>
-                          <div className="mt-1 text-sm font-black text-slate-900">{health.daysLeft === null ? '-' : `${health.daysLeft}일`}</div>
-                          <div className="text-[10px] text-slate-500">{formatDate(campaign.end_date)}</div>
+                          <div className="text-2xs font-bold text-slate-500">모집 마감</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{health.daysLeft === null ? '-' : `${health.daysLeft}일`}</div>
+                          <div className="text-2xs text-slate-500">{formatDate(campaign.end_date)}</div>
                         </div>
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
-                          <div className="text-[10px] font-bold text-slate-500">선정일</div>
-                          <div className="mt-1 text-sm font-black text-slate-900">{formatDate(campaign.first_selection_date)}</div>
+                          <div className="text-2xs font-bold text-slate-500">선정일</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{formatDate(campaign.first_selection_date)}</div>
                         </div>
                         <div className="rounded-2xl bg-white/80 px-3 py-3">
-                          <div className="text-[10px] font-bold text-slate-500">리뷰 마감</div>
-                          <div className="mt-1 text-sm font-black text-slate-900">{health.reviewDaysLeft === null ? '-' : `${health.reviewDaysLeft}일`}</div>
-                          <div className="text-[10px] text-slate-500">{formatDate(health.reviewDeadline)}</div>
+                          <div className="text-2xs font-bold text-slate-500">리뷰 마감</div>
+                          <div className="mt-1 text-sm font-bold text-slate-900">{health.reviewDaysLeft === null ? '-' : `${health.reviewDaysLeft}일`}</div>
+                          <div className="text-2xs text-slate-500">{formatDate(health.reviewDeadline)}</div>
                         </div>
                       </div>
 
@@ -501,7 +501,7 @@ export default async function AdminProgressDashboardPage() {
           <div className="space-y-6">
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg font-black text-slate-900">
+                <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                   <TimerReset className="h-5 w-5 text-amber-500" /> 운영 우선순위 메모
                 </CardTitle>
                 <CardDescription>숫자를 바로 행동으로 연결할 수 있게 압축했습니다.</CardDescription>
@@ -520,7 +520,7 @@ export default async function AdminProgressDashboardPage() {
                 <div className="rounded-2xl bg-rose-50 p-4 text-rose-900">
                   <div className="font-bold">지금 가장 위험한 구간</div>
                   <div className="mt-2 text-sm leading-6">
-                    긴급 캠페인 <span className="font-black">{criticalCampaigns.length}건</span> · 리뷰 지연 <span className="font-black">{overdueApplicationsRes.count || 0}건</span> · 승인 대기 캠페인 <span className="font-black">{pendingCampaignsRes.count || 0}건</span>
+                    긴급 캠페인 <span className="font-bold">{criticalCampaigns.length}건</span> · 리뷰 지연 <span className="font-bold">{overdueApplicationsRes.count || 0}건</span> · 승인 대기 캠페인 <span className="font-bold">{pendingCampaignsRes.count || 0}건</span>
                   </div>
                 </div>
               </CardContent>
@@ -528,7 +528,7 @@ export default async function AdminProgressDashboardPage() {
 
             <Card className="border-0 shadow-sm">
               <CardHeader>
-                <CardTitle className="text-lg font-black text-slate-900">빠른 이동</CardTitle>
+                <CardTitle className="text-lg font-bold text-slate-900">빠른 이동</CardTitle>
                 <CardDescription>모바일에서 자주 오가는 화면만 묶었습니다.</CardDescription>
               </CardHeader>
               <CardContent className="grid grid-cols-2 gap-3">
@@ -560,7 +560,7 @@ export default async function AdminProgressDashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.72fr_1.28fr]">
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg font-black text-slate-900">
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                     <Users className="h-5 w-5 text-rose-500" /> 신청 파이프라인
                   </CardTitle>
                 </CardHeader>
@@ -568,7 +568,7 @@ export default async function AdminProgressDashboardPage() {
                   {applicationSummary.map((item) => (
                     <div key={item.key} className="rounded-2xl bg-slate-50 px-4 py-4">
                       <div className="text-xs font-bold text-slate-500">{item.label}</div>
-                      <div className="mt-1 text-3xl font-black text-slate-900">{item.count}</div>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">{item.count}</div>
                     </div>
                   ))}
                 </CardContent>
@@ -576,7 +576,7 @@ export default async function AdminProgressDashboardPage() {
 
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-black text-slate-900">최근 신청 유입</CardTitle>
+                  <CardTitle className="text-lg font-bold text-slate-900">최근 신청 유입</CardTitle>
                   <CardDescription>가장 최근 접수된 신청서 6건입니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -598,7 +598,7 @@ export default async function AdminProgressDashboardPage() {
                               {(application.user?.[0]?.nickname || application.user?.[0]?.name || application.user?.[0]?.email || '이름 없음')} · {APPLICATION_STATUS_LABELS[application.status] || application.status}
                             </div>
                           </div>
-                          <div className="shrink-0 text-right text-[11px] font-medium text-slate-400 sm:text-xs">{formatDateTime(application.created_at)}</div>
+                          <div className="shrink-0 text-right text-2xs font-medium text-slate-400 sm:text-xs">{formatDateTime(application.created_at)}</div>
                         </Link>
                       ))
                     )}
@@ -612,7 +612,7 @@ export default async function AdminProgressDashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[0.72fr_1.28fr]">
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg font-black text-slate-900">
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
                     <ClipboardCheck className="h-5 w-5 text-rose-500" /> 리뷰 파이프라인
                   </CardTitle>
                 </CardHeader>
@@ -620,7 +620,7 @@ export default async function AdminProgressDashboardPage() {
                   {reviewSummary.map((item) => (
                     <div key={item.key} className="rounded-2xl bg-slate-50 px-4 py-4">
                       <div className="text-xs font-bold text-slate-500">{item.label}</div>
-                      <div className="mt-1 text-3xl font-black text-slate-900">{item.count}</div>
+                      <div className="mt-1 text-3xl font-bold text-slate-900">{item.count}</div>
                     </div>
                   ))}
                 </CardContent>
@@ -628,7 +628,7 @@ export default async function AdminProgressDashboardPage() {
 
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-black text-slate-900">최근 등록 리뷰</CardTitle>
+                  <CardTitle className="text-lg font-bold text-slate-900">최근 등록 리뷰</CardTitle>
                   <CardDescription>관리자가 품질 확인해야 할 최신 리뷰 흐름입니다.</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -650,7 +650,7 @@ export default async function AdminProgressDashboardPage() {
                               {(review.author_name || '작성자 미상')} · {review.platform || 'LINK'} · {REVIEW_STATUS_LABELS[review.status] || review.status}
                             </div>
                           </div>
-                          <div className="shrink-0 text-right text-[11px] font-medium text-slate-400 sm:text-xs">{formatDateTime(review.created_at)}</div>
+                          <div className="shrink-0 text-right text-2xs font-medium text-slate-400 sm:text-xs">{formatDateTime(review.created_at)}</div>
                         </Link>
                       ))
                     )}
@@ -664,7 +664,7 @@ export default async function AdminProgressDashboardPage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-black text-slate-900">운영 체크 메모</CardTitle>
+                  <CardTitle className="text-lg font-bold text-slate-900">운영 체크 메모</CardTitle>
                   <CardDescription>페이지 숫자를 실무 행동으로 바로 연결하기 위한 요약입니다.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3 text-sm text-slate-600">
@@ -681,7 +681,7 @@ export default async function AdminProgressDashboardPage() {
                   <div className="rounded-2xl bg-rose-50 p-4 text-rose-900">
                     <div className="font-bold">지금 가장 위험한 구간</div>
                     <div className="mt-2 text-sm">
-                      긴급 캠페인 <span className="font-black">{criticalCampaigns.length}건</span>, 리뷰 지연 <span className="font-black">{overdueApplicationsRes.count || 0}건</span>
+                      긴급 캠페인 <span className="font-bold">{criticalCampaigns.length}건</span>, 리뷰 지연 <span className="font-bold">{overdueApplicationsRes.count || 0}건</span>
                     </div>
                   </div>
                 </CardContent>
@@ -689,7 +689,7 @@ export default async function AdminProgressDashboardPage() {
 
               <Card className="border-0 shadow-sm">
                 <CardHeader>
-                  <CardTitle className="text-lg font-black text-slate-900">빠른 이동</CardTitle>
+                  <CardTitle className="text-lg font-bold text-slate-900">빠른 이동</CardTitle>
                   <CardDescription>운영자가 자주 오가는 화면을 묶었습니다.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-2">

@@ -97,7 +97,7 @@ export default function BrandSettingsClient({ initialConfig }: BrandSettingsClie
     return (
         <div className="max-w-4xl mx-auto space-y-8">
             <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
-                <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-2">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
                     <Globe className="text-primary" />
                     파비콘 및 브랜드 자산 관리
                 </h2>
@@ -207,7 +207,7 @@ export default function BrandSettingsClient({ initialConfig }: BrandSettingsClie
                     <Button
                         onClick={handleSave}
                         disabled={isSaving || isUploading}
-                        className="bg-primary hover:bg-primary-dark text-white font-bold h-12 px-12 rounded-xl"
+                        size="lg" className="bg-primary hover:bg-primary-dark text-white px-12"
                     >
                         {isSaving ? (
                             <>

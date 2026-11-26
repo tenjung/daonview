@@ -206,7 +206,7 @@ export function UnifiedAdvertiserCampaigns({ initialData }: UnifiedAdvertiserCam
                             className="group flex flex-col items-center justify-center gap-1 p-4 bg-gray-50 border-2 border-transparent rounded-2xl hover:bg-rose-50 hover:border-rose-200 transition-all"
                         >
                             <span className="text-lg font-bold text-gray-900 group-hover:text-primary">+{days}일</span>
-                            <span className="text-[10px] text-gray-400">연장하기</span>
+                            <span className="text-2xs text-gray-400">연장하기</span>
                         </button>
                     ))}
                 </div>

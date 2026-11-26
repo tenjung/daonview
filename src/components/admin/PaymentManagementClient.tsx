@@ -277,8 +277,8 @@ export default function PaymentManagementClient() {
                         <TrendingUp size={24} />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">누적 총 매출</p>
-                        <h3 className="text-lg font-black text-slate-900 mt-0.5">{totalSales.toLocaleString()}<span className="text-[10px] font-bold ml-1 text-slate-400">원</span></h3>
+                        <p className="text-slate-400 text-2xs font-bold uppercase tracking-widest">누적 총 매출</p>
+                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">{totalSales.toLocaleString()}<span className="text-2xs font-bold ml-1 text-slate-400">원</span></h3>
                     </div>
                 </div>
 
@@ -287,8 +287,8 @@ export default function PaymentManagementClient() {
                         <ArrowUpRight size={24} />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">금일 결제액</p>
-                        <h3 className="text-lg font-black text-slate-900 mt-0.5">{todaySales.toLocaleString()}<span className="text-[10px] font-bold ml-1 text-slate-400">원</span></h3>
+                        <p className="text-slate-400 text-2xs font-bold uppercase tracking-widest">금일 결제액</p>
+                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">{todaySales.toLocaleString()}<span className="text-2xs font-bold ml-1 text-slate-400">원</span></h3>
                     </div>
                 </div>
 
@@ -297,8 +297,8 @@ export default function PaymentManagementClient() {
                         <ArrowDownRight size={24} />
                     </div>
                     <div>
-                        <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">취소 건수</p>
-                        <h3 className="text-lg font-black text-slate-900 mt-0.5">{cancelledCount}<span className="text-[10px] font-bold ml-1 text-slate-400">건</span></h3>
+                        <p className="text-slate-400 text-2xs font-bold uppercase tracking-widest">취소 건수</p>
+                        <h3 className="text-lg font-bold text-slate-900 mt-0.5">{cancelledCount}<span className="text-2xs font-bold ml-1 text-slate-400">건</span></h3>
                     </div>
                 </div>
             </div>
@@ -320,7 +320,7 @@ export default function PaymentManagementClient() {
                             key={filter}
                             onClick={() => setStatusFilter(filter)}
                             className={cn(
-                                'px-4 py-2 rounded-xl text-xs font-black transition-all flex-1 md:flex-none',
+                                'px-4 py-2 rounded-xl text-xs font-bold transition-all flex-1 md:flex-none',
                                 statusFilter === filter ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'
                             )}
                         >
@@ -336,14 +336,14 @@ export default function PaymentManagementClient() {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100 text-[11px]">
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest text-center w-32">결제일시</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest">광고주 / 브랜드</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest">캠페인 정보</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest text-right">결제금액</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest text-center">상태</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest text-center">환불 요청</th>
-                                <th className="px-6 py-3 font-black text-slate-400 uppercase tracking-widest text-center">관리</th>
+                            <tr className="bg-slate-50/50 border-b border-slate-100 text-2xs">
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest text-center w-32">결제일시</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest">광고주 / 브랜드</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest">캠페인 정보</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest text-right">결제금액</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest text-center">상태</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest text-center">환불 요청</th>
+                                <th className="px-6 py-3 font-bold text-slate-400 uppercase tracking-widest text-center">관리</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -367,10 +367,10 @@ export default function PaymentManagementClient() {
                                         <tr key={payment.id} className="hover:bg-slate-50/50 transition-colors group">
                                             <td className="px-6 py-3 text-center">
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-[11px] font-black text-slate-700">
+                                                    <span className="text-2xs font-bold text-slate-700">
                                                         {format(new Date(payment.created_at), 'yyyy.MM.dd')}
                                                     </span>
-                                                    <span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
+                                                    <span className="text-2xs font-bold text-slate-400 flex items-center gap-1">
                                                         <Clock size={9} />
                                                         {format(new Date(payment.created_at), 'HH:mm')}
                                                     </span>
@@ -378,33 +378,33 @@ export default function PaymentManagementClient() {
                                             </td>
                                             <td className="px-6 py-3">
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-black text-slate-900">
+                                                    <span className="text-xs font-bold text-slate-900">
                                                         {payment.profiles?.company_name || payment.profiles?.nickname || '정보 없음'}
                                                     </span>
-                                                    <span className="text-[9px] font-bold text-slate-400 italic">
+                                                    <span className="text-2xs font-bold text-slate-400 italic">
                                                         {payment.profiles?.email || '-'}
                                                     </span>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3">
                                                 <div className="flex flex-col">
-                                                    <span className="text-[12px] font-black text-slate-700 line-clamp-1">
+                                                    <span className="text-xs font-bold text-slate-700 line-clamp-1">
                                                         {payment.campaigns?.title || '시스템/직접 결제'}
                                                     </span>
                                                     <div className="flex gap-1 mt-0.5">
-                                                        <span className="text-[8px] px-1 py-0.5 bg-slate-100 text-slate-500 rounded font-black border border-slate-200 uppercase tracking-tighter">
+                                                        <span className="text-2xs px-1 py-0.5 bg-slate-100 text-slate-500 rounded font-bold border border-slate-200 uppercase tracking-tighter">
                                                             {payment.method}
                                                         </span>
-                                                        <span className="text-[8px] text-slate-300 font-bold truncate max-w-[100px]">
+                                                        <span className="text-2xs text-slate-300 font-bold truncate max-w-[100px]">
                                                             #{payment.payment_id}
                                                         </span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-3 text-right">
-                                                <span className="text-sm font-black text-slate-900 tracking-tighter">
+                                                <span className="text-sm font-bold text-slate-900 tracking-tighter">
                                                     {payment.amount.toLocaleString()}
-                                                    <span className="text-[9px] ml-0.5 text-slate-400">원</span>
+                                                    <span className="text-2xs ml-0.5 text-slate-400">원</span>
                                                 </span>
                                             </td>
                                             <td className="px-6 py-3 text-center">
@@ -412,7 +412,7 @@ export default function PaymentManagementClient() {
                                                     <StatusBadgeCell
                                                         status={payment.status}
                                                         domain="PAYMENT"
-                                                        className="text-[11px] font-bold"
+                                                        className="text-2xs font-bold"
                                                     />
                                                 </div>
                                             </td>
@@ -423,19 +423,19 @@ export default function PaymentManagementClient() {
                                                             <StatusBadgeCell
                                                                 status={refundRequest.status}
                                                                 domain="REFUND_REQUEST"
-                                                                className="text-[11px] font-bold"
+                                                                className="text-2xs font-bold"
                                                             />
-                                                            <span className="max-w-[180px] text-[9px] leading-relaxed font-bold text-slate-400 line-clamp-2">
+                                                            <span className="max-w-[180px] text-2xs leading-relaxed font-bold text-slate-400 line-clamp-2">
                                                                 {refundRequest.request_reason}
                                                             </span>
                                                             {refundRequest.refund_amount != null && (
-                                                                <span className="text-[9px] font-black text-slate-500">
+                                                                <span className="text-2xs font-bold text-slate-500">
                                                                     환불액 {refundRequest.refund_amount.toLocaleString()}원
                                                                 </span>
                                                             )}
                                                         </>
                                                     ) : (
-                                                        <span className="text-[10px] font-bold text-slate-300">요청 없음</span>
+                                                        <span className="text-2xs font-bold text-slate-300">요청 없음</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -482,7 +482,7 @@ export default function PaymentManagementClient() {
                                                                     setRefundAmount('');
                                                                     setAdminNote('');
                                                                 }}
-                                                                className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-black text-emerald-700 transition-all hover:bg-emerald-100"
+                                                                className="inline-flex items-center gap-1 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-2xs font-bold text-emerald-700 transition-all hover:bg-emerald-100"
                                                             >
                                                                 <CheckCircle2 size={12} />
                                                                 승인
@@ -493,7 +493,7 @@ export default function PaymentManagementClient() {
                                                                     setRejectTarget(refundRequest);
                                                                     setRejectNote('');
                                                                 }}
-                                                                className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-[10px] font-black text-rose-700 transition-all hover:bg-rose-100"
+                                                                className="inline-flex items-center gap-1 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-2xs font-bold text-rose-700 transition-all hover:bg-rose-100"
                                                             >
                                                                 <XCircle size={12} />
                                                                 반려
@@ -514,18 +514,18 @@ export default function PaymentManagementClient() {
             <Dialog open={!!approveTarget} onOpenChange={(open) => !open && resetApproveState()}>
                 <DialogContent className="max-w-xl rounded-3xl border-none bg-white p-0 shadow-2xl">
                     <DialogHeader className="border-b border-slate-100 px-6 py-5">
-                        <DialogTitle className="text-xl font-black text-slate-900">환불 승인 처리</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-slate-900">환불 승인 처리</DialogTitle>
                         <DialogDescription className="text-sm text-slate-500">
                             요청 사유를 확인한 뒤 전액 또는 부분 환불을 실행합니다.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-5 px-6 py-5">
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
-                            <p className="font-black text-slate-900 mb-1">요청 사유</p>
+                            <p className="font-bold text-slate-900 mb-1">요청 사유</p>
                             <p>{approveTarget?.request_reason || '-'}</p>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-black text-slate-900">환불 유형</label>
+                            <label className="text-sm font-bold text-slate-900">환불 유형</label>
                             <Select value={refundType} onValueChange={(value) => setRefundType(value as RefundType)}>
                                 <SelectTrigger className="rounded-2xl border-slate-200">
                                     <SelectValue />
@@ -538,7 +538,7 @@ export default function PaymentManagementClient() {
                         </div>
                         {refundType === 'PARTIAL' && (
                             <div className="space-y-2">
-                                <label className="text-sm font-black text-slate-900">부분 환불 금액</label>
+                                <label className="text-sm font-bold text-slate-900">부분 환불 금액</label>
                                 <input
                                     type="number"
                                     min={1}
@@ -550,7 +550,7 @@ export default function PaymentManagementClient() {
                             </div>
                         )}
                         <div className="space-y-2">
-                            <label className="text-sm font-black text-slate-900">관리자 메모</label>
+                            <label className="text-sm font-bold text-slate-900">관리자 메모</label>
                             <Textarea
                                 value={adminNote}
                                 onChange={(event) => setAdminNote(event.target.value)}
@@ -563,7 +563,7 @@ export default function PaymentManagementClient() {
                         <button
                             type="button"
                             onClick={resetApproveState}
-                            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 transition-all hover:bg-slate-50"
+                            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
                             disabled={isSubmitting}
                         >
                             닫기
@@ -572,7 +572,7 @@ export default function PaymentManagementClient() {
                             type="button"
                             onClick={() => void handleApprove()}
                             disabled={isSubmitting || (refundType === 'PARTIAL' && !refundAmount)}
-                            className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-emerald-700 disabled:opacity-60"
+                            className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-emerald-700 disabled:opacity-60"
                         >
                             {isSubmitting ? '처리 중...' : '환불 승인 실행'}
                         </button>
@@ -583,18 +583,18 @@ export default function PaymentManagementClient() {
             <Dialog open={!!rejectTarget} onOpenChange={(open) => !open && resetRejectState()}>
                 <DialogContent className="max-w-lg rounded-3xl border-none bg-white p-0 shadow-2xl">
                     <DialogHeader className="border-b border-slate-100 px-6 py-5">
-                        <DialogTitle className="text-xl font-black text-slate-900">환불 요청 반려</DialogTitle>
+                        <DialogTitle className="text-xl font-bold text-slate-900">환불 요청 반려</DialogTitle>
                         <DialogDescription className="text-sm text-slate-500">
                             반려 사유를 남기면 광고주가 요청 상태를 확인할 수 있습니다.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 px-6 py-5">
                         <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
-                            <p className="font-black text-slate-900 mb-1">요청 사유</p>
+                            <p className="font-bold text-slate-900 mb-1">요청 사유</p>
                             <p>{rejectTarget?.request_reason || '-'}</p>
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-black text-slate-900">반려 메모</label>
+                            <label className="text-sm font-bold text-slate-900">반려 메모</label>
                             <Textarea
                                 value={rejectNote}
                                 onChange={(event) => setRejectNote(event.target.value)}
@@ -607,7 +607,7 @@ export default function PaymentManagementClient() {
                         <button
                             type="button"
                             onClick={resetRejectState}
-                            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-black text-slate-600 transition-all hover:bg-slate-50"
+                            className="rounded-2xl border border-slate-200 px-5 py-3 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
                             disabled={isSubmitting}
                         >
                             닫기
@@ -616,7 +616,7 @@ export default function PaymentManagementClient() {
                             type="button"
                             onClick={() => void handleReject()}
                             disabled={isSubmitting || !rejectNote.trim()}
-                            className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-black text-white transition-all hover:bg-rose-700 disabled:opacity-60"
+                            className="rounded-2xl bg-rose-600 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-rose-700 disabled:opacity-60"
                         >
                             {isSubmitting ? '처리 중...' : '반려 확정'}
                         </button>

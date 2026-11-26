@@ -160,7 +160,7 @@ export default function AdminVerificationManagementPage() {
                                                     <p className="text-xs text-gray-400 font-medium">@{req.nickname || '익명'}</p>
                                                 </div>
                                             </div>
-                                            <div className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                                            <div className={`px-2.5 py-1 rounded-lg text-2xs font-bold uppercase tracking-wider ${
                                                 req.biz_verification_status === 'APPROVED' ? 'bg-emerald-50 text-emerald-600' :
                                                 req.biz_verification_status === 'REJECTED' ? 'bg-rose-50 text-rose-600' : 'bg-amber-50 text-amber-600'
                                             }`}>
@@ -229,7 +229,7 @@ export default function AdminVerificationManagementPage() {
 
                                         {req.biz_verification_status === 'REJECTED' && req.biz_rejection_reason && (
                                             <div className="p-3 bg-rose-50 rounded-xl border border-rose-100">
-                                                <p className="text-[10px] font-black text-rose-400 uppercase mb-1">반려 사유</p>
+                                                <p className="text-2xs font-bold text-rose-400 uppercase mb-1">반려 사유</p>
                                                 <p className="text-xs text-rose-600 font-medium italic leading-relaxed">
                                                     {req.biz_rejection_reason}
                                                 </p>

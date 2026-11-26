@@ -18,6 +18,8 @@ import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { StatusBadgeCell } from '@/components/data-table/cells/StatusBadgeCell';
 import { COUPON_STATUS_LABELS } from '@/constants/status';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface Coupon {
     id: string;
@@ -140,7 +142,7 @@ export default function CouponManagementClient() {
                 actions={
                 <button 
                     onClick={() => setShowCreateModal(true)}
-                    className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-black flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95"
+                    className="bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-all shadow-lg active:scale-95"
                 >
                     <Plus size={20} />
                     쿠폰 신규 발행
@@ -150,7 +152,7 @@ export default function CouponManagementClient() {
             {/* Coupons Table */}
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                 <div className="p-6 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                    <h2 className="font-black text-slate-800">쿠폰 목록 <span className="text-rose-500 ml-1">{coupons.length}</span></h2>
+                    <h2 className="font-bold text-slate-800">쿠폰 목록 <span className="text-rose-500 ml-1">{coupons.length}</span></h2>
                     <button 
                         onClick={fetchCoupons}
                         className="p-2 text-slate-400 hover:text-slate-600 transition-colors"
@@ -163,11 +165,11 @@ export default function CouponManagementClient() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white border-b border-slate-50">
-                                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">상태</th>
-                                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">쿠폰 코드</th>
-                                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest">혜택 구성</th>
-                                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">유효기간</th>
-                                <th className="px-6 py-4 text-xs font-black text-slate-400 uppercase tracking-widest text-center">사용 정보</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">상태</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">쿠폰 코드</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">혜택 구성</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">유효기간</th>
+                                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-center">사용 정보</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -188,12 +190,12 @@ export default function CouponManagementClient() {
                                             <StatusBadgeCell
                                                 status={coupon.status}
                                                 domain="COUPON"
-                                                className="text-[11px] font-bold"
+                                                className="text-2xs font-bold"
                                             />
                                         </td>
                                         <td className="px-6 py-5">
                                             <div className="flex items-center gap-2">
-                                                <code className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg font-black text-[13px] tracking-tight border border-slate-200">
+                                                <code className="bg-slate-100 text-slate-700 px-3 py-1.5 rounded-lg font-bold text-body-sm tracking-tight border border-slate-200">
                                                     {coupon.code}
                                                 </code>
                                                 <button 
@@ -207,23 +209,23 @@ export default function CouponManagementClient() {
                                         <td className="px-6 py-5">
                                             <div className="flex flex-wrap gap-1.5">
                                                 {coupon.benefits.is_vip ? (
-                                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-[10px] font-black border border-amber-200">VIP 평생무료</span>
+                                                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-md text-2xs font-bold border border-amber-200">VIP 평생무료</span>
                                                 ) : (
                                                     <>
-                                                        {coupon.benefits.visit_free ? <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-[10px] font-black border border-blue-100">방문 {coupon.benefits.visit_free}회</span> : null}
-                                                        {coupon.benefits.delivery_free ? <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-[10px] font-black border border-indigo-100">배송 {coupon.benefits.delivery_free}회</span> : null}
-                                                        {coupon.benefits.purchase_free ? <span className="bg-violet-50 text-violet-700 px-2 py-0.5 rounded-md text-[10px] font-black border border-violet-100">구매평 {coupon.benefits.purchase_free}건</span> : null}
-                                                        {!coupon.benefits.visit_free && !coupon.benefits.delivery_free && !coupon.benefits.purchase_free && <span className="text-slate-300 text-[10px] font-bold">혜택 없음</span>}
+                                                        {coupon.benefits.visit_free ? <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-md text-2xs font-bold border border-blue-100">방문 {coupon.benefits.visit_free}회</span> : null}
+                                                        {coupon.benefits.delivery_free ? <span className="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md text-2xs font-bold border border-indigo-100">배송 {coupon.benefits.delivery_free}회</span> : null}
+                                                        {coupon.benefits.purchase_free ? <span className="bg-violet-50 text-violet-700 px-2 py-0.5 rounded-md text-2xs font-bold border border-violet-100">구매평 {coupon.benefits.purchase_free}건</span> : null}
+                                                        {!coupon.benefits.visit_free && !coupon.benefits.delivery_free && !coupon.benefits.purchase_free && <span className="text-slate-300 text-2xs font-bold">혜택 없음</span>}
                                                     </>
                                                 )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-5 text-center">
                                             <div className="flex flex-col items-center">
-                                                <span className="text-[12px] font-black text-slate-600">
+                                                <span className="text-xs font-bold text-slate-600">
                                                     {format(new Date(coupon.expires_at), 'yyyy.MM.dd')}
                                                 </span>
-                                                <span className="text-[10px] font-bold text-slate-400">
+                                                <span className="text-2xs font-bold text-slate-400">
                                                     ~ {format(new Date(coupon.expires_at), 'HH:mm')} 까지
                                                 </span>
                                             </div>
@@ -231,13 +233,13 @@ export default function CouponManagementClient() {
                                         <td className="px-6 py-5 text-center">
                                             {coupon.status === 'USED' ? (
                                                 <div className="flex flex-col items-center">
-                                                    <span className="text-[12px] font-black text-rose-600">{coupon.profiles?.nickname || '익명회원'}</span>
-                                                    <span className="text-[10px] font-bold text-slate-400 italic">
+                                                    <span className="text-xs font-bold text-rose-600">{coupon.profiles?.nickname || '익명회원'}</span>
+                                                    <span className="text-2xs font-bold text-slate-400 italic">
                                                         {format(new Date(coupon.used_at!), 'MM/dd HH:mm')} 사용
                                                     </span>
                                                 </div>
                                             ) : (
-                                                <span className="text-slate-300 text-[11px] font-bold">-</span>
+                                                <span className="text-slate-300 text-2xs font-bold">-</span>
                                             )}
                                         </td>
                                     </tr>
@@ -258,32 +260,32 @@ export default function CouponManagementClient() {
                     <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in-95 duration-200">
                         <div className="space-y-6">
                             <div className="text-center">
-                                <h2 className="text-2xl font-black text-slate-900">쿠폰 신규 발행</h2>
+                                <h2 className="text-2xl font-bold text-slate-900">쿠폰 신규 발행</h2>
                                 <p className="text-slate-500 font-bold mt-1">혜택과 수량을 설정해 주세요</p>
                             </div>
 
                             <div className="space-y-6 bg-slate-50 p-6 rounded-3xl border border-slate-100">
                                 {/* 혜택 선택 */}
                                 <div className="space-y-4">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">혜택 항목 설정</label>
+                                    <label className="text-2xs font-bold text-slate-400 uppercase tracking-widest pl-1">혜택 항목 설정</label>
                                     
                                     <div className="grid grid-cols-1 gap-3">
                                         {/* 방문형 */}
                                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-                                            <span className="font-black text-slate-700">방문형 체험단 프리임</span>
+                                            <span className="font-bold text-slate-700">방문형 체험단 프리임</span>
                                             <div className="flex items-center gap-3">
                                                 <button onClick={() => setNewCoupon(p => ({ ...p, visit_free: Math.max(0, p.visit_free - 1) }))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold">-</button>
-                                                <span className="w-6 text-center font-black">{newCoupon.visit_free}</span>
+                                                <span className="w-6 text-center font-bold">{newCoupon.visit_free}</span>
                                                 <button onClick={() => setNewCoupon(p => ({ ...p, visit_free: p.visit_free + 1 }))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold">+</button>
                                             </div>
                                         </div>
 
                                         {/* 배송형 */}
                                         <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
-                                            <span className="font-black text-slate-700">배송형 체험단 프리</span>
+                                            <span className="font-bold text-slate-700">배송형 체험단 프리</span>
                                             <div className="flex items-center gap-3">
                                                 <button onClick={() => setNewCoupon(p => ({ ...p, delivery_free: Math.max(0, p.delivery_free - 1) }))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold">-</button>
-                                                <span className="w-6 text-center font-black">{newCoupon.delivery_free}</span>
+                                                <span className="w-6 text-center font-bold">{newCoupon.delivery_free}</span>
                                                 <button onClick={() => setNewCoupon(p => ({ ...p, delivery_free: p.delivery_free + 1 }))} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center font-bold">+</button>
                                             </div>
                                         </div>
@@ -297,7 +299,7 @@ export default function CouponManagementClient() {
                                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center ${newCoupon.is_vip ? 'bg-amber-500' : 'bg-slate-200'}`}>
                                                     {newCoupon.is_vip && <Check size={12} className="text-white" />}
                                                 </div>
-                                                <span className={`font-black ${newCoupon.is_vip ? 'text-amber-900' : 'text-slate-700'}`}>VIP 평생 무료 혜택</span>
+                                                <span className={`font-bold ${newCoupon.is_vip ? 'text-amber-900' : 'text-slate-700'}`}>VIP 평생 무료 혜택</span>
                                             </div>
                                         </button>
                                     </div>
@@ -305,29 +307,29 @@ export default function CouponManagementClient() {
 
                                 {/* 발행 수량 */}
                                 <div className="space-y-3">
-                                    <label className="text-[11px] font-black text-slate-400 uppercase tracking-widest pl-1">발행 수량</label>
+                                    <label className="text-2xs font-bold text-slate-400 uppercase tracking-widest pl-1">발행 수량</label>
                                     <input 
                                         type="number" 
                                         min="1"
                                         max="100"
                                         value={newCoupon.count}
                                         onChange={(e) => setNewCoupon(p => ({ ...p, count: parseInt(e.target.value) || 1 }))}
-                                        className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-black focus:border-rose-500 transition-all outline-none"
+                                        className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 font-bold focus:border-rose-500 transition-all outline-none"
                                     />
-                                    <p className="text-[10px] text-slate-400 font-bold px-1">* 코드 7일 유효기간 자동 설정 (발행 후 재사용 불가)</p>
+                                    <p className="text-2xs text-slate-400 font-bold px-1">* 코드 7일 유효기간 자동 설정 (발행 후 재사용 불가)</p>
                                 </div>
                             </div>
 
                             <div className="flex gap-3">
                                 <button 
                                     onClick={() => setShowCreateModal(false)}
-                                    className="flex-1 px-6 py-4 rounded-2xl font-black text-slate-500 bg-slate-100 hover:bg-slate-200 transition-all"
+                                    className="flex-1 px-6 py-4 rounded-2xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-all"
                                 >
                                     취소
                                 </button>
                                 <button 
                                     onClick={handleCreateCoupons}
-                                    className="flex-2 bg-rose-500 text-white px-8 py-4 rounded-2xl font-black hover:bg-rose-600 transition-all shadow-lg shadow-rose-500/30 active:scale-95"
+                                    className={cn(buttonVariants({ size: 'lg' }), 'flex-2 bg-rose-500 text-white px-8 hover:bg-rose-600')}
                                 >
                                     지금 발행하기
                                 </button>

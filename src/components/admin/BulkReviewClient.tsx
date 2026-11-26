@@ -138,7 +138,7 @@ export default function BulkReviewClient({ user }: { user: any }) {
                         </Button>
                         <Button
                             type="submit"
-                            className="flex-1 h-12 bg-rose-500 hover:bg-rose-600 text-white font-bold"
+                            size="lg" className="flex-1 bg-rose-500 hover:bg-rose-600 text-white"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? (
@@ -159,18 +159,18 @@ export default function BulkReviewClient({ user }: { user: any }) {
                 {/* 결과 표시 */}
                 {summary && (
                     <div className="bg-white rounded-3xl border-2 border-gray-100 p-8 shadow-sm">
-                        <h2 className="text-2xl font-black text-gray-900 mb-6">등록 결과</h2>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-6">등록 결과</h2>
                         <div className="grid grid-cols-3 gap-4 mb-8">
                             <div className="bg-gray-50 rounded-xl p-4 text-center">
-                                <div className="text-3xl font-black text-gray-900">{summary.total}</div>
+                                <div className="text-3xl font-bold text-gray-900">{summary.total}</div>
                                 <div className="text-sm text-gray-500 mt-1">전체</div>
                             </div>
                             <div className="bg-green-50 rounded-xl p-4 text-center">
-                                <div className="text-3xl font-black text-green-600">{summary.success}</div>
+                                <div className="text-3xl font-bold text-green-600">{summary.success}</div>
                                 <div className="text-sm text-green-700 mt-1">성공</div>
                             </div>
                             <div className="bg-red-50 rounded-xl p-4 text-center">
-                                <div className="text-3xl font-black text-red-600">{summary.failed}</div>
+                                <div className="text-3xl font-bold text-red-600">{summary.failed}</div>
                                 <div className="text-sm text-red-700 mt-1">실패</div>
                             </div>
                         </div>

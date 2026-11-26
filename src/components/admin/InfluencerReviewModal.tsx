@@ -259,7 +259,7 @@ export default function InfluencerReviewModal({
                         <div className="space-y-4">
                             {/* 긍정 태그 */}
                             <div className="bg-emerald-50/30 p-4 rounded-2xl border border-emerald-100/50">
-                                <div className="text-[11px] font-black text-emerald-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                                <div className="text-2xs font-bold text-emerald-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                                     긍정적인 부분
                                 </div>
@@ -282,7 +282,7 @@ export default function InfluencerReviewModal({
                             <div className="grid grid-cols-2 gap-4">
                                 {/* 주의 태그 */}
                                 <div className="bg-amber-50/30 p-4 rounded-2xl border border-amber-100/50">
-                                    <div className="text-[11px] font-black text-amber-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                                    <div className="text-2xs font-bold text-amber-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                         주의가 필요해요
                                     </div>
@@ -304,7 +304,7 @@ export default function InfluencerReviewModal({
 
                                 {/* 부정 태그 */}
                                 <div className="bg-rose-50/30 p-4 rounded-2xl border border-rose-100/50">
-                                    <div className="text-[11px] font-black text-rose-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                                    <div className="text-2xs font-bold text-rose-600 mb-3 uppercase tracking-wider flex items-center gap-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
                                         문제가 있었어요
                                     </div>
@@ -351,7 +351,7 @@ export default function InfluencerReviewModal({
                             >
                                 <div className="flex items-center gap-2">
                                     <h3 className="text-sm font-bold text-gray-900">이전 평가 히스토리</h3>
-                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{existingReviews.length}건</span>
+                                    <span className="text-2xs font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{existingReviews.length}건</span>
                                 </div>
                                 {isHistoryOpen ? <ChevronUp className="text-gray-400 group-hover:text-gray-600" size={20} /> : <ChevronDown className="text-gray-400 group-hover:text-gray-600" size={20} />}
                             </button>
@@ -362,14 +362,14 @@ export default function InfluencerReviewModal({
                                         <div key={review.id} className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-gray-200 transition-all shadow-sm">
                                             <div className="flex items-start justify-between mb-3">
                                                 <div className="flex items-center gap-2">
-                                                    <div className={`px-2 py-0.5 rounded-lg text-[10px] font-black border ${getSatisfactionColor(review.satisfaction)}`}>
+                                                    <div className={`px-2 py-0.5 rounded-lg text-2xs font-bold border ${getSatisfactionColor(review.satisfaction)}`}>
                                                         {getSatisfactionLabel(review.satisfaction || 'NORMAL')}
                                                     </div>
                                                     <div>
                                                         <p className="text-xs font-bold text-gray-900">
                                                             {review.reviewer?.nickname || '운영자'}
                                                         </p>
-                                                        <p className="text-[10px] text-gray-400 font-medium">
+                                                        <p className="text-2xs text-gray-400 font-medium">
                                                             {new Date(review.created_at).toLocaleDateString()}
                                                             {review.campaign && ` · ${review.campaign.title}`}
                                                         </p>

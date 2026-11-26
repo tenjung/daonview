@@ -121,15 +121,15 @@ export default function DuplicateCleanupClient() {
                 {stats && (
                     <div className="grid grid-cols-3 gap-4 mb-6">
                         <div className="bg-gray-50 rounded-xl p-4 text-center">
-                            <div className="text-3xl font-black text-gray-900">{stats.total}</div>
+                            <div className="text-3xl font-bold text-gray-900">{stats.total}</div>
                             <div className="text-sm text-gray-500 mt-1">전체 리뷰</div>
                         </div>
                         <div className="bg-yellow-50 rounded-xl p-4 text-center">
-                            <div className="text-3xl font-black text-yellow-600">{stats.duplicates}</div>
+                            <div className="text-3xl font-bold text-yellow-600">{stats.duplicates}</div>
                             <div className="text-sm text-yellow-700 mt-1">중복 URL</div>
                         </div>
                         <div className="bg-red-50 rounded-xl p-4 text-center">
-                            <div className="text-3xl font-black text-red-600">{stats.deleted}</div>
+                            <div className="text-3xl font-bold text-red-600">{stats.deleted}</div>
                             <div className="text-sm text-red-700 mt-1">삭제됨</div>
                         </div>
                     </div>
@@ -139,7 +139,7 @@ export default function DuplicateCleanupClient() {
                 <Button
                     onClick={cleanupDuplicates}
                     disabled={isProcessing}
-                    className="w-full h-14 bg-red-500 hover:bg-red-600 text-white font-bold text-lg mb-6"
+                    size="lg" className="w-full bg-red-500 hover:bg-red-600 text-white mb-6"
                 >
                     {isProcessing ? (
                         <>
